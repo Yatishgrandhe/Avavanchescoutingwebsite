@@ -2,6 +2,24 @@ import NextAuth from 'next-auth';
 import DiscordProvider from 'next-auth/providers/discord';
 import { SupabaseAdapter } from '@auth/supabase-adapter';
 
+// Validate required environment variables
+const requiredEnvVars = {
+  DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID,
+  DISCORD_CLIENT_SECRET: process.env.DISCORD_CLIENT_SECRET,
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+};
+
+// Check for missing environment variables
+const missingVars = Object.entries(requiredEnvVars)
+  .filter(([key, value]) => !value)
+  .map(([key]) => key);
+
+if (missingVars.length > 0) {
+  console.error('Missing required environment variables:', missingVars);
+}
+
 export const authOptions = {
   providers: [
     DiscordProvider({
@@ -44,7 +62,7 @@ export const authOptions = {
     error: '/auth/error',
   },
   session: {
-    strategy: 'database' as const,
+    strategy: 'jwt' as const,
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',

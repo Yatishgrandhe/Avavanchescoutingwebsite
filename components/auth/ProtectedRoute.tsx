@@ -1,7 +1,7 @@
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useSupabase } from '@/pages/_app';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -23,20 +23,20 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     </div>
   )
 }) => {
-  const { data: session, status } = useSession();
+  const { user, loading } = useSupabase();
   const router = useRouter();
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (!loading && !user) {
       router.push('/auth/signin');
     }
-  }, [status, router]);
+  }, [user, loading, router]);
 
-  if (status === 'loading') {
+  if (loading) {
     return <>{fallback}</>;
   }
 
-  if (status === 'unauthenticated') {
+  if (!user) {
     return <>{fallback}</>;
   }
 

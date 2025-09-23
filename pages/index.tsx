@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useSession, signIn } from 'next-auth/react';
+import { useRouter } from 'next/router';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,7 @@ import {
 import Layout from '@/components/layout/Layout';
 import Logo from '@/components/ui/Logo';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { useSupabase } from '@/pages/_app';
 
 // Avalanche animation component
 const AvalancheAnimation = () => {
@@ -123,16 +124,25 @@ const benefits = [
 ];
 
 export default function Home() {
-  const { data: session } = useSession();
+  const { user, loading } = useSupabase();
+  const router = useRouter();
 
-  if (session) {
+  const handleSignIn = () => {
+    router.push('/auth/signin');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (user) {
     return (
       <ProtectedRoute>
-        <Layout user={{
-          name: session.user?.name || 'User',
-          username: session.user?.email || undefined,
-          image: session.user?.image || undefined,
-        }}>
+        <Layout>
           <div className="space-y-8">
             {/* Welcome Section */}
             <motion.div
@@ -302,7 +312,7 @@ export default function Home() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => signIn('discord')}
+            onClick={handleSignIn}
             className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
           >
             <Shield className="mr-1 w-4 h-4" />
@@ -368,7 +378,7 @@ export default function Home() {
           >
           <Button
             size="lg"
-            onClick={() => signIn('discord')}
+            onClick={handleSignIn}
             className="text-lg px-8 py-4"
           >
             <Shield className="mr-2 w-5 h-5" />

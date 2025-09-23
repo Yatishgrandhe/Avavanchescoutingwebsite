@@ -1,28 +1,36 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getServerSession } from 'next-auth';
-import { authOptions } from './[...nextauth]';
+import { createClient } from '@supabase/supabase-js';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  try {
-    const session = await getServerSession(req, res, authOptions);
+  const { code, next = '/' } = req.query;
+
+  if (code) {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
-    if (session) {
-      // User is authenticated, redirect to home
-      res.redirect(302, '/');
-      return;
-    } else {
-      // User is not authenticated, redirect to sign in
-      res.redirect(302, '/auth/signin');
-      return;
+    try {
+      const { error } = await supabase.auth.exchangeCodeForSession(code as string);
+      
+      if (!error) {
+        // Redirect to the specified page or home
+        const redirectUrl = next.toString().startsWith('/') ? next.toString() : '/';
+        return res.redirect(302, redirectUrl);
+      } else {
+        console.error('Auth callback error:', error);
+        return res.redirect(302, '/auth/error?message=Authentication failed');
+      }
+    } catch (error) {
+      console.error('Auth callback error:', error);
+      return res.redirect(302, '/auth/error?message=Authentication failed');
     }
-  } catch (error) {
-    console.error('Auth callback error:', error);
-    res.redirect(302, '/auth/error');
-    return;
   }
+
+  // If no code, redirect to error page
+  return res.redirect(302, '/auth/error?message=No authentication code provided');
 }

@@ -1,9 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { signIn, getProviders } from 'next-auth/react';
-import { GetServerSideProps } from 'next';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../api/auth/[...nextauth]';
+import { createClient } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { 
@@ -72,11 +69,34 @@ const AvalancheBackground = () => {
   );
 };
 
-interface SignInProps {
-  providers: any;
-}
+export default function SignIn() {
+  const [isLoading, setIsLoading] = useState(false);
 
-export default function SignIn({ providers }: SignInProps) {
+  const handleDiscordSignIn = async () => {
+    setIsLoading(true);
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'discord',
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback`,
+        },
+      });
+
+      if (error) {
+        console.error('Discord sign in error:', error);
+        // Handle error - you might want to show a toast or error message
+      }
+    } catch (error) {
+      console.error('Sign in error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Avalanche Background */}
@@ -162,24 +182,24 @@ export default function SignIn({ providers }: SignInProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.6 }}
               >
-                {Object.values(providers).map((provider: any) => (
-                  <Button
-                    key={provider.name}
-                    onClick={() => signIn(provider.id, { callbackUrl: '/' })}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg group"
-                  >
-                    <div className="flex items-center justify-center space-x-3">
-                      <motion.div
-                        animate={{ rotate: [0, 10, -10, 0] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      >
-                        <Snowflake className="w-6 h-6" />
-                      </motion.div>
-                      <span className="text-lg">Sign in with {provider.name}</span>
-                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </Button>
-                ))}
+                <Button
+                  onClick={handleDiscordSignIn}
+                  disabled={isLoading}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="flex items-center justify-center space-x-3">
+                    <motion.div
+                      animate={{ rotate: [0, 10, -10, 0] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      <Snowflake className="w-6 h-6" />
+                    </motion.div>
+                    <span className="text-lg">
+                      {isLoading ? 'Signing in...' : 'Sign in with Discord'}
+                    </span>
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </Button>
               </motion.div>
 
               {/* Additional Info */}
@@ -214,23 +234,4 @@ export default function SignIn({ providers }: SignInProps) {
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const session = await getServerSession(context.req, context.res, authOptions);
-
-  if (session) {
-    return {
-      redirect: {
-        destination: '/',
-        permanent: false,
-      },
-    };
-  }
-
-  const providers = await getProviders();
-
-  return {
-    props: {
-      providers: providers ?? [],
-    },
-  };
-};
+// No server-side props needed for Supabase auth

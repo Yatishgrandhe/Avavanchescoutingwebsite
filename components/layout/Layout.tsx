@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sun, Moon, Bell, User, LogOut } from 'lucide-react';
-import { signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
@@ -15,23 +14,21 @@ import {
 import { Badge } from '@/components/ui/badge';
 import Sidebar from './Sidebar';
 import Logo from '@/components/ui/Logo';
+import { useSupabase } from '@/pages/_app';
 
 interface LayoutProps {
   children: React.ReactNode;
-  user?: {
-    name: string;
-    username?: string;
-    image?: string;
-  };
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, user }) => {
+const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const { user, supabase } = useSupabase();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/auth/signin' });
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/auth/signin';
   };
 
   return (
@@ -42,7 +39,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user }) => {
         isCollapsed={isSidebarCollapsed}
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         user={user}
-        
       />
       
       <div className="flex-1 flex flex-col">
@@ -103,9 +99,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user }) => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.image} alt={user.name} />
+                      <AvatarImage src={user.user_metadata?.avatar_url} alt={user.user_metadata?.full_name || user.email} />
                       <AvatarFallback>
-                        {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                        {(user.user_metadata?.full_name || user.email || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -113,9 +109,11 @@ const Layout: React.FC<LayoutProps> = ({ children, user }) => {
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.name}</p>
+                      <p className="text-sm font-medium leading-none">
+                        {user.user_metadata?.full_name || user.email}
+                      </p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        {user.username}
+                        {user.user_metadata?.username || user.email}
                       </p>
                     </div>
                   </DropdownMenuLabel>

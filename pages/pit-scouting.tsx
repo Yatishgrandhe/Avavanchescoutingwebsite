@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
 import Layout from '@/components/layout/Layout';
-import { Button } from '../components/ui';
-import { Input } from '../components/ui';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui';
+import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui';
 import { 
   Wrench, 
   CheckCircle, 
@@ -126,8 +124,22 @@ export default function PitScouting() {
     setSubmitSuccess(false);
 
     try {
+      // Prepare the data with submitter information
+      const submissionData = {
+        ...formData,
+        submitted_by: user?.id,
+        submitted_by_email: user?.email,
+        submitted_by_name: user?.user_metadata?.full_name || user?.email,
+        submitted_at: new Date().toISOString(),
+      };
+
+      console.log('Pit scouting data:', submissionData);
+      
       // TODO: Implement pit scouting data submission to Supabase
-      console.log('Pit scouting data:', formData);
+      // This would be something like:
+      // const { data, error } = await supabase
+      //   .from('pit_scouting_data')
+      //   .insert([submissionData]);
       
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -256,7 +268,7 @@ export default function PitScouting() {
           Enter basic team and robot information
         </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-6">
+                  <CardContent className="space-y-4">
                     {teamsError && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
@@ -268,33 +280,36 @@ export default function PitScouting() {
                       </motion.div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       <div>
-        <label className="block text-sm font-medium mb-2">
-          Team Number
-        </label>
+                        <label className="block text-sm font-medium mb-2">
+                          Team Number
+                        </label>
                         {loadingTeams ? (
                           <div className="flex items-center justify-center h-10 px-3 py-2 rounded-md border border-input bg-background">
                             <Loader2 className="h-4 w-4 animate-spin mr-2 text-muted-foreground" />
                             <span className="text-sm text-muted-foreground">Loading teams...</span>
                           </div>
                         ) : (
-                          <select
-                            value={formData.teamNumber || ''}
-                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, teamNumber: parseInt(e.target.value) || 0 }))}
-                            className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                          <Select 
+                            value={formData.teamNumber ? formData.teamNumber.toString() : ''} 
+                            onValueChange={(value) => setFormData(prev => ({ ...prev, teamNumber: parseInt(value) || 0 }))}
                           >
-                            <option value="">Select a team</option>
-                            {teams.length === 0 ? (
-                              <option value="" disabled>No teams found in database</option>
-                            ) : (
-                              teams.map((team) => (
-                                <option key={team.team_number} value={team.team_number}>
-                                  {team.team_number} - {team.team_name || 'Unknown Team'}
-                                </option>
-                              ))
-                            )}
-                          </select>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select a team" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {teams.length === 0 ? (
+                                <SelectItem value="" disabled>No teams found in database</SelectItem>
+                              ) : (
+                                teams.map((team) => (
+                                  <SelectItem key={team.team_number} value={team.team_number.toString()}>
+                                    {team.team_number} - {team.team_name || 'Unknown Team'}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
                         )}
                       </div>
                       <div>
@@ -309,7 +324,7 @@ export default function PitScouting() {
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium mb-2">
                           Drive Type
@@ -332,7 +347,7 @@ export default function PitScouting() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div>
                         <label className="block text-sm font-medium mb-2">
                           Length (in)
@@ -375,18 +390,17 @@ export default function PitScouting() {
                           }))}
                         />
                       </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Weight (lbs)
-                      </label>
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        value={formData.weight || ''}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
-                      />
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Weight (lbs)
+                        </label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={formData.weight || ''}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
+                        />
+                      </div>
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-end">

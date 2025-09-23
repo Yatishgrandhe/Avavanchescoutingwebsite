@@ -108,6 +108,10 @@ export default function Scout() {
         final_score: finalScore,
         defense_rating: formData.miscellaneous.defense_rating,
         comments: formData.miscellaneous.comments,
+        scout_id: user?.id, // Automatically save who submitted
+        submitted_by_email: user?.email,
+        submitted_by_name: user?.user_metadata?.full_name || user?.email,
+        submitted_at: new Date().toISOString(),
         notes: {
           autonomous: formData.autonomous,
           teleop: formData.teleop,

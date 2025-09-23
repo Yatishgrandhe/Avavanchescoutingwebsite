@@ -11,31 +11,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const { event_key } = req.query;
 
-      let query = supabase
+      // First, fetch all matches
+      let matchesQuery = supabase
         .from('matches')
-        .select(`
-          *,
-          teams:red_teams(team_number, team_name, team_color),
-          teams:blue_teams(team_number, team_name, team_color)
-        `)
+        .select('*')
         .order('match_number', { ascending: true });
 
       if (event_key) {
-        query = query.eq('event_key', event_key);
+        matchesQuery = matchesQuery.eq('event_key', event_key);
       }
 
-      const { data: matches, error } = await query;
+      const { data: matches, error: matchesError } = await matchesQuery;
 
-      if (error) {
-        console.error('Error fetching matches:', error);
+      if (matchesError) {
+        console.error('Error fetching matches:', matchesError);
         return res.status(500).json({ error: 'Failed to fetch matches' });
       }
 
+      if (!matches || matches.length === 0) {
+        return res.status(200).json({ matches: [] });
+      }
+
+      // Get all unique team numbers from all matches
+      const allTeamNumbers = new Set<number>();
+      matches.forEach(match => {
+        match.red_teams?.forEach((team: number) => allTeamNumbers.add(team));
+        match.blue_teams?.forEach((team: number) => allTeamNumbers.add(team));
+      });
+
+      // Fetch team details for all teams
+      const { data: teams, error: teamsError } = await supabase
+        .from('teams')
+        .select('team_number, team_name, team_color')
+        .in('team_number', Array.from(allTeamNumbers));
+
+      if (teamsError) {
+        console.error('Error fetching teams:', teamsError);
+        return res.status(500).json({ error: 'Failed to fetch teams' });
+      }
+
+      // Create a map for quick team lookup
+      const teamMap = new Map();
+      teams?.forEach(team => {
+        teamMap.set(team.team_number, team);
+      });
+
       // Transform the data to include team details
-      const transformedMatches = matches?.map(match => {
+      const transformedMatches = matches.map(match => {
         // Get team details for red alliance
         const redTeams = match.red_teams?.map((teamNumber: number) => {
-          const team = match.teams?.find((t: any) => t.team_number === teamNumber);
+          const team = teamMap.get(teamNumber);
           return {
             team_number: teamNumber,
             team_name: team?.team_name || `Team ${teamNumber}`,
@@ -45,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Get team details for blue alliance
         const blueTeams = match.blue_teams?.map((teamNumber: number) => {
-          const team = match.teams?.find((t: any) => t.team_number === teamNumber);
+          const team = teamMap.get(teamNumber);
           return {
             team_number: teamNumber,
             team_name: team?.team_name || `Team ${teamNumber}`,
@@ -55,7 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         return {
           match_id: match.match_id,
-          event_key: match.match_id,
+          event_key: match.event_key,
           match_number: match.match_number,
           red_teams: redTeams,
           blue_teams: blueTeams,

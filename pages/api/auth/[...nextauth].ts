@@ -69,6 +69,10 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
   useSecureCookies: process.env.NODE_ENV === 'production',
+  // Add explicit URL configuration for production
+  ...(process.env.NODE_ENV === 'production' && {
+    url: process.env.NEXTAUTH_URL || 'https://avavanchescoutingwebsite.vercel.app',
+  }),
 };
 
 export default NextAuth(authOptions);

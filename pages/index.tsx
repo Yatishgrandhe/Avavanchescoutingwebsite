@@ -224,7 +224,7 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-xl md:text-2xl text-white mb-4 max-w-3xl mx-auto"
           >
-            Publicly accessible, advanced scouting data for teams in North Carolina.
+            Advanced scouting data platform for Avalanche Robotics.
           </motion.p>
 
           {/* Attribution */}
@@ -234,7 +234,7 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.5 }}
             className="text-lg text-white/80 mb-8"
           >
-            Advanced scouting analytics for competitive robotics.
+            Comprehensive analytics and insights for competitive robotics teams.
           </motion.p>
 
           {/* Call to Action */}

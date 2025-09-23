@@ -1,7 +1,6 @@
 import NextAuth from 'next-auth';
 import DiscordProvider from 'next-auth/providers/discord';
 import { SupabaseAdapter } from '@auth/supabase-adapter';
-import { supabase } from '@/lib/supabase';
 
 export const authOptions = {
   providers: [
@@ -22,7 +21,7 @@ export const authOptions = {
   callbacks: {
     async session({ session, user }: any) {
       if (session.user) {
-        session.user.id = user.id;
+        session.user.id = user?.id || session.user.id;
       }
       return session;
     },
@@ -32,14 +31,23 @@ export const authOptions = {
       }
       return token;
     },
+    async signIn({ user, account, profile }: any) {
+      // Allow Discord sign-in
+      if (account?.provider === 'discord') {
+        return true;
+      }
+      return false;
+    },
   },
   pages: {
-    signIn: '/login',
+    signIn: '/auth/signin',
+    error: '/auth/error',
   },
   session: {
-    strategy: 'jwt' as const,
+    strategy: 'database' as const,
   },
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
 };
 
 export default NextAuth(authOptions);

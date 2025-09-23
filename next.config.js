@@ -3,9 +3,6 @@ const nextConfig = {
   images: {
     domains: ['cdn.discordapp.com'],
   },
-  experimental: {
-    optimizeCss: true,
-  },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },

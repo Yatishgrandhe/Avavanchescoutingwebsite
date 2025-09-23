@@ -2,9 +2,10 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { authOptions } from './[...nextauth]';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
   }
 
   try {
@@ -12,13 +13,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     if (session) {
       // User is authenticated, redirect to home
-      return res.redirect(302, '/');
+      res.redirect(302, '/');
+      return;
     } else {
       // User is not authenticated, redirect to sign in
-      return res.redirect(302, '/auth/signin');
+      res.redirect(302, '/auth/signin');
+      return;
     }
   } catch (error) {
     console.error('Auth callback error:', error);
-    return res.redirect(302, '/auth/error');
+    res.redirect(302, '/auth/error');
+    return;
   }
 }

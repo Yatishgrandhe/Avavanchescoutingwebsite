@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { createClient } from '@supabase/supabase-js';
-import { Button } from '../../components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui';
 import { 
   ArrowRight, 
   Shield, 

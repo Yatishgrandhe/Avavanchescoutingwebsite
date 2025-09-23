@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
-import { Button } from '../components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui';
 import { Badge } from '../components/ui/badge';
 import { 
   BarChart3, 

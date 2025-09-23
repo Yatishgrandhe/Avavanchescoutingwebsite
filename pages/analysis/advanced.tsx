@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion } from 'framer-motion';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui';
+import { Button } from '../../components/ui';
+import { Input } from '../../components/ui';
 import { 
   BarChart3, 
   TrendingUp, 

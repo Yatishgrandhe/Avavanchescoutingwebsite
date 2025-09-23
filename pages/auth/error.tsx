@@ -2,8 +2,8 @@ import React from 'react';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { AlertTriangle, ArrowLeft, Home } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui';
 import Logo from '../../components/ui/Logo';
 
 export default function AuthError() {

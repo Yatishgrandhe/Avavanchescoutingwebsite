@@ -1,7 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { useSession, signIn } from 'next-auth/react';
-import { useRouter } from 'next/router';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { 
@@ -12,10 +11,7 @@ import {
   ArrowRight,
   Sparkles,
   TrendingUp,
-  Shield,
-  Play,
-  TreePine,
-  Waves
+  Shield
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import Logo from '@/components/ui/Logo';
@@ -121,43 +117,47 @@ const benefits = [
 ];
 
 export default function Home() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-
-  // Redirect authenticated users to data analysis page
-  useEffect(() => {
-    if (status === 'authenticated' && session) {
-      router.push('/analysis/basic');
-    }
-  }, [session, status, router]);
-
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center"
-        >
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-lg">Loading...</p>
-        </motion.div>
-      </div>
-    );
-  }
+  const { data: session } = useSession();
 
   if (session) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <Layout user={{
+        name: session.user?.name || 'User',
+        username: session.user?.email || undefined,
+        image: session.user?.image || undefined,
+      }}>
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
           className="text-center"
         >
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-lg">Redirecting to data analysis...</p>
+          <h1 className="text-4xl font-bold text-white mb-4">
+            Welcome to Avalanche Scouting Data
+          </h1>
+          <p className="text-xl text-gray-400 mb-8">
+            Your comprehensive FRC 2025 scouting solution
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              size="lg"
+              className="bg-avalanche-600 hover:bg-avalanche-700 text-white"
+              onClick={() => window.location.href = '/scout'}
+            >
+              Start Scouting
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="border-avalanche-600 text-avalanche-400 hover:bg-avalanche-600 hover:text-white"
+              onClick={() => window.location.href = '/analysis/basic'}
+            >
+              View Analysis
+            </Button>
+          </div>
         </motion.div>
-      </div>
+      </Layout>
     );
   }
 
@@ -171,7 +171,7 @@ export default function Home() {
           <div className="flex items-center space-x-4">
             <Logo size="lg" />
             <div className="text-white font-semibold text-xl">
-              REEFSCAPE Scouting
+              Avalanche Scouting Data
             </div>
           </div>
         <div className="flex items-center space-x-4">
@@ -214,7 +214,7 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="text-5xl md:text-7xl font-bold text-white mb-6"
           >
-            REEFSCAPE Scouting Platform
+            Avalanche Scouting Data
           </motion.h1>
 
           {/* Description */}
@@ -224,7 +224,7 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-xl md:text-2xl text-white mb-4 max-w-3xl mx-auto"
           >
-            Advanced scouting data platform for FRC 2025 REEFSCAPE.
+            Advanced scouting data platform for Avalanche Robotics.
           </motion.p>
 
           {/* Attribution */}
@@ -236,27 +236,6 @@ export default function Home() {
           >
             Comprehensive analytics and insights for competitive robotics teams.
           </motion.p>
-
-          {/* Game Elements Preview */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            className="flex justify-center space-x-8 mb-8"
-          >
-            <div className="flex items-center space-x-2 text-white/80">
-              <Play className="w-5 h-5" />
-              <span>Autonomous</span>
-            </div>
-            <div className="flex items-center space-x-2 text-white/80">
-              <TreePine className="w-5 h-5" />
-              <span>Coral</span>
-            </div>
-            <div className="flex items-center space-x-2 text-white/80">
-              <Waves className="w-5 h-5" />
-              <span>Algae</span>
-            </div>
-          </motion.div>
 
           {/* Call to Action */}
           <motion.div

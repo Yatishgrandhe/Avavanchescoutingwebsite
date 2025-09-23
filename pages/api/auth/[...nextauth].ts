@@ -6,8 +6,6 @@ import { SupabaseAdapter } from '@auth/supabase-adapter';
 const requiredEnvVars = {
   DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID,
   DISCORD_CLIENT_SECRET: process.env.DISCORD_CLIENT_SECRET,
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
 };
 
@@ -32,16 +30,23 @@ export const authOptions = {
       },
     }),
   ],
-  adapter: SupabaseAdapter({
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  }),
+  // Temporarily disable Supabase adapter to isolate the issue
+  // adapter: SupabaseAdapter({
+  //   url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  //   secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  // }),
   callbacks: {
-    async session({ session, user }: any) {
+    async session({ session, token }: any) {
       if (session.user) {
-        session.user.id = user?.id || session.user.id;
+        session.user.id = token?.sub || session.user.id;
       }
       return session;
+    },
+    async jwt({ token, user, account }: any) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
     },
     async signIn({ user, account, profile }: any) {
       // Allow Discord sign-in
@@ -55,8 +60,8 @@ export const authOptions = {
       if (url.startsWith("/")) return `${baseUrl}${url}`
       // Allows callback URLs on the same origin
       else if (new URL(url).origin === baseUrl) return url
-      // Default redirect to data analysis page after login
-      return `${baseUrl}/analysis/basic`
+      // Default redirect to home page after login
+      return baseUrl
     },
   },
   pages: {
@@ -64,7 +69,7 @@ export const authOptions = {
     error: '/auth/error',
   },
   session: {
-    strategy: 'database' as const,
+    strategy: 'jwt' as const,
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',

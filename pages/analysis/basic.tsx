@@ -133,7 +133,7 @@ export default function BasicAnalysis() {
               <BarChart3 className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white">REEFSCAPE Data Analysis</h1>
+              <h1 className="text-3xl font-bold text-white">Avalanche Data Analysis</h1>
               <p className="text-gray-400">Comprehensive team performance insights and statistics</p>
             </div>
           </div>
@@ -149,7 +149,7 @@ export default function BasicAnalysis() {
             <CardHeader>
               <CardTitle className={`${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Team Search</CardTitle>
               <CardDescription className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Enter a team number to view their REEFSCAPE performance statistics
+                Enter a team number to view their Avalanche performance statistics
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -353,7 +353,7 @@ export default function BasicAnalysis() {
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">No Team Selected</h3>
             <p className="text-gray-400">
-              Enter a team number above to view their REEFSCAPE performance statistics
+              Enter a team number above to view their Avalanche performance statistics
             </p>
           </motion.div>
         )}

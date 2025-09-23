@@ -1,4 +1,4 @@
-# REEFSCAPE 2025 Deployment Guide
+# Avalanche 2025 Deployment Guide
 
 ## 🚀 Complete Setup Instructions
 
@@ -90,7 +90,7 @@ NODE_ENV=production
 - `verification_tokens` - Email verification
 - `teams` - FRC team information
 - `matches` - Match data
-- `scouting_data` - REEFSCAPE scoring data
+- `scouting_data` - Avalanche scoring data
 
 ### **Sample Data Included**
 
@@ -116,7 +116,7 @@ NODE_ENV=production
 - **Real-time Data**: Direct Supabase integration
 - **Professional UI**: Modern design with animations
 
-### **REEFSCAPE 2025 Integration**
+### **Avalanche 2025 Integration**
 
 - **Complete Scoring System**: All game elements supported
 - **Autonomous Period**: LEAVE, CORAL, ALGAE scoring
@@ -155,13 +155,13 @@ NODE_ENV=production
 
 ## 🎉 Success!
 
-Once deployed and tested, your REEFSCAPE 2025 scouting platform will have:
+Once deployed and tested, your Avalanche 2025 scouting platform will have:
 
 - ✅ Professional authentication with Discord OAuth
 - ✅ Automatic redirect to data analysis after login
 - ✅ Complete Supabase database integration
 - ✅ Real-time team performance statistics
 - ✅ Modern, responsive UI with animations
-- ✅ Full REEFSCAPE 2025 scoring system support
+- ✅ Full Avalanche 2025 scoring system support
 
 The platform is now ready for professional use! 🚀

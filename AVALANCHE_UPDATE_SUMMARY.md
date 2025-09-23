@@ -1,12 +1,12 @@
-# REEFSCAPE 2025 Scouting Platform - Update Summary
+# Avalanche 2025 Scouting Platform - Update Summary
 
 ## 🎯 Overview
-Successfully transformed the Avalanche Scouting Data platform into a comprehensive REEFSCAPE 2025 scouting solution with professional styling, improved authentication, and enhanced user experience.
+Successfully transformed the Avalanche Scouting Data platform into a comprehensive Avalanche 2025 scouting solution with professional styling, improved authentication, and enhanced user experience.
 
 ## ✅ Completed Updates
 
 ### 1. **Database Schema Updates**
-- Created `setup-reefscape-schema.sql` with updated schema for REEFSCAPE 2025
+- Created `setup-avalanche-schema.sql` with updated schema for Avalanche 2025
 - Updated scoring tables to support new game elements (Coral, Algae, Cages)
 - Added proper indexing and Row Level Security policies
 
@@ -23,8 +23,8 @@ Successfully transformed the Avalanche Scouting Data platform into a comprehensi
 - **Enhanced Vercel Config**: Added proper rewrites for authentication routes
 - **Auto-redirect**: Authenticated users automatically redirected to scouting page
 
-### 4. **REEFSCAPE Game Integration**
-- **Updated Types**: Modified TypeScript interfaces for REEFSCAPE 2025 scoring
+### 4. **Avalanche Game Integration**
+- **Updated Types**: Modified TypeScript interfaces for Avalanche 2025 scoring
 - **Scoring System**: Implemented correct point values for all game elements
 - **Form Components**: Enhanced Autonomous form with professional styling
 - **Game Elements**: Added visual icons for Coral, Algae, and Autonomous actions
@@ -43,8 +43,8 @@ Successfully transformed the Avalanche Scouting Data platform into a comprehensi
 - Dark/light mode toggle with persistent theme
 - Responsive design that works on all devices
 
-### **REEFSCAPE 2025 Integration**
-- Complete scoring system for FRC 2025 REEFSCAPE game
+### **Avalanche 2025 Integration**
+- Complete scoring system for FRC 2025 Avalanche game
 - Support for all game elements: Coral, Algae, Cages, Autonomous
 - Real-time score calculation and display
 - Professional form layouts with visual feedback
@@ -66,7 +66,7 @@ Successfully transformed the Avalanche Scouting Data platform into a comprehensi
 ### **Core Components**
 - `components/layout/Layout.tsx` - Complete redesign with theme support
 - `components/layout/Sidebar.tsx` - Modern navigation with animations
-- `components/scout/AutonomousForm.tsx` - Professional REEFSCAPE form
+- `components/scout/AutonomousForm.tsx` - Professional Avalanche form
 
 ### **Pages**
 - `pages/index.tsx` - Updated landing page with auto-redirect
@@ -75,10 +75,10 @@ Successfully transformed the Avalanche Scouting Data platform into a comprehensi
 ### **Configuration**
 - `pages/api/auth/[...nextauth].ts` - Fixed OAuth callback issues
 - `vercel.json` - Added proper authentication rewrites
-- `setup-reefscape-schema.sql` - New database schema
+- `setup-avalanche-schema.sql` - New database schema
 
 ### **Types & Utils**
-- `lib/types.ts` - Updated for REEFSCAPE 2025 scoring system
+- `lib/types.ts` - Updated for Avalanche 2025 scoring system
 
 ## 🎨 Design Highlights
 
@@ -150,7 +150,7 @@ Update Discord application settings:
 4. **Test Scouting Forms** with sample data
 5. **Update Analysis Components** for new scoring system
 
-## 📊 REEFSCAPE 2025 Scoring Reference
+## 📊 Avalanche 2025 Scoring Reference
 
 ### **Autonomous Period (15 seconds)**
 - LEAVE: 3 points
@@ -174,4 +174,4 @@ Update Discord application settings:
 - Shallow CAGE: 6 points
 - Deep CAGE: 12 points
 
-The platform is now ready for professional use with the REEFSCAPE 2025 game! 🎉
+The platform is now ready for professional use with the Avalanche 2025 game! 🎉

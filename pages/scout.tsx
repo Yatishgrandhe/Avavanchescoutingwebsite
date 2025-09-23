@@ -193,7 +193,7 @@ export default function Scout() {
               </svg>
             </div>
             <h1 className="text-2xl font-bold text-white mb-4">Authentication Required</h1>
-            <p className="text-gray-400 mb-6">Please sign in with Discord to access the REEFSCAPE scouting platform.</p>
+            <p className="text-gray-400 mb-6">Please sign in with Discord to access the Avalanche scouting platform.</p>
             <a
               href="/auth/signin"
               className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"

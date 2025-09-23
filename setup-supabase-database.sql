@@ -1,4 +1,4 @@
--- Complete Supabase Database Setup for REEFSCAPE 2025 Scouting Platform
+-- Complete Supabase Database Setup for Avalanche 2025 Scouting Platform
 -- Run this in your Supabase SQL editor
 
 -- Enable necessary extensions
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS verification_tokens (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- REEFSCAPE 2025 Tables
+-- Avalanche 2025 Tables
 -- Teams table
 CREATE TABLE IF NOT EXISTS teams (
   team_number INTEGER PRIMARY KEY,
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS matches (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Scouting Data table for REEFSCAPE 2025
+-- Scouting Data table for Avalanche 2025
 CREATE TABLE IF NOT EXISTS scouting_data (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   scout_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -268,7 +268,7 @@ GRANT EXECUTE ON FUNCTION get_team_performance(INTEGER) TO authenticated;
 -- Success message
 DO $$
 BEGIN
-  RAISE NOTICE 'REEFSCAPE 2025 Database setup completed successfully!';
+  RAISE NOTICE 'Avalanche 2025 Database setup completed successfully!';
   RAISE NOTICE 'Tables created: users, accounts, sessions, verification_tokens, teams, matches, scouting_data';
   RAISE NOTICE 'Sample data inserted for testing';
   RAISE NOTICE 'Row Level Security enabled with appropriate policies';

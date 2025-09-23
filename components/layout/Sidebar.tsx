@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { 
   ClipboardList, 
   BarChart3, 
-  Sparkles, 
+  TrendingUp, 
   ArrowLeftRight, 
   ChevronRight,
   Settings,
@@ -51,7 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle, user, isDarkMo
         {
           label: 'Advanced',
           href: '/analysis/advanced',
-          icon: Sparkles,
+          icon: TrendingUp,
         },
         {
           label: 'Comparison',
@@ -89,7 +89,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle, user, isDarkMo
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}
             >
-              REEFSCAPE
+              Avalanche
             </motion.div>
           )}
         </div>

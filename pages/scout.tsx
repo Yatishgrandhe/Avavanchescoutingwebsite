@@ -205,7 +205,7 @@ export default function Scout() {
                     <div className={`
                       flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors
                       ${isCompleted ? 'bg-primary border-primary text-primary-foreground' : 
-                        isCurrent ? 'border-primary text-primary' : 'border-muted text-muted-foreground'}
+                        isCurrent ? 'border-primary text-white' : 'border-muted text-muted-foreground'}
                     `}>
                       {isCompleted ? (
                         <CheckCircle className="w-4 h-4" />
@@ -213,8 +213,8 @@ export default function Scout() {
                         <Icon className="w-4 h-4" />
                       )}
                     </div>
-                    <span className={`ml-2 text-sm font-medium ${
-                      isCurrent ? 'text-primary' : 'text-muted-foreground'
+                    <span className={`ml-2 text-sm font-medium font-inter ${
+                      isCurrent ? 'text-white' : 'text-muted-foreground'
                     }`}>
                       {step.title}
                     </span>

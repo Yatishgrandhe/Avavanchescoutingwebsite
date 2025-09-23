@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronDown, Loader2, AlertCircle } from 'lucide-react';
+import { ChevronDown, Loader2, AlertCircle, Target } from 'lucide-react';
 
 interface Match {
   match_id: string;
@@ -126,8 +126,9 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
         </div>
 
         <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold text-white font-inter">
-          Match & Team Selection
+        <CardTitle className="text-2xl font-bold text-white font-inter flex items-center justify-center space-x-2">
+          <Target className="w-6 h-6 text-blue-400" />
+          <span>Match & Team Selection</span>
         </CardTitle>
         <CardDescription className="text-slate-300 font-inter">
           Select the match and team you want to scout

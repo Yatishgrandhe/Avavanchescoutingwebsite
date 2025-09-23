@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@auth/supabase-adapter": "^0.1.0",
+    "@auth/supabase-adapter": "^0.1.18",
     "@supabase/supabase-js": "^2.38.4",
     "clsx": "^2.0.0",
     "dotenv": "^17.2.2",

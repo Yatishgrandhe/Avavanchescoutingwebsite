@@ -7,6 +7,8 @@ const requiredEnvVars = {
   DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID,
   DISCORD_CLIENT_SECRET: process.env.DISCORD_CLIENT_SECRET,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
 };
 
 // Check for missing environment variables
@@ -30,11 +32,10 @@ export const authOptions = {
       },
     }),
   ],
-  // Temporarily disable Supabase adapter to isolate the issue
-  // adapter: SupabaseAdapter({
-  //   url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  //   secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  // }),
+  adapter: SupabaseAdapter({
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  }),
   callbacks: {
     async session({ session, token }: any) {
       if (session.user) {
@@ -69,7 +70,7 @@ export const authOptions = {
     error: '/auth/error',
   },
   session: {
-    strategy: 'jwt' as const,
+    strategy: 'database' as const,
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',

@@ -35,8 +35,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Get all unique team numbers from all matches
       const allTeamNumbers = new Set<number>();
       matches.forEach(match => {
-        match.red_teams?.forEach((team: number) => allTeamNumbers.add(team));
-        match.blue_teams?.forEach((team: number) => allTeamNumbers.add(team));
+        if (Array.isArray(match.red_teams)) {
+          match.red_teams.forEach((team: number) => allTeamNumbers.add(team));
+        }
+        if (Array.isArray(match.blue_teams)) {
+          match.blue_teams.forEach((team: number) => allTeamNumbers.add(team));
+        }
       });
 
       // Fetch team details for all teams
@@ -59,24 +63,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Transform the data to include team details
       const transformedMatches = matches.map(match => {
         // Get team details for red alliance
-        const redTeams = match.red_teams?.map((teamNumber: number) => {
+        const redTeams = Array.isArray(match.red_teams) ? match.red_teams.map((teamNumber: number) => {
           const team = teamMap.get(teamNumber);
           return {
             team_number: teamNumber,
             team_name: team?.team_name || `Team ${teamNumber}`,
             team_color: 'red'
           };
-        }) || [];
+        }) : [];
 
         // Get team details for blue alliance
-        const blueTeams = match.blue_teams?.map((teamNumber: number) => {
+        const blueTeams = Array.isArray(match.blue_teams) ? match.blue_teams.map((teamNumber: number) => {
           const team = teamMap.get(teamNumber);
           return {
             team_number: teamNumber,
             team_name: team?.team_name || `Team ${teamNumber}`,
             team_color: 'blue'
           };
-        }) || [];
+        }) : [];
 
         return {
           match_id: match.match_id,

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion } from 'framer-motion';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Input } from '../../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { 
   Table,
   TableBody,
@@ -14,7 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '../../components/ui/table';
 import { 
   BarChart, 
   Bar, 

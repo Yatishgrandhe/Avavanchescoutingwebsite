@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sun, Moon, Bell, User, LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '../ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -10,10 +10,10 @@ import {
   DropdownMenuLabel, 
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
+} from '../ui/dropdown-menu';
+import { Badge } from '../ui/badge';
 import Sidebar from './Sidebar';
-import Logo from '@/components/ui/Logo';
+import Logo from '../ui/Logo';
 import { useSupabase } from '@/pages/_app';
 
 interface LayoutProps {

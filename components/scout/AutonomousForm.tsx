@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../ui/card';
+import { Checkbox } from '../ui/checkbox';
 import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
 import { Play, TreePine, Waves, CheckCircle } from 'lucide-react';
 

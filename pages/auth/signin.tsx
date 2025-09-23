@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { createClient } from '@supabase/supabase-js';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
 import { 
   ArrowRight, 
   Shield, 
@@ -13,7 +13,7 @@ import {
   Mountain,
   Snowflake
 } from 'lucide-react';
-import Logo from '@/components/ui/Logo';
+import Logo from '../../components/ui/Logo';
 
 // Avalanche animation background
 const AvalancheBackground = () => {

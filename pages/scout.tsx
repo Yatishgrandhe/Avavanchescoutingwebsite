@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { Progress } from '../components/ui/progress';
+import { Separator } from '../components/ui/separator';
 import { 
   ChevronLeft, 
   ChevronRight, 

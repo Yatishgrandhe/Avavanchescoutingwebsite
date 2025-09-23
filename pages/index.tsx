@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
 import { 
   BarChart3, 
   Target, 
@@ -19,7 +19,7 @@ import {
   Database
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
-import Logo from '@/components/ui/Logo';
+import Logo from '../components/ui/Logo';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useSupabase } from '@/pages/_app';
 

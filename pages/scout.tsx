@@ -354,30 +354,33 @@ export default function Scout() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Card>
                           <CardHeader>
-                            <CardTitle className="text-lg">Match Details</CardTitle>
+                            <CardTitle className="text-lg text-white font-inter flex items-center space-x-2">
+                              <Target className="w-5 h-5 text-blue-400" />
+                              <span>Match Details</span>
+                            </CardTitle>
                           </CardHeader>
                           <CardContent className="space-y-2">
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">Match ID:</span>
-                              <span className="font-medium">{formData.matchData.match_id}</span>
+                              <span className="text-slate-400 font-inter">Match ID:</span>
+                              <span className="font-medium text-white font-inter">{formData.matchData.match_id}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">Event:</span>
-                              <span className="font-medium">{formData.matchData.event_key}</span>
+                              <span className="text-slate-400 font-inter">Event:</span>
+                              <span className="font-medium text-white font-inter">{formData.matchData.event_key}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">Match Number:</span>
-                              <span className="font-medium">{formData.matchData.match_number}</span>
+                              <span className="text-slate-400 font-inter">Match Number:</span>
+                              <span className="font-medium text-white font-inter">{formData.matchData.match_number}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">Team:</span>
-                              <span className="font-medium">{formData.teamNumber}</span>
+                              <span className="text-slate-400 font-inter">Team:</span>
+                              <span className="font-medium text-white font-inter">{formData.teamNumber}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">Alliance:</span>
-                              <Badge variant={formData.allianceColor === 'red' ? 'destructive' : 'default'}>
-                                {formData.allianceColor}
-                              </Badge>
+                              <span className="text-slate-400 font-inter">Alliance:</span>
+            <Badge variant={formData.allianceColor === 'red' ? 'destructive' : 'default'}>
+              {formData.allianceColor}
+            </Badge>
                             </div>
                           </CardContent>
                         </Card>
@@ -401,8 +404,8 @@ export default function Scout() {
                             </div>
                             <Separator />
                             <div className="flex justify-between text-lg font-bold">
-                              <span>Total Score:</span>
-                              <span className="text-primary">{calculateScore(formData.autonomous).final_score + calculateScore(formData.teleop).final_score + calculateScore(formData.endgame).final_score} pts</span>
+            <span>Total Score:</span>
+            <span className="text-primary">{calculateScore(formData.autonomous).final_score + calculateScore(formData.teleop).final_score + calculateScore(formData.endgame).final_score} pts</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Defense Rating:</span>
@@ -420,14 +423,13 @@ export default function Scout() {
                           <ChevronLeft className="w-4 h-4 mr-2" />
                           Back
                         </Button>
-                        <Button
-                          onClick={handleSubmit}
-                          size="lg"
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Submit Scouting Data
-                        </Button>
+        <Button
+          onClick={handleSubmit}
+          size="lg"
+        >
+          <CheckCircle className="w-4 h-4 mr-2" />
+          Submit Scouting Data
+        </Button>
                       </div>
                     </div>
                   </motion.div>

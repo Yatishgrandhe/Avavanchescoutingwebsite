@@ -89,14 +89,14 @@ export default function BasicAnalysis() {
       const teamsResponse = await fetch('/api/teams');
       if (teamsResponse.ok) {
         const teamsData = await teamsResponse.json();
-        setTeams(teamsData);
+        setTeams(teamsData.teams || []);
       }
 
       // Fetch matches data
       const matchesResponse = await fetch('/api/matches');
       if (matchesResponse.ok) {
         const matchesData = await matchesResponse.json();
-        setMatches(matchesData);
+        setMatches(matchesData.matches || []);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -105,12 +105,12 @@ export default function BasicAnalysis() {
     }
   };
 
-  const filteredTeams = teams.filter(team => 
+  const filteredTeams = (teams || []).filter(team => 
     team.team_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     team.team_number.toString().includes(searchTerm)
   );
 
-  const topTeams = [...teams]
+  const topTeams = [...(teams || [])]
     .sort((a, b) => b.avg_total_score - a.avg_total_score)
     .slice(0, 10);
 
@@ -123,9 +123,9 @@ export default function BasicAnalysis() {
   }));
 
   const pieData = [
-    { name: 'Autonomous', value: teams.reduce((sum, team) => sum + team.avg_autonomous_points, 0) },
-    { name: 'Teleop', value: teams.reduce((sum, team) => sum + team.avg_teleop_points, 0) },
-    { name: 'Endgame', value: teams.reduce((sum, team) => sum + team.avg_endgame_points, 0) }
+    { name: 'Autonomous', value: (teams || []).reduce((sum, team) => sum + (team.avg_autonomous_points || 0), 0) },
+    { name: 'Teleop', value: (teams || []).reduce((sum, team) => sum + (team.avg_teleop_points || 0), 0) },
+    { name: 'Endgame', value: (teams || []).reduce((sum, team) => sum + (team.avg_endgame_points || 0), 0) }
   ];
 
   if (authLoading) {
@@ -147,10 +147,10 @@ export default function BasicAnalysis() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Team Analysis</h1>
-              <p className="text-muted-foreground">
-                Comprehensive team performance analysis and insights
-              </p>
+               <h1 className="text-3xl font-bold text-white">Team Analysis</h1>
+               <p className="text-slate-300">
+                 Comprehensive team performance analysis and insights
+               </p>
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm">
@@ -165,7 +165,7 @@ export default function BasicAnalysis() {
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <Input
                     placeholder="Search teams..."
                     value={searchTerm}
@@ -204,12 +204,12 @@ export default function BasicAnalysis() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Teams</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+                 <CardTitle className="text-sm font-medium text-white">Total Teams</CardTitle>
+                 <Users className="h-4 w-4 text-slate-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{teams.length}</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-2xl font-bold text-white">{teams.length}</div>
+                <p className="text-xs text-slate-400">
                   Teams in database
                 </p>
               </CardContent>
@@ -217,12 +217,12 @@ export default function BasicAnalysis() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Matches</CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
+                 <CardTitle className="text-sm font-medium text-white">Total Matches</CardTitle>
+                 <Target className="h-4 w-4 text-slate-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{matches.length}</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-2xl font-bold text-white">{matches.length}</div>
+                <p className="text-xs text-slate-400">
                   Matches recorded
                 </p>
               </CardContent>
@@ -230,14 +230,14 @@ export default function BasicAnalysis() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Avg Score</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                 <CardTitle className="text-sm font-medium text-white">Avg Score</CardTitle>
+                 <TrendingUp className="h-4 w-4 text-slate-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {teams.length > 0 ? (teams.reduce((sum, team) => sum + team.avg_total_score, 0) / teams.length).toFixed(1) : '0'}
-                </div>
-                <p className="text-xs text-muted-foreground">
+                 <div className="text-2xl font-bold text-white">
+                   {teams.length > 0 ? (teams.reduce((sum, team) => sum + (team.avg_total_score || 0), 0) / teams.length).toFixed(1) : '0'}
+                 </div>
+                <p className="text-xs text-slate-400">
                   Across all teams
                 </p>
               </CardContent>
@@ -245,16 +245,16 @@ export default function BasicAnalysis() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Top Team</CardTitle>
-                <Trophy className="h-4 w-4 text-muted-foreground" />
+                 <CardTitle className="text-sm font-medium text-white">Top Team</CardTitle>
+                 <Trophy className="h-4 w-4 text-slate-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold text-white">
                   {topTeams.length > 0 ? `Team ${topTeams[0].team_number}` : 'N/A'}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {topTeams.length > 0 ? `${topTeams[0].avg_total_score.toFixed(1)} avg` : 'No data'}
-                </p>
+                 <p className="text-xs text-slate-400">
+                   {topTeams.length > 0 && topTeams[0].avg_total_score ? `${topTeams[0].avg_total_score.toFixed(1)} avg` : 'No data'}
+                 </p>
               </CardContent>
             </Card>
           </div>
@@ -272,7 +272,7 @@ export default function BasicAnalysis() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Top 10 Teams by Score</CardTitle>
+                    <CardTitle className="text-white">Top 10 Teams by Score</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
@@ -289,7 +289,7 @@ export default function BasicAnalysis() {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Score Distribution</CardTitle>
+                    <CardTitle className="text-white">Score Distribution</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
@@ -319,7 +319,7 @@ export default function BasicAnalysis() {
             <TabsContent value="teams" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Team Performance</CardTitle>
+                   <CardTitle className="text-white">Team Performance</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -344,19 +344,19 @@ export default function BasicAnalysis() {
                             </div>
                           </TableCell>
                           <TableCell>{team.total_matches}</TableCell>
-                          <TableCell>{team.avg_autonomous_points.toFixed(1)}</TableCell>
-                          <TableCell>{team.avg_teleop_points.toFixed(1)}</TableCell>
-                          <TableCell>{team.avg_endgame_points.toFixed(1)}</TableCell>
-                          <TableCell className="font-medium">{team.avg_total_score.toFixed(1)}</TableCell>
+                           <TableCell>{(team.avg_autonomous_points || 0).toFixed(1)}</TableCell>
+                           <TableCell>{(team.avg_teleop_points || 0).toFixed(1)}</TableCell>
+                           <TableCell>{(team.avg_endgame_points || 0).toFixed(1)}</TableCell>
+                           <TableCell className="font-medium">{(team.avg_total_score || 0).toFixed(1)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <div className="w-16 bg-muted rounded-full h-2">
                                 <div 
                                   className="bg-primary h-2 rounded-full" 
-                                  style={{ width: `${(team.avg_defense_rating / 10) * 100}%` }}
+                                  style={{ width: `${((team.avg_defense_rating || 0) / 10) * 100}%` }}
                                 />
                               </div>
-                              <span className="text-sm">{team.avg_defense_rating.toFixed(1)}</span>
+                               <span className="text-sm">{(team.avg_defense_rating || 0).toFixed(1)}</span>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -370,7 +370,7 @@ export default function BasicAnalysis() {
             <TabsContent value="matches" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Matches</CardTitle>
+                   <CardTitle className="text-white">Recent Matches</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -387,7 +387,7 @@ export default function BasicAnalysis() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {matches.slice(0, 20).map((match) => (
+                      {(matches || []).slice(0, 20).map((match) => (
                         <TableRow key={match.match_id}>
                           <TableCell className="font-medium">{match.match_id}</TableCell>
                           <TableCell>Team {match.team_number}</TableCell>
@@ -415,7 +415,7 @@ export default function BasicAnalysis() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Score Trends</CardTitle>
+                    <CardTitle className="text-white">Score Trends</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
@@ -434,7 +434,7 @@ export default function BasicAnalysis() {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Performance Breakdown</CardTitle>
+                    <CardTitle className="text-white">Performance Breakdown</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={300}>

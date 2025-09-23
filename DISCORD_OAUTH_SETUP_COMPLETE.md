@@ -70,8 +70,8 @@ DISCORD_CLIENT_SECRET=your_discord_client_secret
 ### 2. Configure OAuth2 Settings
 1. Go to OAuth2 → General
 2. Add Redirect URIs:
-   - **Local Development**: `http://localhost:3000/api/auth/callback/discord`
-   - **Production**: `https://avavanchescoutingwebsite.vercel.app/api/auth/callback/discord`
+   - **Local Development**: `https://ylzahxkfmklwcgkogeff.supabase.co/auth/v1/callback`
+   - **Production**: `https://ylzahxkfmklwcgkogeff.supabase.co/auth/v1/callback`
 3. Copy the **Client ID** and **Client Secret**
 
 ### 3. Set Scopes

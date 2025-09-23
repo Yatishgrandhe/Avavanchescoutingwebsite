@@ -29,8 +29,8 @@ Your application has been successfully migrated from NextAuth.js to Supabase Aut
 2. Select your application (or create a new one)
 3. Go to **OAuth2** → **General**
 4. Add these redirect URIs:
-   - **Local Development**: `http://localhost:3000/api/auth/callback`
-   - **Production**: `https://avavanchescoutingwebsite.vercel.app/api/auth/callback`
+   - **Local Development**: `https://ylzahxkfmklwcgkogeff.supabase.co/auth/v1/callback`
+   - **Production**: `https://ylzahxkfmklwcgkogeff.supabase.co/auth/v1/callback`
 5. Copy your **Client ID** and **Client Secret**
 
 ### **Step 2: Configure Supabase Auth Provider**

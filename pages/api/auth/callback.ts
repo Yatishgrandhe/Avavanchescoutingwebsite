@@ -10,7 +10,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  const { code, next = '/' } = req.query;
+  const { code, error: authError, next = '/' } = req.query;
+
+  // Handle OAuth errors
+  if (authError) {
+    console.error('OAuth error:', authError);
+    res.redirect(302, '/auth/error?message=Authentication failed');
+    return;
+  }
 
   if (code) {
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -35,6 +42,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
 
-  // If no code, redirect to error page
-  res.redirect(302, '/auth/error?message=No authentication code provided');
+  // If no code, redirect to home page (Supabase handles the OAuth flow)
+  res.redirect(302, '/');
 }

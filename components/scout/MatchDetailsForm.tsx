@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronDown, Loader2, AlertCircle } from 'lucide-react';
 
 interface Match {
@@ -103,18 +104,18 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
       transition={{ duration: 0.3 }}
       className="max-w-4xl mx-auto"
     >
-      <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+      <Card>
         {/* Progress Bar */}
         <div className="px-6 pt-6">
           <div className="flex items-center justify-between mb-2">
-            <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            <span className="text-sm font-medium text-slate-300 font-inter">
               Step {currentStep} of {totalSteps}
             </span>
-            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            <span className="text-sm text-slate-400 font-inter">
               {Math.round(progressPercentage)}%
             </span>
           </div>
-          <div className={`w-full rounded-full h-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+          <div className="w-full rounded-full h-2 bg-slate-700">
             <motion.div
               className="h-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full"
               initial={{ width: 0 }}
@@ -125,25 +126,25 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
         </div>
 
         <CardHeader className="text-center">
-          <CardTitle className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-            Match & Team Selection
-          </CardTitle>
-          <CardDescription className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Select the match and team you want to scout
-          </CardDescription>
+        <CardTitle className="text-2xl font-bold text-white font-inter">
+          Match & Team Selection
+        </CardTitle>
+        <CardDescription className="text-slate-300 font-inter">
+          Select the match and team you want to scout
+        </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
           {/* Match Selection */}
           <div className="space-y-3">
-            <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            <label className="block text-sm font-medium text-white font-inter">
               Select Match
             </label>
             
             {loading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-                <span className={`ml-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+                <span className="ml-2 text-slate-300 font-inter">
                   Loading matches...
                 </span>
               </div>
@@ -153,20 +154,18 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
                   <motion.button
                     key={match.match_id}
                     onClick={() => handleMatchSelect(match)}
-                    className={`p-4 rounded-lg border text-left transition-all duration-200 ${
+                    className={`p-4 rounded-lg border text-left transition-colors ${
                       selectedMatch?.match_id === match.match_id
-                        ? 'border-blue-500 bg-blue-500/10'
-                        : isDarkMode
-                        ? 'border-gray-600 bg-gray-700 hover:bg-gray-600'
-                        : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                        ? 'border-blue-500 bg-blue-500/20 text-white'
+                        : 'border-slate-600 bg-slate-800/50 hover:bg-slate-700/50 text-white'
                     }`}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    <div className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    <div className="font-semibold text-white font-inter">
                       Match {match.match_number}
                     </div>
-                    <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <div className="text-sm text-slate-400 font-inter">
                       {match.event_key}
                     </div>
                   </motion.button>
@@ -183,32 +182,30 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
               transition={{ duration: 0.3 }}
               className="space-y-4"
             >
-              <div className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              <div className="text-lg font-semibold text-white font-inter">
                 Select Team to Scout
               </div>
 
               {/* Red Alliance */}
               <div className="space-y-2">
-                <div className={`text-sm font-medium text-red-400`}>Red Alliance</div>
+                <div className={`text-sm font-medium text-red-400 font-inter`}>Red Alliance</div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {selectedMatch.red_teams.map((team) => (
                     <motion.button
                       key={team.team_number}
                       onClick={() => handleTeamSelect(team.team_number, 'red')}
-                      className={`p-3 rounded-lg border text-center transition-all duration-200 ${
+                      className={`p-3 rounded-lg border text-center transition-colors ${
                         selectedTeam === team.team_number && allianceColor === 'red'
-                          ? 'border-red-500 bg-red-500/10'
-                          : isDarkMode
-                          ? 'border-gray-600 bg-gray-700 hover:bg-gray-600'
-                          : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                          ? 'border-red-500 bg-red-500/20 text-white'
+                          : 'border-slate-600 bg-slate-800/50 hover:bg-slate-700/50 text-white'
                       }`}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <div className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      <div className="font-semibold text-white font-inter">
                         {team.team_number}
                       </div>
-                      <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      <div className="text-xs text-slate-400 font-inter">
                         {team.team_name}
                       </div>
                     </motion.button>
@@ -218,26 +215,24 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
 
               {/* Blue Alliance */}
               <div className="space-y-2">
-                <div className={`text-sm font-medium text-blue-400`}>Blue Alliance</div>
+                <div className={`text-sm font-medium text-blue-400 font-inter`}>Blue Alliance</div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {selectedMatch.blue_teams.map((team) => (
                     <motion.button
                       key={team.team_number}
                       onClick={() => handleTeamSelect(team.team_number, 'blue')}
-                      className={`p-3 rounded-lg border text-center transition-all duration-200 ${
+                      className={`p-3 rounded-lg border text-center transition-colors ${
                         selectedTeam === team.team_number && allianceColor === 'blue'
-                          ? 'border-blue-500 bg-blue-500/10'
-                          : isDarkMode
-                          ? 'border-gray-600 bg-gray-700 hover:bg-gray-600'
-                          : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                          ? 'border-blue-500 bg-blue-500/20 text-white'
+                          : 'border-slate-600 bg-slate-800/50 hover:bg-slate-700/50 text-white'
                       }`}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <div className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      <div className="font-semibold text-white font-inter">
                         {team.team_number}
                       </div>
-                      <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      <div className="text-xs text-slate-400 font-inter">
                         {team.team_name}
                       </div>
                     </motion.button>
@@ -252,7 +247,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center space-x-2 text-red-400 bg-red-500/10 p-3 rounded-lg"
+              className="flex items-center space-x-2 text-red-400 bg-red-500/20 p-3 rounded-lg border border-red-500/30"
             >
               <AlertCircle className="w-5 h-5" />
               <span className="text-sm">{error}</span>
@@ -265,7 +260,6 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
             <Button
               variant="outline"
               onClick={onBack}
-              
             >
               Back
             </Button>
@@ -273,7 +267,6 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
           <Button
             onClick={handleNext}
             disabled={!selectedMatch || !selectedTeam}
-            
             className="ml-auto"
           >
             Next

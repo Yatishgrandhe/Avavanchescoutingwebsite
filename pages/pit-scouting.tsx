@@ -246,15 +246,15 @@ export default function PitScouting() {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} shadow-lg`}>
+                <Card>
                   <CardHeader>
-                    <CardTitle className={`flex items-center space-x-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                      <Settings className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                      <span>Basic Information</span>
-                    </CardTitle>
-                    <CardDescription className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                      Enter basic team and robot information
-                    </CardDescription>
+        <CardTitle className="flex items-center space-x-3">
+          <Settings className="w-6 h-6 text-muted-foreground" />
+          <span>Basic Information</span>
+        </CardTitle>
+        <CardDescription>
+          Enter basic team and robot information
+        </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {teamsError && (
@@ -270,23 +270,19 @@ export default function PitScouting() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Team Number
-                        </label>
+        <label className="block text-sm font-medium mb-2">
+          Team Number
+        </label>
                         {loadingTeams ? (
-                          <div className={`flex items-center justify-center h-10 px-3 py-2 rounded-md border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}>
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading teams...</span>
+                          <div className="flex items-center justify-center h-10 px-3 py-2 rounded-md border border-input bg-background">
+                            <Loader2 className="h-4 w-4 animate-spin mr-2 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">Loading teams...</span>
                           </div>
                         ) : (
                           <select
                             value={formData.teamNumber || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, teamNumber: parseInt(e.target.value) || 0 }))}
-                            className={`w-full h-10 px-3 py-2 rounded-md border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                              isDarkMode 
-                                ? 'bg-gray-700 border-gray-600 text-white' 
-                                : 'bg-white border-gray-300 text-gray-900'
-                            }`}
+                            className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                           >
                             <option value="">Select a team</option>
                             {teams.length === 0 ? (
@@ -301,81 +297,102 @@ export default function PitScouting() {
                           </select>
                         )}
                       </div>
-                      <Input
-                        
-                        placeholder="Enter robot name"
-                        value={formData.robotName}
-                        onChange={(e) => setFormData(prev => ({ ...prev, robotName: e.target.value }))}
-                        
-                      />
+                      <div>
+        <label className="block text-sm font-medium mb-2">
+          Robot Name
+        </label>
+        <Input
+          placeholder="Enter robot name"
+          value={formData.robotName}
+          onChange={(e) => setFormData(prev => ({ ...prev, robotName: e.target.value }))}
+        />
+                      </div>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <Input
-                        
-                        placeholder="e.g., Tank Drive, Swerve, Mecanum"
-                        value={formData.driveType}
-                        onChange={(e) => setFormData(prev => ({ ...prev, driveType: e.target.value }))}
-                        
-                      />
-                      <Input
-                        
-                        placeholder="e.g., Java, Python, C++"
-                        value={formData.programmingLanguage}
-                        onChange={(e) => setFormData(prev => ({ ...prev, programmingLanguage: e.target.value }))}
-                        
-                      />
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Drive Type
+                        </label>
+                        <Input
+                          placeholder="e.g., Tank Drive, Swerve, Mecanum"
+                          value={formData.driveType}
+                          onChange={(e) => setFormData(prev => ({ ...prev, driveType: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Programming Language
+                        </label>
+                        <Input
+                          placeholder="e.g., Java, Python, C++"
+                          value={formData.programmingLanguage}
+                          onChange={(e) => setFormData(prev => ({ ...prev, programmingLanguage: e.target.value }))}
+                        />
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <Input
-                        
-                        type="number"
-                        placeholder="0"
-                        value={formData.robotDimensions.length || ''}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
-                          robotDimensions: { ...prev.robotDimensions, length: parseFloat(e.target.value) || 0 }
-                        }))}
-                        
-                      />
-                      <Input
-                        
-                        type="number"
-                        placeholder="0"
-                        value={formData.robotDimensions.width || ''}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
-                          robotDimensions: { ...prev.robotDimensions, width: parseFloat(e.target.value) || 0 }
-                        }))}
-                        
-                      />
-                      <Input
-                        
-                        type="number"
-                        placeholder="0"
-                        value={formData.robotDimensions.height || ''}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
-                          robotDimensions: { ...prev.robotDimensions, height: parseFloat(e.target.value) || 0 }
-                        }))}
-                        
-                      />
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Length (in)
+                        </label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={formData.robotDimensions.length || ''}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            robotDimensions: { ...prev.robotDimensions, length: parseFloat(e.target.value) || 0 }
+                          }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Width (in)
+                        </label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={formData.robotDimensions.width || ''}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            robotDimensions: { ...prev.robotDimensions, width: parseFloat(e.target.value) || 0 }
+                          }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Height (in)
+                        </label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={formData.robotDimensions.height || ''}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            robotDimensions: { ...prev.robotDimensions, height: parseFloat(e.target.value) || 0 }
+                          }))}
+                        />
+                      </div>
                     </div>
 
-                    <Input
-                      
-                      type="number"
-                      placeholder="0"
-                      value={formData.weight || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
-                      
-                    />
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Weight (lbs)
+                      </label>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={formData.weight || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
+                      />
+                    </div>
                   </CardContent>
                   <CardFooter className="flex justify-end">
-                    <Button onClick={handleNext} >
-                      Next <ArrowRight className="ml-2 w-4 h-4" />
-                    </Button>
+        <Button onClick={handleNext}>
+          Next <ArrowRight className="ml-2 w-4 h-4" />
+        </Button>
                   </CardFooter>
                 </Card>
               </motion.div>
@@ -389,34 +406,34 @@ export default function PitScouting() {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} shadow-lg`}>
+                <Card>
                   <CardHeader>
-                    <CardTitle className={`flex items-center space-x-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                      <CheckCircle className={`w-6 h-6 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                    <CardTitle className="flex items-center space-x-3 text-white">
+                      <CheckCircle className="w-6 h-6 text-green-400" />
                       <span>Capabilities Assessment</span>
                     </CardTitle>
-                    <CardDescription className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                    <CardDescription className="text-white/80">
                       Assess robot capabilities for each game period
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="text-center">
-                      <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      <p className="text-lg text-white/80">
                         Capabilities assessment will be implemented based on your requirements
                       </p>
-                      <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                      <p className="text-sm text-white/60">
                         This section will be customized when you provide the specific requirements
                       </p>
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={handleBack} >
+                    <Button variant="outline" onClick={handleBack} className="bg-white/10 border-white/30 text-white hover:bg-white/20">
                       <ArrowLeft className="mr-2 w-4 h-4" />
                       Back
                     </Button>
-                    <Button onClick={handleNext} >
-                      Next <ArrowRight className="ml-2 w-4 h-4" />
-                    </Button>
+        <Button onClick={handleNext}>
+          Next <ArrowRight className="ml-2 w-4 h-4" />
+        </Button>
                   </CardFooter>
                 </Card>
               </motion.div>
@@ -430,34 +447,34 @@ export default function PitScouting() {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} shadow-lg`}>
+                <Card>
                   <CardHeader>
-                    <CardTitle className={`flex items-center space-x-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                      <FileText className={`w-6 h-6 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`} />
+                    <CardTitle className="flex items-center space-x-3 text-white">
+                      <FileText className="w-6 h-6 text-yellow-400" />
                       <span>Analysis & Notes</span>
                     </CardTitle>
-                    <CardDescription className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                    <CardDescription className="text-white/80">
                       Document strengths, weaknesses, and observations
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="text-center">
-                      <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      <p className="text-lg text-white/80">
                         Analysis and notes section will be implemented based on your requirements
                       </p>
-                      <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                      <p className="text-sm text-white/60">
                         This section will be customized when you provide the specific requirements
                       </p>
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={handleBack} >
+                    <Button variant="outline" onClick={handleBack} className="bg-white/10 border-white/30 text-white hover:bg-white/20">
                       <ArrowLeft className="mr-2 w-4 h-4" />
                       Back
                     </Button>
-                    <Button onClick={handleNext} >
-                      Next <ArrowRight className="ml-2 w-4 h-4" />
-                    </Button>
+        <Button onClick={handleNext}>
+          Next <ArrowRight className="ml-2 w-4 h-4" />
+        </Button>
                   </CardFooter>
                 </Card>
               </motion.div>
@@ -471,13 +488,13 @@ export default function PitScouting() {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} shadow-lg`}>
+                <Card>
                   <CardHeader>
-                    <CardTitle className={`flex items-center space-x-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                      <Camera className={`w-6 h-6 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+                    <CardTitle className="flex items-center space-x-3 text-white">
+                      <Camera className="w-6 h-6 text-purple-400" />
                       <span>Review & Submit</span>
                     </CardTitle>
-                    <CardDescription className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                    <CardDescription className="text-white/80">
                       Review your pit scouting data and submit
                     </CardDescription>
                   </CardHeader>
@@ -505,20 +522,20 @@ export default function PitScouting() {
                     )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-lg p-4`}>
-                        <h3 className={`font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Basic Information</h3>
-                        <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Team: {formData.teamNumber}</p>
-                        <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Robot: {formData.robotName || 'N/A'}</p>
-                        <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Drive: {formData.driveType || 'N/A'}</p>
+                      <div className="bg-muted rounded-lg p-4 border">
+                        <h3 className="font-semibold mb-3">Basic Information</h3>
+                        <p className="text-sm text-muted-foreground">Team: {formData.teamNumber}</p>
+                        <p className="text-sm text-muted-foreground">Robot: {formData.robotName || 'N/A'}</p>
+                        <p className="text-sm text-muted-foreground">Drive: {formData.driveType || 'N/A'}</p>
                       </div>
 
-                      <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-lg p-4`}>
-                        <h3 className={`font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Robot Specs</h3>
-                        <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      <div className="bg-muted rounded-lg p-4 border">
+                        <h3 className="font-semibold mb-3">Robot Specs</h3>
+                        <p className="text-sm text-muted-foreground">
                           Dimensions: {formData.robotDimensions.length}" × {formData.robotDimensions.width}" × {formData.robotDimensions.height}"
                         </p>
-                        <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Weight: {formData.weight} lbs</p>
-                        <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Language: {formData.programmingLanguage || 'N/A'}</p>
+                        <p className="text-sm text-muted-foreground">Weight: {formData.weight} lbs</p>
+                        <p className="text-sm text-muted-foreground">Language: {formData.programmingLanguage || 'N/A'}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -527,14 +544,14 @@ export default function PitScouting() {
                       <ArrowLeft className="mr-2 w-4 h-4" />
                       Back
                     </Button>
-                    <Button onClick={handleSubmit} disabled={submitting} >
-                      {submitting ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Save className="mr-2 h-4 w-4" />
-                      )}
-                      {submitting ? 'Submitting...' : 'Submit Pit Data'}
-                    </Button>
+        <Button onClick={handleSubmit} disabled={submitting}>
+          {submitting ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="mr-2 h-4 w-4" />
+          )}
+          {submitting ? 'Submitting...' : 'Submit Pit Data'}
+        </Button>
                   </CardFooter>
                 </Card>
               </motion.div>

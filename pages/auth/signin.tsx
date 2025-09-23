@@ -83,7 +83,7 @@ export default function SignIn() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback`,
+          redirectTo: `${window.location.origin}/`,
         },
       });
 
@@ -190,7 +190,9 @@ export default function SignIn() {
                 <Button
                   onClick={handleDiscordSignIn}
                   disabled={isLoading}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg group disabled:opacity-50 disabled:cursor-not-allowed"
+                  variant="avalanche"
+                  size="lg"
+                  className="w-full py-4 px-6 group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center justify-center space-x-3">
                     <motion.div

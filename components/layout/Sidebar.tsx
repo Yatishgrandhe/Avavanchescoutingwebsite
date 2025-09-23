@@ -18,10 +18,8 @@ import {
   Database,
   FileText
 } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
+import { Button, Badge, Logo } from '../ui';
 import { cn } from '@/lib/utils';
-import Logo from '../ui/Logo';
 
 interface SidebarProps {
   isCollapsed: boolean;

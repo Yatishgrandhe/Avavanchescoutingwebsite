@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Button } from '../ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../ui/card';
+import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../ui';
 import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
 
 interface EndgameFormProps {

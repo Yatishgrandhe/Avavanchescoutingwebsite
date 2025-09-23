@@ -4,8 +4,7 @@
   "framework": "nextjs",
   "functions": {
     "pages/api/**/*.ts": {
-      "maxDuration": 30,
-      "runtime": "nodejs18.x"
+      "maxDuration": 30
     }
   },
   "headers": [

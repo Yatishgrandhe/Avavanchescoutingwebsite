@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Settings,
   Menu,
-  X
+  X,
+  Wrench
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/ui/Logo';
@@ -37,6 +38,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle, user, isDarkMo
           label: 'Avalanche Form',
           href: '/scout',
           icon: ClipboardList,
+        },
+        {
+          label: 'Pit Scouting',
+          href: '/pit-scouting',
+          icon: Wrench,
         },
       ],
     },

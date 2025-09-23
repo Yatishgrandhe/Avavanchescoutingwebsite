@@ -58,7 +58,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className="max-w-4xl mx-auto"
+      className="max-w-6xl mx-auto"
     >
       <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         {/* Progress Bar */}

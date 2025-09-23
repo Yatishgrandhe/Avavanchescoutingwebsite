@@ -212,8 +212,9 @@ export default function Scout() {
       username: session.user?.email || undefined,
       image: session.user?.image || undefined,
     }}>
-      <div className="min-h-full flex items-center justify-center">
-        <AnimatePresence mode="wait">
+      <div className="min-h-full p-6">
+        <div className="max-w-7xl mx-auto">
+          <AnimatePresence mode="wait">
           {currentStep === 'match-details' && (
             <motion.div
               key="match-details"
@@ -376,6 +377,7 @@ export default function Scout() {
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
       </div>
     </Layout>
   );

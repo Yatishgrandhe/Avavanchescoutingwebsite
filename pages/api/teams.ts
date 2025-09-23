@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
@@ -7,11 +7,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { team_number } = req.query;
 
       if (team_number) {
-        const team = await db.getTeam(parseInt(team_number as string));
+        // Get specific team
+        const { data: team, error } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('team_number', parseInt(team_number as string))
+          .single();
+
+        if (error) {
+          console.error('Error fetching team:', error);
+          return res.status(404).json({ error: 'Team not found' });
+        }
+
         res.status(200).json(team);
       } else {
-        const teams = await db.getTeams();
-        res.status(200).json(teams);
+        // Get all teams
+        const { data: teams, error } = await supabase
+          .from('teams')
+          .select('*')
+          .order('team_number');
+
+        if (error) {
+          console.error('Error fetching teams:', error);
+          return res.status(500).json({ error: 'Failed to fetch teams' });
+        }
+
+        res.status(200).json({ teams: teams || [] });
       }
     } catch (error) {
       console.error('Error fetching teams:', error);

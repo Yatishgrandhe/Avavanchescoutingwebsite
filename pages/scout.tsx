@@ -291,6 +291,7 @@ export default function Scout() {
                       onBack={() => setCurrentStep('autonomous')}
                       currentStep={currentStepIndex}
                       totalSteps={steps.length}
+                      isDarkMode={true}
                     />
                   </motion.div>
                 )}

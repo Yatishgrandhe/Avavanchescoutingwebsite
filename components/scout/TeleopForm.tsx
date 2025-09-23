@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../ui';
+import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Counter } from '../ui';
 import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
 
 interface TeleopFormProps {
@@ -8,6 +8,7 @@ interface TeleopFormProps {
   onBack: () => void;
   currentStep: number;
   totalSteps: number;
+  isDarkMode?: boolean;
 }
 
 const TeleopForm: React.FC<TeleopFormProps> = ({
@@ -15,6 +16,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   onBack,
   currentStep,
   totalSteps,
+  isDarkMode = true,
 }) => {
   const [formData, setFormData] = useState({
     teleop_coral_trough: 0,
@@ -79,41 +81,45 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
           <div className="space-y-4">
             <h3 className="text-white font-semibold text-lg">Coral Scoring</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                
-                type="number"
-                min="0"
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Counter
                 value={formData.teleop_coral_trough}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('teleop_coral_trough', parseInt(e.target.value) || 0)}
-                className="bg-dark-700 border-dark-600 text-white"
+                onChange={(value: number) => handleInputChange('teleop_coral_trough', value)}
+                min={0}
+                max={20}
+                label="Trough (L1)"
+                points={SCORING_VALUES.teleop_coral_trough}
+                isDarkMode={isDarkMode}
               />
               
-              <Input
-                
-                type="number"
-                min="0"
+              <Counter
                 value={formData.teleop_coral_l2}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('teleop_coral_l2', parseInt(e.target.value) || 0)}
-                className="bg-dark-700 border-dark-600 text-white"
+                onChange={(value: number) => handleInputChange('teleop_coral_l2', value)}
+                min={0}
+                max={20}
+                label="Level 2 Branch"
+                points={SCORING_VALUES.teleop_coral_l2}
+                isDarkMode={isDarkMode}
               />
               
-              <Input
-                
-                type="number"
-                min="0"
+              <Counter
                 value={formData.teleop_coral_l3}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('teleop_coral_l3', parseInt(e.target.value) || 0)}
-                className="bg-dark-700 border-dark-600 text-white"
+                onChange={(value: number) => handleInputChange('teleop_coral_l3', value)}
+                min={0}
+                max={20}
+                label="Level 3 Branch"
+                points={SCORING_VALUES.teleop_coral_l3}
+                isDarkMode={isDarkMode}
               />
               
-              <Input
-                
-                type="number"
-                min="0"
+              <Counter
                 value={formData.teleop_coral_l4}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('teleop_coral_l4', parseInt(e.target.value) || 0)}
-                className="bg-dark-700 border-dark-600 text-white"
+                onChange={(value: number) => handleInputChange('teleop_coral_l4', value)}
+                min={0}
+                max={20}
+                label="Level 4 Branch"
+                points={SCORING_VALUES.teleop_coral_l4}
+                isDarkMode={isDarkMode}
               />
             </div>
           </div>
@@ -122,23 +128,25 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
           <div className="space-y-4">
             <h3 className="text-white font-semibold text-lg">Algae Scoring</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                
-                type="number"
-                min="0"
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Counter
                 value={formData.teleop_algae_processor}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('teleop_algae_processor', parseInt(e.target.value) || 0)}
-                className="bg-dark-700 border-dark-600 text-white"
+                onChange={(value: number) => handleInputChange('teleop_algae_processor', value)}
+                min={0}
+                max={20}
+                label="PROCESSOR"
+                points={SCORING_VALUES.teleop_algae_processor}
+                isDarkMode={isDarkMode}
               />
               
-              <Input
-                
-                type="number"
-                min="0"
+              <Counter
                 value={formData.teleop_algae_net}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('teleop_algae_net', parseInt(e.target.value) || 0)}
-                className="bg-dark-700 border-dark-600 text-white"
+                onChange={(value: number) => handleInputChange('teleop_algae_net', value)}
+                min={0}
+                max={20}
+                label="NET"
+                points={SCORING_VALUES.teleop_algae_net}
+                isDarkMode={isDarkMode}
               />
             </div>
           </div>

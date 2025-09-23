@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Checkbox } from '../ui';
+import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Checkbox, Counter } from '../ui';
 import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
 import { Play, TreePine, Waves, CheckCircle } from 'lucide-react';
 
@@ -164,57 +164,45 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Trough (L1) - 3 points each
-                </label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="10"
-                  value={formData.auto_coral_trough}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_coral_trough', parseInt(e.target.value) || 0)}
-                />
-              </div>
+              <Counter
+                value={formData.auto_coral_trough}
+                onChange={(value: number) => handleInputChange('auto_coral_trough', value)}
+                min={0}
+                max={10}
+                label="Trough (L1)"
+                points={SCORING_VALUES.auto_coral_trough}
+                isDarkMode={isDarkMode}
+              />
               
-              <div className="space-y-2">
-                <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Level 2 Branch - 4 points each
-                </label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="10"
-                  value={formData.auto_coral_l2}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_coral_l2', parseInt(e.target.value) || 0)}
-                />
-              </div>
+              <Counter
+                value={formData.auto_coral_l2}
+                onChange={(value: number) => handleInputChange('auto_coral_l2', value)}
+                min={0}
+                max={10}
+                label="Level 2 Branch"
+                points={SCORING_VALUES.auto_coral_l2}
+                isDarkMode={isDarkMode}
+              />
               
-              <div className="space-y-2">
-                <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Level 3 Branch - 6 points each
-                </label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="10"
-                  value={formData.auto_coral_l3}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_coral_l3', parseInt(e.target.value) || 0)}
-                />
-              </div>
+              <Counter
+                value={formData.auto_coral_l3}
+                onChange={(value: number) => handleInputChange('auto_coral_l3', value)}
+                min={0}
+                max={10}
+                label="Level 3 Branch"
+                points={SCORING_VALUES.auto_coral_l3}
+                isDarkMode={isDarkMode}
+              />
               
-              <div className="space-y-2">
-                <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Level 4 Branch - 7 points each
-                </label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="10"
-                  value={formData.auto_coral_l4}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_coral_l4', parseInt(e.target.value) || 0)}
-                />
-              </div>
+              <Counter
+                value={formData.auto_coral_l4}
+                onChange={(value: number) => handleInputChange('auto_coral_l4', value)}
+                min={0}
+                max={10}
+                label="Level 4 Branch"
+                points={SCORING_VALUES.auto_coral_l4}
+                isDarkMode={isDarkMode}
+              />
             </div>
           </motion.div>
 
@@ -235,31 +223,25 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  PROCESSOR - 6 points each
-                </label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="10"
-                  value={formData.auto_algae_processor}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_algae_processor', parseInt(e.target.value) || 0)}
-                />
-              </div>
+              <Counter
+                value={formData.auto_algae_processor}
+                onChange={(value: number) => handleInputChange('auto_algae_processor', value)}
+                min={0}
+                max={10}
+                label="PROCESSOR"
+                points={SCORING_VALUES.auto_algae_processor}
+                isDarkMode={isDarkMode}
+              />
               
-              <div className="space-y-2">
-                <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  NET - 4 points each
-                </label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="10"
-                  value={formData.auto_algae_net}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_algae_net', parseInt(e.target.value) || 0)}
-                />
-              </div>
+              <Counter
+                value={formData.auto_algae_net}
+                onChange={(value: number) => handleInputChange('auto_algae_net', value)}
+                min={0}
+                max={10}
+                label="NET"
+                points={SCORING_VALUES.auto_algae_net}
+                isDarkMode={isDarkMode}
+              />
             </div>
           </motion.div>
 

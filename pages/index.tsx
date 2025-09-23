@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import Logo from '@/components/ui/Logo';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 // Avalanche animation component
 const AvalancheAnimation = () => {
@@ -121,43 +122,45 @@ export default function Home() {
 
   if (session) {
     return (
-      <Layout user={{
-        name: session.user?.name || 'User',
-        username: session.user?.email || undefined,
-        image: session.user?.image || undefined,
-      }}>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-center"
-        >
-          <h1 className="text-4xl font-bold text-white mb-4">
-            Welcome to Avalanche Scouting Data
-          </h1>
-          <p className="text-xl text-gray-400 mb-8">
-            Your comprehensive FRC 2025 scouting solution
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
-              className="bg-avalanche-600 hover:bg-avalanche-700 text-white"
-              onClick={() => window.location.href = '/scout'}
-            >
-              Start Scouting
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="border-avalanche-600 text-avalanche-400 hover:bg-avalanche-600 hover:text-white"
-              onClick={() => window.location.href = '/analysis/basic'}
-            >
-              View Analysis
-            </Button>
-          </div>
-        </motion.div>
-      </Layout>
+      <ProtectedRoute>
+        <Layout user={{
+          name: session.user?.name || 'User',
+          username: session.user?.email || undefined,
+          image: session.user?.image || undefined,
+        }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center"
+          >
+            <h1 className="text-4xl font-bold text-white mb-4">
+              Welcome to Avalanche Scouting Data
+            </h1>
+            <p className="text-xl text-gray-400 mb-8">
+              Your comprehensive FRC 2025 scouting solution
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button
+                size="lg"
+                className="bg-avalanche-600 hover:bg-avalanche-700 text-white"
+                onClick={() => window.location.href = '/scout'}
+              >
+                Start Scouting
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="border-avalanche-600 text-avalanche-400 hover:bg-avalanche-600 hover:text-white"
+                onClick={() => window.location.href = '/analysis/basic'}
+              >
+                View Analysis
+              </Button>
+            </div>
+          </motion.div>
+        </Layout>
+      </ProtectedRoute>
     );
   }
 

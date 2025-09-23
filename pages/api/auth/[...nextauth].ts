@@ -37,17 +37,12 @@ export const authOptions = {
     secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
   }),
   callbacks: {
-    async session({ session, token }: any) {
-      if (session.user) {
-        session.user.id = token?.sub || session.user.id;
+    async session({ session, user }: any) {
+      // Add user ID to session
+      if (session.user && user) {
+        session.user.id = user.id;
       }
       return session;
-    },
-    async jwt({ token, user, account }: any) {
-      if (user) {
-        token.id = user.id;
-      }
-      return token;
     },
     async signIn({ user, account, profile }: any) {
       // Allow Discord sign-in

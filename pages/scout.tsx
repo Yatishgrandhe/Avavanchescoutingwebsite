@@ -7,6 +7,7 @@ import TeleopForm from '@/components/scout/TeleopForm';
 import EndgameForm from '@/components/scout/EndgameForm';
 import MiscellaneousForm from '@/components/scout/MiscellaneousForm';
 import Layout from '@/components/layout/Layout';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ScoringNotes } from '@/lib/types';
 import { calculateScore } from '@/lib/utils';
 
@@ -41,6 +42,10 @@ interface FormData {
 
 export default function Scout() {
   const { data: session } = useSession();
+
+  if (!session) {
+    return null; // ProtectedRoute will handle the redirect
+  }
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [formData, setFormData] = useState<FormData>({
     matchData: {
@@ -207,11 +212,12 @@ export default function Scout() {
   }
 
   return (
-    <Layout user={{
-      name: session.user?.name || 'User',
-      username: session.user?.email || undefined,
-      image: session.user?.image || undefined,
-    }}>
+    <ProtectedRoute>
+      <Layout user={{
+        name: session.user?.name || 'User',
+        username: session.user?.email || undefined,
+        image: session.user?.image || undefined,
+      }}>
       <div className="min-h-full p-6">
         <div className="max-w-7xl mx-auto">
           <AnimatePresence mode="wait">
@@ -379,6 +385,7 @@ export default function Scout() {
         </AnimatePresence>
         </div>
       </div>
-    </Layout>
+      </Layout>
+    </ProtectedRoute>
   );
 }

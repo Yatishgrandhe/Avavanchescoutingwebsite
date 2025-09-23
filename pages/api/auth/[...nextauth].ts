@@ -51,10 +51,11 @@ export const authOptions = {
       return false;
     },
     async redirect({ url, baseUrl }: any) {
-      // Allows relative callback URLs
+      // Handle redirects properly for both local and production
       if (url.startsWith("/")) return `${baseUrl}${url}`
       // Allows callback URLs on the same origin
       else if (new URL(url).origin === baseUrl) return url
+      // Default redirect to home page
       return baseUrl
     },
   },
@@ -67,6 +68,7 @@ export const authOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
+  useSecureCookies: process.env.NODE_ENV === 'production',
 };
 
 export default NextAuth(authOptions);

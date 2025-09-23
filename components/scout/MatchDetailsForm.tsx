@@ -22,7 +22,7 @@ interface Match {
 }
 
 interface MatchDetailsFormProps {
-  onNext: (matchData: Match, selectedTeam: number, allianceColor: string) => void;
+  onNext: (matchData: Match, selectedTeam: number, allianceColor: 'red' | 'blue') => void;
   onBack?: () => void;
   currentStep: number;
   totalSteps: number;
@@ -39,7 +39,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
-  const [allianceColor, setAllianceColor] = useState<string>('');
+  const [allianceColor, setAllianceColor] = useState<'red' | 'blue' | ''>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -74,7 +74,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
     setAllianceColor('');
   };
 
-  const handleTeamSelect = (teamNumber: number, color: string) => {
+  const handleTeamSelect = (teamNumber: number, color: 'red' | 'blue') => {
     setSelectedTeam(teamNumber);
     setAllianceColor(color);
   };
@@ -91,7 +91,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
     }
 
     setError('');
-    onNext(selectedMatch, selectedTeam, allianceColor);
+    onNext(selectedMatch, selectedTeam, allianceColor as 'red' | 'blue');
   };
 
   const progressPercentage = (currentStep / totalSteps) * 100;

@@ -136,7 +136,13 @@ export default function Scout() {
       // Reset form after successful submission
       setTimeout(() => {
         setFormData({
-          matchNumber: 0,
+          matchData: {
+            match_id: '',
+            event_key: '',
+            match_number: 0,
+            red_teams: [],
+            blue_teams: [],
+          },
           teamNumber: 0,
           allianceColor: 'red',
           autonomous: {},
@@ -311,7 +317,7 @@ export default function Scout() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div className="bg-dark-700 rounded-lg p-4">
                     <h3 className="text-white font-semibold mb-3">Match Details</h3>
-                    <p className="text-gray-400">Match Number: {formData.matchNumber}</p>
+                    <p className="text-gray-400">Match Number: {formData.matchData.match_number}</p>
                     <p className="text-gray-400">Team Number: {formData.teamNumber}</p>
                     <p className="text-gray-400">Alliance: {formData.allianceColor}</p>
                   </div>

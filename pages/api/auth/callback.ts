@@ -26,9 +26,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { error } = await supabase.auth.exchangeCodeForSession(code as string);
       
       if (!error) {
-        // Redirect to the specified page or home
-        const redirectUrl = next.toString().startsWith('/') ? next.toString() : '/';
-        res.redirect(302, redirectUrl);
+        // Redirect to the main dashboard
+        res.redirect(302, '/');
         return;
       } else {
         console.error('Auth callback error:', error);

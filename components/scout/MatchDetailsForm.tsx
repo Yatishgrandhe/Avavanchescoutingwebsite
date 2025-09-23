@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { ChevronDown, Loader2, AlertCircle } from 'lucide-react';
 
 interface Match {
@@ -265,7 +265,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
             <Button
               variant="outline"
               onClick={onBack}
-              isDarkMode={isDarkMode}
+              
             >
               Back
             </Button>
@@ -273,7 +273,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
           <Button
             onClick={handleNext}
             disabled={!selectedMatch || !selectedTeam}
-            isDarkMode={isDarkMode}
+            
             className="ml-auto"
           >
             Next

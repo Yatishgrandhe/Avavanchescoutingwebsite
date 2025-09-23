@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card';
-import { Checkbox } from '@/components/ui/Checkbox';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
 import { Play, TreePine, Waves, CheckCircle } from 'lucide-react';
 
@@ -177,7 +177,6 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                   max="10"
                   value={formData.auto_coral_trough}
                   onChange={(e) => handleInputChange('auto_coral_trough', parseInt(e.target.value) || 0)}
-                  isDarkMode={isDarkMode}
                 />
               </div>
               
@@ -191,7 +190,6 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                   max="10"
                   value={formData.auto_coral_l2}
                   onChange={(e) => handleInputChange('auto_coral_l2', parseInt(e.target.value) || 0)}
-                  isDarkMode={isDarkMode}
                 />
               </div>
               
@@ -205,7 +203,6 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                   max="10"
                   value={formData.auto_coral_l3}
                   onChange={(e) => handleInputChange('auto_coral_l3', parseInt(e.target.value) || 0)}
-                  isDarkMode={isDarkMode}
                 />
               </div>
               
@@ -219,7 +216,6 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                   max="10"
                   value={formData.auto_coral_l4}
                   onChange={(e) => handleInputChange('auto_coral_l4', parseInt(e.target.value) || 0)}
-                  isDarkMode={isDarkMode}
                 />
               </div>
             </div>
@@ -252,7 +248,6 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                   max="10"
                   value={formData.auto_algae_processor}
                   onChange={(e) => handleInputChange('auto_algae_processor', parseInt(e.target.value) || 0)}
-                  isDarkMode={isDarkMode}
                 />
               </div>
               
@@ -266,7 +261,6 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                   max="10"
                   value={formData.auto_algae_net}
                   onChange={(e) => handleInputChange('auto_algae_net', parseInt(e.target.value) || 0)}
-                  isDarkMode={isDarkMode}
                 />
               </div>
             </div>
@@ -302,7 +296,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
             <Button
               variant="outline"
               onClick={onBack}
-              isDarkMode={isDarkMode}
+              
             >
               Previous
             </Button>
@@ -314,7 +308,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
           >
             <Button
               onClick={() => onNext(formData)}
-              isDarkMode={isDarkMode}
+              
             >
               Next: Teleop
             </Button>

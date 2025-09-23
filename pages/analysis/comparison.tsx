@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -220,7 +220,7 @@ export default function TeamComparison() {
               {teamComparisons.length > 0 && (
                 <Button
                   onClick={exportComparison}
-                  isDarkMode={isDarkMode}
+                  
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export Comparison
@@ -252,13 +252,13 @@ export default function TeamComparison() {
                   placeholder="Enter team number (e.g., 1234)"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  isDarkMode={isDarkMode}
+                  
                   className="flex-1"
                 />
                 <Button
                   onClick={handleAddTeam}
                   disabled={!inputValue || loading || selectedTeams.length >= 4}
-                  isDarkMode={isDarkMode}
+                  
                   className="px-6"
                 >
                   {loading ? (

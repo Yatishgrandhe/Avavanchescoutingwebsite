@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
 
 interface TeleopFormProps {
@@ -83,7 +83,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
-                label="Coral in Trough (L1)"
+                
                 type="number"
                 min="0"
                 value={formData.teleop_coral_trough}
@@ -92,7 +92,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
               />
               
               <Input
-                label="Coral on L2 Branch"
+                
                 type="number"
                 min="0"
                 value={formData.teleop_coral_l2}
@@ -101,7 +101,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
               />
               
               <Input
-                label="Coral on L3 Branch"
+                
                 type="number"
                 min="0"
                 value={formData.teleop_coral_l3}
@@ -110,7 +110,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
               />
               
               <Input
-                label="Coral on L4 Branch"
+                
                 type="number"
                 min="0"
                 value={formData.teleop_coral_l4}
@@ -126,7 +126,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
-                label="Algae in Processor"
+                
                 type="number"
                 min="0"
                 value={formData.teleop_algae_processor}
@@ -135,7 +135,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
               />
               
               <Input
-                label="Algae on Net"
+                
                 type="number"
                 min="0"
                 value={formData.teleop_algae_net}

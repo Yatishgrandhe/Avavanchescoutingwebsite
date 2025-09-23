@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Layout from '@/components/layout/Layout';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { 
   Wrench, 
   CheckCircle, 
@@ -298,34 +298,34 @@ export default function PitScouting() {
                         )}
                       </div>
                       <Input
-                        label="Robot Name"
+                        
                         placeholder="Enter robot name"
                         value={formData.robotName}
                         onChange={(e) => setFormData(prev => ({ ...prev, robotName: e.target.value }))}
-                        isDarkMode={isDarkMode}
+                        
                       />
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Input
-                        label="Drive Type"
+                        
                         placeholder="e.g., Tank Drive, Swerve, Mecanum"
                         value={formData.driveType}
                         onChange={(e) => setFormData(prev => ({ ...prev, driveType: e.target.value }))}
-                        isDarkMode={isDarkMode}
+                        
                       />
                       <Input
-                        label="Programming Language"
+                        
                         placeholder="e.g., Java, Python, C++"
                         value={formData.programmingLanguage}
                         onChange={(e) => setFormData(prev => ({ ...prev, programmingLanguage: e.target.value }))}
-                        isDarkMode={isDarkMode}
+                        
                       />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <Input
-                        label="Length (inches)"
+                        
                         type="number"
                         placeholder="0"
                         value={formData.robotDimensions.length || ''}
@@ -333,10 +333,10 @@ export default function PitScouting() {
                           ...prev, 
                           robotDimensions: { ...prev.robotDimensions, length: parseFloat(e.target.value) || 0 }
                         }))}
-                        isDarkMode={isDarkMode}
+                        
                       />
                       <Input
-                        label="Width (inches)"
+                        
                         type="number"
                         placeholder="0"
                         value={formData.robotDimensions.width || ''}
@@ -344,10 +344,10 @@ export default function PitScouting() {
                           ...prev, 
                           robotDimensions: { ...prev.robotDimensions, width: parseFloat(e.target.value) || 0 }
                         }))}
-                        isDarkMode={isDarkMode}
+                        
                       />
                       <Input
-                        label="Height (inches)"
+                        
                         type="number"
                         placeholder="0"
                         value={formData.robotDimensions.height || ''}
@@ -355,21 +355,21 @@ export default function PitScouting() {
                           ...prev, 
                           robotDimensions: { ...prev.robotDimensions, height: parseFloat(e.target.value) || 0 }
                         }))}
-                        isDarkMode={isDarkMode}
+                        
                       />
                     </div>
 
                     <Input
-                      label="Weight (lbs)"
+                      
                       type="number"
                       placeholder="0"
                       value={formData.weight || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
-                      isDarkMode={isDarkMode}
+                      
                     />
                   </CardContent>
                   <CardFooter className="flex justify-end">
-                    <Button onClick={handleNext} isDarkMode={isDarkMode}>
+                    <Button onClick={handleNext} >
                       Next <ArrowRight className="ml-2 w-4 h-4" />
                     </Button>
                   </CardFooter>
@@ -406,11 +406,11 @@ export default function PitScouting() {
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={handleBack} isDarkMode={isDarkMode}>
+                    <Button variant="outline" onClick={handleBack} >
                       <ArrowLeft className="mr-2 w-4 h-4" />
                       Back
                     </Button>
-                    <Button onClick={handleNext} isDarkMode={isDarkMode}>
+                    <Button onClick={handleNext} >
                       Next <ArrowRight className="ml-2 w-4 h-4" />
                     </Button>
                   </CardFooter>
@@ -447,11 +447,11 @@ export default function PitScouting() {
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={handleBack} isDarkMode={isDarkMode}>
+                    <Button variant="outline" onClick={handleBack} >
                       <ArrowLeft className="mr-2 w-4 h-4" />
                       Back
                     </Button>
-                    <Button onClick={handleNext} isDarkMode={isDarkMode}>
+                    <Button onClick={handleNext} >
                       Next <ArrowRight className="ml-2 w-4 h-4" />
                     </Button>
                   </CardFooter>
@@ -519,11 +519,11 @@ export default function PitScouting() {
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={handleBack} isDarkMode={isDarkMode}>
+                    <Button variant="outline" onClick={handleBack} >
                       <ArrowLeft className="mr-2 w-4 h-4" />
                       Back
                     </Button>
-                    <Button onClick={handleSubmit} disabled={submitting} isDarkMode={isDarkMode}>
+                    <Button onClick={handleSubmit} disabled={submitting} >
                       {submitting ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (

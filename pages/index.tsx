@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useSession, signIn } from 'next-auth/react';
-import { Button } from '@/components/ui/Button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { 
   BarChart3, 
   Target, 
@@ -11,7 +12,11 @@ import {
   ArrowRight,
   Sparkles,
   TrendingUp,
-  Shield
+  Shield,
+  Play,
+  BarChart,
+  Settings,
+  Database
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import Logo from '@/components/ui/Logo';
@@ -128,37 +133,150 @@ export default function Home() {
           username: session.user?.email || undefined,
           image: session.user?.image || undefined,
         }}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center"
-          >
-            <h1 className="text-4xl font-bold text-white mb-4">
-              Welcome to Avalanche Scouting Data
-            </h1>
-            <p className="text-xl text-gray-400 mb-8">
-              Your comprehensive FRC 2025 scouting solution
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                size="lg"
-                className="bg-avalanche-600 hover:bg-avalanche-700 text-white"
-                onClick={() => window.location.href = '/scout'}
-              >
-                Start Scouting
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-avalanche-600 text-avalanche-400 hover:bg-avalanche-600 hover:text-white"
-                onClick={() => window.location.href = '/analysis/basic'}
-              >
-                View Analysis
-              </Button>
-            </div>
-          </motion.div>
+          <div className="space-y-8">
+            {/* Welcome Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="text-center space-y-4"
+            >
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Badge variant="secondary" className="text-sm">
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  FRC 2025 Season
+                </Badge>
+              </div>
+              <h1 className="text-4xl font-bold text-foreground">
+                Welcome to Avalanche Scouting
+              </h1>
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                Your comprehensive FRC 2025 scouting data platform with advanced analytics and real-time insights
+              </p>
+            </motion.div>
+
+            {/* Quick Actions */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            >
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.location.href = '/scout'}>
+                <CardHeader className="text-center">
+                  <div className="mx-auto w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                    <Play className="w-6 h-6 text-primary" />
+                  </div>
+                  <CardTitle>Start Scouting</CardTitle>
+                  <CardDescription>
+                    Begin collecting match data and team performance metrics
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button className="w-full" size="lg">
+                    <Play className="w-4 h-4 mr-2" />
+                    New Scouting Session
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.location.href = '/analysis/basic'}>
+                <CardHeader className="text-center">
+                  <div className="mx-auto w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center mb-4">
+                    <BarChart className="w-6 h-6 text-blue-500" />
+                  </div>
+                  <CardTitle>View Analysis</CardTitle>
+                  <CardDescription>
+                    Analyze team performance and generate insights
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button variant="outline" className="w-full" size="lg">
+                    <BarChart className="w-4 h-4 mr-2" />
+                    Open Analytics
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.location.href = '/analysis/advanced'}>
+                <CardHeader className="text-center">
+                  <div className="mx-auto w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center mb-4">
+                    <Database className="w-6 h-6 text-green-500" />
+                  </div>
+                  <CardTitle>Data Management</CardTitle>
+                  <CardDescription>
+                    Manage teams, matches, and scouting data
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button variant="outline" className="w-full" size="lg">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Manage Data
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Stats Overview */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="grid grid-cols-1 md:grid-cols-4 gap-4"
+            >
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Teams Scouted</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">24</div>
+                  <p className="text-xs text-muted-foreground">
+                    +2 from last week
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Matches Recorded</CardTitle>
+                  <Target className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">156</div>
+                  <p className="text-xs text-muted-foreground">
+                    +12 from last week
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Avg Score</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">47.2</div>
+                  <p className="text-xs text-muted-foreground">
+                    +3.1 from last week
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Data Points</CardTitle>
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">2,847</div>
+                  <p className="text-xs text-muted-foreground">
+                    +234 from last week
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
         </Layout>
       </ProtectedRoute>
     );
@@ -182,12 +300,14 @@ export default function Home() {
             Data
           </a>
           <Button
-            variant="secondary"
+            variant="outline"
             size="sm"
             onClick={() => signIn('discord')}
-            className="bg-gray-200 text-gray-800 hover:bg-gray-300"
+            className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
           >
-            Login <ArrowRight className="ml-1 w-4 h-4" />
+            <Shield className="mr-1 w-4 h-4" />
+            Login
+            <ArrowRight className="ml-1 w-4 h-4" />
           </Button>
         </div>
       </header>
@@ -246,13 +366,15 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
           >
-            <Button
-              size="lg"
-              onClick={() => signIn('discord')}
-              className="bg-gray-200 text-gray-800 hover:bg-gray-300 text-lg px-8 py-4 rounded-lg"
-            >
-              Scout <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
+          <Button
+            size="lg"
+            onClick={() => signIn('discord')}
+            className="text-lg px-8 py-4"
+          >
+            <Shield className="mr-2 w-5 h-5" />
+            Sign in with Discord
+            <ArrowRight className="ml-2 w-5 h-5" />
+          </Button>
           </motion.div>
         </motion.div>
       </div>

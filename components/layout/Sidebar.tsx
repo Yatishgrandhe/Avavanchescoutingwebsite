@@ -11,8 +11,15 @@ import {
   Settings,
   Menu,
   X,
-  Wrench
+  Wrench,
+  Home,
+  Target,
+  Users,
+  Database,
+  FileText
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/ui/Logo';
 

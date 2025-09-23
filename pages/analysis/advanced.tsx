@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -245,7 +245,7 @@ export default function AdvancedAnalysis() {
                 <Button
                   variant="outline"
                   onClick={() => setShowFilters(!showFilters)}
-                  isDarkMode={isDarkMode}
+                  
                 >
                   <Filter className="w-4 h-4 mr-2" />
                   Filters
@@ -253,7 +253,7 @@ export default function AdvancedAnalysis() {
                 {teamStats && (
                   <Button
                     onClick={exportData}
-                    isDarkMode={isDarkMode}
+                    
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Export
@@ -275,25 +275,25 @@ export default function AdvancedAnalysis() {
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Input
-                      label="Event Key"
+                      
                       placeholder="e.g., 2025mabos"
                       value={filters.event_key || ''}
                       onChange={(e) => setFilters(prev => ({ ...prev, event_key: e.target.value || undefined }))}
-                      isDarkMode={isDarkMode}
+                      
                     />
                     <Input
-                      label="Min Matches"
+                      
                       type="number"
                       placeholder="Minimum matches"
                       value={filters.min_matches || ''}
                       onChange={(e) => setFilters(prev => ({ ...prev, min_matches: parseInt(e.target.value) || undefined }))}
-                      isDarkMode={isDarkMode}
+                      
                     />
                     <div className="flex space-x-2">
                       <Button
                         variant="outline"
                         onClick={() => setFilters({})}
-                        isDarkMode={isDarkMode}
+                        
                         className="flex-1"
                       >
                         Clear Filters
@@ -328,13 +328,13 @@ export default function AdvancedAnalysis() {
                   placeholder="Enter team number (e.g., 1234)"
                   value={selectedTeam || ''}
                   onChange={(e) => setSelectedTeam(parseInt(e.target.value) || null)}
-                  isDarkMode={isDarkMode}
+                  
                   className="flex-1"
                 />
                 <Button
                   onClick={handleTeamSearch}
                   disabled={!selectedTeam || loading}
-                  isDarkMode={isDarkMode}
+                  
                   className="px-8"
                 >
                   {loading ? (

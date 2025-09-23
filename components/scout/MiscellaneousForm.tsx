@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 
 interface MiscellaneousFormProps {
   onNext: (miscData: { defense_rating: number; comments: string }) => void;
@@ -65,7 +65,6 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
           <div className="space-y-4">
             <h3 className="text-white font-semibold text-lg">Defense Rating</h3>
             <Input
-              label="Defense Rating (1-10)"
               type="number"
               min="1"
               max="10"

@@ -67,7 +67,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
               min="1"
               max="10"
               value={formData.defense_rating}
-              onChange={(e) => handleInputChange('defense_rating', parseInt(e.target.value) || 0)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('defense_rating', parseInt(e.target.value) || 0)}
               className="bg-dark-700 border-dark-600 text-white"
               placeholder="Rate the team's defensive play from 1-10"
             />
@@ -81,7 +81,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
             <h3 className="text-white font-semibold text-lg">Comments</h3>
             <textarea
               value={formData.comments}
-              onChange={(e) => handleInputChange('comments', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('comments', e.target.value)}
               className="w-full h-32 bg-dark-700 border border-dark-600 text-white rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-reef-500"
               placeholder="Add any additional observations, strategies observed, or notable robot capabilities..."
             />

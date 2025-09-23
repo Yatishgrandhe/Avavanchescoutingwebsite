@@ -255,7 +255,7 @@ export default function TeamComparison() {
                   type="number"
                   placeholder="Enter team number (e.g., 1234)"
                   value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputValue(e.target.value)}
                   
                   className="flex-1"
                 />

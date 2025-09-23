@@ -281,7 +281,7 @@ export default function PitScouting() {
                         ) : (
                           <select
                             value={formData.teamNumber || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, teamNumber: parseInt(e.target.value) || 0 }))}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, teamNumber: parseInt(e.target.value) || 0 }))}
                             className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                           >
                             <option value="">Select a team</option>
@@ -304,7 +304,7 @@ export default function PitScouting() {
         <Input
           placeholder="Enter robot name"
           value={formData.robotName}
-          onChange={(e) => setFormData(prev => ({ ...prev, robotName: e.target.value }))}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, robotName: e.target.value }))}
         />
                       </div>
                     </div>
@@ -317,7 +317,7 @@ export default function PitScouting() {
                         <Input
                           placeholder="e.g., Tank Drive, Swerve, Mecanum"
                           value={formData.driveType}
-                          onChange={(e) => setFormData(prev => ({ ...prev, driveType: e.target.value }))}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, driveType: e.target.value }))}
                         />
                       </div>
                       <div>
@@ -327,7 +327,7 @@ export default function PitScouting() {
                         <Input
                           placeholder="e.g., Java, Python, C++"
                           value={formData.programmingLanguage}
-                          onChange={(e) => setFormData(prev => ({ ...prev, programmingLanguage: e.target.value }))}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, programmingLanguage: e.target.value }))}
                         />
                       </div>
                     </div>
@@ -341,7 +341,7 @@ export default function PitScouting() {
                           type="number"
                           placeholder="0"
                           value={formData.robotDimensions.length || ''}
-                          onChange={(e) => setFormData(prev => ({ 
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
                             ...prev, 
                             robotDimensions: { ...prev.robotDimensions, length: parseFloat(e.target.value) || 0 }
                           }))}
@@ -355,7 +355,7 @@ export default function PitScouting() {
                           type="number"
                           placeholder="0"
                           value={formData.robotDimensions.width || ''}
-                          onChange={(e) => setFormData(prev => ({ 
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
                             ...prev, 
                             robotDimensions: { ...prev.robotDimensions, width: parseFloat(e.target.value) || 0 }
                           }))}
@@ -369,7 +369,7 @@ export default function PitScouting() {
                           type="number"
                           placeholder="0"
                           value={formData.robotDimensions.height || ''}
-                          onChange={(e) => setFormData(prev => ({ 
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
                             ...prev, 
                             robotDimensions: { ...prev.robotDimensions, height: parseFloat(e.target.value) || 0 }
                           }))}
@@ -385,7 +385,7 @@ export default function PitScouting() {
                         type="number"
                         placeholder="0"
                         value={formData.weight || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
                       />
                     </div>
                   </CardContent>

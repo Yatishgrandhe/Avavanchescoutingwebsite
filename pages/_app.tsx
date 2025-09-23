@@ -2,6 +2,7 @@ import type { AppProps } from 'next/app';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { User, Session } from '@supabase/supabase-js';
+import Head from 'next/head';
 
 import '@/styles/globals.css';
 
@@ -50,8 +51,19 @@ export default function App({ Component, pageProps }: AppProps) {
   }, [supabase.auth]);
 
   return (
-    <SupabaseContext.Provider value={{ supabase, user, session, loading }}>
-      <Component {...pageProps} />
-    </SupabaseContext.Provider>
+    <>
+      <Head>
+        <title>Avalanche Scouting</title>
+        <meta name="description" content="Avalanche Scouting Data Management System" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/image.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/image.png" />
+        <link rel="apple-touch-icon" href="/image.png" />
+        <meta name="theme-color" content="#1A2B7C" />
+      </Head>
+      <SupabaseContext.Provider value={{ supabase, user, session, loading }}>
+        <Component {...pageProps} />
+      </SupabaseContext.Provider>
+    </>
   );
 }

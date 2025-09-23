@@ -80,7 +80,7 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
               <input
                 type="checkbox"
                 checked={formData.endgame_park}
-                onChange={(e) => handleCheckboxChange('endgame_park', e.target.checked)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleCheckboxChange('endgame_park', e.target.checked)}
                 className="w-4 h-4 text-reef-600 bg-dark-600 border-dark-500 rounded focus:ring-reef-500"
               />
             </div>
@@ -97,7 +97,7 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
               <input
                 type="checkbox"
                 checked={formData.endgame_shallow_cage}
-                onChange={(e) => handleCheckboxChange('endgame_shallow_cage', e.target.checked)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleCheckboxChange('endgame_shallow_cage', e.target.checked)}
                 className="w-4 h-4 text-reef-600 bg-dark-600 border-dark-500 rounded focus:ring-reef-500"
               />
             </div>
@@ -114,7 +114,7 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
               <input
                 type="checkbox"
                 checked={formData.endgame_deep_cage}
-                onChange={(e) => handleCheckboxChange('endgame_deep_cage', e.target.checked)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleCheckboxChange('endgame_deep_cage', e.target.checked)}
                 className="w-4 h-4 text-reef-600 bg-dark-600 border-dark-500 rounded focus:ring-reef-500"
               />
             </div>

@@ -137,7 +137,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
               <input
                 type="checkbox"
                 checked={formData.auto_leave}
-                onChange={(e) => handleInputChange('auto_leave', e.target.checked)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_leave', e.target.checked)}
                 className={`w-5 h-5 rounded border-2 ${
                   isDarkMode 
                     ? 'text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500' 
@@ -173,7 +173,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                   min="0"
                   max="10"
                   value={formData.auto_coral_trough}
-                  onChange={(e) => handleInputChange('auto_coral_trough', parseInt(e.target.value) || 0)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_coral_trough', parseInt(e.target.value) || 0)}
                 />
               </div>
               
@@ -186,7 +186,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                   min="0"
                   max="10"
                   value={formData.auto_coral_l2}
-                  onChange={(e) => handleInputChange('auto_coral_l2', parseInt(e.target.value) || 0)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_coral_l2', parseInt(e.target.value) || 0)}
                 />
               </div>
               
@@ -199,7 +199,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                   min="0"
                   max="10"
                   value={formData.auto_coral_l3}
-                  onChange={(e) => handleInputChange('auto_coral_l3', parseInt(e.target.value) || 0)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_coral_l3', parseInt(e.target.value) || 0)}
                 />
               </div>
               
@@ -212,7 +212,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                   min="0"
                   max="10"
                   value={formData.auto_coral_l4}
-                  onChange={(e) => handleInputChange('auto_coral_l4', parseInt(e.target.value) || 0)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_coral_l4', parseInt(e.target.value) || 0)}
                 />
               </div>
             </div>
@@ -244,7 +244,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                   min="0"
                   max="10"
                   value={formData.auto_algae_processor}
-                  onChange={(e) => handleInputChange('auto_algae_processor', parseInt(e.target.value) || 0)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_algae_processor', parseInt(e.target.value) || 0)}
                 />
               </div>
               
@@ -257,7 +257,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                   min="0"
                   max="10"
                   value={formData.auto_algae_net}
-                  onChange={(e) => handleInputChange('auto_algae_net', parseInt(e.target.value) || 0)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_algae_net', parseInt(e.target.value) || 0)}
                 />
               </div>
             </div>

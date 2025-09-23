@@ -282,7 +282,7 @@ export default function AdvancedAnalysis() {
                       
                       placeholder="e.g., 2025mabos"
                       value={filters.event_key || ''}
-                      onChange={(e) => setFilters(prev => ({ ...prev, event_key: e.target.value || undefined }))}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters(prev => ({ ...prev, event_key: e.target.value || undefined }))}
                       
                     />
                     <Input
@@ -290,7 +290,7 @@ export default function AdvancedAnalysis() {
                       type="number"
                       placeholder="Minimum matches"
                       value={filters.min_matches || ''}
-                      onChange={(e) => setFilters(prev => ({ ...prev, min_matches: parseInt(e.target.value) || undefined }))}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters(prev => ({ ...prev, min_matches: parseInt(e.target.value) || undefined }))}
                       
                     />
                     <div className="flex space-x-2">
@@ -331,7 +331,7 @@ export default function AdvancedAnalysis() {
                   type="number"
                   placeholder="Enter team number (e.g., 1234)"
                   value={selectedTeam || ''}
-                  onChange={(e) => setSelectedTeam(parseInt(e.target.value) || null)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedTeam(parseInt(e.target.value) || null)}
                   
                   className="flex-1"
                 />

@@ -85,7 +85,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                 type="number"
                 min="0"
                 value={formData.teleop_coral_trough}
-                onChange={(e) => handleInputChange('teleop_coral_trough', parseInt(e.target.value) || 0)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('teleop_coral_trough', parseInt(e.target.value) || 0)}
                 className="bg-dark-700 border-dark-600 text-white"
               />
               
@@ -94,7 +94,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                 type="number"
                 min="0"
                 value={formData.teleop_coral_l2}
-                onChange={(e) => handleInputChange('teleop_coral_l2', parseInt(e.target.value) || 0)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('teleop_coral_l2', parseInt(e.target.value) || 0)}
                 className="bg-dark-700 border-dark-600 text-white"
               />
               
@@ -103,7 +103,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                 type="number"
                 min="0"
                 value={formData.teleop_coral_l3}
-                onChange={(e) => handleInputChange('teleop_coral_l3', parseInt(e.target.value) || 0)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('teleop_coral_l3', parseInt(e.target.value) || 0)}
                 className="bg-dark-700 border-dark-600 text-white"
               />
               
@@ -112,7 +112,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                 type="number"
                 min="0"
                 value={formData.teleop_coral_l4}
-                onChange={(e) => handleInputChange('teleop_coral_l4', parseInt(e.target.value) || 0)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('teleop_coral_l4', parseInt(e.target.value) || 0)}
                 className="bg-dark-700 border-dark-600 text-white"
               />
             </div>
@@ -128,7 +128,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                 type="number"
                 min="0"
                 value={formData.teleop_algae_processor}
-                onChange={(e) => handleInputChange('teleop_algae_processor', parseInt(e.target.value) || 0)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('teleop_algae_processor', parseInt(e.target.value) || 0)}
                 className="bg-dark-700 border-dark-600 text-white"
               />
               
@@ -137,7 +137,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                 type="number"
                 min="0"
                 value={formData.teleop_algae_net}
-                onChange={(e) => handleInputChange('teleop_algae_net', parseInt(e.target.value) || 0)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('teleop_algae_net', parseInt(e.target.value) || 0)}
                 className="bg-dark-700 border-dark-600 text-white"
               />
             </div>

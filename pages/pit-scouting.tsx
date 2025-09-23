@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Layout from '@/components/layout/Layout';
@@ -15,8 +15,16 @@ import {
   Save,
   Camera,
   FileText,
-  Settings
+  Settings,
+  AlertCircle
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+
+interface Team {
+  team_number: number;
+  team_name: string;
+  team_color?: string;
+}
 
 interface PitScoutingData {
   teamNumber: number;
@@ -43,6 +51,9 @@ export default function PitScouting() {
   const { data: session } = useSession();
   const [currentStep, setCurrentStep] = useState(1);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loadingTeams, setLoadingTeams] = useState(false);
+  const [teamsError, setTeamsError] = useState<string | null>(null);
   const [formData, setFormData] = useState<PitScoutingData>({
     teamNumber: 0,
     robotName: '',
@@ -68,6 +79,34 @@ export default function PitScouting() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const totalSteps = 4;
+
+  // Load teams from database
+  useEffect(() => {
+    const loadTeams = async () => {
+      setLoadingTeams(true);
+      setTeamsError(null);
+      
+      try {
+        const { data: teamsData, error } = await supabase
+          .from('teams')
+          .select('team_number, team_name, team_color')
+          .order('team_number');
+
+        if (error) {
+          throw new Error('Failed to load teams');
+        }
+
+        setTeams(teamsData || []);
+      } catch (err) {
+        console.error('Error loading teams:', err);
+        setTeamsError(err instanceof Error ? err.message : 'Failed to load teams');
+      } finally {
+        setLoadingTeams(false);
+      }
+    };
+
+    loadTeams();
+  }, []);
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -214,15 +253,50 @@ export default function PitScouting() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
+                    {teamsError && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-red-500/20 text-red-400 p-3 rounded-md text-sm text-center flex items-center justify-center"
+                      >
+                        <AlertCircle className="h-5 w-5 mr-2" />
+                        {teamsError}
+                      </motion.div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <Input
-                        label="Team Number"
-                        type="number"
-                        placeholder="Enter team number"
-                        value={formData.teamNumber || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, teamNumber: parseInt(e.target.value) || 0 }))}
-                        isDarkMode={isDarkMode}
-                      />
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          Team Number
+                        </label>
+                        {loadingTeams ? (
+                          <div className={`flex items-center justify-center h-10 px-3 py-2 rounded-md border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading teams...</span>
+                          </div>
+                        ) : (
+                          <select
+                            value={formData.teamNumber || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, teamNumber: parseInt(e.target.value) || 0 }))}
+                            className={`w-full h-10 px-3 py-2 rounded-md border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                              isDarkMode 
+                                ? 'bg-gray-700 border-gray-600 text-white' 
+                                : 'bg-white border-gray-300 text-gray-900'
+                            }`}
+                          >
+                            <option value="">Select a team</option>
+                            {teams.length === 0 ? (
+                              <option value="" disabled>No teams found in database</option>
+                            ) : (
+                              teams.map((team) => (
+                                <option key={team.team_number} value={team.team_number}>
+                                  {team.team_number} - {team.team_name || 'Unknown Team'}
+                                </option>
+                              ))
+                            )}
+                          </select>
+                        )}
+                      </div>
                       <Input
                         label="Robot Name"
                         placeholder="Enter robot name"

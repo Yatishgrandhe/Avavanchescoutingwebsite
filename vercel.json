@@ -1,9 +1,5 @@
 {
-  "buildCommand": "rm -rf .next && npm run build",
-  "outputDirectory": ".next",
-  "framework": "nextjs",
   "installCommand": "npm install --legacy-peer-deps",
-  "devCommand": "npm run dev",
   "functions": {
     "pages/api/**/*.ts": {
       "maxDuration": 30
@@ -33,13 +29,5 @@
       "source": "/api/auth/(.*)",
       "destination": "/api/auth/$1"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "build": {
-    "env": {
-      "NODE_ENV": "production"
-    }
-  }
+  ]
 }

@@ -1,14 +1,30 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from './auth/[...nextauth]';
+import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/supabase';
 import { calculateScore } from '@/lib/utils';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const session = await getServerSession(req, res, authOptions);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-  if (!session) {
-    return res.status(401).json({ error: 'Unauthorized' });
+export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
+  // Create Supabase client with service role key for server-side operations
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  
+  // Get the authorization header
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  const token = authHeader.split(' ')[1];
+  
+  // Verify the JWT token
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  
+  if (error || !user) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
   }
 
   if (req.method === 'POST') {
@@ -35,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Create scouting data
       const scoutingData = {
-        scout_id: session.user?.id,
+        scout_id: user.id,
         match_id: `match_${matchNumber}`,
         team_number: teamNumber,
         alliance_color: allianceColor,
@@ -51,9 +67,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const result = await db.createScoutingData(scoutingData);
 
       res.status(201).json(result);
+      return;
     } catch (error) {
       console.error('Error creating scouting data:', error);
       res.status(500).json({ error: 'Failed to create scouting data' });
+      return;
     }
   } else if (req.method === 'GET') {
     try {
@@ -66,9 +84,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const data = await db.getScoutingData(filters);
       res.status(200).json(data);
+      return;
     } catch (error) {
       console.error('Error fetching scouting data:', error);
       res.status(500).json({ error: 'Failed to fetch scouting data' });
+      return;
     }
   } else {
     res.setHeader('Allow', ['GET', 'POST']);

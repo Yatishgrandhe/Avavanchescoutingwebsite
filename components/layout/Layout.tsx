@@ -38,7 +38,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        user={user}
+        user={user ? {
+          name: user.user_metadata?.full_name || user.email || 'User',
+          username: user.user_metadata?.username || user.email,
+          image: user.user_metadata?.avatar_url
+        } : undefined}
       />
       
       <div className="flex-1 flex flex-col">
@@ -101,7 +105,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user.user_metadata?.avatar_url} alt={user.user_metadata?.full_name || user.email} />
                       <AvatarFallback>
-                        {(user.user_metadata?.full_name || user.email || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                        {(user.user_metadata?.full_name || user.email || 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
                       </AvatarFallback>
                     </Avatar>
                   </Button>

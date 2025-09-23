@@ -4,9 +4,10 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
   }
 
   const { code, next = '/' } = req.query;
@@ -20,17 +21,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!error) {
         // Redirect to the specified page or home
         const redirectUrl = next.toString().startsWith('/') ? next.toString() : '/';
-        return res.redirect(302, redirectUrl);
+        res.redirect(302, redirectUrl);
+        return;
       } else {
         console.error('Auth callback error:', error);
-        return res.redirect(302, '/auth/error?message=Authentication failed');
+        res.redirect(302, '/auth/error?message=Authentication failed');
+        return;
       }
     } catch (error) {
       console.error('Auth callback error:', error);
-      return res.redirect(302, '/auth/error?message=Authentication failed');
+      res.redirect(302, '/auth/error?message=Authentication failed');
+      return;
     }
   }
 
   // If no code, redirect to error page
-  return res.redirect(302, '/auth/error?message=No authentication code provided');
+  res.redirect(302, '/auth/error?message=No authentication code provided');
 }

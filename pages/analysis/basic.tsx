@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSupabase } from '@/pages/_app';
 import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,7 +69,7 @@ interface MatchData {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 export default function BasicAnalysis() {
-  const { data: session } = useSession();
+  const { user, loading: authLoading } = useSupabase();
   const [teams, setTeams] = useState<TeamData[]>([]);
   const [matches, setMatches] = useState<MatchData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,17 +128,21 @@ export default function BasicAnalysis() {
     { name: 'Endgame', value: teams.reduce((sum, team) => sum + team.avg_endgame_points, 0) }
   ];
 
-  if (!session) {
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
     return null; // ProtectedRoute will handle the redirect
   }
 
   return (
     <ProtectedRoute>
-      <Layout user={{
-        name: session.user?.name || 'User',
-        username: session.user?.email || undefined,
-        image: session.user?.image || undefined,
-      }}>
+    <Layout>
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">

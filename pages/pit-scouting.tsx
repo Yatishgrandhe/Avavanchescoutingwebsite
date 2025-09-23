@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -48,7 +48,7 @@ interface PitScoutingData {
 }
 
 export default function PitScouting() {
-  const { data: session } = useSession();
+  const { user, loading } = useSupabase();
   const [currentStep, setCurrentStep] = useState(1);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -164,7 +164,15 @@ export default function PitScouting() {
     }
   };
 
-  if (!session) {
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <motion.div
@@ -180,11 +188,7 @@ export default function PitScouting() {
   }
 
   return (
-    <Layout user={{
-      name: session.user?.name || 'User',
-      username: session.user?.email || undefined,
-      image: session.user?.image || undefined,
-    }}>
+    <Layout>
       <div className="min-h-full p-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,7 +57,7 @@ interface FormData {
 }
 
 export default function Scout() {
-  const { data: session } = useSession();
+  const { user, loading } = useSupabase();
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [formData, setFormData] = useState<FormData>({
     matchData: {
@@ -154,17 +154,21 @@ export default function Scout() {
     }
   };
 
-  if (!session) {
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
     return null; // ProtectedRoute will handle the redirect
   }
 
   return (
     <ProtectedRoute>
-      <Layout user={{
-        name: session.user?.name || 'User',
-        username: session.user?.email || undefined,
-        image: session.user?.image || undefined,
-      }}>
+    <Layout>
         <div className="space-y-6">
           {/* Header */}
           <div className="space-y-4">

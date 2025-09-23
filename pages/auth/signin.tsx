@@ -80,7 +80,7 @@ export default function SignIn() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       );
 
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
           redirectTo: `${window.location.origin}/api/auth/callback`,
@@ -89,10 +89,15 @@ export default function SignIn() {
 
       if (error) {
         console.error('Discord sign in error:', error);
-        // Handle error - you might want to show a toast or error message
+        // Redirect to error page
+        window.location.href = '/auth/error?message=Failed to initiate Discord sign in';
+      } else if (data.url) {
+        // Redirect to Discord OAuth
+        window.location.href = data.url;
       }
     } catch (error) {
       console.error('Sign in error:', error);
+      window.location.href = '/auth/error?message=An unexpected error occurred';
     } finally {
       setIsLoading(false);
     }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSupabase } from '@/pages/_app';
 import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -58,7 +58,7 @@ interface AnalysisFilters {
 }
 
 export default function AdvancedAnalysis() {
-  const { data: session } = useSession();
+  const { user, loading: authLoading } = useSupabase();
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
   const [teamStats, setTeamStats] = useState<TeamStats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -203,7 +203,15 @@ export default function AdvancedAnalysis() {
     window.URL.revokeObjectURL(url);
   };
 
-  if (!session) {
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <motion.div
@@ -219,11 +227,7 @@ export default function AdvancedAnalysis() {
   }
 
   return (
-    <Layout user={{
-      name: session.user?.name || 'User',
-      username: session.user?.email || undefined,
-      image: session.user?.image || undefined,
-    }}>
+    <Layout>
       <div className="min-h-full p-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

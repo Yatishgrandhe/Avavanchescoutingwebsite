@@ -55,6 +55,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle, user, isDarkMo
       title: 'Analysis',
       items: [
         {
+          label: 'Data Analysis',
+          href: '/analysis/data',
+          icon: Database,
+        },
+        {
           label: 'Basic',
           href: '/analysis/basic',
           icon: BarChart3,
@@ -119,6 +124,33 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle, user, isDarkMo
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-6">
+        {/* Dashboard Button */}
+        <div className="mb-6">
+          <Link href="/">
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 }}
+              className={cn(
+                'flex items-center space-x-3 px-3 py-2 rounded-md transition-colors cursor-pointer group',
+                router.pathname === '/'
+                  ? 'bg-blue-600 text-white'
+                  : isDarkMode
+                    ? 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+              )}
+            >
+              <Home size={20} className="flex-shrink-0" />
+              {!isCollapsed && (
+                <span className="flex-1">Dashboard</span>
+              )}
+              {!isCollapsed && router.pathname === '/' && (
+                <ChevronRight size={16} className="flex-shrink-0" />
+              )}
+            </motion.div>
+          </Link>
+        </div>
+
         {menuItems.map((section, sectionIndex) => (
           <div key={section.title}>
             {!isCollapsed && (

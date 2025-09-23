@@ -33,7 +33,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user }) => {
           className="bg-dark-800 border-b border-dark-700 px-6 py-4 flex items-center justify-between"
         >
           <div className="flex items-center space-x-4">
-            <Logo size="sm" />
+            <Logo size="md" />
             <h1 className="text-xl font-semibold text-white">
               Avalanche Scouting Data
             </h1>

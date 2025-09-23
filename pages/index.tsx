@@ -168,9 +168,9 @@ export default function Home() {
       
       {/* Header Navigation */}
       <header className="relative z-10 flex justify-between items-center px-6 py-4">
-        <div className="flex items-center space-x-3">
-          <Logo size="md" />
-          <div className="text-white font-semibold text-lg">
+        <div className="flex items-center space-x-4">
+          <Logo size="lg" />
+          <div className="text-white font-semibold text-xl">
             Avalanche Scouting Data
           </div>
         </div>

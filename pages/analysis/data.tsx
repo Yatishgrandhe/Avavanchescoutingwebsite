@@ -7,15 +7,11 @@ import { Input } from '../../components/ui';
 import { Badge } from '../../components/ui/badge';
 import { 
   Database, 
-  Download, 
   Filter, 
   Search, 
   RefreshCw,
   User,
   Calendar,
-  Target,
-  TrendingUp,
-  BarChart3,
   FileSpreadsheet,
   Eye,
   EyeOff
@@ -110,47 +106,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     }
   };
 
-  const exportToCSV = () => {
-    const headers = [
-      'Team Number',
-      'Match ID',
-      'Alliance Color',
-      'Autonomous Points',
-      'Teleop Points',
-      'Endgame Points',
-      'Final Score',
-      'Defense Rating',
-      'Comments',
-      'Uploaded By',
-      'Upload Date'
-    ];
-
-    const csvData = sortedData.map(data => [
-      data.team_number,
-      data.match_id,
-      data.alliance_color,
-      data.autonomous_points,
-      data.teleop_points,
-      data.endgame_points,
-      data.final_score,
-      data.defense_rating,
-      data.comments,
-      data.scout_id,
-      new Date(data.created_at).toLocaleDateString()
-    ]);
-
-    const csvContent = [headers, ...csvData]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
-      .join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `avalanche-scouting-data-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
 
   const getTeamName = (teamNumber: number) => {
     const team = teams.find(t => t.team_number === teamNumber);
@@ -223,28 +178,26 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                   </div>
 
                   {/* Team Filter */}
-                  <select
-                    value={selectedTeam || ''}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedTeam(e.target.value ? parseInt(e.target.value) : null)}
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">All Teams</option>
-                    {teams.map(team => (
-                      <option key={team.team_number} value={team.team_number}>
-                        {team.team_number} - {team.team_name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={selectedTeam || ''}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedTeam(e.target.value ? parseInt(e.target.value) : null)}
+                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    >
+                      <option value="">All Teams</option>
+                      {teams.map(team => (
+                        <option key={team.team_number} value={team.team_number}>
+                          {team.team_number} - {team.team_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
                   {/* Actions */}
                   <div className="flex gap-2">
                     <Button onClick={loadData} variant="outline" size="sm">
                       <RefreshCw className="w-4 h-4 mr-2" />
                       Refresh
-                    </Button>
-                    <Button onClick={exportToCSV} variant="outline" size="sm">
-                      <Download className="w-4 h-4 mr-2" />
-                      Export CSV
                     </Button>
                     <Button 
                       onClick={() => setShowUploaderInfo(!showUploaderInfo)} 

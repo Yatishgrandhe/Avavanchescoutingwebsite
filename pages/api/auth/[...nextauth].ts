@@ -43,12 +43,6 @@ export const authOptions = {
       }
       return session;
     },
-    async jwt({ token, user }: any) {
-      if (user) {
-        token.id = user.id;
-      }
-      return token;
-    },
     async signIn({ user, account, profile }: any) {
       // Allow Discord sign-in
       if (account?.provider === 'discord') {
@@ -56,13 +50,20 @@ export const authOptions = {
       }
       return false;
     },
+    async redirect({ url, baseUrl }: any) {
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) return url
+      return baseUrl
+    },
   },
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error',
   },
   session: {
-    strategy: 'jwt' as const,
+    strategy: 'database' as const,
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',

@@ -101,7 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle, user, isDarkMo
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.1 }}
-              className={`font-semibold text-lg ${
+              className={`font-semibold text-lg font-display ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}
             >

@@ -154,7 +154,7 @@ export default function SignIn() {
                 </div>
               </motion.div>
               
-              <CardTitle className="text-3xl font-bold text-white mb-2">
+              <CardTitle className="text-3xl font-bold text-white mb-2 font-display">
                 Welcome to Avalanche
               </CardTitle>
               <CardDescription className="text-white/80 text-lg">

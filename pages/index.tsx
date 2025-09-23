@@ -157,7 +157,7 @@ export default function Home() {
                   FRC 2025 Season
                 </Badge>
               </div>
-              <h1 className="text-4xl font-bold text-foreground">
+              <h1 className="text-4xl font-bold text-foreground font-display">
                 Welcome to Avalanche Scouting
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">

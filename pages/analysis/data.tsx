@@ -142,7 +142,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
           >
             <div className="flex items-center justify-center gap-2 mb-4">
               <Database className="w-8 h-8 text-blue-600" />
-              <h1 className="text-4xl font-bold text-foreground">
+              <h1 className="text-4xl font-bold text-foreground font-display">
                 Data Analysis
               </h1>
             </div>

@@ -170,8 +170,8 @@ export default function Home() {
       <header className="relative z-10 flex justify-between items-center px-6 py-4">
           <div className="flex items-center space-x-4">
             <Logo size="lg" />
-            <div className="text-white font-semibold text-xl">
-              Avalanche Scouting Data
+            <div className="text-white font-bold text-2xl tracking-wide">
+              Avalanche Scouting
             </div>
           </div>
         <div className="flex items-center space-x-4">
@@ -214,7 +214,7 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="text-5xl md:text-7xl font-bold text-white mb-6"
           >
-            Avalanche Scouting Data
+            Avalanche Scouting
           </motion.h1>
 
           {/* Description */}
@@ -224,7 +224,7 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-xl md:text-2xl text-white mb-4 max-w-3xl mx-auto"
           >
-            Advanced scouting data platform for Avalanche Robotics.
+            Advanced FRC scouting data platform for Avalanche Robotics.
           </motion.p>
 
           {/* Attribution */}

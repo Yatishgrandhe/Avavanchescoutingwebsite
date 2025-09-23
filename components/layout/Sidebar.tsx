@@ -34,7 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle, user, isDarkMo
       title: 'Scout',
       items: [
         {
-          label: 'REEFSCAPE Form',
+          label: 'Avalanche Form',
           href: '/scout',
           icon: ClipboardList,
         },

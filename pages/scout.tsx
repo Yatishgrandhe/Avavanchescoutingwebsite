@@ -13,7 +13,21 @@ import { calculateScore } from '@/lib/utils';
 type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'endgame' | 'miscellaneous' | 'review';
 
 interface FormData {
-  matchNumber: number;
+  matchData: {
+    match_id: string;
+    event_key: string;
+    match_number: number;
+    red_teams: Array<{
+      team_number: number;
+      team_name: string;
+      team_color: string;
+    }>;
+    blue_teams: Array<{
+      team_number: number;
+      team_name: string;
+      team_color: string;
+    }>;
+  };
   teamNumber: number;
   allianceColor: 'red' | 'blue';
   autonomous: Partial<ScoringNotes>;
@@ -29,7 +43,13 @@ export default function Scout() {
   const { data: session } = useSession();
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [formData, setFormData] = useState<FormData>({
-    matchNumber: 0,
+    matchData: {
+      match_id: '',
+      event_key: '',
+      match_number: 0,
+      red_teams: [],
+      blue_teams: [],
+    },
     teamNumber: 0,
     allianceColor: 'red',
     autonomous: {},
@@ -48,8 +68,13 @@ export default function Scout() {
   const currentStepIndex = steps.indexOf(currentStep) + 1;
   const totalSteps = steps.length;
 
-  const handleMatchDetailsNext = (matchNumber: number) => {
-    setFormData((prev: FormData) => ({ ...prev, matchNumber }));
+  const handleMatchDetailsNext = (matchData: any, teamNumber: number, allianceColor: 'red' | 'blue') => {
+    setFormData((prev: FormData) => ({ 
+      ...prev, 
+      matchData,
+      teamNumber,
+      allianceColor 
+    }));
     setCurrentStep('autonomous');
   };
 

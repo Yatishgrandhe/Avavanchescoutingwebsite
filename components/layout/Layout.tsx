@@ -50,11 +50,11 @@ const Layout: React.FC<LayoutProps> = ({ children, user }) => {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
-              className={`text-xl font-semibold ${
+              className={`text-xl font-bold tracking-wide ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}
             >
-              REEFSCAPE Scouting Platform
+              Avalanche Scouting
             </motion.h1>
           </div>
           

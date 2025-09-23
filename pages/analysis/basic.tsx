@@ -4,8 +4,9 @@ import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { BarChart3, TrendingUp, Target, Users } from 'lucide-react';
+import { BarChart3, TrendingUp, Target, Users, Play, TreePine, Waves, Database } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
+import { supabase } from '@/lib/supabase';
 
 export default function BasicAnalysis() {
   const { data: session } = useSession();
@@ -13,6 +14,8 @@ export default function BasicAnalysis() {
   const [teamStats, setTeamStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recentMatches, setRecentMatches] = useState<any[]>([]);
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
   const handleTeamSearch = async () => {
     if (!selectedTeam) return;
@@ -21,30 +24,42 @@ export default function BasicAnalysis() {
     setError(null);
     
     try {
-      const response = await fetch(`/api/teams?team_number=${selectedTeam}`);
-      if (!response.ok) {
-        throw new Error('Team not found');
+      // Fetch team data from Supabase
+      const { data: teamData, error: teamError } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('team_number', selectedTeam)
+        .single();
+      
+      if (teamError && teamError.code !== 'PGRST116') {
+        throw new Error('Failed to fetch team data');
       }
       
-      const teamData = await response.json();
+      // Fetch scouting data for this team from Supabase
+      const { data: scoutingData, error: scoutingError } = await supabase
+        .from('scouting_data')
+        .select('*')
+        .eq('team_number', selectedTeam)
+        .order('created_at', { ascending: false });
       
-      // Fetch scouting data for this team
-      const scoutingResponse = await fetch(`/api/scouting_data?team_number=${selectedTeam}`);
-      const scoutingData = await scoutingResponse.json();
+      if (scoutingError) {
+        throw new Error('Failed to fetch scouting data');
+      }
       
-      if (scoutingData.length === 0) {
+      if (!scoutingData || scoutingData.length === 0) {
         setError('No scouting data available for this team');
         setTeamStats(null);
+        setRecentMatches([]);
         return;
       }
       
       // Calculate statistics
       const totalMatches = scoutingData.length;
-      const avgAutonomous = scoutingData.reduce((sum: number, match: any) => sum + match.autonomous_points, 0) / totalMatches;
-      const avgTeleop = scoutingData.reduce((sum: number, match: any) => sum + match.teleop_points, 0) / totalMatches;
-      const avgEndgame = scoutingData.reduce((sum: number, match: any) => sum + match.endgame_points, 0) / totalMatches;
-      const avgTotal = scoutingData.reduce((sum: number, match: any) => sum + match.final_score, 0) / totalMatches;
-      const avgDefense = scoutingData.reduce((sum: number, match: any) => sum + match.defense_rating, 0) / totalMatches;
+      const avgAutonomous = scoutingData.reduce((sum: number, match: any) => sum + (match.autonomous_points || 0), 0) / totalMatches;
+      const avgTeleop = scoutingData.reduce((sum: number, match: any) => sum + (match.teleop_points || 0), 0) / totalMatches;
+      const avgEndgame = scoutingData.reduce((sum: number, match: any) => sum + (match.endgame_points || 0), 0) / totalMatches;
+      const avgTotal = scoutingData.reduce((sum: number, match: any) => sum + (match.final_score || 0), 0) / totalMatches;
+      const avgDefense = scoutingData.reduce((sum: number, match: any) => sum + (match.defense_rating || 0), 0) / totalMatches;
       
       // Calculate win rate (simplified - you might want to implement actual win/loss logic)
       const winRate = 0.75; // Placeholder
@@ -52,7 +67,7 @@ export default function BasicAnalysis() {
       
       setTeamStats({
         team_number: selectedTeam,
-        team_name: teamData.team_name || `Team ${selectedTeam}`,
+        team_name: teamData?.team_name || `Team ${selectedTeam}`,
         total_matches: totalMatches,
         avg_autonomous_points: Math.round(avgAutonomous * 100) / 100,
         avg_teleop_points: Math.round(avgTeleop * 100) / 100,
@@ -62,9 +77,14 @@ export default function BasicAnalysis() {
         win_rate: winRate,
         consistency_score: consistencyScore,
       });
+      
+      // Set recent matches (last 5)
+      setRecentMatches(scoutingData.slice(0, 5));
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch team data');
       setTeamStats(null);
+      setRecentMatches([]);
     } finally {
       setLoading(false);
     }
@@ -72,11 +92,26 @@ export default function BasicAnalysis() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-dark-900 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Please sign in to access analysis</h1>
-          <p className="text-gray-400">You need to be authenticated to view team analysis.</p>
-        </div>
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-md mx-auto p-8"
+        >
+          <div className="mb-6">
+            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Database className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-4">Authentication Required</h1>
+            <p className="text-gray-400 mb-6">Please sign in with Discord to access the data analysis.</p>
+            <a
+              href="/auth/signin"
+              className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+            >
+              Sign in with Discord
+            </a>
+          </div>
+        </motion.div>
       </div>
     );
   }
@@ -93,8 +128,15 @@ export default function BasicAnalysis() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-3xl font-bold text-white mb-2">Basic Analysis</h1>
-          <p className="text-gray-400">Quick insights and statistics for team performance</p>
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="p-3 bg-blue-600 rounded-lg">
+              <BarChart3 className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-white">REEFSCAPE Data Analysis</h1>
+              <p className="text-gray-400">Comprehensive team performance insights and statistics</p>
+            </div>
+          </div>
         </motion.div>
 
         {/* Team Search */}
@@ -103,11 +145,11 @@ export default function BasicAnalysis() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <Card className="bg-dark-800 border-dark-700">
+          <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             <CardHeader>
-              <CardTitle className="text-white">Team Search</CardTitle>
-              <CardDescription className="text-gray-400">
-                Enter a team number to view their statistics
+              <CardTitle className={`${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Team Search</CardTitle>
+              <CardDescription className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Enter a team number to view their REEFSCAPE performance statistics
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -117,12 +159,12 @@ export default function BasicAnalysis() {
                   placeholder="Team number (e.g., 1234)"
                   value={selectedTeam || ''}
                   onChange={(e) => setSelectedTeam(parseInt(e.target.value) || null)}
-                  className="flex-1 bg-dark-700 border-dark-600 text-white"
+                  isDarkMode={isDarkMode}
                 />
                 <Button
                   onClick={handleTeamSearch}
                   disabled={!selectedTeam || loading}
-                  className="bg-reef-600 hover:bg-reef-700 text-white"
+                  isDarkMode={isDarkMode}
                 >
                   {loading ? 'Loading...' : 'Search'}
                 </Button>
@@ -246,6 +288,58 @@ export default function BasicAnalysis() {
           </motion.div>
         )}
 
+        {/* Recent Matches */}
+        {recentMatches.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <CardHeader>
+                <CardTitle className={`${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Recent Matches</CardTitle>
+                <CardDescription className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Latest 5 matches for Team {selectedTeam}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {recentMatches.map((match, index) => (
+                    <div key={match.id} className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                            Match {match.match_id}
+                          </p>
+                          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {new Date(match.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`font-bold text-lg ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                            {match.final_score} pts
+                          </p>
+                          <div className="flex space-x-2 text-xs">
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              Auto: {match.autonomous_points}
+                            </span>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              Teleop: {match.teleop_points}
+                            </span>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              End: {match.endgame_points}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* No Team Selected */}
         {!teamStats && !loading && !error && (
           <motion.div
@@ -254,12 +348,12 @@ export default function BasicAnalysis() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-center py-12"
           >
-            <div className="w-16 h-16 bg-reef-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <BarChart3 className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">No Team Selected</h3>
             <p className="text-gray-400">
-              Enter a team number above to view their performance statistics
+              Enter a team number above to view their REEFSCAPE performance statistics
             </p>
           </motion.div>
         )}

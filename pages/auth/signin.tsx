@@ -11,7 +11,8 @@ import {
   BarChart3,
   Sparkles,
   Mountain,
-  Snowflake
+  Snowflake,
+  AlertTriangle
 } from 'lucide-react';
 import Logo from '../../components/ui/Logo';
 
@@ -71,9 +72,12 @@ const AvalancheBackground = () => {
 
 export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleDiscordSignIn = async () => {
     setIsLoading(true);
+    setError(null);
+    
     try {
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -96,15 +100,27 @@ export default function SignIn() {
 
       if (error) {
         console.error('Discord sign in error:', error);
-        // Redirect to error page
-        window.location.href = '/auth/error?message=Failed to initiate Discord sign in';
+        setError(`Failed to initiate Discord sign in: ${error.message}`);
+        
+        // Show error for a few seconds, then redirect to error page
+        setTimeout(() => {
+          window.location.href = `/auth/error?message=${encodeURIComponent(error.message)}&error=initiation_error`;
+        }, 3000);
       } else if (data.url) {
         // Redirect to Discord OAuth
         window.location.href = data.url;
+      } else {
+        setError('No authentication URL received from Discord');
       }
     } catch (error) {
       console.error('Sign in error:', error);
-      window.location.href = '/auth/error?message=An unexpected error occurred';
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      setError(errorMessage);
+      
+      // Show error for a few seconds, then redirect to error page
+      setTimeout(() => {
+        window.location.href = `/auth/error?message=${encodeURIComponent(errorMessage)}&error=unexpected_error`;
+      }, 3000);
     } finally {
       setIsLoading(false);
     }
@@ -163,6 +179,24 @@ export default function SignIn() {
             </CardHeader>
 
             <CardContent className="space-y-6">
+              {/* Error Display */}
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-red-500/20 border border-red-500/30 rounded-lg p-4"
+                >
+                  <div className="flex items-center space-x-2 text-red-400">
+                    <AlertTriangle className="w-5 h-5" />
+                    <span className="text-sm font-medium">Sign In Error</span>
+                  </div>
+                  <p className="text-red-300 text-sm mt-1">{error}</p>
+                  <p className="text-red-400/80 text-xs mt-2">
+                    Redirecting to error page in a few seconds...
+                  </p>
+                </motion.div>
+              )}
+
               {/* Features Preview */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

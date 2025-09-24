@@ -5,16 +5,25 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  console.log('🔄 OAuth callback received');
+  console.log('📋 Method:', req.method);
+  console.log('🔗 URL:', req.url);
+  console.log('📊 Query params:', req.query);
+  console.log('🌐 Headers:', req.headers);
+
   if (req.method !== 'GET') {
+    console.error('❌ Invalid method:', req.method);
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
 
   const { code, error: authError, error_description, next = '/' } = req.query;
 
+  console.log('🔍 Processing callback with:', { code: !!code, authError, error_description, next });
+
   // Handle OAuth errors with detailed messages
   if (authError) {
-    console.error('OAuth error:', authError, error_description);
+    console.error('❌ OAuth error received:', authError, error_description);
     
     let errorMessage = 'Authentication failed';
     
@@ -50,17 +59,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (code) {
+    console.log('✅ Authorization code received, exchanging for session...');
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
     try {
+      console.log('🔧 Supabase client created for session exchange');
       const { data, error } = await supabase.auth.exchangeCodeForSession(code as string);
       
+      console.log('📡 Session exchange result:', { 
+        hasSession: !!data.session, 
+        hasUser: !!data.user, 
+        error: error?.message 
+      });
+      
       if (!error && data.session) {
+        console.log('✅ Authentication successful, redirecting to dashboard');
         // Successful authentication - redirect to dashboard
         res.redirect(302, '/');
         return;
       } else {
-        console.error('Auth callback error:', error);
+        console.error('❌ Auth callback error:', error);
         
         let errorMessage = 'Failed to complete authentication';
         
@@ -81,12 +99,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return;
       }
     } catch (error) {
-      console.error('Auth callback error:', error);
+      console.error('💥 Unexpected error in auth callback:', error);
       res.redirect(302, `/auth/error?message=${encodeURIComponent('An unexpected error occurred during authentication. Please try again.')}&error=unexpected_error`);
       return;
     }
   }
 
   // If no code and no error, redirect to home page
+  console.log('⚠️ No code or error received, redirecting to home page');
   res.redirect(302, '/');
 }

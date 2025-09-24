@@ -78,6 +78,10 @@ export default function SignIn() {
     setIsLoading(true);
     setError(null);
     
+    console.log('🚀 Starting Discord OAuth flow...');
+    console.log('📍 Current URL:', window.location.href);
+    console.log('🎯 Redirect URL:', `${window.location.origin}/`);
+    
     try {
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -91,6 +95,9 @@ export default function SignIn() {
         }
       );
 
+      console.log('🔧 Supabase client created');
+      console.log('🌐 Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
@@ -98,27 +105,34 @@ export default function SignIn() {
         },
       });
 
+      console.log('📡 OAuth response:', { data, error });
+
       if (error) {
-        console.error('Discord sign in error:', error);
+        console.error('❌ Discord sign in error:', error);
         setError(`Failed to initiate Discord sign in: ${error.message}`);
         
         // Show error for a few seconds, then redirect to error page
         setTimeout(() => {
+          console.log('🔄 Redirecting to error page...');
           window.location.href = `/auth/error?message=${encodeURIComponent(error.message)}&error=initiation_error`;
         }, 3000);
       } else if (data.url) {
+        console.log('✅ OAuth URL received, redirecting to Discord...');
+        console.log('🔗 Discord URL:', data.url);
         // Redirect to Discord OAuth
         window.location.href = data.url;
       } else {
+        console.error('❌ No authentication URL received from Discord');
         setError('No authentication URL received from Discord');
       }
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error('💥 Sign in error:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       setError(errorMessage);
       
       // Show error for a few seconds, then redirect to error page
       setTimeout(() => {
+        console.log('🔄 Redirecting to error page...');
         window.location.href = `/auth/error?message=${encodeURIComponent(errorMessage)}&error=unexpected_error`;
       }, 3000);
     } finally {

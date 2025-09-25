@@ -135,65 +135,65 @@ export default function PickListPage() {
   return (
     <ProtectedRoute>
       <Layout>
-        <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
-          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 overflow-x-auto">
+          <div className="w-full min-w-[1200px] px-2 sm:px-4 lg:px-6 py-4">
             {/* Header Section */}
-            <div className="mb-8">
+            <div className="mb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100 mb-2">
+                  <h1 className="text-xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100 mb-1">
                     Pick Lists
                   </h1>
-                  <p className="text-sm text-neutral-400 dark:text-neutral-300">
-                    Create and manage team pick lists for alliance selection. Drag and drop teams to reorder your preferences.
+                  <p className="text-xs text-neutral-400 dark:text-neutral-300">
+                    Create and manage team pick lists for alliance selection.
                   </p>
                 </div>
                 <Button
                   onClick={() => setShowEducation(!showEducation)}
                   variant="outline"
-                  className="px-4 py-2 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-300 flex items-center space-x-2"
+                  className="px-2 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-300 flex items-center space-x-1 text-xs"
                 >
-                  <GraduationCap className="h-4 w-4" />
+                  <GraduationCap className="h-3 w-3" />
                   <span>{showEducation ? 'Hide' : 'Show'} Education</span>
                 </Button>
               </div>
             </div>
 
             {showEducation && (
-              <div className="mb-8">
+              <div className="mb-4">
                 <ScoutingEducation />
               </div>
             )}
 
             {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
               {/* Pick Lists Sidebar */}
               <div className="lg:col-span-1">
-                <Card className="p-6 rounded-2xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">My Pick Lists</h2>
+                <Card className="p-3 rounded-xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">My Pick Lists</h2>
                     <Button
                       size="sm"
                       onClick={() => setIsCreatingNew(true)}
-                      className="px-3 py-2 rounded-full bg-primary text-white hover:opacity-90 transition-opacity duration-300"
+                      className="px-2 py-1 rounded-full bg-primary text-white hover:opacity-90 transition-opacity duration-300"
                     >
-                      <Plus className="h-4 w-4" />
+                      <Plus className="h-3 w-3" />
                     </Button>
                   </div>
 
                   {isCreatingNew && (
-                    <div className="mb-6 p-4 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-neutral-50 dark:bg-neutral-700">
+                    <div className="mb-3 p-2 border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-50 dark:bg-neutral-700">
                       <Input
                         placeholder="Pick list name..."
                         value={newPickListName}
                         onChange={(e) => setNewPickListName(e.target.value)}
-                        className="mb-3 bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100"
+                        className="mb-2 bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 text-xs"
                       />
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-1">
                         <Button 
                           size="sm" 
                           onClick={handleCreateNew}
-                          className="px-4 py-2 rounded-full bg-primary text-white hover:opacity-90 transition-opacity duration-300"
+                          className="px-2 py-1 rounded-full bg-primary text-white hover:opacity-90 transition-opacity duration-300 text-xs"
                         >
                           Create
                         </Button>
@@ -204,7 +204,7 @@ export default function PickListPage() {
                             setIsCreatingNew(false);
                             setNewPickListName('');
                           }}
-                          className="px-4 py-2 rounded-full border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors duration-300"
+                          className="px-2 py-1 rounded-full border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors duration-300 text-xs"
                         >
                           Cancel
                         </Button>
@@ -212,11 +212,11 @@ export default function PickListPage() {
                     </div>
                   )}
 
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {pickLists.length === 0 ? (
-                      <div className="text-center py-8">
-                        <List className="h-8 w-8 mx-auto mb-3 text-neutral-400" />
-                        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                      <div className="text-center py-4">
+                        <List className="h-6 w-6 mx-auto mb-2 text-neutral-400" />
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
                           No pick lists yet. Create your first one!
                         </p>
                       </div>
@@ -224,7 +224,7 @@ export default function PickListPage() {
                       pickLists.map((pickList) => (
                         <div
                           key={pickList.id}
-                          className={`p-4 rounded-xl cursor-pointer transition-all duration-300 border ${
+                          className={`p-2 rounded-lg cursor-pointer transition-all duration-300 border ${
                             selectedPickList?.id === pickList.id
                               ? 'bg-primary/10 border-primary/30 shadow-md'
                               : 'bg-neutral-50 dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-600 hover:shadow-sm'
@@ -233,10 +233,10 @@ export default function PickListPage() {
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <h3 className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">
+                              <h3 className="font-medium text-neutral-900 dark:text-neutral-100 mb-1 text-sm">
                                 {pickList.name}
                               </h3>
-                              <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                              <p className="text-xs text-neutral-500 dark:text-neutral-400">
                                 {pickList.teams.length} teams
                               </p>
                             </div>
@@ -247,7 +247,7 @@ export default function PickListPage() {
                                 e.stopPropagation();
                                 handleDeletePickList(pickList.id);
                               }}
-                              className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 h-6 w-6 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300"
+                              className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 h-4 w-4 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300"
                             >
                               ×
                             </Button>
@@ -288,7 +288,7 @@ export default function PickListPage() {
               </div>
 
               {/* Main Content */}
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-3">
                 {selectedPickList ? (
                   <PickList
                     pickListId={selectedPickList.id}

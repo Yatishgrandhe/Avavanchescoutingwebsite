@@ -229,17 +229,17 @@ export function AdvancedTeamAnalysis({
   };
 
   return (
-    <Card className="p-6 rounded-2xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
-      <div className="flex flex-col space-y-4 mb-6">
-        <div className="flex items-center space-x-3">
-          <Brain className="h-6 w-6 text-purple-600" />
-          <h3 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">AI Team Suggestions</h3>
+    <Card className="p-3 rounded-xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 w-full min-w-[250px]">
+      <div className="flex flex-col space-y-2 mb-3">
+        <div className="flex items-center space-x-2">
+          <Brain className="h-4 w-4 text-purple-600" />
+          <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">AI Team Suggestions</h3>
         </div>
-        <div className="flex flex-col space-y-3">
+        <div className="flex flex-col space-y-2">
           <select
             value={analysisMode}
             onChange={(e) => setAnalysisMode(e.target.value as any)}
-            className="px-4 py-3 border border-neutral-200 dark:border-neutral-600 rounded-lg text-sm bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100"
+            className="px-2 py-1 border border-neutral-200 dark:border-neutral-600 rounded text-xs bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100"
           >
             <option value="balanced">Balanced Strategy</option>
             <option value="aggressive">Aggressive Scoring</option>
@@ -250,26 +250,26 @@ export function AdvancedTeamAnalysis({
             size="sm"
             variant="outline"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="px-4 py-3 rounded-lg border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors duration-300 text-sm"
+            className="px-2 py-1 rounded border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors duration-300 text-xs"
           >
-            <BarChart3 className="h-4 w-4 mr-2" />
+            <BarChart3 className="h-3 w-3 mr-1" />
             {showAdvanced ? 'Hide' : 'Show'} Analysis Details
           </Button>
         </div>
       </div>
 
       {/* Analysis Mode Description */}
-      <div className="mb-6 p-4 bg-neutral-50 dark:bg-neutral-700 rounded-xl">
-        <div className="flex items-center space-x-3 mb-2">
-          <Lightbulb className="h-4 w-4 text-yellow-500" />
-          <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+      <div className="mb-3 p-2 bg-neutral-50 dark:bg-neutral-700 rounded-lg">
+        <div className="flex items-center space-x-2 mb-1">
+          <Lightbulb className="h-3 w-3 text-yellow-500" />
+          <span className="text-xs font-medium text-neutral-900 dark:text-neutral-100">
             {analysisMode === 'balanced' && 'Balanced Strategy'}
             {analysisMode === 'aggressive' && 'Aggressive Scoring'}
             {analysisMode === 'defensive' && 'Defensive Focus'}
             {analysisMode === 'specialist' && 'Specialist Roles'}
           </span>
         </div>
-        <p className="text-sm text-neutral-600 dark:text-neutral-300">
+        <p className="text-xs text-neutral-600 dark:text-neutral-300">
           {analysisMode === 'balanced' && 'Prioritizes well-rounded teams with good scoring and defense capabilities'}
           {analysisMode === 'aggressive' && 'Focuses on high-scoring teams for offensive strategies'}
           {analysisMode === 'defensive' && 'Emphasizes defensive capabilities and endgame performance'}
@@ -278,54 +278,55 @@ export function AdvancedTeamAnalysis({
       </div>
 
       {/* Suggestions List */}
-      <div className="space-y-4 max-h-[500px] overflow-y-auto">
+      <div className="space-y-2 max-h-[300px] overflow-y-auto">
         {suggestions.length === 0 ? (
-          <div className="text-center py-8 text-neutral-500 dark:text-neutral-400">
-            <Brain className="h-12 w-12 mx-auto mb-4 text-neutral-400" />
-            <p className="text-sm">No suggestions available</p>
+          <div className="text-center py-4 text-neutral-500 dark:text-neutral-400">
+            <Brain className="h-8 w-8 mx-auto mb-2 text-neutral-400" />
+            <p className="text-xs">No suggestions available</p>
             <p className="text-xs text-neutral-400 mt-1">Add some scouting data to get AI recommendations</p>
           </div>
         ) : (
           suggestions.map((suggestion, index) => (
             <div
               key={suggestion.team.team_number}
-              className="flex items-start justify-between p-4 border border-neutral-200 dark:border-neutral-600 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-300"
+              className="flex items-start justify-between p-2 border border-neutral-200 dark:border-neutral-600 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-300"
             >
               <div className="flex-1 min-w-0">
-                <div className="flex items-center space-x-3 mb-3">
-                  <Badge variant="secondary" className="bg-neutral-200 dark:bg-neutral-600 text-neutral-800 dark:text-neutral-200 text-sm px-2 py-1">
+                <div className="flex items-center space-x-1 mb-1">
+                  <Badge variant="secondary" className="bg-neutral-200 dark:bg-neutral-600 text-neutral-800 dark:text-neutral-200 text-xs px-1 py-0.5">
                     #{index + 1}
                   </Badge>
                   {getCategoryIcon(suggestion.category)}
-                  <h4 className="font-semibold text-neutral-900 dark:text-neutral-100 text-base">
+                  <h4 className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
                     Team {suggestion.team.team_number}
                   </h4>
-                  <Badge className={`${getCategoryColor(suggestion.category)} text-sm px-2 py-1`}>
+                  <Badge className={`${getCategoryColor(suggestion.category)} text-xs px-1 py-0.5`}>
                     {suggestion.category}
                   </Badge>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-4 text-sm text-neutral-600 dark:text-neutral-300 mb-3">
-                  <div className="flex items-center space-x-2">
-                    <Target className="h-4 w-4 text-primary" />
-                    <span className="font-medium text-neutral-900 dark:text-neutral-100">{suggestion.team.stats?.avg_total_score.toFixed(1)}</span>
-                    <span className="text-xs text-neutral-500">avg</span>
+                <div className="grid grid-cols-4 gap-2 text-xs text-neutral-600 dark:text-neutral-300 mb-1">
+                  <div className="flex items-center space-x-1">
+                    <Target className="h-3 w-3 text-primary" />
+                    <span className="font-medium text-neutral-900 dark:text-neutral-100 text-xs">{suggestion.team.stats?.avg_total_score.toFixed(1)}</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <BarChart3 className="h-4 w-4 text-green-500" />
-                    <span>{suggestion.team.stats?.total_matches}</span>
-                    <span className="text-xs text-neutral-500">matches</span>
+                  <div className="flex items-center space-x-1">
+                    <BarChart3 className="h-3 w-3 text-green-500" />
+                    <span className="text-xs">{suggestion.team.stats?.total_matches}</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Shield className="h-4 w-4 text-purple-500" />
-                    <span>{suggestion.team.stats?.avg_defense_rating.toFixed(1)}</span>
-                    <span className="text-xs text-neutral-500">defense</span>
+                  <div className="flex items-center space-x-1">
+                    <Shield className="h-3 w-3 text-purple-500" />
+                    <span className="text-xs">{suggestion.team.stats?.avg_defense_rating.toFixed(1)}</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <TrendingUp className="h-3 w-3 text-blue-500" />
+                    <span className="text-xs">{suggestion.team.stats?.avg_autonomous_points?.toFixed(1) || '0.0'}</span>
                   </div>
                 </div>
                 
                 {showAdvanced && (
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-4 text-sm">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2 text-xs">
                       <span className="text-neutral-500 dark:text-neutral-400">AI Score:</span>
                       <span className={`font-semibold ${getScoreColor(suggestion.score)}`}>
                         {suggestion.score.toFixed(1)}
@@ -335,9 +336,9 @@ export function AdvancedTeamAnalysis({
                         {suggestion.compatibility.toFixed(1)}%
                       </span>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {suggestion.reasons.slice(0, 3).map((reason, idx) => (
-                        <Badge key={idx} variant="outline" className="text-sm border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 px-2 py-1">
+                    <div className="flex flex-wrap gap-1">
+                      {suggestion.reasons.slice(0, 2).map((reason, idx) => (
+                        <Badge key={idx} variant="outline" className="text-xs border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 px-1 py-0.5">
                           {reason}
                         </Badge>
                       ))}
@@ -349,10 +350,10 @@ export function AdvancedTeamAnalysis({
               <Button
                 size="sm"
                 onClick={() => onAddTeam(suggestion.team)}
-                className="ml-4 px-4 py-3 rounded-lg bg-primary text-white hover:opacity-90 transition-opacity duration-300 text-sm flex-shrink-0"
+                className="ml-2 px-2 py-1 rounded bg-primary text-white hover:opacity-90 transition-opacity duration-300 text-xs flex-shrink-0"
               >
-                <Award className="h-4 w-4 mr-2" />
-                Add Team
+                <Award className="h-3 w-3 mr-1" />
+                Add
               </Button>
             </div>
           ))
@@ -361,31 +362,31 @@ export function AdvancedTeamAnalysis({
 
       {/* Quick Stats */}
       {suggestions.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-600">
-          <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="mt-3 pt-2 border-t border-neutral-200 dark:border-neutral-600">
+          <div className="grid grid-cols-4 gap-2 text-xs">
             <div className="text-center">
-              <div className="font-semibold text-neutral-900 dark:text-neutral-100 text-lg">
+              <div className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
                 {suggestions.filter(s => s.category === 'primary').length}
               </div>
-              <div className="text-neutral-500 dark:text-neutral-400">Primary Picks</div>
+              <div className="text-neutral-500 dark:text-neutral-400 text-xs">Primary</div>
             </div>
             <div className="text-center">
-              <div className="font-semibold text-neutral-900 dark:text-neutral-100 text-lg">
+              <div className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
                 {suggestions.filter(s => s.category === 'defensive').length}
               </div>
-              <div className="text-neutral-500 dark:text-neutral-400">Defensive</div>
+              <div className="text-neutral-500 dark:text-neutral-400 text-xs">Defense</div>
             </div>
             <div className="text-center">
-              <div className="font-semibold text-neutral-900 dark:text-neutral-100 text-lg">
+              <div className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
                 {suggestions.filter(s => s.category === 'specialist').length}
               </div>
-              <div className="text-neutral-500 dark:text-neutral-400">Specialists</div>
+              <div className="text-neutral-500 dark:text-neutral-400 text-xs">Special</div>
             </div>
             <div className="text-center">
-              <div className="font-semibold text-neutral-900 dark:text-neutral-100 text-lg">
+              <div className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
                 {suggestions.filter(s => s.score >= 70).length}
               </div>
-              <div className="text-neutral-500 dark:text-neutral-400">High Score</div>
+              <div className="text-neutral-500 dark:text-neutral-400 text-xs">High</div>
             </div>
           </div>
         </div>

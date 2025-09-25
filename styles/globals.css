@@ -516,3 +516,138 @@
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   }
 }
+
+/* Pick Lists Page - Compact Size */
+.pick-lists-container {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
+
+.pick-lists-container .grid {
+  min-width: 1200px;
+  display: grid;
+  gap: 1rem;
+}
+
+.pick-lists-container .item {
+  display: inline-block;
+  min-width: 200px;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* AI Team Suggestions - Compact Size */
+.ai-suggestions {
+  width: 80%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
+
+.ai-suggestions .suggestion-card {
+  min-width: 250px;
+  margin-bottom: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  transition: all 0.3s ease;
+}
+
+.ai-suggestions .suggestion-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.ai-suggestions .suggestion-card.recommended {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.05);
+}
+
+.ai-suggestions .team-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.ai-suggestions .stat-item {
+  text-align: center;
+  padding: 0.25rem;
+  background: hsl(var(--muted) / 0.5);
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.ai-suggestions .stat-value {
+  font-weight: 600;
+  color: hsl(var(--primary));
+}
+
+.ai-suggestions .strategy-selector {
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.25rem;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+/* Enhanced horizontal scroll for pick lists */
+.pick-lists-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.pick-lists-container::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+.pick-lists-container::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground));
+  border-radius: 4px;
+}
+
+.pick-lists-container::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--foreground));
+}
+
+/* Responsive adjustments for pick lists */
+@media (max-width: 1200px) {
+  .pick-lists-container .grid {
+    min-width: 1000px;
+  }
+  
+  .ai-suggestions {
+    width: 85%;
+    max-width: 500px;
+  }
+}
+
+@media (max-width: 768px) {
+  .pick-lists-container {
+    padding: 0.25rem;
+  }
+  
+  .pick-lists-container .grid {
+    min-width: 800px;
+    gap: 0.75rem;
+  }
+  
+  .ai-suggestions {
+    width: 100%;
+    padding: 0.5rem;
+  }
+  
+  .ai-suggestions .suggestion-card {
+    min-width: 200px;
+    padding: 0.5rem;
+  }
+}

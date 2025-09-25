@@ -135,170 +135,189 @@ export default function PickListPage() {
   return (
     <ProtectedRoute>
       <Layout>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Pick Lists</h1>
-              <p className="text-gray-600">
-                Create and manage team pick lists for alliance selection. Drag and drop teams to reorder your preferences.
-              </p>
-            </div>
-            <Button
-              onClick={() => setShowEducation(!showEducation)}
-              variant="outline"
-              className="flex items-center space-x-2"
-            >
-              <GraduationCap className="h-4 w-4" />
-              <span>{showEducation ? 'Hide' : 'Show'} Education</span>
-            </Button>
-          </div>
-        </div>
-
-        {showEducation && (
-          <div className="mb-8">
-            <ScoutingEducation />
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <Card className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">My Pick Lists</h2>
+        <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Header Section */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100 mb-2">
+                    Pick Lists
+                  </h1>
+                  <p className="text-sm text-neutral-400 dark:text-neutral-300">
+                    Create and manage team pick lists for alliance selection. Drag and drop teams to reorder your preferences.
+                  </p>
+                </div>
                 <Button
-                  size="sm"
-                  onClick={() => setIsCreatingNew(true)}
-                  className="p-2"
+                  onClick={() => setShowEducation(!showEducation)}
+                  variant="outline"
+                  className="px-4 py-2 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-300 flex items-center space-x-2"
                 >
-                  <Plus className="h-4 w-4" />
+                  <GraduationCap className="h-4 w-4" />
+                  <span>{showEducation ? 'Hide' : 'Show'} Education</span>
                 </Button>
               </div>
+            </div>
 
-              {isCreatingNew && (
-                <div className="mb-4 p-3 border border-gray-200 rounded-md">
-                  <Input
-                    placeholder="Pick list name..."
-                    value={newPickListName}
-                    onChange={(e) => setNewPickListName(e.target.value)}
-                    className="mb-2"
-                  />
-                  <div className="flex space-x-2">
-                    <Button size="sm" onClick={handleCreateNew}>
-                      Create
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => {
-                        setIsCreatingNew(false);
-                        setNewPickListName('');
-                      }}
+            {showEducation && (
+              <div className="mb-8">
+                <ScoutingEducation />
+              </div>
+            )}
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Pick Lists Sidebar */}
+              <div className="lg:col-span-1">
+                <Card className="p-6 rounded-2xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">My Pick Lists</h2>
+                    <Button
+                      size="sm"
+                      onClick={() => setIsCreatingNew(true)}
+                      className="px-3 py-2 rounded-full bg-primary text-white hover:opacity-90 transition-opacity duration-300"
                     >
-                      Cancel
+                      <Plus className="h-4 w-4" />
                     </Button>
                   </div>
-                </div>
-              )}
 
-              <div className="space-y-2">
-                {pickLists.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    No pick lists yet. Create your first one!
-                  </p>
-                ) : (
-                  pickLists.map((pickList) => (
-                    <div
-                      key={pickList.id}
-                      className={`p-3 rounded-md cursor-pointer transition-colors ${
-                        selectedPickList?.id === pickList.id
-                          ? 'bg-blue-50 border border-blue-200'
-                          : 'hover:bg-gray-50 border border-transparent'
-                      }`}
-                      onClick={() => handleSelectPickList(pickList)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-medium text-gray-900">{pickList.name}</h3>
-                          <p className="text-sm text-gray-500">
-                            {pickList.teams.length} teams
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeletePickList(pickList.id);
-                          }}
-                          className="text-red-500 hover:text-red-700 p-1 h-6 w-6"
+                  {isCreatingNew && (
+                    <div className="mb-6 p-4 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-neutral-50 dark:bg-neutral-700">
+                      <Input
+                        placeholder="Pick list name..."
+                        value={newPickListName}
+                        onChange={(e) => setNewPickListName(e.target.value)}
+                        className="mb-3 bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100"
+                      />
+                      <div className="flex space-x-2">
+                        <Button 
+                          size="sm" 
+                          onClick={handleCreateNew}
+                          className="px-4 py-2 rounded-full bg-primary text-white hover:opacity-90 transition-opacity duration-300"
                         >
-                          ×
+                          Create
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => {
+                            setIsCreatingNew(false);
+                            setNewPickListName('');
+                          }}
+                          className="px-4 py-2 rounded-full border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors duration-300"
+                        >
+                          Cancel
                         </Button>
                       </div>
                     </div>
-                  ))
+                  )}
+
+                  <div className="space-y-3">
+                    {pickLists.length === 0 ? (
+                      <div className="text-center py-8">
+                        <List className="h-8 w-8 mx-auto mb-3 text-neutral-400" />
+                        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                          No pick lists yet. Create your first one!
+                        </p>
+                      </div>
+                    ) : (
+                      pickLists.map((pickList) => (
+                        <div
+                          key={pickList.id}
+                          className={`p-4 rounded-xl cursor-pointer transition-all duration-300 border ${
+                            selectedPickList?.id === pickList.id
+                              ? 'bg-primary/10 border-primary/30 shadow-md'
+                              : 'bg-neutral-50 dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-600 hover:shadow-sm'
+                          }`}
+                          onClick={() => handleSelectPickList(pickList)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">
+                                {pickList.name}
+                              </h3>
+                              <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                                {pickList.teams.length} teams
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeletePickList(pickList.id);
+                              }}
+                              className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 h-6 w-6 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300"
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </Card>
+
+                {/* Educational Content */}
+                <Card className="p-6 mt-6 rounded-2xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Pick List Tips</h3>
+                  <div className="space-y-4 text-sm text-neutral-600 dark:text-neutral-300">
+                    <div className="flex items-start space-x-3">
+                      <Target className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-neutral-900 dark:text-neutral-100">Focus on Total Score</p>
+                        <p>Teams with higher average scores are generally more reliable.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <Trophy className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-neutral-900 dark:text-neutral-100">Consider Consistency</p>
+                        <p>Look for teams with consistent performance across matches.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <Users className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-neutral-900 dark:text-neutral-100">Balance Your Alliance</p>
+                        <p>Mix high-scoring teams with reliable defensive partners.</p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Main Content */}
+              <div className="lg:col-span-2">
+                {selectedPickList ? (
+                  <PickList
+                    pickListId={selectedPickList.id}
+                    eventKey={selectedPickList.event_key}
+                    onSave={handleSavePickList}
+                    session={session}
+                  />
+                ) : (
+                  <Card className="p-8 text-center rounded-2xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+                    <List className="h-12 w-12 text-neutral-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+                      Select a Pick List
+                    </h3>
+                    <p className="text-neutral-500 dark:text-neutral-400 mb-4">
+                      Choose an existing pick list from the sidebar or create a new one to get started.
+                    </p>
+                    <Button 
+                      onClick={() => setIsCreatingNew(true)}
+                      className="px-6 py-3 rounded-full bg-primary text-white hover:opacity-90 transition-opacity duration-300 flex items-center space-x-2 mx-auto"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Create New Pick List</span>
+                    </Button>
+                  </Card>
                 )}
               </div>
-            </Card>
-
-            {/* Educational Content */}
-            <Card className="p-4 mt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Pick List Tips</h3>
-              <div className="space-y-3 text-sm text-gray-600">
-                <div className="flex items-start space-x-2">
-                  <Target className="h-4 w-4 text-blue-500 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Focus on Total Score</p>
-                    <p>Teams with higher average scores are generally more reliable.</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <Trophy className="h-4 w-4 text-yellow-500 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Consider Consistency</p>
-                    <p>Look for teams with consistent performance across matches.</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <Users className="h-4 w-4 text-green-500 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Balance Your Alliance</p>
-                    <p>Mix high-scoring teams with reliable defensive partners.</p>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            {selectedPickList ? (
-              <PickList
-                pickListId={selectedPickList.id}
-                eventKey={selectedPickList.event_key}
-                onSave={handleSavePickList}
-                session={session}
-              />
-            ) : (
-              <Card className="p-8 text-center">
-                <List className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Select a Pick List
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Choose an existing pick list from the sidebar or create a new one to get started.
-                </p>
-                <Button onClick={() => setIsCreatingNew(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create New Pick List
-                </Button>
-              </Card>
-            )}
+            </div>
           </div>
         </div>
-      </div>
       </Layout>
     </ProtectedRoute>
   );

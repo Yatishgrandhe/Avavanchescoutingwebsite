@@ -4,6 +4,69 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+const notifyDiscordError = async (errorMessage: string, errorType: string, userInfo?: any) => {
+  try {
+    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    if (!webhookUrl) {
+      console.warn('DISCORD_WEBHOOK_URL not configured - skipping Discord notification');
+      return;
+    }
+
+    const embed = {
+      embeds: [
+        {
+          title: '⚠️ Discord OAuth Callback Error',
+          description: 'An error occurred during the Discord OAuth callback process.',
+          color: 0xff4444, // Red color
+          fields: [
+            {
+              name: 'Error Type',
+              value: `\`${errorType}\``,
+              inline: true,
+            },
+            {
+              name: 'Error Message',
+              value: `\`\`\`${errorMessage}\`\`\``,
+              inline: false,
+            },
+            {
+              name: 'Timestamp',
+              value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
+              inline: true,
+            },
+            {
+              name: 'Callback URL',
+              value: `\`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/callback\``,
+              inline: false,
+            },
+          ],
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    };
+
+    if (userInfo) {
+      embed.embeds[0].fields.push({
+        name: 'User Information',
+        value: `**Discord ID:** ${userInfo.id || 'Unknown'}\n**Username:** ${userInfo.username || 'Unknown'}\n**Email:** ${userInfo.email || 'Not provided'}`,
+        inline: false,
+      });
+    }
+
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(embed),
+    });
+
+    console.log('Discord callback error notification sent successfully');
+  } catch (webhookError) {
+    console.error('Failed to send Discord callback error notification:', webhookError);
+  }
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log('🔄 OAuth callback received');
   console.log('📋 Method:', req.method);
@@ -54,6 +117,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         errorMessage = error_description as string || 'Authentication failed. Please try again.';
     }
     
+    // Notify Discord about the OAuth error
+    await notifyDiscordError(errorMessage, authError as string);
+    
     res.redirect(302, `/auth/error?message=${encodeURIComponent(errorMessage)}&error=${authError}`);
     return;
   }
@@ -95,12 +161,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
         
+        // Notify Discord about the session exchange error
+        await notifyDiscordError(errorMessage, 'session_error', data?.user);
+        
         res.redirect(302, `/auth/error?message=${encodeURIComponent(errorMessage)}&error=session_error`);
         return;
       }
     } catch (error) {
       console.error('💥 Unexpected error in auth callback:', error);
-      res.redirect(302, `/auth/error?message=${encodeURIComponent('An unexpected error occurred during authentication. Please try again.')}&error=unexpected_error`);
+      const errorMessage = 'An unexpected error occurred during authentication. Please try again.';
+      
+      // Notify Discord about the unexpected error
+      await notifyDiscordError(errorMessage, 'unexpected_error');
+      
+      res.redirect(302, `/auth/error?message=${encodeURIComponent(errorMessage)}&error=unexpected_error`);
       return;
     }
   }

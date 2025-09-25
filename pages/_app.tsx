@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { User, Session } from '@supabase/supabase-js';
 import Head from 'next/head';
+import { Toaster } from '@/components/ui/toaster';
 
 import '@/styles/globals.css';
 
@@ -70,6 +71,7 @@ export default function App({ Component, pageProps }: AppProps) {
       </Head>
       <SupabaseContext.Provider value={{ supabase, user, session, loading }}>
         <Component {...pageProps} />
+        <Toaster />
       </SupabaseContext.Provider>
     </>
   );

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { createClient } from '@supabase/supabase-js';
 import { Button } from '../../components/ui';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui';
+import { useToast } from '../../hooks/use-toast';
 import { 
   ArrowRight, 
   Shield, 
@@ -12,7 +13,9 @@ import {
   Sparkles,
   Mountain,
   Snowflake,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import Logo from '../../components/ui/Logo';
 
@@ -73,10 +76,31 @@ const AvalancheBackground = () => {
 export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const notifyDiscordError = async (errorMessage: string, userInfo?: any) => {
+    try {
+      await fetch('/api/discord-login-error', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          error: errorMessage,
+          userInfo,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+    } catch (webhookError) {
+      console.error('Failed to send Discord notification:', webhookError);
+    }
+  };
 
   const handleDiscordSignIn = async () => {
     setIsLoading(true);
     setError(null);
+    setSuccess(null);
     
     console.log('🚀 Starting Discord OAuth flow...');
     console.log('📍 Current URL:', window.location.href);
@@ -109,32 +133,72 @@ export default function SignIn() {
 
       if (error) {
         console.error('❌ Discord sign in error:', error);
-        setError(`Failed to initiate Discord sign in: ${error.message}`);
+        const errorMessage = `Failed to initiate Discord sign in: ${error.message}`;
+        setError(errorMessage);
+        
+        // Show error toast
+        toast({
+          title: "Discord Sign In Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+
+        // Notify Discord channel
+        await notifyDiscordError(errorMessage);
         
         // Show error for a few seconds, then redirect to error page
         setTimeout(() => {
           console.log('🔄 Redirecting to error page...');
           window.location.href = `/auth/error?message=${encodeURIComponent(error.message)}&error=initiation_error`;
-        }, 3000);
+        }, 5000);
       } else if (data.url) {
         console.log('✅ OAuth URL received, redirecting to Discord...');
         console.log('🔗 Discord URL:', data.url);
+        
+        // Show success message
+        setSuccess('Redirecting to Discord...');
+        toast({
+          title: "Redirecting to Discord",
+          description: "Please complete authentication in the new window",
+          variant: "default",
+        });
+        
         // Redirect to Discord OAuth
         window.location.href = data.url;
       } else {
         console.error('❌ No authentication URL received from Discord');
-        setError('No authentication URL received from Discord');
+        const errorMessage = 'No authentication URL received from Discord';
+        setError(errorMessage);
+        
+        toast({
+          title: "Authentication Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+
+        // Notify Discord channel
+        await notifyDiscordError(errorMessage);
       }
     } catch (error) {
       console.error('💥 Sign in error:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       setError(errorMessage);
       
+      // Show error toast
+      toast({
+        title: "Sign In Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+
+      // Notify Discord channel
+      await notifyDiscordError(errorMessage);
+      
       // Show error for a few seconds, then redirect to error page
       setTimeout(() => {
         console.log('🔄 Redirecting to error page...');
         window.location.href = `/auth/error?message=${encodeURIComponent(errorMessage)}&error=unexpected_error`;
-      }, 3000);
+      }, 5000);
     } finally {
       setIsLoading(false);
     }
@@ -193,6 +257,21 @@ export default function SignIn() {
             </CardHeader>
 
             <CardContent className="space-y-6">
+              {/* Success Display */}
+              {success && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-green-500/20 border border-green-500/30 rounded-lg p-4"
+                >
+                  <div className="flex items-center space-x-2 text-green-400">
+                    <CheckCircle className="w-5 h-5" />
+                    <span className="text-sm font-medium">Success</span>
+                  </div>
+                  <p className="text-green-300 text-sm mt-1">{success}</p>
+                </motion.div>
+              )}
+
               {/* Error Display */}
               {error && (
                 <motion.div
@@ -201,7 +280,7 @@ export default function SignIn() {
                   className="bg-red-500/20 border border-red-500/30 rounded-lg p-4"
                 >
                   <div className="flex items-center space-x-2 text-red-400">
-                    <AlertTriangle className="w-5 h-5" />
+                    <XCircle className="w-5 h-5" />
                     <span className="text-sm font-medium">Sign In Error</span>
                   </div>
                   <p className="text-red-300 text-sm mt-1">{error}</p>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Layout } from '@/components/layout/Layout';
+import Layout from '@/components/layout/Layout';
 import { PickList } from '@/components/picklist/PickList';
 import { ScoutingEducation } from '@/components/picklist/ScoutingEducation';
 import { Card } from '@/components/ui/Card';

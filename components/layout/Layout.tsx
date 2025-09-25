@@ -34,9 +34,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className={`flex h-screen transition-colors duration-300 ${
-      isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
-    }`}>
+    <div className="flex h-screen transition-colors duration-300 bg-gray-50">
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
@@ -53,9 +51,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className={`${
-            isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-          } border-b px-6 py-4 flex items-center justify-between shadow-sm`}
+          className="header-avalanche bg-white/95 backdrop-blur-sm border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-lg"
         >
           <div className="flex items-center space-x-4">
             <Logo size="md" />
@@ -63,9 +59,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
-              className={`text-xl font-bold tracking-wide ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}
+              className="text-xl font-heading font-bold tracking-wide text-gray-900"
             >
               Avalanche Scouting
             </motion.h1>
@@ -76,11 +70,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <motion.button 
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className={`p-2 rounded-lg transition-colors ${
-                isDarkMode 
-                  ? 'hover:bg-gray-700 text-gray-400 hover:text-white' 
-                  : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
-              }`}
+              className="p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600 hover:text-blue-600"
             >
               <Bell size={20} />
             </motion.button>
@@ -90,11 +80,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`p-2 rounded-lg transition-colors ${
-                isDarkMode 
-                  ? 'hover:bg-gray-700 text-gray-400 hover:text-white' 
-                  : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
-              }`}
+              className="p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600 hover:text-blue-600"
             >
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </motion.button>
@@ -118,7 +104,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       <p className="text-sm font-medium leading-none">
                         {user.user_metadata?.full_name || user.email}
                       </p>
-                      <p className="text-xs leading-none text-muted-foreground">
+                      <p className="text-xs leading-none text-gray-500">
                         {user.user_metadata?.username || user.email}
                       </p>
                     </div>
@@ -149,9 +135,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, delay: 0.1 }}
-          className={`flex-1 overflow-auto ${
-            isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
-          }`}
+          className="flex-1 overflow-auto bg-gray-50"
         >
           <div className="p-6">
             {children}

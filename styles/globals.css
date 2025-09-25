@@ -1,94 +1,134 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 224 71.4% 4.1%;
-    --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
-    --primary: 220.9 39.3% 11%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 220 14.3% 95.9%;
-    --secondary-foreground: 220.9 39.3% 11%;
-    --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%;
-    --accent: 220 14.3% 95.9%;
-    --accent-foreground: 220.9 39.3% 11%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 224 71.4% 4.1%;
-    --radius: 0.5rem;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-  }
+/* Avalanche Professional Theme Variables */
+:root {
+  /* Primary Colors - Deep Navy Blue */
+  --primary-main: #1B365D;
+  --primary-light: #2B4B7C;
+  --primary-dark: #0F2340;
+  
+  /* Secondary Colors - Vibrant Red-Orange */
+  --secondary-main: #E94B3C;
+  --secondary-light: #FF6B5B;
+  --secondary-dark: #C73E30;
+  
+  /* Accent Colors - Warm Gold */
+  --accent-main: #F5A623;
+  --accent-light: #FFB84A;
+  --accent-dark: #E8940F;
+  
+  /* Neutral Colors */
+  --neutral-background: #FAFBFC;
+  --neutral-surface: #FFFFFF;
+  --neutral-text-primary: #1A1A1A;
+  --neutral-text-secondary: #6B7280;
+  --neutral-text-muted: #9CA3AF;
+  --neutral-border: #E5E7EB;
+  --neutral-divider: #F3F4F6;
+  
+  /* Shadcn/ui compatibility */
+  --background: 0 0% 100%;
+  --foreground: 224 71.4% 4.1%;
+  --card: 0 0% 100%;
+  --card-foreground: 224 71.4% 4.1%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 224 71.4% 4.1%;
+  --primary: 220.9 39.3% 11%;
+  --primary-foreground: 210 20% 98%;
+  --secondary: 220 14.3% 95.9%;
+  --secondary-foreground: 220.9 39.3% 11%;
+  --muted: 220 14.3% 95.9%;
+  --muted-foreground: 220 8.9% 46.1%;
+  --accent: 220 14.3% 95.9%;
+  --accent-foreground: 220.9 39.3% 11%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 20% 98%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 224 71.4% 4.1%;
+  --radius: 0.5rem;
+  --chart-1: 12 76% 61%;
+  --chart-2: 173 58% 39%;
+  --chart-3: 197 37% 24%;
+  --chart-4: 43 74% 66%;
+  --chart-5: 27 87% 67%;
+}
 
-  .dark {
-    --background: 224 71.4% 4.1%;
-    --foreground: 210 20% 98%;
-    --card: 224 71.4% 4.1%;
-    --card-foreground: 210 20% 98%;
-    --popover: 224 71.4% 4.1%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 210 20% 98%;
-    --primary-foreground: 220.9 39.3% 11%;
-    --secondary: 215 27.9% 16.9%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 215 27.9% 16.9%;
-    --muted-foreground: 217.9 10.6% 64.9%;
-    --accent: 215 27.9% 16.9%;
-    --accent-foreground: 210 20% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 215 27.9% 16.9%;
-    --input: 215 27.9% 16.9%;
-    --ring: 216 12.2% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-  }
+.dark {
+  --background: 224 71.4% 4.1%;
+  --foreground: 210 20% 98%;
+  --card: 224 71.4% 4.1%;
+  --card-foreground: 210 20% 98%;
+  --popover: 224 71.4% 4.1%;
+  --popover-foreground: 210 20% 98%;
+  --primary: 210 20% 98%;
+  --primary-foreground: 220.9 39.3% 11%;
+  --secondary: 215 27.9% 16.9%;
+  --secondary-foreground: 210 20% 98%;
+  --muted: 215 27.9% 16.9%;
+  --muted-foreground: 217.9 10.6% 64.9%;
+  --accent: 215 27.9% 16.9%;
+  --accent-foreground: 210 20% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 20% 98%;
+  --border: 215 27.9% 16.9%;
+  --input: 215 27.9% 16.9%;
+  --ring: 216 12.2% 83.9%;
+  --chart-1: 220 70% 50%;
+  --chart-2: 160 60% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 340 75% 55%;
 }
 
 @layer base {
-  body {
-    @apply bg-gray-50 text-gray-900 font-sans;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-    font-variant-numeric: tabular-nums;
+  * {
+    @apply border-border;
   }
   
+  body {
+    @apply bg-gray-50 text-gray-900;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+  }
+  
+  /* Typography Scale */
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Poppins', 'Inter', system-ui, -apple-system, sans-serif;
     font-weight: 600;
-    letter-spacing: -0.025em;
     line-height: 1.2;
+    color: #1A1A1A;
   }
   
   h1 {
+    font-size: 2.5rem;
     font-weight: 700;
-    letter-spacing: -0.04em;
   }
   
   h2 {
+    font-size: 2rem;
     font-weight: 600;
-    letter-spacing: -0.03em;
   }
   
   h3 {
+    font-size: 1.5rem;
     font-weight: 600;
-    letter-spacing: -0.02em;
+  }
+  
+  h4 {
+    font-size: 1.25rem;
+    font-weight: 500;
+  }
+  
+  h5 {
+    font-size: 1.125rem;
+    font-weight: 500;
   }
   
   code, pre {
@@ -96,40 +136,76 @@
     font-feature-settings: 'liga', 'calt';
   }
   
-  .font-display {
-    font-family: 'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-weight: 600;
-    letter-spacing: -0.025em;
+  /* Font Utility Classes */
+  .font-primary {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
   
-  .font-body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-  }
-  
-  .font-mono {
-    font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Cascadia Code', monospace;
-    font-feature-settings: 'liga', 'calt';
-  }
-  
-  .font-accent {
-    font-family: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-weight: 500;
-    letter-spacing: -0.01em;
+  .font-heading {
+    font-family: 'Poppins', 'Inter', system-ui, -apple-system, sans-serif;
   }
 }
 
 @layer components {
-  .btn {
-    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+  /* Button Styles */
+  .btn-primary {
+    @apply bg-blue-600 text-white px-6 py-3 rounded-lg font-medium;
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   
-  .btn-primary {
-    @apply bg-blue-600 text-white hover:bg-blue-700;
+  .btn-primary:hover {
+    @apply bg-blue-700;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(27, 54, 93, 0.3);
   }
   
   .btn-secondary {
-    @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
+    @apply bg-red-500 text-white px-6 py-3 rounded-lg font-medium;
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .btn-secondary:hover {
+    @apply bg-red-600;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(233, 75, 60, 0.3);
+  }
+  
+  .btn-accent {
+    @apply bg-yellow-500 text-white px-6 py-3 rounded-lg font-medium;
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .btn-accent:hover {
+    @apply bg-yellow-600;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
+  }
+  
+  /* Card Styles */
+  .card-avalanche {
+    @apply bg-white border border-gray-200 rounded-xl shadow-sm;
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .card-avalanche:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+  
+  /* Header Styles */
+  .header-avalanche {
+    height: 80px;
+    position: sticky;
+    top: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+  }
+  
+  /* Legacy button styles for compatibility */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
   }
   
   .btn-outline {
@@ -157,7 +233,7 @@
   }
   
   .card {
-    @apply rounded-lg border bg-white shadow-sm;
+    @apply rounded-lg border border-gray-200 bg-white shadow-sm;
   }
   
   .card-header {
@@ -181,72 +257,6 @@
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #64748b;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #475569;
-}
-
-/* Smooth transitions */
-* {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-
-/* Focus styles */
-.focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
-}
-
-/* Animation classes */
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-in-out;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.3s ease-out;
-}
-
-.animate-slide-down {
-  animation: slideDown 0.3s ease-out;
-}
-
-.animate-scale-in {
-  animation: scaleIn 0.2s ease-out;
-}
-
-.animate-bounce-in {
-  animation: bounceIn 0.6s ease-out;
-}
-
-.animate-slide-in-left {
-  animation: slideInLeft 0.4s ease-out;
-}
-
-.animate-slide-in-right {
-  animation: slideInRight 0.4s ease-out;
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-.animate-glow {
-  animation: glow 2s ease-in-out infinite alternate;
-}
-
-/* Custom animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -258,101 +268,41 @@
 
 @keyframes slideUp {
   from {
-    transform: translateY(10px);
     opacity: 0;
+    transform: translateY(20px);
   }
   to {
+    opacity: 1;
     transform: translateY(0);
-    opacity: 1;
   }
 }
 
-@keyframes slideDown {
-  from {
-    transform: translateY(-10px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-@keyframes scaleIn {
-  from {
-    transform: scale(0.95);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+::-webkit-scrollbar-track {
+  background: #f3f4f6;
 }
 
-@keyframes bounceIn {
-  0% {
-    transform: scale(0.3);
-    opacity: 0;
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  70% {
-    transform: scale(0.9);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 4px;
 }
 
-@keyframes slideInLeft {
-  from {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
 }
 
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+/* Smooth transitions */
+* {
+  transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 300ms cubic-bezier(0.4, 0, 0.2, 1), 
+              color 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-20px);
-  }
-}
-
-@keyframes glow {
-  from {
-    box-shadow: 0 0 5px rgba(99, 102, 241, 0.5);
-  }
-  to {
-    box-shadow: 0 0 20px rgba(99, 102, 241, 0.8), 0 0 30px rgba(99, 102, 241, 0.6);
-  }
-}
-
-
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+/* Focus styles */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
 }

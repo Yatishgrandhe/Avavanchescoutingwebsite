@@ -121,3 +121,28 @@ export const SCORING_VALUES: Record<ScoringElement, number> = {
   endgame_shallow_cage: 6,
   endgame_deep_cage: 12,
 };
+
+export interface PickList {
+  id: string;
+  user_id: string;
+  name: string;
+  event_key: string;
+  teams: PickListTeam[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PickListTeam {
+  team_number: number;
+  team_name: string;
+  pick_order: number;
+  notes?: string;
+  stats?: TeamStats;
+}
+
+export interface PickListFilters {
+  event_key?: string;
+  min_matches?: number;
+  min_avg_score?: number;
+  alliance_color?: 'red' | 'blue';
+}

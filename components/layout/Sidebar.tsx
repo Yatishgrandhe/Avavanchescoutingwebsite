@@ -16,7 +16,8 @@ import {
   Target,
   Users,
   Database,
-  FileText
+  FileText,
+  List
 } from 'lucide-react';
 import { Button, Badge, Logo } from '../ui';
 import { cn } from '@/lib/utils';
@@ -55,6 +56,16 @@ const Sidebar: React.FC<SidebarProps> = ({
           label: 'Pit Scouting',
           href: '/pit-scouting',
           icon: Wrench,
+        },
+      ],
+    },
+    {
+      title: 'Strategy',
+      items: [
+        {
+          label: 'Pick Lists',
+          href: '/pick-list',
+          icon: List,
         },
       ],
     },

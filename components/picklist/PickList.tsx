@@ -23,8 +23,9 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { TeamStatsCard, QuickStats } from './TeamStatsCard';
 import { TeamComparisonModal, QuickComparison } from './TeamComparisonModal';
+import { AdvancedTeamAnalysis } from './AdvancedTeamAnalysis';
 import { TeamStats, PickListTeam } from '@/lib/types';
-import { GripVertical, Plus, Save, Trash2, Edit3 } from 'lucide-react';
+import { GripVertical, Plus, Save, Trash2, Edit3, Brain, Target, BarChart3, Shield } from 'lucide-react';
 
 interface SortableTeamItemProps {
   team: PickListTeam;
@@ -189,31 +190,54 @@ function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSe
       </div>
 
       <div className="space-y-2 max-h-96 overflow-y-auto">
-        {filteredTeams.map((team) => (
-          <div key={team.team_number} className="flex items-center justify-between p-2 border border-gray-200 rounded-md hover:bg-gray-50">
-            <div className="flex-1">
-              <div className="flex items-center space-x-2">
-                <span className="font-semibold">Team {team.team_number}</span>
-                <span className="text-sm text-gray-600">{team.team_name}</span>
-              </div>
-              {team.stats && (
-                <QuickStats stats={team.stats} className="mt-1" />
-              )}
-            </div>
-            <Button
-              size="sm"
-              onClick={() => onAddTeam({
-                team_number: team.team_number,
-                team_name: team.team_name,
-                pick_order: 0, // Will be updated when added to list
-                stats: team.stats,
-              })}
-              className="ml-2"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+        {filteredTeams.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <Brain className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+            <p className="text-sm">No teams available</p>
+            <p className="text-xs text-gray-400">Try adjusting your search or filters</p>
           </div>
-        ))}
+        ) : (
+          filteredTeams.map((team) => (
+            <div key={team.team_number} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 hover:shadow-sm transition-all">
+              <div className="flex-1">
+                <div className="flex items-center space-x-2 mb-1">
+                  <span className="font-semibold text-gray-900">Team {team.team_number}</span>
+                  <span className="text-sm text-gray-600 truncate max-w-32">{team.team_name}</span>
+                </div>
+                {team.stats ? (
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="flex items-center space-x-1">
+                      <Target className="h-3 w-3 text-blue-500" />
+                      <span className="font-medium">{team.stats.avg_total_score.toFixed(1)}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <BarChart3 className="h-3 w-3 text-green-500" />
+                      <span>{team.stats.total_matches}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Shield className="h-3 w-3 text-purple-500" />
+                      <span>{team.stats.avg_defense_rating.toFixed(1)}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-400">No stats available</div>
+                )}
+              </div>
+              <Button
+                size="sm"
+                onClick={() => onAddTeam({
+                  team_number: team.team_number,
+                  team_name: team.team_name,
+                  pick_order: 0, // Will be updated when added to list
+                  stats: team.stats,
+                })}
+                className="ml-3 flex-shrink-0"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          ))
+        )}
       </div>
     </Card>
   );
@@ -223,9 +247,10 @@ interface PickListProps {
   pickListId?: string;
   eventKey?: string;
   onSave?: (pickList: any) => void;
+  session?: any;
 }
 
-export function PickList({ pickListId, eventKey = '2025test', onSave }: PickListProps) {
+export function PickList({ pickListId, eventKey = '2025test', onSave, session }: PickListProps) {
   const [teams, setTeams] = useState<PickListTeam[]>([]);
   const [availableTeams, setAvailableTeams] = useState<Array<{ team_number: number; team_name: string; stats?: TeamStats }>>([]);
   const [pickListName, setPickListName] = useState('My Pick List');
@@ -241,10 +266,14 @@ export function PickList({ pickListId, eventKey = '2025test', onSave }: PickList
   );
 
   useEffect(() => {
-    loadData();
-  }, [pickListId, eventKey]);
+    if (session) {
+      loadData();
+    }
+  }, [pickListId, eventKey, session]);
 
   const loadData = async () => {
+    if (!session) return;
+    
     setIsLoading(true);
     try {
       // Load available teams with stats
@@ -277,9 +306,14 @@ export function PickList({ pickListId, eventKey = '2025test', onSave }: PickList
       if (pickListId) {
         const response = await fetch(`/api/pick-lists?id=${pickListId}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`,
+            'Authorization': `Bearer ${session.access_token}`,
           },
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         if (data.teams) {
           setTeams(data.teams);
@@ -339,6 +373,8 @@ export function PickList({ pickListId, eventKey = '2025test', onSave }: PickList
   };
 
   const handleSave = async () => {
+    if (!session) return;
+    
     setIsSaving(true);
     try {
       const pickListData = {
@@ -354,10 +390,14 @@ export function PickList({ pickListId, eventKey = '2025test', onSave }: PickList
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(pickListData),
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       const data = await response.json();
       
@@ -369,6 +409,7 @@ export function PickList({ pickListId, eventKey = '2025test', onSave }: PickList
       console.log('Pick list saved successfully');
     } catch (error) {
       console.error('Error saving pick list:', error);
+      alert('Failed to save pick list. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -445,7 +486,14 @@ export function PickList({ pickListId, eventKey = '2025test', onSave }: PickList
           </DndContext>
         </div>
 
-        <div>
+        <div className="space-y-6">
+          <AdvancedTeamAnalysis
+            availableTeams={availableTeams}
+            currentPickList={teams}
+            onAddTeam={handleAddTeam}
+            selectedTeamNumbers={teams.map(team => team.team_number)}
+          />
+          
           <TeamSelector
             availableTeams={availableTeams}
             onAddTeam={handleAddTeam}

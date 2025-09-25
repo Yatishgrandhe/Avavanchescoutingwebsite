@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/layout/Layout';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { PickList } from '@/components/picklist/PickList';
 import { ScoutingEducation } from '@/components/picklist/ScoutingEducation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PickList as PickListType } from '@/lib/types';
+import { useSupabase } from '@/pages/_app';
 import { Plus, List, Trophy, Target, Users, GraduationCap } from 'lucide-react';
 
 export default function PickListPage() {
   const router = useRouter();
+  const { supabase, user, session } = useSupabase();
   const [pickLists, setPickLists] = useState<PickListType[]>([]);
   const [selectedPickList, setSelectedPickList] = useState<PickListType | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -19,16 +22,25 @@ export default function PickListPage() {
   const [showEducation, setShowEducation] = useState(false);
 
   useEffect(() => {
-    loadPickLists();
-  }, []);
+    if (session) {
+      loadPickLists();
+    }
+  }, [session]);
 
   const loadPickLists = async () => {
+    if (!session) return;
+    
     try {
       const response = await fetch('/api/pick-lists', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       setPickLists(data.pickLists || []);
     } catch (error) {
@@ -39,14 +51,14 @@ export default function PickListPage() {
   };
 
   const handleCreateNew = async () => {
-    if (!newPickListName.trim()) return;
+    if (!newPickListName.trim() || !session) return;
 
     try {
       const response = await fetch('/api/pick-lists', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           name: newPickListName,
@@ -55,6 +67,10 @@ export default function PickListPage() {
         }),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       setPickLists([data, ...pickLists]);
       setSelectedPickList(data);
@@ -62,6 +78,7 @@ export default function PickListPage() {
       setNewPickListName('');
     } catch (error) {
       console.error('Error creating pick list:', error);
+      alert('Failed to create pick list. Please try again.');
     }
   };
 
@@ -78,15 +95,19 @@ export default function PickListPage() {
   };
 
   const handleDeletePickList = async (pickListId: string) => {
-    if (!confirm('Are you sure you want to delete this pick list?')) return;
+    if (!confirm('Are you sure you want to delete this pick list?') || !session) return;
 
     try {
-      await fetch(`/api/pick-lists?id=${pickListId}`, {
+      const response = await fetch(`/api/pick-lists?id=${pickListId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       setPickLists(pickLists.filter(pl => pl.id !== pickListId));
       if (selectedPickList?.id === pickListId) {
@@ -94,6 +115,7 @@ export default function PickListPage() {
       }
     } catch (error) {
       console.error('Error deleting pick list:', error);
+      alert('Failed to delete pick list. Please try again.');
     }
   };
 
@@ -111,8 +133,9 @@ export default function PickListPage() {
   }
 
   return (
-    <Layout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <ProtectedRoute>
+      <Layout>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
@@ -256,6 +279,7 @@ export default function PickListPage() {
                 pickListId={selectedPickList.id}
                 eventKey={selectedPickList.event_key}
                 onSave={handleSavePickList}
+                session={session}
               />
             ) : (
               <Card className="p-8 text-center">
@@ -275,6 +299,7 @@ export default function PickListPage() {
           </div>
         </div>
       </div>
-    </Layout>
+      </Layout>
+    </ProtectedRoute>
   );
 }

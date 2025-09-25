@@ -173,20 +173,20 @@ function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSe
     });
 
   return (
-    <Card className="p-6 rounded-2xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
-      <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-6">Available Teams</h3>
+    <Card className="p-4 rounded-2xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+      <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Available Teams</h3>
       
-      <div className="flex items-center space-x-3 mb-6">
+      <div className="flex flex-col space-y-2 mb-4">
         <Input
           placeholder="Search teams..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100"
+          className="bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 text-sm"
         />
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as 'score' | 'name' | 'number')}
-          className="px-4 py-2 border border-neutral-200 dark:border-neutral-600 rounded-lg text-sm bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100"
+          className="px-3 py-2 border border-neutral-200 dark:border-neutral-600 rounded-lg text-xs bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100"
         >
           <option value="score">Sort by Score</option>
           <option value="name">Sort by Name</option>
@@ -194,23 +194,23 @@ function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSe
         </select>
       </div>
 
-      <div className="space-y-3 max-h-96 overflow-y-auto">
+      <div className="space-y-2 max-h-80 overflow-y-auto">
         {filteredTeams.length === 0 ? (
-          <div className="text-center py-8 text-neutral-500 dark:text-neutral-400">
-            <Brain className="h-8 w-8 mx-auto mb-3 text-neutral-400" />
-            <p className="text-sm">No teams available</p>
-            <p className="text-xs text-neutral-400">Try adjusting your search or filters</p>
+          <div className="text-center py-6 text-neutral-500 dark:text-neutral-400">
+            <Brain className="h-6 w-6 mx-auto mb-2 text-neutral-400" />
+            <p className="text-xs">No teams available</p>
+            <p className="text-xs text-neutral-400">Try adjusting your search</p>
           </div>
         ) : (
           filteredTeams.map((team) => (
-            <div key={team.team_number} className="flex items-center justify-between p-4 border border-neutral-200 dark:border-neutral-600 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-700 hover:shadow-sm transition-all duration-300">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-2">
-                  <span className="font-semibold text-neutral-900 dark:text-neutral-100">Team {team.team_number}</span>
-                  <span className="text-sm text-neutral-500 dark:text-neutral-400 truncate max-w-32">{team.team_name}</span>
+            <div key={team.team_number} className="flex items-center justify-between p-3 border border-neutral-200 dark:border-neutral-600 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-700 hover:shadow-sm transition-all duration-300">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-2 mb-1">
+                  <span className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">Team {team.team_number}</span>
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400 truncate">{team.team_name}</span>
                 </div>
                 {team.stats ? (
-                  <div className="grid grid-cols-3 gap-3 text-xs">
+                  <div className="grid grid-cols-3 gap-2 text-xs">
                     <div className="flex items-center space-x-1">
                       <Target className="h-3 w-3 text-primary" />
                       <span className="font-medium text-neutral-900 dark:text-neutral-100">{team.stats.avg_total_score.toFixed(1)}</span>
@@ -236,9 +236,9 @@ function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSe
                   pick_order: 0, // Will be updated when added to list
                   stats: team.stats,
                 })}
-                className="ml-4 px-4 py-2 rounded-full bg-primary text-white hover:opacity-90 transition-opacity duration-300 flex-shrink-0"
+                className="ml-2 px-3 py-2 rounded-lg bg-primary text-white hover:opacity-90 transition-opacity duration-300 flex-shrink-0 text-xs"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3 w-3" />
               </Button>
             </div>
           ))
@@ -454,8 +454,8 @@ export function PickList({ pickListId, eventKey = '2025test', onSave, session }:
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        <div className="xl:col-span-3">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">Pick Order</h2>
             {teams.length > 0 && (
@@ -496,7 +496,7 @@ export function PickList({ pickListId, eventKey = '2025test', onSave, session }:
           </DndContext>
         </div>
 
-        <div className="space-y-6">
+        <div className="xl:col-span-1 space-y-6">
           <AdvancedTeamAnalysis
             availableTeams={availableTeams}
             currentPickList={teams}

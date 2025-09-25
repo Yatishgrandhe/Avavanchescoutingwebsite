@@ -182,38 +182,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             </AnimatePresence>
             
             <div className="space-y-1">
-              {section.title === 'Analysis' && (
-                <Link key="/analysis/data" href="/analysis/data">
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={cn(
-                      "nav-item",
-                      router.pathname === "/analysis/data" && "active"
-                    )}
-                  >
-                    <Database size={20} className="flex-shrink-0" />
-                    <AnimatePresence>
-                      {!isCollapsed && (
-                        <motion.span
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -10 }}
-                          className="flex-1 font-medium truncate"
-                        >
-                          Data Analysis
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                    {router.pathname === "/analysis/data" && !isCollapsed && (
-                      <Badge variant="secondary" className="bg-secondary/20 text-secondary">
-                        New
-                      </Badge>
-                    )}
-                  </motion.div>
-                </Link>
-              )}
-              
               {section.items.map((item, itemIndex) => (
                 <Link key={item.href} href={item.href}>
                   <motion.div

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { Button } from '../components/ui';
@@ -19,7 +19,8 @@ import {
   Database,
   Activity,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import Logo from '../components/ui/Logo';
@@ -126,9 +127,204 @@ const benefits = [
   },
 ];
 
+// Types for dashboard data
+interface DashboardStats {
+  totalMatches: number;
+  teamsCount: number;
+  dataPoints: number;
+  successRate: number;
+}
+
+interface RecentActivity {
+  id: string;
+  type: 'match' | 'pit' | 'analysis';
+  title: string;
+  description: string;
+  timestamp: string;
+  icon: 'check' | 'clock' | 'chart';
+}
+
 export default function Home() {
-  const { user, loading } = useSupabase();
+  const { user, loading, supabase } = useSupabase();
   const router = useRouter();
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
+    totalMatches: 0,
+    teamsCount: 0,
+    dataPoints: 0,
+    successRate: 0,
+  });
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [loadingActivity, setLoadingActivity] = useState(true);
+
+  // Load dashboard statistics from Supabase
+  useEffect(() => {
+    if (user && supabase) {
+      loadDashboardStats();
+      loadRecentActivity();
+    }
+  }, [user, supabase]);
+
+  const loadDashboardStats = async () => {
+    setLoadingStats(true);
+    try {
+      // Get total matches count
+      const { count: matchesCount } = await supabase
+        .from('matches')
+        .select('*', { count: 'exact', head: true });
+
+      // Get total teams count
+      const { count: teamsCount } = await supabase
+        .from('teams')
+        .select('*', { count: 'exact', head: true });
+
+      // Get total scouting data entries
+      const { count: scoutingDataCount } = await supabase
+        .from('scouting_data')
+        .select('*', { count: 'exact', head: true });
+
+      // Calculate success rate (percentage of matches with complete data)
+      const { data: matchesWithData } = await supabase
+        .from('scouting_data')
+        .select('match_id')
+        .not('match_id', 'is', null);
+
+      const uniqueMatchesWithData = matchesWithData ? new Set(matchesWithData.map((item: any) => item.match_id)).size : 0;
+      const successRate = matchesCount ? Math.round((uniqueMatchesWithData / matchesCount) * 100) : 0;
+
+      setDashboardStats({
+        totalMatches: matchesCount || 0,
+        teamsCount: teamsCount || 0,
+        dataPoints: scoutingDataCount || 0,
+        successRate: successRate,
+      });
+    } catch (error) {
+      console.error('Error loading dashboard stats:', error);
+      // Keep default values on error
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  const loadRecentActivity = async () => {
+    setLoadingActivity(true);
+    try {
+      // Get recent scouting data entries
+      const { data: recentScoutingData } = await supabase
+        .from('scouting_data')
+        .select(`
+          id,
+          match_id,
+          team_number,
+          created_at,
+          matches:match_id (
+            match_number,
+            event_key
+          ),
+          teams:team_number (
+            team_name
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      const activities: RecentActivity[] = [];
+
+      if (recentScoutingData) {
+        recentScoutingData.forEach((entry: any) => {
+          const timeAgo = getTimeAgo(new Date(entry.created_at));
+          activities.push({
+            id: entry.id,
+            type: 'match',
+            title: `Match ${entry.matches?.match_number || 'Unknown'} completed`,
+            description: `Team ${entry.team_number} - ${entry.teams?.team_name || 'Unknown Team'}`,
+            timestamp: timeAgo,
+            icon: 'check',
+          });
+        });
+      }
+
+      // Add some sample pit scouting and analysis activities if needed
+      if (activities.length < 3) {
+        activities.push({
+          id: 'pit-1',
+          type: 'pit',
+          title: 'Pit scouting updated',
+          description: 'Robot capabilities analysis',
+          timestamp: '1 hour ago',
+          icon: 'clock',
+        });
+      }
+
+      if (activities.length < 3) {
+        activities.push({
+          id: 'analysis-1',
+          type: 'analysis',
+          title: 'New analytics report',
+          description: 'Team performance comparison',
+          timestamp: '2 hours ago',
+          icon: 'chart',
+        });
+      }
+
+      setRecentActivity(activities.slice(0, 3)); // Keep only top 3
+    } catch (error) {
+      console.error('Error loading recent activity:', error);
+      // Set default activity on error
+      setRecentActivity([
+        {
+          id: 'default-1',
+          type: 'match',
+          title: 'Welcome to Avalanche',
+          description: 'Start scouting to see activity here',
+          timestamp: 'now',
+          icon: 'check',
+        }
+      ]);
+    } finally {
+      setLoadingActivity(false);
+    }
+  };
+
+  const getTimeAgo = (date: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  };
+
+  const getActivityIcon = (icon: string) => {
+    switch (icon) {
+      case 'check': return CheckCircle;
+      case 'clock': return Clock;
+      case 'chart': return BarChart3;
+      default: return CheckCircle;
+    }
+  };
+
+  const getActivityIconColor = (type: string) => {
+    switch (type) {
+      case 'match': return 'text-primary';
+      case 'pit': return 'text-secondary';
+      case 'analysis': return 'text-warning';
+      default: return 'text-primary';
+    }
+  };
+
+  const getActivityBgColor = (type: string) => {
+    switch (type) {
+      case 'match': return 'bg-primary/10';
+      case 'pit': return 'bg-secondary/10';
+      case 'analysis': return 'bg-warning/10';
+      default: return 'bg-primary/10';
+    }
+  };
 
   const handleSignIn = () => {
     router.push('/auth/signin');
@@ -172,7 +368,7 @@ export default function Home() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="grid-dashboard"
             >
-              <Card className="card-modern group cursor-pointer" onClick={() => router.push('/scout')}>
+              <Card className="card-modern group cursor-pointer bg-card border-border" onClick={() => router.push('/scout')}>
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-4">
                     <div className="p-3 bg-primary rounded-2xl text-primary-foreground">
@@ -189,7 +385,7 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <Card className="card-modern group cursor-pointer" onClick={() => router.push('/pit-scouting')}>
+              <Card className="card-modern group cursor-pointer bg-card border-border" onClick={() => router.push('/pit-scouting')}>
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-4">
                     <div className="p-3 bg-secondary rounded-2xl text-secondary-foreground">
@@ -206,7 +402,7 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <Card className="card-modern group cursor-pointer" onClick={() => router.push('/analysis/data')}>
+              <Card className="card-modern group cursor-pointer bg-card border-border" onClick={() => router.push('/analysis/data')}>
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-4">
                     <div className="p-3 bg-warning rounded-2xl text-white">
@@ -223,7 +419,7 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <Card className="card-modern group cursor-pointer" onClick={() => router.push('/analysis/comparison')}>
+              <Card className="card-modern group cursor-pointer bg-card border-border" onClick={() => router.push('/analysis/comparison')}>
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-4">
                     <div className="p-3 bg-card border border-border rounded-2xl text-foreground">
@@ -248,13 +444,24 @@ export default function Home() {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="grid-stats"
             >
-              <Card className="stat-card">
+              <Card className="stat-card bg-card border-border">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-muted-foreground">Total Matches</p>
-                      <p className="text-2xl font-heading font-bold text-card-foreground">47</p>
-                      <p className="text-xs text-primary font-medium">+12% from last week</p>
+                      {loadingStats ? (
+                        <div className="flex items-center space-x-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                          <span className="text-muted-foreground">Loading...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-2xl font-heading font-bold text-card-foreground">{dashboardStats.totalMatches}</p>
+                          <p className="text-xs text-primary font-medium">
+                            {dashboardStats.totalMatches > 0 ? 'Active matches tracked' : 'No matches yet'}
+                          </p>
+                        </>
+                      )}
                     </div>
                     <div className="p-3 bg-primary/10 rounded-2xl">
                       <Target className="w-6 h-6 text-primary" />
@@ -263,13 +470,24 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <Card className="stat-card">
+              <Card className="stat-card bg-card border-border">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-muted-foreground">Teams Scouted</p>
-                      <p className="text-2xl font-heading font-bold text-card-foreground">23</p>
-                      <p className="text-xs text-secondary font-medium">+8% from last week</p>
+                      <p className="text-sm font-medium text-muted-foreground">Teams Registered</p>
+                      {loadingStats ? (
+                        <div className="flex items-center space-x-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                          <span className="text-muted-foreground">Loading...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-2xl font-heading font-bold text-card-foreground">{dashboardStats.teamsCount}</p>
+                          <p className="text-xs text-secondary font-medium">
+                            {dashboardStats.teamsCount > 0 ? 'Teams in database' : 'No teams registered'}
+                          </p>
+                        </>
+                      )}
                     </div>
                     <div className="p-3 bg-secondary/10 rounded-2xl">
                       <Users className="w-6 h-6 text-secondary" />
@@ -278,13 +496,24 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <Card className="stat-card">
+              <Card className="stat-card bg-card border-border">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-muted-foreground">Data Points</p>
-                      <p className="text-2xl font-heading font-bold text-card-foreground">1,247</p>
-                      <p className="text-xs text-warning font-medium">+15% from last week</p>
+                      {loadingStats ? (
+                        <div className="flex items-center space-x-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                          <span className="text-muted-foreground">Loading...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-2xl font-heading font-bold text-card-foreground">{dashboardStats.dataPoints}</p>
+                          <p className="text-xs text-warning font-medium">
+                            {dashboardStats.dataPoints > 0 ? 'Scouting entries collected' : 'Start scouting!'}
+                          </p>
+                        </>
+                      )}
                     </div>
                     <div className="p-3 bg-warning/10 rounded-2xl">
                       <Database className="w-6 h-6 text-warning" />
@@ -293,13 +522,24 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <Card className="stat-card">
+              <Card className="stat-card bg-card border-border">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-muted-foreground">Success Rate</p>
-                      <p className="text-2xl font-heading font-bold text-card-foreground">94%</p>
-                      <p className="text-xs text-success font-medium">+3% from last week</p>
+                      <p className="text-sm font-medium text-muted-foreground">Data Coverage</p>
+                      {loadingStats ? (
+                        <div className="flex items-center space-x-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                          <span className="text-muted-foreground">Loading...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-2xl font-heading font-bold text-card-foreground">{dashboardStats.successRate}%</p>
+                          <p className="text-xs text-success font-medium">
+                            {dashboardStats.successRate > 0 ? 'Matches with data' : 'No data yet'}
+                          </p>
+                        </>
+                      )}
                     </div>
                     <div className="p-3 bg-success/10 rounded-2xl">
                       <Shield className="w-6 h-6 text-success" />
@@ -315,7 +555,7 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.6 }}
             >
-              <Card className="card-modern">
+              <Card className="card-modern bg-card border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Activity className="w-5 h-5 text-primary" />
@@ -326,38 +566,34 @@ export default function Home() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center space-x-4 p-4 rounded-xl bg-muted/50">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <CheckCircle className="w-5 h-5 text-primary" />
+                  {loadingActivity ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                      <span className="ml-2 text-muted-foreground">Loading recent activity...</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-card-foreground">Match 47 completed</p>
-                      <p className="text-xs text-muted-foreground">Team 1234 vs Team 5678</p>
+                  ) : recentActivity.length > 0 ? (
+                    recentActivity.map((activity) => {
+                      const IconComponent = getActivityIcon(activity.icon);
+                      return (
+                        <div key={activity.id} className="flex items-center space-x-4 p-4 rounded-xl bg-muted/50">
+                          <div className={`p-2 ${getActivityBgColor(activity.type)} rounded-lg`}>
+                            <IconComponent className={`w-5 h-5 ${getActivityIconColor(activity.type)}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-card-foreground">{activity.title}</p>
+                            <p className="text-xs text-muted-foreground">{activity.description}</p>
+                          </div>
+                          <div className="text-xs text-muted-foreground">{activity.timestamp}</div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-8">
+                      <Activity className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-muted-foreground">No recent activity</p>
+                      <p className="text-sm text-muted-foreground">Start scouting to see activity here</p>
                     </div>
-                    <div className="text-xs text-muted-foreground">2 min ago</div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4 p-4 rounded-xl bg-muted/50">
-                    <div className="p-2 bg-secondary/10 rounded-lg">
-                      <Clock className="w-5 h-5 text-secondary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-card-foreground">Pit scouting updated</p>
-                      <p className="text-xs text-muted-foreground">Team 9999 robot analysis</p>
-                    </div>
-                    <div className="text-xs text-muted-foreground">15 min ago</div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4 p-4 rounded-xl bg-muted/50">
-                    <div className="p-2 bg-warning/10 rounded-lg">
-                      <BarChart3 className="w-5 h-5 text-warning" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-card-foreground">New analytics report</p>
-                      <p className="text-xs text-muted-foreground">Team performance comparison</p>
-                    </div>
-                    <div className="text-xs text-muted-foreground">1 hour ago</div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -370,7 +606,7 @@ export default function Home() {
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
             >
               {features.map((feature, index) => (
-                <Card key={index} className="card-modern">
+                <Card key={index} className="card-modern bg-card border-border">
                   <CardContent className="p-6 text-center">
                     <div className="p-3 bg-primary/10 rounded-2xl w-fit mx-auto mb-4">
                       <feature.icon className="w-6 h-6 text-primary" />

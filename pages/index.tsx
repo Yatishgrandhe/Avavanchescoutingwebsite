@@ -16,7 +16,10 @@ import {
   Play,
   BarChart,
   Settings,
-  Database
+  Database,
+  Activity,
+  Clock,
+  CheckCircle
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import Logo from '../components/ui/Logo';
@@ -28,7 +31,7 @@ const AvalancheAnimation = () => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-primary-dark via-primary to-primary-light"></div>
       
       {/* Animated particles */}
       {[...Array(100)].map((_, i) => (
@@ -133,8 +136,8 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -153,11 +156,11 @@ export default function Home() {
             >
               <div className="flex items-center justify-center gap-2 mb-4">
                 <Logo size="lg" />
-                <h1 className="text-4xl font-heading font-bold text-gray-900">
+                <h1 className="text-4xl font-heading font-bold text-foreground">
                   Welcome to Avalanche
                 </h1>
               </div>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                 Professional FRC scouting platform with advanced analytics and real-time data collection
               </p>
             </motion.div>
@@ -167,70 +170,70 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+              className="grid-dashboard"
             >
-              <Card className="card-avalanche group cursor-pointer" onClick={() => router.push('/scout')}>
+              <Card className="card-modern group cursor-pointer" onClick={() => router.push('/scout')}>
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-4">
-                    <div className="p-3 bg-blue-600 rounded-xl text-white">
+                    <div className="p-3 bg-primary rounded-2xl text-primary-foreground">
                       <Target size={24} />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-heading font-semibold text-gray-900">Start Scouting</h3>
-                      <p className="text-sm text-gray-600">Begin collecting match data</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-heading font-semibold text-card-foreground">Start Scouting</h3>
+                      <p className="text-sm text-muted-foreground">Begin collecting match data</p>
                     </div>
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-600">
+                    <Badge variant="secondary" className="bg-primary/10 text-primary">
                       Primary
                     </Badge>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="card-avalanche group cursor-pointer" onClick={() => router.push('/pit-scouting')}>
+              <Card className="card-modern group cursor-pointer" onClick={() => router.push('/pit-scouting')}>
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-4">
-                    <div className="p-3 bg-red-500 rounded-xl text-white">
+                    <div className="p-3 bg-secondary rounded-2xl text-secondary-foreground">
                       <Settings size={24} />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-heading font-semibold text-gray-900">Pit Scouting</h3>
-                      <p className="text-sm text-gray-600">Analyze robot capabilities</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-heading font-semibold text-card-foreground">Pit Scouting</h3>
+                      <p className="text-sm text-muted-foreground">Analyze robot capabilities</p>
                     </div>
-                    <Badge variant="secondary" className="bg-red-100 text-red-600">
+                    <Badge variant="secondary" className="bg-secondary/10 text-secondary">
                       New
                     </Badge>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="card-avalanche group cursor-pointer" onClick={() => router.push('/analysis/data')}>
+              <Card className="card-modern group cursor-pointer" onClick={() => router.push('/analysis/data')}>
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-4">
-                    <div className="p-3 bg-yellow-500 rounded-xl text-white">
+                    <div className="p-3 bg-warning rounded-2xl text-white">
                       <BarChart3 size={24} />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-heading font-semibold text-gray-900">Data Analysis</h3>
-                      <p className="text-sm text-gray-600">View comprehensive analytics</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-heading font-semibold text-card-foreground">Data Analysis</h3>
+                      <p className="text-sm text-muted-foreground">View comprehensive analytics</p>
                     </div>
-                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-600">
+                    <Badge variant="secondary" className="bg-warning/10 text-warning">
                       Featured
                     </Badge>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="card-avalanche group cursor-pointer" onClick={() => router.push('/analysis/comparison')}>
+              <Card className="card-modern group cursor-pointer" onClick={() => router.push('/analysis/comparison')}>
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-4">
-                    <div className="p-3 bg-gray-100 border border-gray-300 rounded-xl text-gray-700">
+                    <div className="p-3 bg-card border border-border rounded-2xl text-foreground">
                       <TrendingUp size={24} />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-heading font-semibold text-gray-900">Team Comparison</h3>
-                      <p className="text-sm text-gray-600">Compare team performance</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-heading font-semibold text-card-foreground">Team Comparison</h3>
+                      <p className="text-sm text-muted-foreground">Compare team performance</p>
                     </div>
-                    <Badge variant="secondary" className="bg-gray-100 text-gray-600">
+                    <Badge variant="secondary" className="bg-muted text-muted-foreground">
                       Analytics
                     </Badge>
                   </div>
@@ -243,64 +246,117 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+              className="grid-stats"
             >
-              <Card className="card-avalanche">
+              <Card className="stat-card">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Total Matches</p>
-                      <p className="text-2xl font-heading font-bold text-gray-900">47</p>
-                      <p className="text-xs text-blue-600 font-medium">+12% from last week</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-muted-foreground">Total Matches</p>
+                      <p className="text-2xl font-heading font-bold text-card-foreground">47</p>
+                      <p className="text-xs text-primary font-medium">+12% from last week</p>
                     </div>
-                    <div className="p-3 bg-blue-100 rounded-xl">
-                      <Target className="w-6 h-6 text-blue-600" />
+                    <div className="p-3 bg-primary/10 rounded-2xl">
+                      <Target className="w-6 h-6 text-primary" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="card-avalanche">
+              <Card className="stat-card">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Teams Scouted</p>
-                      <p className="text-2xl font-heading font-bold text-gray-900">23</p>
-                      <p className="text-xs text-red-500 font-medium">+8% from last week</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-muted-foreground">Teams Scouted</p>
+                      <p className="text-2xl font-heading font-bold text-card-foreground">23</p>
+                      <p className="text-xs text-secondary font-medium">+8% from last week</p>
                     </div>
-                    <div className="p-3 bg-red-100 rounded-xl">
-                      <Users className="w-6 h-6 text-red-500" />
+                    <div className="p-3 bg-secondary/10 rounded-2xl">
+                      <Users className="w-6 h-6 text-secondary" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="card-avalanche">
+              <Card className="stat-card">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Data Points</p>
-                      <p className="text-2xl font-heading font-bold text-gray-900">1,247</p>
-                      <p className="text-xs text-yellow-600 font-medium">+15% from last week</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-muted-foreground">Data Points</p>
+                      <p className="text-2xl font-heading font-bold text-card-foreground">1,247</p>
+                      <p className="text-xs text-warning font-medium">+15% from last week</p>
                     </div>
-                    <div className="p-3 bg-yellow-100 rounded-xl">
-                      <Database className="w-6 h-6 text-yellow-600" />
+                    <div className="p-3 bg-warning/10 rounded-2xl">
+                      <Database className="w-6 h-6 text-warning" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="card-avalanche">
+              <Card className="stat-card">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Success Rate</p>
-                      <p className="text-2xl font-heading font-bold text-gray-900">94%</p>
-                      <p className="text-xs text-blue-600 font-medium">+3% from last week</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-muted-foreground">Success Rate</p>
+                      <p className="text-2xl font-heading font-bold text-card-foreground">94%</p>
+                      <p className="text-xs text-success font-medium">+3% from last week</p>
                     </div>
-                    <div className="p-3 bg-blue-100 rounded-xl">
-                      <Shield className="w-6 h-6 text-blue-600" />
+                    <div className="p-3 bg-success/10 rounded-2xl">
+                      <Shield className="w-6 h-6 text-success" />
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Recent Activity */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+            >
+              <Card className="card-modern">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Activity className="w-5 h-5 text-primary" />
+                    <span>Recent Activity</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Latest scouting data and team updates
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-4 p-4 rounded-xl bg-muted/50">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <CheckCircle className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-card-foreground">Match 47 completed</p>
+                      <p className="text-xs text-muted-foreground">Team 1234 vs Team 5678</p>
+                    </div>
+                    <div className="text-xs text-muted-foreground">2 min ago</div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4 p-4 rounded-xl bg-muted/50">
+                    <div className="p-2 bg-secondary/10 rounded-lg">
+                      <Clock className="w-5 h-5 text-secondary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-card-foreground">Pit scouting updated</p>
+                      <p className="text-xs text-muted-foreground">Team 9999 robot analysis</p>
+                    </div>
+                    <div className="text-xs text-muted-foreground">15 min ago</div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4 p-4 rounded-xl bg-muted/50">
+                    <div className="p-2 bg-warning/10 rounded-lg">
+                      <BarChart3 className="w-5 h-5 text-warning" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-card-foreground">New analytics report</p>
+                      <p className="text-xs text-muted-foreground">Team performance comparison</p>
+                    </div>
+                    <div className="text-xs text-muted-foreground">1 hour ago</div>
                   </div>
                 </CardContent>
               </Card>
@@ -310,19 +366,19 @@ export default function Home() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
             >
               {features.map((feature, index) => (
-                <Card key={index} className="card-avalanche">
+                <Card key={index} className="card-modern">
                   <CardContent className="p-6 text-center">
-                    <div className="p-3 bg-blue-100 rounded-xl w-fit mx-auto mb-4">
-                      <feature.icon className="w-6 h-6 text-blue-600" />
+                    <div className="p-3 bg-primary/10 rounded-2xl w-fit mx-auto mb-4">
+                      <feature.icon className="w-6 h-6 text-primary" />
                     </div>
-                    <h3 className="font-heading font-semibold text-gray-900 mb-2">
+                    <h3 className="font-heading font-semibold text-card-foreground mb-2">
                       {feature.title}
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       {feature.description}
                     </p>
                   </CardContent>
@@ -337,7 +393,7 @@ export default function Home() {
 
   // Landing page for non-authenticated users
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gray-50">
+    <div className="min-h-screen relative overflow-hidden bg-background">
       {/* Avalanche Background */}
       <AvalancheAnimation />
       
@@ -377,7 +433,7 @@ export default function Home() {
             </p>
             <Button
               onClick={handleSignIn}
-              className="btn-primary bg-red-500 hover:bg-red-600 text-white px-8 py-4 text-lg"
+              className="btn-primary bg-secondary hover:bg-secondary/90 text-secondary-foreground px-8 py-4 text-lg"
             >
               <Play className="w-5 h-5 mr-2" />
               Get Started
@@ -395,7 +451,7 @@ export default function Home() {
             {benefits.map((benefit, index) => (
               <Card key={index} className="bg-white/10 backdrop-blur-lg border-white/20">
                 <CardContent className="p-6 text-center">
-                  <div className="p-3 bg-white/20 rounded-xl w-fit mx-auto mb-4">
+                  <div className="p-3 bg-white/20 rounded-2xl w-fit mx-auto mb-4">
                     <benefit.icon className="w-6 h-6 text-white" />
                   </div>
                   <h3 className="font-heading font-semibold text-white mb-2">

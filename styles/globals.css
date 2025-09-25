@@ -6,6 +6,7 @@
 
 /* CSS Variables for Light/Dark Mode */
 :root {
+  /* Light Mode Colors */
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
   --card: 0 0% 100%;
@@ -34,6 +35,7 @@
 }
 
 .dark {
+  /* Dark Mode Colors */
   --background: 222.2 84% 4.9%;
   --foreground: 210 40% 98%;
   --card: 222.2 84% 4.9%;
@@ -143,20 +145,25 @@
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
   
-  /* Card Styles */
+  /* Card Styles - Enhanced for Light/Dark Mode */
   .card-modern {
-    @apply bg-card text-card-foreground border border-border rounded-2xl shadow-card transition-all duration-400;
+    @apply bg-card text-card-foreground border border-border rounded-2xl shadow-sm transition-all duration-400;
   }
   
   .card-modern:hover {
-    @apply shadow-card-hover transform -translate-y-1;
+    @apply shadow-lg transform -translate-y-1;
   }
   
   .dark .card-modern:hover {
-    @apply shadow-card-hover-dark;
+    @apply shadow-xl;
   }
   
-  /* Button Styles */
+  /* Light mode specific card shadows */
+  .card-modern:not(.dark):hover {
+    @apply shadow-gray-200;
+  }
+  
+  /* Button Styles - Enhanced for Light/Dark Mode */
   .btn-primary {
     @apply bg-primary text-primary-foreground px-6 py-3 rounded-xl font-medium transition-all duration-400 hover:bg-primary/90 hover:shadow-lg hover:-translate-y-0.5;
   }
@@ -167,6 +174,10 @@
   
   .btn-outline {
     @apply border border-border bg-background text-foreground px-6 py-3 rounded-xl font-medium transition-all duration-400 hover:bg-accent hover:text-accent-foreground hover:shadow-lg hover:-translate-y-0.5;
+  }
+  
+  .btn-ghost {
+    @apply bg-transparent text-foreground px-6 py-3 rounded-xl font-medium transition-all duration-400 hover:bg-accent hover:text-accent-foreground;
   }
   
   /* Header Styles */
@@ -194,18 +205,32 @@
     @apply bg-primary text-primary-foreground shadow-md;
   }
   
-  /* Form Styles */
+  /* Form Styles - Enhanced for Light/Dark Mode */
   .input-modern {
     @apply flex h-12 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-400;
   }
   
-  /* Stats Cards */
+  .input-modern:focus {
+    @apply border-ring;
+  }
+  
+  /* Select Styles */
+  .select-modern {
+    @apply flex h-12 w-full items-center justify-between rounded-xl border border-input bg-background px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  
+  /* Stats Cards - Enhanced for Light/Dark Mode */
   .stat-card {
-    @apply bg-card text-card-foreground border border-border rounded-2xl p-6 shadow-card transition-all duration-400 hover:shadow-card-hover hover:-translate-y-1;
+    @apply bg-card text-card-foreground border border-border rounded-2xl p-6 shadow-sm transition-all duration-400 hover:shadow-lg hover:-translate-y-1;
   }
   
   .dark .stat-card:hover {
-    @apply shadow-card-hover-dark;
+    @apply shadow-xl;
+  }
+  
+  /* Light mode specific stat card shadows */
+  .stat-card:not(.dark):hover {
+    @apply shadow-gray-200;
   }
   
   /* Grid Layouts */
@@ -241,7 +266,28 @@
     animation: slideIn 0.3s ease-out;
   }
   
-  /* Legacy compatibility */
+  /* Badge Styles - Enhanced for Light/Dark Mode */
+  .badge-primary {
+    @apply bg-primary/10 text-primary border border-primary/20;
+  }
+  
+  .badge-secondary {
+    @apply bg-secondary/10 text-secondary border border-secondary/20;
+  }
+  
+  .badge-warning {
+    @apply bg-warning/10 text-warning border border-warning/20;
+  }
+  
+  .badge-success {
+    @apply bg-success/10 text-success border border-success/20;
+  }
+  
+  .badge-muted {
+    @apply bg-muted text-muted-foreground border border-border;
+  }
+  
+  /* Legacy compatibility - Enhanced for Light/Dark Mode */
   .btn {
     @apply inline-flex items-center justify-center rounded-xl text-sm font-medium transition-all duration-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
   }
@@ -259,7 +305,7 @@
   }
   
   .card {
-    @apply rounded-2xl border border-border bg-card text-card-foreground shadow-card;
+    @apply rounded-2xl border border-border bg-card text-card-foreground shadow-sm;
   }
   
   .card-header {
@@ -281,9 +327,95 @@
   .card-footer {
     @apply flex items-center p-6 pt-0;
   }
+  
+  /* Alert Styles - Enhanced for Light/Dark Mode */
+  .alert {
+    @apply relative w-full rounded-xl border px-4 py-3 text-sm;
+  }
+  
+  .alert-default {
+    @apply bg-background text-foreground border-border;
+  }
+  
+  .alert-destructive {
+    @apply border-destructive/50 text-destructive dark:border-destructive;
+  }
+  
+  .alert-destructive .alert-title {
+    @apply text-destructive;
+  }
+  
+  .alert-destructive .alert-description {
+    @apply text-destructive/80;
+  }
+  
+  /* Progress Styles */
+  .progress {
+    @apply relative h-4 w-full overflow-hidden rounded-full bg-secondary;
+  }
+  
+  .progress-indicator {
+    @apply h-full w-full flex-1 bg-primary transition-all;
+  }
+  
+  /* Separator Styles */
+  .separator {
+    @apply shrink-0 bg-border;
+  }
+  
+  .separator-horizontal {
+    @apply h-px w-full;
+  }
+  
+  .separator-vertical {
+    @apply h-full w-px;
+  }
+  
+  /* Skeleton Styles */
+  .skeleton {
+    @apply animate-pulse rounded-md bg-muted;
+  }
+  
+  /* Table Styles - Enhanced for Light/Dark Mode */
+  .table {
+    @apply w-full caption-bottom text-sm;
+  }
+  
+  .table-header {
+    @apply border-b border-border;
+  }
+  
+  .table-body {
+    @apply divide-y divide-border;
+  }
+  
+  .table-row {
+    @apply border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted;
+  }
+  
+  .table-head {
+    @apply h-12 px-4 text-left align-middle font-medium text-muted-foreground;
+  }
+  
+  .table-cell {
+    @apply p-4 align-middle;
+  }
+  
+  /* Tabs Styles */
+  .tabs-list {
+    @apply inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground;
+  }
+  
+  .tabs-trigger {
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm;
+  }
+  
+  .tabs-content {
+    @apply mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - Enhanced for Light/Dark Mode */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -344,5 +476,43 @@
   .card-modern {
     box-shadow: none !important;
     border: 1px solid #ccc !important;
+  }
+}
+
+/* Light mode specific enhancements */
+:root:not(.dark) {
+  .card-modern {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+  
+  .card-modern:hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+  
+  .stat-card {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+  
+  .stat-card:hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+}
+
+/* Dark mode specific enhancements */
+.dark {
+  .card-modern {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+  }
+  
+  .card-modern:hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  }
+  
+  .stat-card {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+  }
+  
+  .stat-card:hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
   }
 }

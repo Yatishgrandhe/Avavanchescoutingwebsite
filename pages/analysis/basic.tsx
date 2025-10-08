@@ -64,6 +64,9 @@ interface MatchData {
   final_score: number;
   defense_rating: number;
   created_at: string;
+  submitted_by_name?: string;
+  submitted_by_email?: string;
+  submitted_at?: string;
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
@@ -174,26 +177,26 @@ export default function BasicAnalysis() {
                   />
                 </div>
                 <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-48 bg-gray-800 border-gray-600 text-white">
                     <SelectValue placeholder="Select team" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Teams</SelectItem>
+                  <SelectContent className="bg-gray-800 border-gray-600">
+                    <SelectItem value="all" className="text-white hover:bg-gray-700">All Teams</SelectItem>
                     {teams.map(team => (
-                      <SelectItem key={team.team_number} value={team.team_number.toString()}>
+                      <SelectItem key={team.team_number} value={team.team_number.toString()} className="text-white hover:bg-gray-700">
                         Team {team.team_number}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <Select value={selectedEvent} onValueChange={setSelectedEvent}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-48 bg-gray-800 border-gray-600 text-white">
                     <SelectValue placeholder="Select event" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Events</SelectItem>
-                    <SelectItem value="2025camb">CAMB 2025</SelectItem>
-                    <SelectItem value="2025mabt">MABT 2025</SelectItem>
+                  <SelectContent className="bg-gray-800 border-gray-600">
+                    <SelectItem value="all" className="text-white hover:bg-gray-700">All Events</SelectItem>
+                    <SelectItem value="2025camb" className="text-white hover:bg-gray-700">CAMB 2025</SelectItem>
+                    <SelectItem value="2025mabt" className="text-white hover:bg-gray-700">MABT 2025</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -383,6 +386,7 @@ export default function BasicAnalysis() {
                         <TableHead>Teleop</TableHead>
                         <TableHead>Endgame</TableHead>
                         <TableHead>Total</TableHead>
+                        <TableHead>Uploaded By</TableHead>
                         <TableHead>Date</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -400,6 +404,9 @@ export default function BasicAnalysis() {
                           <TableCell>{match.teleop_points}</TableCell>
                           <TableCell>{match.endgame_points}</TableCell>
                           <TableCell className="font-medium">{match.final_score}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {match.submitted_by_name || 'Unknown'}
+                          </TableCell>
                           <TableCell className="text-muted-foreground">
                             {new Date(match.created_at).toLocaleDateString()}
                           </TableCell>

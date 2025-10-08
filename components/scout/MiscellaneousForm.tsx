@@ -58,10 +58,10 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 sm:space-y-6">
           {/* Defense Rating */}
           <div className="space-y-4">
-            <h3 className="text-white font-semibold text-lg">Defense Rating</h3>
+            <h3 className="text-white font-semibold text-lg">Defense Rating <span className="text-red-500">*</span></h3>
             <Input
               type="number"
               min="1"
@@ -78,11 +78,11 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
 
           {/* Comments */}
           <div className="space-y-4">
-            <h3 className="text-white font-semibold text-lg">Comments</h3>
+            <h3 className="text-white font-semibold text-lg">Comments <span className="text-red-500">*</span></h3>
             <textarea
               value={formData.comments}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('comments', e.target.value)}
-              className="w-full h-32 bg-black border border-dark-600 text-white rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-reef-500"
+              className="w-full h-24 sm:h-32 bg-black border border-dark-600 text-white rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-reef-500 text-sm sm:text-base"
               placeholder="Add any additional observations, strategies observed, or notable robot capabilities..."
             />
           </div>

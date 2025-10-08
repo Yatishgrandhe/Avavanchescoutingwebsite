@@ -133,6 +133,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         notes: finalNotes,
         defense_rating: defense_rating || miscellaneous?.defense_rating || 0,
         comments: comments || miscellaneous?.comments || '',
+        submitted_by_name: user.user_metadata?.full_name || user.email || 'Unknown',
+        submitted_by_email: user.email || '',
+        submitted_at: new Date().toISOString(),
       };
 
       console.log('Scouting data to insert:', scoutingData);

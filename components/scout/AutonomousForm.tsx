@@ -107,13 +107,13 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
           </motion.div>
         </CardHeader>
 
-        <CardContent className="space-y-8">
+        <CardContent className="space-y-4 sm:space-y-8">
           {/* Leave Starting Zone */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className={`flex items-center justify-between p-6 rounded-xl ${
+            className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 rounded-xl space-y-3 sm:space-y-0 ${
               isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
             }`}
           >
@@ -152,7 +152,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="space-y-6"
+            className="space-y-4 sm:space-y-6"
           >
             <div className="flex items-center space-x-3">
               <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-orange-900/30' : 'bg-orange-100'}`}>

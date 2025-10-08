@@ -83,7 +83,7 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
           {/* Endgame Score Dropdown */}
           <div className="p-4 bg-dark-700 rounded-lg">
             <div className="mb-3">
-              <h3 className="text-white font-medium">Endgame Score</h3>
+              <h3 className="text-white font-medium">Endgame Score <span className="text-red-500">*</span></h3>
               <p className="text-gray-400 text-sm">Select the endgame score achieved</p>
             </div>
             <Select 

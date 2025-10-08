@@ -147,7 +147,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
           {/* Match Selection Dropdown */}
           <div className="space-y-3">
             <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Select Match
+              Select Match <span className="text-red-500">*</span>
             </label>
             
             {loading ? (
@@ -186,10 +186,10 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
               className="space-y-4"
             >
               <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Select Team to Scout
+                Select Team to Scout <span className="text-red-500">*</span>
               </label>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {/* Red Alliance */}
                 <div className="space-y-2">
                   <div className={`text-sm font-medium ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>

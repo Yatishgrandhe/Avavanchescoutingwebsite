@@ -81,7 +81,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
           <div className="space-y-4">
             <h3 className="text-white font-semibold text-lg">Coral Scoring</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <Counter
                 value={formData.teleop_coral_trough}
                 onChange={(value: number) => handleInputChange('teleop_coral_trough', value)}
@@ -128,7 +128,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
           <div className="space-y-4">
             <h3 className="text-white font-semibold text-lg">Algae Scoring</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <Counter
                 value={formData.teleop_algae_processor}
                 onChange={(value: number) => handleInputChange('teleop_algae_processor', value)}

@@ -462,18 +462,31 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 </span>
                               </td>
                               <td className="p-2 md:p-3">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setViewMode('individual');
-                                    setSelectedTeam(team.team_number);
-                                  }}
-                                  className="text-xs"
-                                >
-                                  View Forms
-                                </Button>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setViewMode('individual');
+                                      setSelectedTeam(team.team_number);
+                                    }}
+                                    className="text-xs"
+                                  >
+                                    View Forms
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      window.open(`/team/${team.team_number}`, '_blank');
+                                    }}
+                                    className="text-xs"
+                                  >
+                                    Team Details
+                                  </Button>
+                                </div>
                               </td>
                             </motion.tr>
                           ))}
@@ -595,8 +608,17 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             >
                               <td className="p-2 md:p-3">
                                 <div className="flex items-center gap-1 md:gap-2">
-                                  <Badge variant="outline" className="text-xs">{data.team_number}</Badge>
-                                  <span className="text-xs md:text-sm text-muted-foreground">
+                                  <Badge 
+                                    variant="outline" 
+                                    className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                                    onClick={() => window.open(`/team/${data.team_number}`, '_blank')}
+                                  >
+                                    {data.team_number}
+                                  </Badge>
+                                  <span 
+                                    className="text-xs md:text-sm text-muted-foreground cursor-pointer hover:text-primary transition-colors"
+                                    onClick={() => window.open(`/team/${data.team_number}`, '_blank')}
+                                  >
                                     {getTeamName(data.team_number)}
                                   </span>
                                 </div>

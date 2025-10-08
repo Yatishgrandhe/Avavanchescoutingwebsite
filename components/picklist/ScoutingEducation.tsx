@@ -34,7 +34,7 @@ function StrategyTip({ icon, title, description, category }: StrategyTipProps) {
   };
 
   return (
-    <div className="flex items-start space-x-3 p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+    <div className="flex items-start space-x-3 p-4 bg-card rounded-lg border border-border hover:shadow-md transition-shadow">
       <div className="flex-shrink-0 p-2 bg-gray-100 rounded-lg">
         {icon}
       </div>
@@ -109,7 +109,7 @@ export function ScoutingEducation() {
             onClick={() => setActiveTab(tab.id as any)}
             className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
               activeTab === tab.id
-                ? 'bg-white text-blue-600 shadow-sm'
+                ? 'bg-card text-blue-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >

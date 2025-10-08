@@ -107,7 +107,7 @@ export default function AuthError() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-lg"
       >
-        <Card className="border-red-200 bg-white/90 backdrop-blur-sm shadow-xl">
+        <Card className="border-red-200 bg-card/90 backdrop-blur-sm shadow-xl">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">

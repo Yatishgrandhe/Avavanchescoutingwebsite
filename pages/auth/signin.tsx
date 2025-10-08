@@ -230,7 +230,7 @@ export default function SignIn() {
           className="w-full max-w-md"
         >
           {/* Welcome Card */}
-          <Card className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl">
+          <Card className="bg-card/90 backdrop-blur-lg border-border shadow-2xl">
             <CardHeader className="text-center pb-8">
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}

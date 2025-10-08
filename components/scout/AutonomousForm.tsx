@@ -57,7 +57,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
       transition={{ duration: 0.3 }}
       className="max-w-6xl mx-auto"
     >
-      <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+      <Card className="bg-card border-border">
         {/* Progress Bar */}
         <div className="px-6 pt-6">
           <div className={`w-full rounded-full h-3 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
@@ -141,7 +141,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                 className={`w-5 h-5 rounded border-2 ${
                   isDarkMode 
                     ? 'text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500' 
-                    : 'text-green-600 bg-white border-gray-300 focus:ring-green-500'
+                    : 'text-green-600 bg-background border-border focus:ring-green-500'
                 }`}
               />
             </div>

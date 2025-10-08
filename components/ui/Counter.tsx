@@ -70,7 +70,7 @@ const Counter: React.FC<CounterProps> = ({
         <div className={`min-w-[60px] text-center px-4 py-2 rounded-lg border ${
           isDarkMode 
             ? 'bg-gray-700 border-gray-600 text-white' 
-            : 'bg-white border-gray-300 text-gray-900'
+            : 'bg-background border-border text-foreground'
         }`}>
           <span className="text-lg font-semibold">{value}</span>
         </div>

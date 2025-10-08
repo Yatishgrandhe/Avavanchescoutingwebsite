@@ -525,7 +525,7 @@ export default function PitScouting() {
                             Autonomous Strategy <span className="text-red-500">*</span>
                           </label>
                           <textarea
-                            className="w-full h-20 sm:h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                            className="w-full h-20 sm:h-24 px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                             placeholder="Describe their autonomous strategy and capabilities..."
                             value={formData.autonomousCapabilities.join(', ')}
                             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
@@ -563,7 +563,7 @@ export default function PitScouting() {
                             Teleop Strategy <span className="text-red-500">*</span>
                           </label>
                           <textarea
-                            className="w-full h-20 sm:h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                            className="w-full h-20 sm:h-24 px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                             placeholder="Describe their teleop strategy and capabilities..."
                             value={formData.teleopCapabilities.join(', ')}
                             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
@@ -601,7 +601,7 @@ export default function PitScouting() {
                             Endgame Strategy <span className="text-red-500">*</span>
                           </label>
                           <textarea
-                            className="w-full h-20 sm:h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                            className="w-full h-20 sm:h-24 px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                             placeholder="Describe their endgame strategy and capabilities..."
                             value={formData.endgameCapabilities.join(', ')}
                             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
@@ -666,7 +666,7 @@ export default function PitScouting() {
                     <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
                       <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">Strengths</h3>
                       <textarea
-                        className="w-full h-24 sm:h-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                        className="w-full h-24 sm:h-32 px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                         placeholder="List the robot's key strengths and advantages..."
                         value={formData.strengths.join(', ')}
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
@@ -680,7 +680,7 @@ export default function PitScouting() {
                     <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
                       <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">Weaknesses</h3>
                       <textarea
-                        className="w-full h-24 sm:h-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                        className="w-full h-24 sm:h-32 px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                         placeholder="List the robot's weaknesses and areas for improvement..."
                         value={formData.weaknesses.join(', ')}
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
@@ -717,7 +717,7 @@ export default function PitScouting() {
                     <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
                       <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">General Notes</h3>
                       <textarea
-                        className="w-full h-32 sm:h-40 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                        className="w-full h-32 sm:h-40 px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                         placeholder="Add any additional observations, strategies, or notable capabilities..."
                         value={formData.notes}
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 

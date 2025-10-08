@@ -89,7 +89,7 @@ function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemPro
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="Add notes..."
-                      className="flex-1 bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100"
+                      className="flex-1 bg-background border-border text-foreground"
                     />
                     <Button 
                       size="sm" 
@@ -191,7 +191,7 @@ function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSe
         <select
           value={selectedTeam}
           onChange={(e) => setSelectedTeam(e.target.value)}
-          className="px-2 py-2 sm:py-1 border border-neutral-200 dark:border-neutral-600 rounded text-xs sm:text-sm bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 min-h-[40px]"
+          className="px-2 py-2 sm:py-1 border border-border rounded text-xs sm:text-sm bg-background text-foreground min-h-[40px]"
         >
           <option value="">Select a team to add...</option>
           {filteredTeams.map((team) => (
@@ -205,7 +205,7 @@ function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSe
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as 'score' | 'name' | 'number')}
-          className="px-2 py-2 sm:py-1 border border-neutral-200 dark:border-neutral-600 rounded text-xs sm:text-sm bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 min-h-[40px]"
+          className="px-2 py-2 sm:py-1 border border-border rounded text-xs sm:text-sm bg-background text-foreground min-h-[40px]"
         >
           <option value="score">Sort by Score</option>
           <option value="name">Sort by Name</option>

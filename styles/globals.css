@@ -83,7 +83,7 @@
     width: 100%;
     overflow-x: hidden;
     overflow-y: auto;
-    background: #f7f8fa;
+    background: hsl(var(--background));
   }
 
   /* Layout wrapper */
@@ -901,7 +901,7 @@
   .form-container {
     width: 100%;
     max-width: 420px;
-    background: white;
+    background: hsl(var(--card));
     padding: 30px;
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
@@ -2210,8 +2210,8 @@ body::-webkit-scrollbar-thumb:hover,
   }
   
   body {
-    background: white !important;
-    color: black !important;
+    background: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
   }
   
   .card-modern {

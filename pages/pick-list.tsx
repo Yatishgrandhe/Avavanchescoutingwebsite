@@ -220,7 +220,7 @@ export default function PickListPage() {
                         placeholder="Pick list name..."
                         value={newPickListName}
                         onChange={(e) => setNewPickListName(e.target.value)}
-                        className="mb-2 bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 text-xs"
+                        className="mb-2 bg-background border-border text-foreground text-xs"
                       />
                       <div className="flex space-x-1">
                         <Button 

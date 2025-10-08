@@ -253,7 +253,7 @@ export default function LearnGame() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <Card className="bg-card border-border">
                   <CardHeader>
                     <div
                       className="flex items-center justify-between cursor-pointer"
@@ -333,7 +333,7 @@ export default function LearnGame() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
+                  <div className="p-4 bg-card rounded-lg border border-border">
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">
                       Official Game Manual
                     </h4>
@@ -345,7 +345,7 @@ export default function LearnGame() {
                     </Button>
                   </div>
                   
-                  <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
+                  <div className="p-4 bg-card rounded-lg border border-border">
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">
                       Strategy Guide
                     </h4>

@@ -112,7 +112,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
       transition={{ duration: 0.3 }}
       className="max-w-4xl mx-auto"
     >
-      <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+      <Card className="bg-card border-border">
         {/* Progress Bar */}
         <div className="px-6 pt-6">
           <div className="flex items-center justify-between mb-2">
@@ -159,10 +159,10 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
               </div>
             ) : (
               <Select value={selectedMatch?.match_id || ''} onValueChange={handleMatchSelect}>
-                <SelectTrigger className={`w-full ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}>
+                <SelectTrigger className="w-full bg-background border-border text-foreground">
                   <SelectValue placeholder="Choose a match..." />
                 </SelectTrigger>
-                <SelectContent className={isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}>
+                <SelectContent className="bg-card border-border">
                   {matches.map((match) => (
                     <SelectItem 
                       key={match.match_id} 

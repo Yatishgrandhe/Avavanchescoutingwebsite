@@ -375,14 +375,21 @@ export function PickList({ pickListId, eventKey = '2025test', onSave, session }:
     
     setIsSaving(true);
     try {
-      const pickListData = {
+      const pickListData: any = {
         name: pickListName,
         event_key: eventKey,
         teams: teams,
       };
 
-      const url = pickListId ? `/api/pick-lists?id=${pickListId}` : '/api/pick-lists';
+      // For PUT requests, include the ID in the request body
+      if (pickListId) {
+        pickListData.id = pickListId;
+      }
+
+      const url = '/api/pick-lists';
       const method = pickListId ? 'PUT' : 'POST';
+
+      console.log('Saving pick list:', { method, pickListData });
 
       const response = await fetch(url, {
         method,
@@ -394,7 +401,8 @@ export function PickList({ pickListId, eventKey = '2025test', onSave, session }:
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error || 'Unknown error'}`);
       }
 
       const data = await response.json();
@@ -404,10 +412,11 @@ export function PickList({ pickListId, eventKey = '2025test', onSave, session }:
       }
       
       // Show success message
-      console.log('Pick list saved successfully');
+      console.log('Pick list saved successfully:', data);
     } catch (error) {
       console.error('Error saving pick list:', error);
-      alert('Failed to save pick list. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save pick list. Please try again.';
+      alert(errorMessage);
     } finally {
       setIsSaving(false);
     }

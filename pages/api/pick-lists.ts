@@ -122,13 +122,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const { id, name, teams } = req.body;
 
+      console.log('PUT request received:', { id, name, teams: teams?.length || 0 });
+
       if (!id) {
         return res.status(400).json({ error: 'ID is required' });
       }
 
       const updateData: any = {};
       if (name) updateData.name = name;
-      if (teams) {
+      if (teams !== undefined) {
+        console.log('Processing teams:', teams);
         const validatedTeams = teams.map((team: any, index: number) => ({
           team_number: team.team_number,
           team_name: team.team_name,
@@ -136,7 +139,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           notes: team.notes || '',
         }));
         updateData.teams = validatedTeams;
+        console.log('Validated teams:', validatedTeams);
       }
+
+      console.log('Update data:', updateData);
 
       const { data: pickList, error } = await supabaseAdmin
         .from('pick_lists')
@@ -148,14 +154,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (error) {
         console.error('Error updating pick list:', error);
-        return res.status(500).json({ error: 'Failed to update pick list' });
+        return res.status(500).json({ error: 'Failed to update pick list', details: error.message });
       }
 
+      console.log('Updated pick list:', pickList);
       const enrichedPickList = await enrichPickListWithStats(pickList);
       res.status(200).json(enrichedPickList);
     } catch (error) {
       console.error('Error updating pick list:', error);
-      res.status(500).json({ error: 'Failed to update pick list' });
+      res.status(500).json({ error: 'Failed to update pick list', details: error instanceof Error ? error.message : 'Unknown error' });
     }
   } else if (req.method === 'DELETE') {
     try {

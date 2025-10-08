@@ -4,13 +4,24 @@ import { ScoutingData } from './types';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
+// Create a singleton instance to avoid multiple GoTrueClient instances
+let supabaseInstance: any = null;
+
+export const getSupabaseClient = () => {
+  if (!supabaseInstance) {
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+      }
+    });
   }
-});
+  return supabaseInstance;
+};
+
+// For backward compatibility, export the client
+export const supabase = getSupabaseClient();
 
 // Database helper functions
 export const db = {
@@ -129,11 +140,11 @@ export const db = {
     }
     
     const totalMatches = data.length;
-    const avgAutonomous = data.reduce((sum, match) => sum + match.autonomous_points, 0) / totalMatches;
-    const avgTeleop = data.reduce((sum, match) => sum + match.teleop_points, 0) / totalMatches;
-    const avgEndgame = data.reduce((sum, match) => sum + match.endgame_points, 0) / totalMatches;
-    const avgTotal = data.reduce((sum, match) => sum + match.final_score, 0) / totalMatches;
-    const avgDefense = data.reduce((sum, match) => sum + match.defense_rating, 0) / totalMatches;
+    const avgAutonomous = data.reduce((sum: number, match: any) => sum + match.autonomous_points, 0) / totalMatches;
+    const avgTeleop = data.reduce((sum: number, match: any) => sum + match.teleop_points, 0) / totalMatches;
+    const avgEndgame = data.reduce((sum: number, match: any) => sum + match.endgame_points, 0) / totalMatches;
+    const avgTotal = data.reduce((sum: number, match: any) => sum + match.final_score, 0) / totalMatches;
+    const avgDefense = data.reduce((sum: number, match: any) => sum + match.defense_rating, 0) / totalMatches;
     
     return {
       team_number: teamNumber,
@@ -146,30 +157,28 @@ export const db = {
     };
   },
 
-  // Admin functions
+  // Admin functions - using Supabase Auth metadata
   async isUserAdmin(userId: string): Promise<boolean> {
-    const { data, error } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', userId)
-      .single();
-    
-    if (error) return false;
-    return data?.role === 'admin';
+    const { data: { user }, error } = await supabase.auth.admin.getUserById(userId);
+    if (error || !user) return false;
+    return user.user_metadata?.role === 'admin';
   },
 
   async getCurrentUser(): Promise<any> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
     
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-    
-    if (error) return null;
-    return data;
+    // Return user data from Supabase Auth
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.user_metadata?.full_name || user.email,
+      username: user.user_metadata?.username || user.email,
+      image: user.user_metadata?.avatar_url,
+      role: user.user_metadata?.role || 'user',
+      created_at: user.created_at,
+      updated_at: user.updated_at
+    };
   },
 
   // Pick Lists (Admin only)

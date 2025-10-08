@@ -118,21 +118,21 @@ export default function AdvancedAnalysis() {
 
       // Calculate advanced statistics
       const totalMatches = scoutingData.length;
-      const scores = scoutingData.map(match => match.final_score || 0);
-      const autonomousScores = scoutingData.map(match => match.autonomous_points || 0);
-      const teleopScores = scoutingData.map(match => match.teleop_points || 0);
-      const endgameScores = scoutingData.map(match => match.endgame_points || 0);
-      const defenseRatings = scoutingData.map(match => match.defense_rating || 0);
+      const scores = scoutingData.map((match: any) => match.final_score || 0);
+      const autonomousScores = scoutingData.map((match: any) => match.autonomous_points || 0);
+      const teleopScores = scoutingData.map((match: any) => match.teleop_points || 0);
+      const endgameScores = scoutingData.map((match: any) => match.endgame_points || 0);
+      const defenseRatings = scoutingData.map((match: any) => match.defense_rating || 0);
 
       // Calculate averages
-      const avgAutonomous = autonomousScores.reduce((sum, score) => sum + score, 0) / totalMatches;
-      const avgTeleop = teleopScores.reduce((sum, score) => sum + score, 0) / totalMatches;
-      const avgEndgame = endgameScores.reduce((sum, score) => sum + score, 0) / totalMatches;
-      const avgTotal = scores.reduce((sum, score) => sum + score, 0) / totalMatches;
-      const avgDefense = defenseRatings.reduce((sum, rating) => sum + rating, 0) / totalMatches;
+      const avgAutonomous = autonomousScores.reduce((sum: number, score: number) => sum + score, 0) / totalMatches;
+      const avgTeleop = teleopScores.reduce((sum: number, score: number) => sum + score, 0) / totalMatches;
+      const avgEndgame = endgameScores.reduce((sum: number, score: number) => sum + score, 0) / totalMatches;
+      const avgTotal = scores.reduce((sum: number, score: number) => sum + score, 0) / totalMatches;
+      const avgDefense = defenseRatings.reduce((sum: number, rating: number) => sum + rating, 0) / totalMatches;
 
       // Calculate consistency (standard deviation)
-      const variance = scores.reduce((sum, score) => sum + Math.pow(score - avgTotal, 2), 0) / totalMatches;
+      const variance = scores.reduce((sum: number, score: number) => sum + Math.pow(score - avgTotal, 2), 0) / totalMatches;
       const standardDeviation = Math.sqrt(variance);
       const consistencyScore = Math.max(0, 100 - (standardDeviation / avgTotal) * 100);
 
@@ -156,7 +156,7 @@ export default function AdvancedAnalysis() {
         worst_score: worstScore,
         consistency_score: Math.round(consistencyScore * 100) / 100,
         win_rate: winRate,
-        recent_performance: scoutingData.slice(0, 10).map(match => ({
+        recent_performance: scoutingData.slice(0, 10).map((match: any) => ({
           match_id: match.match_id,
           final_score: match.final_score || 0,
           autonomous_points: match.autonomous_points || 0,

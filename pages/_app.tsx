@@ -1,10 +1,10 @@
 import type { AppProps } from 'next/app';
 import { createContext, useContext, useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { User, Session } from '@supabase/supabase-js';
 import Head from 'next/head';
 import { Toaster } from '@/components/ui/toaster';
 import { handleRefreshResize } from '@/lib/refresh-handler';
+import { getSupabaseClient } from '@/lib/supabase';
 
 import '@/styles/globals.css';
 
@@ -24,24 +24,14 @@ const SupabaseContext = createContext<{
 export const useSupabase = () => useContext(SupabaseContext);
 
 export default function App({ Component, pageProps }: AppProps) {
-  const [supabase] = useState(() => createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-      }
-    }
-  ));
+  const [supabase] = useState(() => getSupabaseClient());
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -50,7 +40,7 @@ export default function App({ Component, pageProps }: AppProps) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event: any, session: Session | null) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);

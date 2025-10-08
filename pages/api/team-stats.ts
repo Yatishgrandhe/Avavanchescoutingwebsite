@@ -50,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // Enrich with additional metrics and map column names
-        const enrichedStats = (stats || []).map(stat => ({
+        const enrichedStats = (stats || []).map((stat: any) => ({
           team_number: stat.team_number,
           team_name: stat.team_name,
           total_matches: stat.match_count || 0,

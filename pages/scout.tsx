@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSupabase } from '@/pages/_app';
+import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui';
 import { Button } from '../components/ui';
@@ -122,10 +123,17 @@ export default function Scout() {
         },
       };
 
+      // Get the current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No active session');
+      }
+
       const response = await fetch('/api/scouting_data', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(scoutingData),
       });

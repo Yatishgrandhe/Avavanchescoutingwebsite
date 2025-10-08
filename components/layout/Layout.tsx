@@ -56,16 +56,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-400">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-400 overflow-x-hidden max-w-full">
       {/* Mobile Layout - Stack vertically */}
       {screenInfo.isMobile ? (
-        <div className="flex flex-col h-screen">
+        <div className="flex flex-col h-screen w-full max-w-full overflow-x-hidden">
           {/* Mobile Header with Navigation */}
           <motion.header
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="header-modern flex items-center justify-between px-4 py-3 bg-card border-b border-border"
+            className="header-modern flex items-center justify-between px-4 py-3 bg-card border-b border-border w-full max-w-full overflow-x-hidden"
           >
             <div className="flex items-center space-x-3">
               <Logo size="sm" />
@@ -135,7 +135,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </motion.header>
 
           {/* Mobile Navigation Bar */}
-          <div className="bg-card border-b border-border px-2 py-2">
+          <div className="bg-card border-b border-border px-2 py-2 w-full max-w-full overflow-x-hidden">
             <Sidebar
               isCollapsed={false}
               onToggle={toggleSidebar}
@@ -150,9 +150,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
 
           {/* Mobile Content */}
-          <div className="flex-1 overflow-auto">
-            <div className="container-main py-4 px-4">
-              <div className="content-spacing">
+          <div className="flex-1 overflow-auto w-full max-w-full">
+            <div className="container-main py-4 px-4 w-full max-w-full overflow-x-hidden">
+              <div className="content-spacing w-full max-w-full">
                 {children}
               </div>
             </div>

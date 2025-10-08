@@ -368,7 +368,7 @@ export default function Home() {
     return (
       <ProtectedRoute>
         <Layout>
-          <div className="content-container space-y-8">
+          <div className="content-container space-y-6 md:space-y-8">
             {/* Welcome Section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -376,13 +376,13 @@ export default function Home() {
               transition={{ duration: 0.6 }}
               className="text-center space-y-4"
             >
-              <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-4">
                 <Logo size="lg" />
-                <h1 className="text-4xl font-heading font-bold text-foreground">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-heading font-bold text-foreground">
                   Welcome to Avalanche
                 </h1>
               </div>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto px-4">
                 Professional FRC scouting platform with advanced analytics and real-time data collection
               </p>
             </motion.div>
@@ -392,15 +392,15 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="grid-dashboard"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
             >
               <Card className="card-modern group cursor-pointer bg-card border-border" onClick={() => router.push('/scout')}>
-                <CardContent className="p-6">
-                  <div className="flex items-center space-x-4">
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
                     <div className="p-3 bg-primary rounded-2xl text-primary-foreground">
                       <Target size={24} />
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 text-center sm:text-left">
                       <h3 className="font-heading font-semibold text-card-foreground">Start Scouting</h3>
                       <p className="text-sm text-muted-foreground">Begin collecting match data</p>
                     </div>
@@ -412,12 +412,12 @@ export default function Home() {
               </Card>
 
               <Card className="card-modern group cursor-pointer bg-card border-border" onClick={() => router.push('/pit-scouting')}>
-                <CardContent className="p-6">
-                  <div className="flex items-center space-x-4">
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
                     <div className="p-3 bg-secondary rounded-2xl text-secondary-foreground">
                       <Settings size={24} />
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 text-center sm:text-left">
                       <h3 className="font-heading font-semibold text-card-foreground">Pit Scouting</h3>
                       <p className="text-sm text-muted-foreground">Analyze robot capabilities</p>
                     </div>
@@ -429,12 +429,12 @@ export default function Home() {
               </Card>
 
               <Card className="card-modern group cursor-pointer bg-card border-border" onClick={() => router.push('/analysis/data')}>
-                <CardContent className="p-6">
-                  <div className="flex items-center space-x-4">
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
                     <div className="p-3 bg-warning rounded-2xl text-white">
                       <BarChart3 size={24} />
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 text-center sm:text-left">
                       <h3 className="font-heading font-semibold text-card-foreground">Data Analysis</h3>
                       <p className="text-sm text-muted-foreground">View comprehensive analytics</p>
                     </div>
@@ -446,12 +446,12 @@ export default function Home() {
               </Card>
 
               <Card className="card-modern group cursor-pointer bg-card border-border" onClick={() => router.push('/analysis/comparison')}>
-                <CardContent className="p-6">
-                  <div className="flex items-center space-x-4">
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
                     <div className="p-3 bg-card border border-border rounded-2xl text-foreground">
                       <TrendingUp size={24} />
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 text-center sm:text-left">
                       <h3 className="font-heading font-semibold text-card-foreground">Team Comparison</h3>
                       <p className="text-sm text-muted-foreground">Compare team performance</p>
                     </div>
@@ -468,21 +468,21 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="grid-stats"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
             >
               <Card className="stat-card bg-card border-border">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0">
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
+                    <div className="min-w-0 text-center sm:text-left">
                       <p className="text-sm font-medium text-muted-foreground">Total Matches</p>
                       {loadingStats ? (
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center justify-center sm:justify-start space-x-2">
                           <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                           <span className="text-muted-foreground">Loading...</span>
                         </div>
                       ) : (
                         <>
-                          <p className="text-2xl font-heading font-bold text-card-foreground">{dashboardStats.totalMatches}</p>
+                          <p className="text-xl sm:text-2xl font-heading font-bold text-card-foreground">{dashboardStats.totalMatches}</p>
                           <p className="text-xs text-primary font-medium">
                             {dashboardStats.totalMatches > 0 ? 'Active matches tracked' : 'No matches yet'}
                           </p>
@@ -497,18 +497,18 @@ export default function Home() {
               </Card>
 
               <Card className="stat-card bg-card border-border">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0">
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
+                    <div className="min-w-0 text-center sm:text-left">
                       <p className="text-sm font-medium text-muted-foreground">Teams Registered</p>
                       {loadingStats ? (
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center justify-center sm:justify-start space-x-2">
                           <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                           <span className="text-muted-foreground">Loading...</span>
                         </div>
                       ) : (
                         <>
-                          <p className="text-2xl font-heading font-bold text-card-foreground">{dashboardStats.teamsCount}</p>
+                          <p className="text-xl sm:text-2xl font-heading font-bold text-card-foreground">{dashboardStats.teamsCount}</p>
                           <p className="text-xs text-secondary font-medium">
                             {dashboardStats.teamsCount > 0 ? 'Teams in database' : 'No teams registered'}
                           </p>
@@ -523,18 +523,18 @@ export default function Home() {
               </Card>
 
               <Card className="stat-card bg-card border-border">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0">
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
+                    <div className="min-w-0 text-center sm:text-left">
                       <p className="text-sm font-medium text-muted-foreground">Data Points</p>
                       {loadingStats ? (
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center justify-center sm:justify-start space-x-2">
                           <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                           <span className="text-muted-foreground">Loading...</span>
                         </div>
                       ) : (
                         <>
-                          <p className="text-2xl font-heading font-bold text-card-foreground">{dashboardStats.dataPoints}</p>
+                          <p className="text-xl sm:text-2xl font-heading font-bold text-card-foreground">{dashboardStats.dataPoints}</p>
                           <p className="text-xs text-warning font-medium">
                             {dashboardStats.dataPoints > 0 ? 'Scouting entries collected' : 'Start scouting!'}
                           </p>
@@ -549,18 +549,18 @@ export default function Home() {
               </Card>
 
               <Card className="stat-card bg-card border-border">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0">
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
+                    <div className="min-w-0 text-center sm:text-left">
                       <p className="text-sm font-medium text-muted-foreground">Data Coverage</p>
                       {loadingStats ? (
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center justify-center sm:justify-start space-x-2">
                           <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                           <span className="text-muted-foreground">Loading...</span>
                         </div>
                       ) : (
                         <>
-                          <p className="text-2xl font-heading font-bold text-card-foreground">{dashboardStats.successRate}%</p>
+                          <p className="text-xl sm:text-2xl font-heading font-bold text-card-foreground">{dashboardStats.successRate}%</p>
                           <p className="text-xs text-success font-medium">
                             {dashboardStats.successRate > 0 ? 'Matches with data' : 'No data yet'}
                           </p>
@@ -629,18 +629,18 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.8 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
             >
               {features.map((feature, index) => (
                 <Card key={index} className="card-modern bg-card border-border">
-                  <CardContent className="p-6 text-center">
+                  <CardContent className="p-4 md:p-6 text-center">
                     <div className="p-3 bg-primary/10 rounded-2xl w-fit mx-auto mb-4">
                       <feature.icon className="w-6 h-6 text-primary" />
                     </div>
-                    <h3 className="font-heading font-semibold text-card-foreground mb-2">
+                    <h3 className="font-heading font-semibold text-card-foreground mb-2 text-sm sm:text-base">
                       {feature.title}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       {feature.description}
                     </p>
                   </CardContent>
@@ -675,16 +675,16 @@ export default function Home() {
       {/* Main Content */}
       <div className="container-main refresh-safe size-on-refresh relative z-10">
         {/* Hero Section */}
-        <div className="text-center py-12">
-          <h1 className="text-4xl font-heading font-bold text-foreground mb-4">
+        <div className="text-center py-8 md:py-12 px-4">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-heading font-bold text-foreground mb-4">
             Professional FRC Scouting Platform
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+          <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Advanced analytics, real-time data collection, and comprehensive team analysis for competitive FRC teams
           </p>
           <Button
             onClick={handleSignIn}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 text-lg"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 md:px-8 py-3 text-base md:text-lg w-full sm:w-auto"
           >
             <Play className="w-5 h-5 mr-2" />
             Get Started
@@ -693,17 +693,17 @@ export default function Home() {
         </div>
 
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 py-8 md:py-12 px-4">
           {benefits.map((benefit, index) => (
             <Card key={index} className="card-modern">
-              <CardContent className="p-6 text-center">
+              <CardContent className="p-4 md:p-6 text-center">
                 <div className="p-3 bg-primary/10 rounded-2xl w-fit mx-auto mb-4">
                   <benefit.icon className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="font-heading font-semibold text-card-foreground mb-2">
+                <h3 className="font-heading font-semibold text-card-foreground mb-2 text-sm sm:text-base">
                   {benefit.title}
                 </h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {benefit.description}
                 </p>
               </CardContent>
@@ -712,8 +712,8 @@ export default function Home() {
         </div>
 
         {/* Footer */}
-        <div className="text-center py-8">
-          <div className="flex items-center justify-center space-x-2 text-muted-foreground">
+        <div className="text-center py-6 md:py-8 px-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-2 text-muted-foreground">
             <Shield className="w-4 h-4" />
             <span className="text-sm">Powered by Avalanche Robotics</span>
             <Sparkles className="w-4 h-4" />

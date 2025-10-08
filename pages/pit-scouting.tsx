@@ -220,27 +220,27 @@ export default function PitScouting() {
 
   return (
     <Layout>
-      <div className="min-h-full p-6">
+      <div className="min-h-full p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="mb-8"
+            className="mb-6 md:mb-8"
           >
-            <div className="flex items-center space-x-3 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 mb-4">
               <motion.div
                 animate={{ rotate: [0, 10, -10, 0] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
-                <Wrench className={`w-8 h-8 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                <Wrench className="w-8 h-8 text-primary" />
               </motion.div>
               <div>
-                <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
                   Pit Scouting
                 </h1>
-                <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                <p className="mt-2 text-muted-foreground">
                   Comprehensive robot analysis and documentation
                 </p>
               </div>
@@ -248,18 +248,18 @@ export default function PitScouting() {
           </motion.div>
 
           {/* Progress Indicator */}
-          <div className="mb-8">
+          <div className="mb-6 md:mb-8">
             <div className="flex items-center justify-between mb-4">
-              <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              <span className="text-sm font-medium text-foreground">
                 Step {currentStep} of {totalSteps}
               </span>
-              <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              <span className="text-sm text-muted-foreground">
                 {Math.round((currentStep / totalSteps) * 100)}% Complete
               </span>
             </div>
-            <div className={`w-full rounded-full h-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+            <div className="w-full rounded-full h-2 bg-muted">
               <motion.div
-                className="bg-blue-600 h-2 rounded-full"
+                className="bg-primary h-2 rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${(currentStep / totalSteps) * 100}%` }}
                 transition={{ duration: 0.5 }}
@@ -299,10 +299,10 @@ export default function PitScouting() {
                       </motion.div>
                     )}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium mb-2">
-                          Team Number <span className="text-red-500">*</span>
+                          Team Number <span className="text-destructive">*</span>
                         </label>
                         {loadingTeams ? (
                           <div className="flex items-center justify-center h-10 px-3 py-2 rounded-md border border-input bg-background">
@@ -332,14 +332,14 @@ export default function PitScouting() {
                         )}
                       </div>
                       <div>
-        <label className="block text-sm font-medium mb-2">
-          Robot Name <span className="text-red-500">*</span>
-        </label>
-        <Input
-          placeholder="Enter robot name"
-          value={formData.robotName}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, robotName: e.target.value }))}
-        />
+                        <label className="block text-sm font-medium mb-2">
+                          Robot Name <span className="text-destructive">*</span>
+                        </label>
+                        <Input
+                          placeholder="Enter robot name"
+                          value={formData.robotName}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, robotName: e.target.value }))}
+                        />
                       </div>
                     </div>
                     
@@ -357,12 +357,12 @@ export default function PitScouting() {
                     </div>
 
                     {/* Drive Train Details Section */}
-                    <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
-                      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">Drive Train Details</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="bg-muted p-4 rounded-lg border">
+                      <h3 className="text-lg font-semibold mb-4 text-foreground">Drive Train Details</h3>
+                      <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium mb-2">
-                            Drive Train Type <span className="text-red-500">*</span>
+                            Drive Train Type <span className="text-destructive">*</span>
                           </label>
                           <Input
                             placeholder="e.g., 6-wheel West Coast, 4-wheel Swerve"
@@ -371,7 +371,6 @@ export default function PitScouting() {
                               ...prev, 
                               driveTrainDetails: { ...prev.driveTrainDetails, type: e.target.value }
                             }))}
-                            className="w-full"
                           />
                         </div>
                         <div>
@@ -386,16 +385,15 @@ export default function PitScouting() {
                               ...prev, 
                               driveTrainDetails: { ...prev.driveTrainDetails, driveCamps: parseInt(e.target.value) || 0 }
                             }))}
-                            className="w-full"
                           />
                         </div>
                       </div>
-                      <div className="mt-3 sm:mt-4">
+                      <div className="mt-4">
                         <label className="block text-sm font-medium mb-2">
-                          What they do in Auto <span className="text-red-500">*</span>
+                          What they do in Auto <span className="text-destructive">*</span>
                         </label>
                         <textarea
-                          className="w-full h-16 sm:h-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                          className="w-full h-20 px-3 py-2 border border-input rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                           placeholder="Describe their autonomous capabilities and strategies..."
                           value={formData.driveTrainDetails.autoCapabilities}
                           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
@@ -404,12 +402,12 @@ export default function PitScouting() {
                           }))}
                         />
                       </div>
-                      <div className="mt-3 sm:mt-4">
+                      <div className="mt-4">
                         <label className="block text-sm font-medium mb-2">
-                          What they do during Teleop <span className="text-red-500">*</span>
+                          What they do during Teleop <span className="text-destructive">*</span>
                         </label>
                         <textarea
-                          className="w-full h-16 sm:h-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                          className="w-full h-20 px-3 py-2 border border-input rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                           placeholder="Describe their teleop capabilities and strategies..."
                           value={formData.driveTrainDetails.teleopCapabilities}
                           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
@@ -418,12 +416,12 @@ export default function PitScouting() {
                           }))}
                         />
                       </div>
-                      <div className="mt-3 sm:mt-4">
+                      <div className="mt-4">
                         <label className="block text-sm font-medium mb-2">
                           How will they decide who will drive in playoffs?
                         </label>
                         <textarea
-                          className="w-full h-16 sm:h-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                          className="w-full h-20 px-3 py-2 border border-input rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                           placeholder="Describe their playoff driver selection process..."
                           value={formData.driveTrainDetails.playoffDriver}
                           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
@@ -434,10 +432,10 @@ export default function PitScouting() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium mb-2">
-                          Length (in) <span className="text-gray-500 text-xs">(Optional)</span>
+                          Length (in) <span className="text-muted-foreground text-xs">(Optional)</span>
                         </label>
                         <Input
                           type="number"
@@ -447,12 +445,11 @@ export default function PitScouting() {
                             ...prev, 
                             robotDimensions: { ...prev.robotDimensions, length: e.target.value ? parseFloat(e.target.value) : undefined }
                           }))}
-                          className="w-full text-sm sm:text-base"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-2">
-                          Width (in) <span className="text-gray-500 text-xs">(Optional)</span>
+                          Width (in) <span className="text-muted-foreground text-xs">(Optional)</span>
                         </label>
                         <Input
                           type="number"
@@ -462,12 +459,11 @@ export default function PitScouting() {
                             ...prev, 
                             robotDimensions: { ...prev.robotDimensions, width: e.target.value ? parseFloat(e.target.value) : undefined }
                           }))}
-                          className="w-full text-sm sm:text-base"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-2">
-                          Height (in) <span className="text-gray-500 text-xs">(Optional)</span>
+                          Height (in) <span className="text-muted-foreground text-xs">(Optional)</span>
                         </label>
                         <Input
                           type="number"
@@ -477,19 +473,17 @@ export default function PitScouting() {
                             ...prev, 
                             robotDimensions: { ...prev.robotDimensions, height: e.target.value ? parseFloat(e.target.value) : undefined }
                           }))}
-                          className="w-full text-sm sm:text-base"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-2">
-                          Weight (lbs) <span className="text-gray-500 text-xs">(Optional)</span>
+                          Weight (lbs) <span className="text-muted-foreground text-xs">(Optional)</span>
                         </label>
                         <Input
                           type="number"
                           placeholder="Optional"
                           value={formData.weight || ''}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, weight: e.target.value ? parseFloat(e.target.value) : undefined }))}
-                          className="w-full text-sm sm:text-base"
                         />
                       </div>
                     </div>

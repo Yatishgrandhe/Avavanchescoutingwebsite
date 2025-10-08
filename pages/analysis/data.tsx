@@ -165,10 +165,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-4">
                   {/* Search */}
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input
                       placeholder="Search by team, match, or comments..."
                       value={searchTerm}
@@ -182,7 +182,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                     <select
                       value={selectedTeam || ''}
                       onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedTeam(e.target.value ? parseInt(e.target.value) : null)}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      className="w-full px-3 py-2 bg-background border border-border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-foreground"
                     >
                       <option value="">All Teams</option>
                       {teams.map(team => (
@@ -194,8 +194,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2">
-                    <Button onClick={loadData} variant="outline" size="sm">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button onClick={loadData} variant="outline" size="sm" className="flex-1 sm:flex-none">
                       <RefreshCw className="w-4 h-4 mr-2" />
                       Refresh
                     </Button>
@@ -203,6 +203,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                       onClick={() => setShowUploaderInfo(!showUploaderInfo)} 
                       variant="outline" 
                       size="sm"
+                      className="flex-1 sm:flex-none"
                     >
                       {showUploaderInfo ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
                       {showUploaderInfo ? 'Hide' : 'Show'} Uploader
@@ -213,26 +214,26 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                 {/* Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">{sortedData.length}</div>
-                    <div className="text-sm text-gray-600">Total Records</div>
+                    <div className="text-xl md:text-2xl font-bold text-primary">{sortedData.length}</div>
+                    <div className="text-xs md:text-sm text-muted-foreground">Total Records</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-xl md:text-2xl font-bold text-secondary">
                       {new Set(sortedData.map(d => d.team_number)).size}
                     </div>
-                    <div className="text-sm text-gray-600">Teams Scouted</div>
+                    <div className="text-xs md:text-sm text-muted-foreground">Teams Scouted</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">
+                    <div className="text-xl md:text-2xl font-bold text-warning">
                       {Math.round(sortedData.reduce((sum, d) => sum + d.final_score, 0) / sortedData.length) || 0}
                     </div>
-                    <div className="text-sm text-gray-600">Avg Score</div>
+                    <div className="text-xs md:text-sm text-muted-foreground">Avg Score</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">
+                    <div className="text-xl md:text-2xl font-bold text-success">
                       {Math.round(sortedData.reduce((sum, d) => sum + d.defense_rating, 0) / sortedData.length) || 0}
                     </div>
-                    <div className="text-sm text-gray-600">Avg Defense</div>
+                    <div className="text-xs md:text-sm text-muted-foreground">Avg Defense</div>
                   </div>
                 </div>
               </CardContent>
@@ -253,15 +254,15 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
+                <div className="overflow-x-auto scrollbar-hide">
+                  <table className="w-full border-collapse min-w-[800px]">
                     <thead>
                       <tr className="border-b">
                         <th 
-                          className="text-left p-3 cursor-pointer hover:bg-gray-50"
+                          className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
                           onClick={() => handleSort('team_number')}
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 md:gap-2">
                             Team
                             {sortField === 'team_number' && (
                               <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
@@ -269,22 +270,22 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                           </div>
                         </th>
                         <th 
-                          className="text-left p-3 cursor-pointer hover:bg-gray-50"
+                          className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
                           onClick={() => handleSort('match_id')}
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 md:gap-2">
                             Match
                             {sortField === 'match_id' && (
                               <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                             )}
                           </div>
                         </th>
-                        <th className="text-left p-3">Alliance</th>
+                        <th className="text-left p-2 md:p-3 text-xs md:text-sm">Alliance</th>
                         <th 
-                          className="text-left p-3 cursor-pointer hover:bg-gray-50"
+                          className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
                           onClick={() => handleSort('autonomous_points')}
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 md:gap-2">
                             Auto
                             {sortField === 'autonomous_points' && (
                               <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
@@ -292,10 +293,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                           </div>
                         </th>
                         <th 
-                          className="text-left p-3 cursor-pointer hover:bg-gray-50"
+                          className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
                           onClick={() => handleSort('teleop_points')}
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 md:gap-2">
                             Teleop
                             {sortField === 'teleop_points' && (
                               <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
@@ -303,10 +304,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                           </div>
                         </th>
                         <th 
-                          className="text-left p-3 cursor-pointer hover:bg-gray-50"
+                          className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
                           onClick={() => handleSort('endgame_points')}
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 md:gap-2">
                             Endgame
                             {sortField === 'endgame_points' && (
                               <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
@@ -314,10 +315,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                           </div>
                         </th>
                         <th 
-                          className="text-left p-3 cursor-pointer hover:bg-gray-50"
+                          className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
                           onClick={() => handleSort('final_score')}
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 md:gap-2">
                             Total
                             {sortField === 'final_score' && (
                               <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
@@ -325,10 +326,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                           </div>
                         </th>
                         <th 
-                          className="text-left p-3 cursor-pointer hover:bg-gray-50"
+                          className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
                           onClick={() => handleSort('defense_rating')}
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 md:gap-2">
                             Defense
                             {sortField === 'defense_rating' && (
                               <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
@@ -337,12 +338,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                         </th>
                         {showUploaderInfo && (
                           <>
-                            <th className="text-left p-3">Uploaded By</th>
+                            <th className="text-left p-2 md:p-3 text-xs md:text-sm">Uploaded By</th>
                             <th 
-                              className="text-left p-3 cursor-pointer hover:bg-gray-50"
+                              className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
                               onClick={() => handleSort('created_at')}
                             >
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1 md:gap-2">
                                 Date
                                 {sortField === 'created_at' && (
                                   <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
@@ -351,7 +352,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             </th>
                           </>
                         )}
-                        <th className="text-left p-3">Comments</th>
+                        <th className="text-left p-2 md:p-3 text-xs md:text-sm">Comments</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -361,61 +362,62 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.3, delay: index * 0.05 }}
-                          className="border-b hover:bg-gray-50"
+                          className="border-b hover:bg-muted/50"
                         >
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline">{data.team_number}</Badge>
-                              <span className="text-sm text-gray-600">
+                          <td className="p-2 md:p-3">
+                            <div className="flex items-center gap-1 md:gap-2">
+                              <Badge variant="outline" className="text-xs">{data.team_number}</Badge>
+                              <span className="text-xs md:text-sm text-muted-foreground">
                                 {getTeamName(data.team_number)}
                               </span>
                             </div>
                           </td>
-                          <td className="p-3 font-mono text-sm">{data.match_id}</td>
-                          <td className="p-3">
+                          <td className="p-2 md:p-3 font-mono text-xs md:text-sm">{data.match_id}</td>
+                          <td className="p-2 md:p-3">
                             <Badge 
                               variant={data.alliance_color === 'red' ? 'destructive' : 'default'}
+                              className="text-xs"
                             >
                               {data.alliance_color.toUpperCase()}
                             </Badge>
                           </td>
-                          <td className="p-3 font-semibold text-blue-600">{data.autonomous_points}</td>
-                          <td className="p-3 font-semibold text-green-600">{data.teleop_points}</td>
-                          <td className="p-3 font-semibold text-purple-600">{data.endgame_points}</td>
-                          <td className="p-3 font-bold text-lg text-indigo-600">{data.final_score}</td>
-                          <td className="p-3">
+                          <td className="p-2 md:p-3 font-semibold text-primary text-xs md:text-sm">{data.autonomous_points}</td>
+                          <td className="p-2 md:p-3 font-semibold text-secondary text-xs md:text-sm">{data.teleop_points}</td>
+                          <td className="p-2 md:p-3 font-semibold text-warning text-xs md:text-sm">{data.endgame_points}</td>
+                          <td className="p-2 md:p-3 font-bold text-sm md:text-lg text-primary">{data.final_score}</td>
+                          <td className="p-2 md:p-3">
                             <div className="flex items-center gap-1">
                               {[...Array(5)].map((_, i) => (
                                 <div
                                   key={i}
-                                  className={`w-2 h-2 rounded-full ${
-                                    i < data.defense_rating ? 'bg-yellow-400' : 'bg-gray-200'
+                                  className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${
+                                    i < data.defense_rating ? 'bg-warning' : 'bg-muted'
                                   }`}
                                 />
                               ))}
-                              <span className="ml-2 text-sm">{data.defense_rating}/5</span>
+                              <span className="ml-1 md:ml-2 text-xs md:text-sm">{data.defense_rating}/5</span>
                             </div>
                           </td>
                           {showUploaderInfo && (
                             <>
-                              <td className="p-3">
-                                <div className="flex items-center gap-2">
-                                  <User className="w-4 h-4 text-gray-400" />
-                                  <span className="text-sm">{getUploaderName(data.scout_id)}</span>
+                              <td className="p-2 md:p-3">
+                                <div className="flex items-center gap-1 md:gap-2">
+                                  <User className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
+                                  <span className="text-xs md:text-sm">{getUploaderName(data.scout_id)}</span>
                                 </div>
                               </td>
-                              <td className="p-3">
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="w-4 h-4 text-gray-400" />
-                                  <span className="text-sm">
+                              <td className="p-2 md:p-3">
+                                <div className="flex items-center gap-1 md:gap-2">
+                                  <Calendar className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
+                                  <span className="text-xs md:text-sm">
                                     {new Date(data.created_at).toLocaleDateString()}
                                   </span>
                                 </div>
                               </td>
                             </>
                           )}
-                          <td className="p-3 max-w-xs">
-                            <div className="text-sm text-gray-600 truncate" title={data.comments}>
+                          <td className="p-2 md:p-3 max-w-xs">
+                            <div className="text-xs md:text-sm text-muted-foreground truncate" title={data.comments}>
                               {data.comments || '-'}
                             </div>
                           </td>
@@ -427,9 +429,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
                 {sortedData.length === 0 && (
                   <div className="text-center py-12">
-                    <Database className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No Data Found</h3>
-                    <p className="text-gray-500">
+                    <Database className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-foreground mb-2">No Data Found</h3>
+                    <p className="text-muted-foreground">
                       {searchTerm || selectedTeam 
                         ? 'Try adjusting your filters to see more results.'
                         : 'No scouting data has been uploaded yet.'

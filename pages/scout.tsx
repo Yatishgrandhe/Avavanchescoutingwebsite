@@ -185,17 +185,17 @@ export default function Scout() {
   return (
     <ProtectedRoute>
     <Layout>
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {/* Header */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
               <div>
-                <h1 className="text-3xl font-bold">Scouting Session</h1>
-                <p className="text-muted-foreground">
+                <h1 className="text-2xl sm:text-3xl font-bold">Scouting Session</h1>
+                <p className="text-muted-foreground text-sm sm:text-base">
                   Collect comprehensive match data for FRC 2025
                 </p>
               </div>
-              <Badge variant="outline" className="text-sm">
+              <Badge variant="outline" className="text-sm w-fit">
                 Step {currentStepIndex + 1} of {steps.length}
               </Badge>
             </div>
@@ -209,34 +209,31 @@ export default function Scout() {
               <Progress value={progress} className="h-2" />
             </div>
 
-            {/* Step Indicators */}
-            <div className="flex items-center justify-between">
+            {/* Step Indicators - Mobile Optimized */}
+            <div className="flex items-center justify-between overflow-x-auto pb-2">
               {steps.map((step, index) => {
                 const Icon = step.icon;
                 const isCompleted = index < currentStepIndex;
                 const isCurrent = index === currentStepIndex;
                 
                 return (
-                  <div key={step.id} className="flex items-center">
+                  <div key={step.id} className="flex flex-col items-center min-w-0 flex-1">
                     <div className={`
-                      flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors
+                      flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors mb-2
                       ${isCompleted ? 'bg-primary border-primary text-primary-foreground' : 
-                        isCurrent ? 'border-primary text-white' : 'border-muted text-muted-foreground'}
+                        isCurrent ? 'border-primary text-primary bg-primary/10' : 'border-muted text-muted-foreground'}
                     `}>
                       {isCompleted ? (
-                        <CheckCircle className="w-4 h-4" />
+                        <CheckCircle className="w-5 h-5" />
                       ) : (
-                        <Icon className="w-4 h-4" />
+                        <Icon className="w-5 h-5" />
                       )}
                     </div>
-                    <span className={`ml-2 text-sm font-medium font-inter ${
-                      isCurrent ? 'text-white' : 'text-muted-foreground'
+                    <span className={`text-xs font-medium text-center ${
+                      isCurrent ? 'text-primary' : 'text-muted-foreground'
                     }`}>
                       {step.title}
                     </span>
-                    {index < steps.length - 1 && (
-                      <Separator className="w-8 mx-4" orientation="horizontal" />
-                    )}
                   </div>
                 );
               })}
@@ -369,36 +366,36 @@ export default function Scout() {
                         </p>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                         <Card>
                           <CardHeader>
-                            <CardTitle className="text-lg text-white font-inter flex items-center space-x-2">
-                              <Target className="w-5 h-5 text-blue-400" />
+                            <CardTitle className="text-lg flex items-center space-x-2">
+                              <Target className="w-5 h-5 text-primary" />
                               <span>Match Details</span>
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="space-y-2">
                             <div className="flex justify-between">
-                              <span className="text-slate-400 font-inter">Match ID:</span>
-                              <span className="font-medium text-white font-inter">{formData.matchData.match_id}</span>
+                              <span className="text-muted-foreground">Match ID:</span>
+                              <span className="font-medium">{formData.matchData.match_id}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-slate-400 font-inter">Event:</span>
-                              <span className="font-medium text-white font-inter">{formData.matchData.event_key}</span>
+                              <span className="text-muted-foreground">Event:</span>
+                              <span className="font-medium">{formData.matchData.event_key}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-slate-400 font-inter">Match Number:</span>
-                              <span className="font-medium text-white font-inter">{formData.matchData.match_number}</span>
+                              <span className="text-muted-foreground">Match Number:</span>
+                              <span className="font-medium">{formData.matchData.match_number}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-slate-400 font-inter">Team:</span>
-                              <span className="font-medium text-white font-inter">{formData.teamNumber}</span>
+                              <span className="text-muted-foreground">Team:</span>
+                              <span className="font-medium">{formData.teamNumber}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-slate-400 font-inter">Alliance:</span>
-            <Badge variant={formData.allianceColor === 'red' ? 'destructive' : 'default'}>
-              {formData.allianceColor}
-            </Badge>
+                              <span className="text-muted-foreground">Alliance:</span>
+                              <Badge variant={formData.allianceColor === 'red' ? 'destructive' : 'default'}>
+                                {formData.allianceColor}
+                              </Badge>
                             </div>
                           </CardContent>
                         </Card>
@@ -422,8 +419,8 @@ export default function Scout() {
                             </div>
                             <Separator />
                             <div className="flex justify-between text-lg font-bold">
-            <span>Total Score:</span>
-            <span className="text-primary">{calculateScore(formData.autonomous).final_score + calculateScore(formData.teleop).final_score + calculateScore(formData.endgame).final_score} pts</span>
+                              <span>Total Score:</span>
+                              <span className="text-primary">{calculateScore(formData.autonomous).final_score + calculateScore(formData.teleop).final_score + calculateScore(formData.endgame).final_score} pts</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Defense Rating:</span>
@@ -433,21 +430,23 @@ export default function Scout() {
                         </Card>
                       </div>
 
-                      <div className="flex justify-between pt-4">
+                      <div className="flex flex-col sm:flex-row justify-between pt-4 space-y-3 sm:space-y-0">
                         <Button
                           variant="outline"
                           onClick={() => setCurrentStep('miscellaneous')}
+                          className="w-full sm:w-auto"
                         >
                           <ChevronLeft className="w-4 h-4 mr-2" />
                           Back
                         </Button>
-        <Button
-          onClick={handleSubmit}
-          size="lg"
-        >
-          <CheckCircle className="w-4 h-4 mr-2" />
-          Submit Scouting Data
-        </Button>
+                        <Button
+                          onClick={handleSubmit}
+                          size="lg"
+                          className="w-full sm:w-auto"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Submit Scouting Data
+                        </Button>
                       </div>
                     </div>
                   </motion.div>

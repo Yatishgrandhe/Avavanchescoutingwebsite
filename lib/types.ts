@@ -29,6 +29,9 @@ export interface ScoutingData {
   defense_rating: number;
   comments: string;
   created_at: string;
+  submitted_by_name?: string;
+  submitted_by_email?: string;
+  submitted_at?: string;
 }
 
 export interface ScoringNotes {

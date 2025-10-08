@@ -45,18 +45,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      const avgAutonomous = scoutingData!.reduce((sum, data) => sum + (data.autonomous_points || 0), 0) / totalMatches;
-      const avgTeleop = scoutingData!.reduce((sum, data) => sum + (data.teleop_points || 0), 0) / totalMatches;
-      const avgEndgame = scoutingData!.reduce((sum, data) => sum + (data.endgame_points || 0), 0) / totalMatches;
-      const avgTotal = scoutingData!.reduce((sum, data) => sum + (data.final_score || 0), 0) / totalMatches;
-      const avgDefense = scoutingData!.reduce((sum, data) => sum + (data.defense_rating || 0), 0) / totalMatches;
+      const avgAutonomous = scoutingData!.reduce((sum: number, data: any) => sum + (data.autonomous_points || 0), 0) / totalMatches;
+      const avgTeleop = scoutingData!.reduce((sum: number, data: any) => sum + (data.teleop_points || 0), 0) / totalMatches;
+      const avgEndgame = scoutingData!.reduce((sum: number, data: any) => sum + (data.endgame_points || 0), 0) / totalMatches;
+      const avgTotal = scoutingData!.reduce((sum: number, data: any) => sum + (data.final_score || 0), 0) / totalMatches;
+      const avgDefense = scoutingData!.reduce((sum: number, data: any) => sum + (data.defense_rating || 0), 0) / totalMatches;
       
-      const bestScore = Math.max(...scoutingData!.map(data => data.final_score || 0));
-      const worstScore = Math.min(...scoutingData!.map(data => data.final_score || 0));
+      const bestScore = Math.max(...scoutingData!.map((data: any) => data.final_score || 0));
+      const worstScore = Math.min(...scoutingData!.map((data: any) => data.final_score || 0));
       
       // Calculate consistency
-      const scores = scoutingData!.map(data => data.final_score || 0);
-      const variance = scores.reduce((sum, score) => sum + Math.pow(score - avgTotal, 2), 0) / totalMatches;
+      const scores = scoutingData!.map((data: any) => data.final_score || 0);
+      const variance = scores.reduce((sum: number, score: number) => sum + Math.pow(score - avgTotal, 2), 0) / totalMatches;
       const standardDeviation = Math.sqrt(variance);
       const consistencyScore = Math.max(0, 100 - (standardDeviation / avgTotal) * 100);
 

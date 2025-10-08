@@ -41,9 +41,9 @@ interface PitScoutingData {
   robotDimensions: {
     length?: number;
     width?: number;
-    height: number;
+    height?: number;
   };
-  weight: number;
+  weight?: number;
   programmingLanguage: string;
   notes: string;
   photos: string[];
@@ -354,17 +354,6 @@ export default function PitScouting() {
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, programmingLanguage: e.target.value }))}
                         />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Weight (lbs)
-                        </label>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          value={formData.weight || ''}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
-                        />
-                      </div>
                     </div>
 
                     {/* Drive Train Details Section */}
@@ -478,28 +467,28 @@ export default function PitScouting() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-2">
-                          Height (in) <span className="text-red-500">*</span>
+                          Height (in) <span className="text-gray-500 text-xs">(Optional)</span>
                         </label>
                         <Input
                           type="number"
-                          placeholder="0"
+                          placeholder="Optional"
                           value={formData.robotDimensions.height || ''}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
                             ...prev, 
-                            robotDimensions: { ...prev.robotDimensions, height: parseFloat(e.target.value) || 0 }
+                            robotDimensions: { ...prev.robotDimensions, height: e.target.value ? parseFloat(e.target.value) : undefined }
                           }))}
                           className="w-full text-sm sm:text-base"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-2">
-                          Weight (lbs) <span className="text-red-500">*</span>
+                          Weight (lbs) <span className="text-gray-500 text-xs">(Optional)</span>
                         </label>
                         <Input
                           type="number"
-                          placeholder="0"
+                          placeholder="Optional"
                           value={formData.weight || ''}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, weight: e.target.value ? parseFloat(e.target.value) : undefined }))}
                           className="w-full text-sm sm:text-base"
                         />
                       </div>

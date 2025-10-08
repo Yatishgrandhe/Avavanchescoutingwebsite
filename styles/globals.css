@@ -372,11 +372,37 @@
     }
   }
   
-  /* Main content wrapper */
+  /* Main content wrapper - Enhanced Mobile Responsive */
   .main-wrapper {
     @apply w-full min-h-screen flex flex-col items-center justify-center;
     padding: 1rem;
     margin: 0 auto;
+    transition: all 0.3s ease;
+  }
+
+  /* Mobile Layout - Stack sidebar and content vertically */
+  @media (max-width: 768px) {
+    .main-wrapper {
+      @apply flex-col;
+      padding: 0.5rem;
+    }
+    
+    /* Mobile content area */
+    .content-area {
+      @apply w-full flex-1;
+      padding: 1rem 0.5rem;
+    }
+    
+    /* Mobile form containers */
+    .form-container {
+      @apply w-full max-w-full;
+      padding: 1rem;
+    }
+    
+    /* Mobile card spacing */
+    .card-spacing {
+      @apply space-y-3;
+    }
   }
   
   /* Content container */
@@ -591,21 +617,43 @@
     @apply shadow-gray-200;
   }
   
-  /* Button Styles - Enhanced for Light/Dark Mode */
+  /* Button Styles - Enhanced for Light/Dark Mode with Mobile Optimization */
   .btn-primary {
     @apply bg-primary text-primary-foreground px-6 py-3 rounded-xl font-medium transition-all duration-400 hover:bg-primary/90 hover:shadow-lg hover:-translate-y-0.5;
+    min-height: 44px; /* Touch-friendly minimum height */
   }
   
   .btn-secondary {
     @apply bg-secondary text-secondary-foreground px-6 py-3 rounded-xl font-medium transition-all duration-400 hover:bg-secondary/90 hover:shadow-lg hover:-translate-y-0.5;
+    min-height: 44px; /* Touch-friendly minimum height */
   }
   
   .btn-outline {
     @apply border border-border bg-background text-foreground px-6 py-3 rounded-xl font-medium transition-all duration-400 hover:bg-accent hover:text-accent-foreground hover:shadow-lg hover:-translate-y-0.5;
+    min-height: 44px; /* Touch-friendly minimum height */
   }
   
   .btn-ghost {
     @apply bg-transparent text-foreground px-6 py-3 rounded-xl font-medium transition-all duration-400 hover:bg-accent hover:text-accent-foreground;
+    min-height: 44px; /* Touch-friendly minimum height */
+  }
+
+  /* Mobile Button Optimizations */
+  @media (max-width: 768px) {
+    .btn-primary, .btn-secondary, .btn-outline, .btn-ghost {
+      @apply px-4 py-3 text-base; /* Larger touch targets */
+      min-height: 48px; /* Even larger for mobile */
+      width: 100%; /* Full width on mobile for easier tapping */
+    }
+    
+    /* Button groups on mobile */
+    .button-group {
+      @apply flex flex-col space-y-3;
+    }
+    
+    .button-group.horizontal {
+      @apply flex-row space-y-0 space-x-3;
+    }
   }
   
   /* Header Styles */
@@ -614,14 +662,56 @@
     height: 4rem;
   }
   
-  /* Sidebar Styles */
+  /* Sidebar Styles - Enhanced Mobile Responsive */
   .sidebar-modern {
     @apply bg-card border-r border-border shadow-lg;
     width: 16rem;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    transition: all 0.3s ease;
   }
   
   .sidebar-modern.collapsed {
     width: 4rem;
+  }
+
+  /* Mobile Sidebar - Horizontal Navigation */
+  @media (max-width: 768px) {
+    .sidebar-modern {
+      width: 100%;
+      height: auto;
+      flex-direction: row;
+      justify-content: space-around;
+      align-items: center;
+      padding: 0.5rem;
+      position: relative;
+      border-right: none;
+      border-bottom: 1px solid hsl(var(--border));
+    }
+    
+    .sidebar-modern.collapsed {
+      width: 100%;
+    }
+    
+    .sidebar-modern nav {
+      display: flex;
+      gap: 0.5rem;
+      width: 100%;
+      justify-content: space-around;
+    }
+    
+    .sidebar-modern nav a {
+      padding: 0.5rem;
+      font-size: 0.875rem;
+      flex: 1;
+      text-align: center;
+      border-radius: 0.5rem;
+      transition: all 0.2s ease;
+    }
   }
   
   /* Navigation Styles */
@@ -633,13 +723,45 @@
     @apply bg-primary text-primary-foreground shadow-md;
   }
   
-  /* Form Styles - Enhanced for Light/Dark Mode */
+  /* Form Styles - Enhanced for Light/Dark Mode with Mobile Optimization */
   .input-modern {
     @apply flex h-12 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-400;
   }
   
   .input-modern:focus {
     @apply border-ring;
+  }
+
+  /* Mobile Form Optimizations */
+  @media (max-width: 768px) {
+    .input-modern {
+      @apply h-11 px-3 py-2 text-base; /* Larger touch targets and text */
+    }
+    
+    .form-grid {
+      @apply grid grid-cols-1 gap-3;
+    }
+    
+    .form-section {
+      @apply space-y-3;
+    }
+    
+    /* Better mobile form spacing */
+    .form-centered {
+      @apply px-4 py-3;
+      max-width: 100%;
+    }
+    
+    /* Mobile-friendly textarea */
+    textarea {
+      @apply text-base; /* Prevent zoom on iOS */
+      min-height: 6rem;
+    }
+    
+    /* Mobile-friendly select */
+    select {
+      @apply text-base; /* Prevent zoom on iOS */
+    }
   }
   
   /* Select Styles */

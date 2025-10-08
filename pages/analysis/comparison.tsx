@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui';
 import { Button } from '../../components/ui';
 import { Input } from '../../components/ui';
+import { Badge } from '../../components/ui/badge';
 import { 
   BarChart3, 
   TrendingUp, 

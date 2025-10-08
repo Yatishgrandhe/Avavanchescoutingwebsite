@@ -281,8 +281,8 @@ export class TeamPickAI {
     const allStrengths = currentStats.map(stats => this.identifyStrengths(stats)).flat();
     const allWeaknesses = currentStats.map(stats => this.identifyWeaknesses(stats)).flat();
     
-    const specializationCoverage = [...new Set(allStrengths)];
-    const potentialWeaknesses = [...new Set(allWeaknesses)];
+    const specializationCoverage = Array.from(new Set(allStrengths));
+    const potentialWeaknesses = Array.from(new Set(allWeaknesses));
     
     // Generate strategic recommendations
     const strategicRecommendations: string[] = [];

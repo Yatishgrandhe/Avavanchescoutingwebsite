@@ -2276,3 +2276,102 @@
     padding: 0.5rem;
   }
 }
+
+/* FINAL UNIVERSAL MOBILE FIXES */
+@media screen and (max-width: 768px) {
+  html, body {
+    width: 100%;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    margin: 0;
+    padding: 0;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Fix layout scaling and zoom issues */
+  body {
+    display: flex;
+    flex-direction: column !important;
+    align-items: center;
+    justify-content: flex-start;
+    font-size: 16px;
+    line-height: 1.6;
+    text-align: center;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Sidebar collapses fully */
+  .sidebar, .sidebar-modern {
+    width: 100% !important;
+    height: auto !important;
+    position: relative !important;
+    padding: 0.75rem 1rem !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Nav bar adjustments */
+  nav, .nav-links, .nav-item {
+    width: 100% !important;
+    text-align: center !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Forms full width */
+  form, .form-container, .form-centered, .content, .main-wrapper {
+    width: 100% !important;
+    max-width: 100vw !important;
+    padding: 1rem !important;
+    margin: 0 auto !important;
+    box-sizing: border-box;
+  }
+
+  /* Input & buttons consistent on mobile */
+  input, select, textarea, button {
+    font-size: 16px !important; /* prevent iOS zoom */
+    width: 100% !important;
+    border-radius: 8px;
+  }
+
+  /* Cards and containers centered */
+  .card-modern, .content-container, .container-main, .homepage-feature-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0.5rem 0 !important;
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  /* Prevent image or icon overflow */
+  img, svg, canvas, video {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block;
+    margin: 0 auto;
+  }
+
+  /* Buttons stretch and stay aligned */
+  .btn, .btn-primary, .btn-secondary, .btn-outline {
+    width: 100% !important;
+    min-height: 48px;
+    font-size: 1rem !important;
+  }
+
+  /* Prevent scrollbars caused by transforms or shadows */
+  * {
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* Ensure consistent centering on all browsers */
+@supports (-webkit-touch-callout: none) {
+  html, body {
+    text-align: center !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+}

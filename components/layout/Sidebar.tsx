@@ -104,15 +104,49 @@ const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
+  // Mobile navigation - horizontal layout
+  if (isMobile) {
+    return (
+      <div className="w-full">
+        <nav className="flex items-center justify-around space-x-1">
+          {menuItems.map((section) => 
+            section.items.map((item) => {
+              const isActive = router.pathname === item.href;
+              const Icon = item.icon;
+              
+              return (
+                <Link key={item.href} href={item.href}>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-200 min-w-0 flex-1",
+                      isActive 
+                        ? "bg-primary text-primary-foreground" 
+                        : "text-muted-foreground hover:text-accent-foreground hover:bg-accent"
+                    )}
+                  >
+                    <Icon size={20} className="mb-1" />
+                    <span className="text-xs font-medium truncate text-center">
+                      {item.label}
+                    </span>
+                  </motion.div>
+                </Link>
+              );
+            })
+          )}
+        </nav>
+      </div>
+    );
+  }
+
+  // Desktop sidebar - vertical layout
   return (
     <motion.div
       initial={{ width: isCollapsed ? 64 : 256 }}
       animate={{ width: isCollapsed ? 64 : 256 }}
       transition={{ duration: 0.4, ease: 'easeInOut' }}
-      className={cn(
-        "sidebar-modern h-full flex flex-col",
-        isMobile && "fixed inset-y-0 left-0 z-50"
-      )}
+      className="sidebar-modern h-full flex flex-col"
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">

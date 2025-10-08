@@ -403,6 +403,70 @@
     .card-spacing {
       @apply space-y-3;
     }
+
+    /* Mobile container fixes */
+    .container-main {
+      @apply w-full max-w-full px-2;
+      margin: 0;
+      padding: 1rem 0.5rem;
+    }
+
+    /* Mobile form optimizations */
+    .form-centered {
+      @apply w-full max-w-full px-2;
+      padding: 1rem 0.5rem;
+    }
+
+    /* Mobile card optimizations */
+    .card-modern {
+      @apply w-full max-w-full mx-0;
+      margin: 0.5rem 0;
+      padding: 1rem;
+    }
+
+    /* Mobile grid fixes */
+    .grid {
+      @apply grid-cols-1 gap-2;
+    }
+
+    /* Mobile text optimizations */
+    h1 {
+      @apply text-xl;
+    }
+    
+    h2 {
+      @apply text-lg;
+    }
+    
+    h3 {
+      @apply text-base;
+    }
+
+    /* Mobile button optimizations */
+    .btn-primary, .btn-secondary, .btn-outline, .btn-ghost {
+      @apply w-full py-3 text-base;
+      min-height: 48px;
+    }
+
+    /* Mobile input optimizations */
+    input, textarea, select {
+      @apply text-base; /* Prevent iOS zoom */
+      min-height: 44px;
+    }
+
+    /* Mobile navigation fixes */
+    .sidebar-modern {
+      @apply w-full h-auto;
+      position: relative;
+      border: none;
+    }
+
+    /* Mobile header fixes */
+    .header-modern {
+      @apply px-2 py-2;
+      height: auto;
+      min-height: 60px;
+    }
   }
   
   /* Content container */

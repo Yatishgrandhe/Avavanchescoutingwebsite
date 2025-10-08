@@ -104,7 +104,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
-  // Mobile navigation - horizontal layout with Dashboard
+  // Mobile navigation - horizontal scrollable layout with Dashboard
   if (isMobile) {
     const mobileItems = [
       {
@@ -122,7 +122,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     return (
       <div className="w-full">
-        <nav className="flex items-center justify-around space-x-1">
+        <nav className="flex items-center space-x-2 mobile-nav-scroll scrollbar-hide">
           {mobileItems.map((item) => {
             const isActive = router.pathname === item.href;
             const Icon = item.icon;
@@ -142,7 +142,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     }
                   }}
                   className={cn(
-                    "flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-200 min-w-0 flex-1",
+                    "flex flex-col items-center justify-center mobile-nav-item rounded-lg transition-all duration-200",
                     isActive 
                       ? "bg-primary text-primary-foreground" 
                       : "text-muted-foreground hover:text-accent-foreground hover:bg-accent"

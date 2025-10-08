@@ -2360,6 +2360,66 @@ body::-webkit-scrollbar-thumb:hover,
   background: transparent;
 }
 
+/* Mobile navigation horizontal scroll - Hidden scrollbars */
+.scrollbar-hide {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and Edge */
+  -webkit-overflow-scrolling: touch !important; /* Smooth scrolling on iOS */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+.scrollbar-hide::-webkit-scrollbar-track {
+  display: none !important;
+  background: transparent !important;
+}
+
+.scrollbar-hide::-webkit-scrollbar-thumb {
+  display: none !important;
+  background: transparent !important;
+}
+
+.scrollbar-hide::-webkit-scrollbar-thumb:hover {
+  display: none !important;
+  background: transparent !important;
+}
+
+/* Mobile navigation specific styles */
+@media screen and (max-width: 768px) {
+  /* Enhanced mobile navigation scrolling */
+  .mobile-nav-scroll {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scroll-behavior: smooth !important;
+    padding-bottom: 0.5rem !important;
+  }
+  
+  /* Mobile navigation items */
+  .mobile-nav-item {
+    min-width: 80px !important;
+    flex-shrink: 0 !important;
+    padding: 0.75rem 0.5rem !important;
+    margin-right: 0.5rem !important;
+  }
+  
+  /* Smooth scrolling for mobile nav */
+  .mobile-nav-scroll::-webkit-scrollbar {
+    display: none !important;
+    height: 0 !important;
+  }
+  
+  .mobile-nav-scroll {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+}
+
 /* Responsive adjustments for pick lists */
 @media (max-width: 1200px) {
   .pick-lists-container .grid {

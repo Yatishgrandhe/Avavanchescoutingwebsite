@@ -130,7 +130,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.user_metadata?.avatar_url} alt={user.user_metadata?.full_name || user.email} />
+                        <AvatarImage 
+                          src={user.user_metadata?.avatar_url || user.user_metadata?.picture} 
+                          alt={user.user_metadata?.full_name || user.email}
+                          onError={(e) => {
+                            // Fallback to Discord CDN if avatar_url fails
+                            const target = e.target as HTMLImageElement;
+                            if (user.user_metadata?.avatar_url && !target.src.includes('discord')) {
+                              target.src = `https://cdn.discordapp.com/avatars/${user.user_metadata?.sub}/${user.user_metadata?.avatar_url}.png?size=32`;
+                            }
+                          }}
+                        />
                         <AvatarFallback>
                           {(user.user_metadata?.full_name || user.email || 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
                         </AvatarFallback>

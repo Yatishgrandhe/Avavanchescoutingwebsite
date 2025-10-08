@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../ui';
+import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui';
 import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
 
 interface EndgameFormProps {
@@ -20,9 +20,17 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
     endgame_park: false,
     endgame_shallow_cage: false,
     endgame_deep_cage: false,
+    endgame_score: '',
   });
 
   const handleCheckboxChange = (field: keyof typeof formData, value: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleSelectChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
@@ -118,6 +126,32 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
                 className="w-4 h-4 text-reef-600 bg-dark-600 border-dark-500 rounded focus:ring-reef-500"
               />
             </div>
+          </div>
+
+          {/* Endgame Score Dropdown */}
+          <div className="p-4 bg-dark-700 rounded-lg">
+            <div className="mb-3">
+              <h3 className="text-white font-medium">Endgame Score</h3>
+              <p className="text-gray-400 text-sm">Select the endgame score achieved</p>
+            </div>
+            <Select 
+              value={formData.endgame_score} 
+              onValueChange={(value) => handleSelectChange('endgame_score', value)}
+            >
+              <SelectTrigger className="w-full bg-dark-600 border-dark-500 text-white">
+                <SelectValue placeholder="Select endgame score" />
+              </SelectTrigger>
+              <SelectContent className="bg-dark-700 border-dark-600">
+                <SelectItem value="none" className="text-white hover:bg-dark-600">No Endgame Score</SelectItem>
+                <SelectItem value="park" className="text-white hover:bg-dark-600">Park in Barge Zone (+{SCORING_VALUES.endgame_park} pts)</SelectItem>
+                <SelectItem value="shallow" className="text-white hover:bg-dark-600">Shallow Cage (+{SCORING_VALUES.endgame_shallow_cage} pts)</SelectItem>
+                <SelectItem value="deep" className="text-white hover:bg-dark-600">Deep Cage (+{SCORING_VALUES.endgame_deep_cage} pts)</SelectItem>
+                <SelectItem value="park_shallow" className="text-white hover:bg-dark-600">Park + Shallow Cage (+{SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_shallow_cage} pts)</SelectItem>
+                <SelectItem value="park_deep" className="text-white hover:bg-dark-600">Park + Deep Cage (+{SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_deep_cage} pts)</SelectItem>
+                <SelectItem value="shallow_deep" className="text-white hover:bg-dark-600">Shallow + Deep Cage (+{SCORING_VALUES.endgame_shallow_cage + SCORING_VALUES.endgame_deep_cage} pts)</SelectItem>
+                <SelectItem value="all" className="text-white hover:bg-dark-600">All Endgame Actions (+{SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_shallow_cage + SCORING_VALUES.endgame_deep_cage} pts)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Total Points Display */}

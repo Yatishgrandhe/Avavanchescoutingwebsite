@@ -82,6 +82,7 @@
     height: 100%;
     width: 100%;
     overflow-x: hidden;
+    overflow-y: auto;
     background: #f7f8fa;
   }
 
@@ -99,6 +100,7 @@
   html {
     scroll-behavior: smooth;
     overflow-x: hidden;
+    overflow-y: auto;
   }
   
   body {
@@ -113,6 +115,7 @@
     margin: 0;
     padding: 0;
     overflow-x: hidden;
+    overflow-y: auto;
     position: relative;
   }
   
@@ -121,7 +124,6 @@
   /* Chrome/WebKit specific fixes */
   @supports (-webkit-appearance: none) {
     html {
-      overflow-y: scroll !important; /* Force scrollbar to prevent layout shifts */
       overflow-x: hidden !important;
       max-width: 100vw !important;
       text-align: center !important;
@@ -204,6 +206,7 @@
   /* Prevent horizontal scrolling on all elements */
   body, html, #__next, .container, .container-main, .content-container {
     max-width: 100vw !important;
+    overflow-x: hidden !important;
   }
   
   /* Prevent text overflow and ensure proper containment */
@@ -217,6 +220,7 @@
   /* Container overflow prevention */
   .container, .container-main, .content-container {
     overflow-x: hidden;
+    overflow-y: auto;
     max-width: 100%;
     width: 100%;
     margin: 0 auto;
@@ -1293,22 +1297,135 @@
   }
 }
 
-/* Custom scrollbar - Enhanced for Light/Dark Mode */
+/* COMPLETELY HIDE ALL SCROLLBARS GLOBALLY - ENHANCED */
+html, body, * {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and Edge */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
+  display: none !important;
+  background: transparent !important;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  display: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:hover {
+  display: none !important;
+  background: transparent !important;
+}
+
+/* Additional global scrollbar hiding */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 0px !important;
+  height: 0px !important;
+  background: transparent !important;
+  display: none !important;
 }
 
 ::-webkit-scrollbar-track {
-  background: hsl(var(--muted));
+  background: transparent !important;
+  display: none !important;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground));
-  border-radius: 4px;
+  background: transparent !important;
+  border-radius: 0px !important;
+  display: none !important;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--foreground));
+  background: transparent !important;
+  display: none !important;
+}
+
+/* COMPLETELY HIDE ALL SCROLLBARS ON MOBILE */
+@media screen and (max-width: 768px) {
+  /* Hide scrollbars on ALL elements */
+  html, body, * {
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE and Edge */
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  *::-webkit-scrollbar {
+    display: none !important; /* Chrome, Safari, Opera */
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+  }
+  
+  html::-webkit-scrollbar-track,
+  body::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-track {
+    display: none !important;
+    background: transparent !important;
+  }
+  
+  html::-webkit-scrollbar-thumb,
+  body::-webkit-scrollbar-thumb,
+  *::-webkit-scrollbar-thumb {
+    display: none !important;
+    background: transparent !important;
+  }
+  
+  /* Force no overflow on mobile */
+  html, body {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    max-width: 100vw !important;
+  }
+  
+  /* Prevent ANY element from causing horizontal scroll */
+  * {
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Specific container fixes */
+  .container, .container-main, .content-container, .main-wrapper, .form-container, .form-centered {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+  }
+  
+  /* Card and component fixes */
+  .card-modern, .card, .homepage-feature-card {
+    overflow-x: hidden !important;
+    max-width: 100% !important;
+  }
+  
+  /* Navigation fixes */
+  nav, .nav-links, .sidebar, .sidebar-modern {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+  
+  /* Form fixes */
+  form, .form-group, input, select, textarea {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
 }
 
 /* Smooth transitions */
@@ -2224,23 +2341,23 @@
   margin-top: 0.5rem;
 }
 
-/* Enhanced horizontal scroll for pick lists */
+/* Enhanced horizontal scroll for pick lists - Hidden by default */
 .pick-lists-container::-webkit-scrollbar {
-  height: 8px;
+  height: 0px;
+  background: transparent;
 }
 
 .pick-lists-container::-webkit-scrollbar-track {
-  background: hsl(var(--muted));
-  border-radius: 4px;
+  background: transparent;
 }
 
 .pick-lists-container::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground));
-  border-radius: 4px;
+  background: transparent;
+  border-radius: 0px;
 }
 
 .pick-lists-container::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--foreground));
+  background: transparent;
 }
 
 /* Responsive adjustments for pick lists */
@@ -2276,7 +2393,7 @@
   }
 }
 
-/* FINAL UNIVERSAL MOBILE FIXES */
+/* ENHANCED MOBILE VERTICAL FORM FIXES */
 @media screen and (max-width: 768px) {
   html, body {
     width: 100%;
@@ -2285,66 +2402,168 @@
     margin: 0;
     padding: 0;
     -webkit-text-size-adjust: 100%;
+    font-size: 16px;
   }
 
-  /* Fix layout scaling and zoom issues */
+  /* Improved mobile body layout */
   body {
     display: flex;
     flex-direction: column !important;
-    align-items: center;
+    align-items: stretch;
     justify-content: flex-start;
-    font-size: 16px;
-    line-height: 1.6;
-    text-align: center;
+    min-height: 100vh;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 
-  /* Sidebar collapses fully */
+  /* Enhanced form containers */
+  .form-container, .form-centered {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 1.5rem 1rem !important;
+    margin: 0 !important;
+    box-sizing: border-box;
+    background: hsl(var(--card));
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  /* Improved form layout */
+  form {
+    width: 100% !important;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Enhanced form groups */
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  /* Better form labels */
+  .form-group label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: hsl(var(--foreground));
+    margin-bottom: 0.5rem;
+    text-align: left;
+  }
+
+  /* Improved input styling */
+  input, select, textarea {
+    font-size: 16px !important; /* prevent iOS zoom */
+    width: 100% !important;
+    padding: 0.875rem 1rem !important;
+    border: 2px solid hsl(var(--border)) !important;
+    border-radius: 8px !important;
+    background: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+    min-height: 48px !important;
+    box-sizing: border-box !important;
+    transition: border-color 0.2s ease;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none !important;
+    border-color: hsl(var(--primary)) !important;
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1) !important;
+  }
+
+  /* Enhanced button styling */
+  .btn, .btn-primary, .btn-secondary, .btn-outline {
+    width: 100% !important;
+    min-height: 52px !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    padding: 0.875rem 1.5rem !important;
+    border-radius: 8px !important;
+    margin-top: 0.5rem;
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary {
+    background: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+    border: none !important;
+  }
+
+  .btn-secondary {
+    background: hsl(var(--secondary)) !important;
+    color: hsl(var(--secondary-foreground)) !important;
+    border: none !important;
+  }
+
+  .btn-outline {
+    background: transparent !important;
+    color: hsl(var(--foreground)) !important;
+    border: 2px solid hsl(var(--border)) !important;
+  }
+
+  /* Better card styling */
+  .card-modern {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 1rem 0 !important;
+    padding: 1.5rem !important;
+    border-radius: 12px !important;
+    box-sizing: border-box;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+  }
+
+  /* Improved container layout */
+  .container, .container-main, .content-container, .main-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 1rem !important;
+    margin: 0 !important;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Better sidebar on mobile */
   .sidebar, .sidebar-modern {
     width: 100% !important;
     height: auto !important;
     position: relative !important;
-    padding: 0.75rem 1rem !important;
+    padding: 1rem !important;
     border: none !important;
     box-shadow: none !important;
+    background: hsl(var(--card));
+    border-bottom: 1px solid hsl(var(--border));
   }
 
-  /* Nav bar adjustments */
-  nav, .nav-links, .nav-item {
+  /* Improved navigation */
+  nav, .nav-links {
     width: 100% !important;
-    text-align: center !important;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: space-around;
     align-items: center;
     gap: 0.5rem;
+    padding: 0.5rem 0;
   }
 
-  /* Forms full width */
-  form, .form-container, .form-centered, .content, .main-wrapper {
-    width: 100% !important;
-    max-width: 100vw !important;
-    padding: 1rem !important;
-    margin: 0 auto !important;
-    box-sizing: border-box;
-  }
-
-  /* Input & buttons consistent on mobile */
-  input, select, textarea, button {
-    font-size: 16px !important; /* prevent iOS zoom */
-    width: 100% !important;
-    border-radius: 8px;
-  }
-
-  /* Cards and containers centered */
-  .card-modern, .content-container, .container-main, .homepage-feature-card {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0.5rem 0 !important;
+  .nav-item {
+    flex: 1;
     text-align: center;
-    box-sizing: border-box;
+    padding: 0.75rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
   }
 
-  /* Prevent image or icon overflow */
+  /* Prevent image overflow */
   img, svg, canvas, video {
     max-width: 100% !important;
     height: auto !important;
@@ -2352,16 +2571,63 @@
     margin: 0 auto;
   }
 
-  /* Buttons stretch and stay aligned */
-  .btn, .btn-primary, .btn-secondary, .btn-outline {
-    width: 100% !important;
-    min-height: 48px;
-    font-size: 1rem !important;
+  /* Better text handling */
+  h1, h2, h3, h4, h5, h6 {
+    text-align: center;
+    margin: 1rem 0 0.5rem 0;
+    line-height: 1.3;
   }
 
-  /* Prevent scrollbars caused by transforms or shadows */
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+
+  p {
+    text-align: left;
+    margin: 0.75rem 0;
+    line-height: 1.6;
+  }
+
+  /* Universal box sizing */
   * {
     box-sizing: border-box !important;
+  }
+
+  /* Mobile form optimizations */
+  .mobile-form-step {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .mobile-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .mobile-form-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: hsl(var(--foreground));
+  }
+  
+  .mobile-form-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid hsl(var(--border));
+    border-radius: 8px;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-size: 16px;
+    min-height: 48px;
+  }
+  
+  .mobile-form-input:focus {
+    outline: none;
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
   }
 }
 
@@ -2376,7 +2642,7 @@
 
 /* === FINAL UNIVERSAL MOBILE + VERTICAL VIEW FIXES === */
 
-/* General vertical (portrait) layout adjustments */
+/* Enhanced portrait orientation layout */
 @media screen and (orientation: portrait) {
   html, body {
     width: 100%;
@@ -2386,59 +2652,165 @@
     margin: 0;
     padding: 0;
     -webkit-text-size-adjust: 100%;
-    text-align: center;
+    font-size: 16px;
   }
 
   body {
     display: flex;
     flex-direction: column !important;
-    align-items: center !important;
+    align-items: stretch !important;
     justify-content: flex-start !important;
-    line-height: 1.6;
-    font-size: 1rem;
+    min-height: 100vh;
+    line-height: 1.5;
     background: hsl(var(--background));
     color: hsl(var(--foreground));
   }
 
-  /* Make all containers fully fit vertical screens */
-  .container, .container-main, .content-container, .main-wrapper {
+  /* Enhanced form containers for portrait */
+  .form-container, .form-centered {
     width: 100% !important;
-    max-width: 100vw !important;
-    padding: 1rem !important;
-    margin: 0 auto !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
+    max-width: 100% !important;
+    padding: 1.5rem 1rem !important;
+    margin: 0 !important;
     box-sizing: border-box;
+    background: hsl(var(--card));
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
 
-  /* Sidebar auto-stacks vertically */
+  /* Better form layout in portrait */
+  form {
+    width: 100% !important;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Enhanced form groups */
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  /* Better form labels */
+  .form-group label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: hsl(var(--foreground));
+    margin-bottom: 0.5rem;
+    text-align: left;
+  }
+
+  /* Improved inputs for portrait */
+  input, select, textarea {
+    font-size: 16px !important; /* prevent iOS zoom */
+    width: 100% !important;
+    padding: 0.875rem 1rem !important;
+    border: 2px solid hsl(var(--border)) !important;
+    border-radius: 8px !important;
+    background: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+    min-height: 48px !important;
+    box-sizing: border-box !important;
+    transition: border-color 0.2s ease;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none !important;
+    border-color: hsl(var(--primary)) !important;
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1) !important;
+  }
+
+  /* Enhanced buttons for portrait */
+  button, .btn, .btn-primary, .btn-secondary, .btn-outline {
+    width: 100% !important;
+    min-height: 52px !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    padding: 0.875rem 1.5rem !important;
+    border-radius: 8px !important;
+    margin-top: 0.5rem;
+    transition: all 0.2s ease;
+  }
+
+  /* Better containers for portrait */
+  .container, .container-main, .content-container, .main-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 1rem !important;
+    margin: 0 !important;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Enhanced cards for portrait */
+  .card-modern, .homepage-feature-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 1rem 0 !important;
+    padding: 1.5rem !important;
+    border-radius: 12px !important;
+    box-sizing: border-box;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+  }
+
+  /* Better sidebar for portrait */
   .sidebar, .sidebar-modern {
     width: 100% !important;
     height: auto !important;
     position: relative !important;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 0.75rem 1rem !important;
+    padding: 1rem !important;
     border: none !important;
     box-shadow: none !important;
+    background: hsl(var(--card));
+    border-bottom: 1px solid hsl(var(--border));
   }
 
-  /* Ensure all cards and forms resize properly */
-  .card-modern, .form-container, .form-centered, .homepage-feature-card {
+  /* Improved navigation for portrait */
+  nav, .nav-links {
     width: 100% !important;
-    max-width: 100% !important;
-    margin: 0.75rem 0 !important;
-    padding: 1rem !important;
-    box-sizing: border-box;
-    text-align: center;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
   }
 
-  /* Images and icons fit nicely */
+  .nav-item {
+    flex: 1;
+    text-align: center;
+    padding: 0.75rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+  }
+
+  /* Better text handling */
+  h1, h2, h3, h4, h5, h6 {
+    text-align: center;
+    margin: 1rem 0 0.5rem 0;
+    line-height: 1.3;
+  }
+
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+
+  p {
+    text-align: left;
+    margin: 0.75rem 0;
+    line-height: 1.6;
+  }
+
+  /* Images and icons */
   img, svg, canvas, video {
     max-width: 100% !important;
     height: auto !important;
@@ -2446,40 +2818,15 @@
     margin: 0 auto;
   }
 
-  /* Buttons and inputs stay visible and usable */
-  button, .btn, .btn-primary, .btn-secondary, .btn-outline {
-    width: 100% !important;
-    min-height: 48px !important;
-    font-size: 1rem !important;
-    text-align: center !important;
-  }
-
-  input, select, textarea {
-    font-size: 16px !important; /* prevent iOS zoom */
-    width: 100% !important;
-    border-radius: 8px !important;
-    padding: 0.75rem !important;
-  }
-
-  /* Prevent overflow from headings or text */
-  h1, h2, h3, p, span, div {
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    text-align: center !important;
-    max-width: 100% !important;
-  }
-
-  /* Ensure no element causes sideways scrolling */
+  /* Universal box sizing */
   * {
     max-width: 100% !important;
     box-sizing: border-box !important;
   }
 
-  /* Add smooth auto-scaling when rotating devices */
+  /* Smooth transitions for orientation changes */
   html {
-    zoom: 1;
-    transform-origin: top center;
-    transition: transform 0.3s ease-in-out;
+    transition: all 0.3s ease-in-out;
   }
 }
 
@@ -2488,8 +2835,33 @@
   html, body {
     font-size: 15px;
   }
-  .form-container, .card-modern {
-    padding: 0.75rem !important;
+  
+  .form-container, .form-centered {
+    padding: 1rem 0.75rem !important;
+  }
+  
+  .card-modern {
+    padding: 1rem !important;
+    margin: 0.5rem 0 !important;
+  }
+  
+  input, select, textarea {
+    padding: 0.75rem 0.875rem !important;
+    font-size: 16px !important;
+  }
+  
+  .btn, .btn-primary, .btn-secondary, .btn-outline {
+    padding: 0.75rem 1rem !important;
+    font-size: 0.95rem !important;
+  }
+  
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.125rem; }
+  
+  .nav-item {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.8rem;
   }
 }
 
@@ -2507,5 +2879,77 @@
 @media screen and (orientation: portrait), screen and (orientation: landscape) {
   html, body, .container-main {
     transition: all 0.4s ease-in-out !important;
+  }
+}
+
+/* Enhanced mobile orientation support */
+@media screen and (max-width: 768px) {
+  /* Portrait orientation optimizations */
+  @media screen and (orientation: portrait) {
+    .mobile-portrait-layout {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    .mobile-portrait-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+    
+    .mobile-portrait-nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: hsl(var(--card));
+      border-bottom: 1px solid hsl(var(--border));
+    }
+  }
+  
+  /* Landscape orientation optimizations */
+  @media screen and (orientation: landscape) {
+    .mobile-landscape-layout {
+      display: flex;
+      flex-direction: row;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    .mobile-landscape-nav {
+      width: 200px;
+      flex-shrink: 0;
+      background: hsl(var(--card));
+      border-right: 1px solid hsl(var(--border));
+    }
+    
+    .mobile-landscape-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+  }
+  
+  /* Universal mobile improvements */
+  .mobile-optimized {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+  
+  .mobile-touch-target {
+    min-height: 48px;
+    min-width: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .mobile-scroll-container {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 }

@@ -31,6 +31,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true); // Always dark mode
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   // Auto-collapse sidebar on mobile/tablet
   useEffect(() => {
@@ -40,6 +41,34 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       setIsSidebarCollapsed(false);
     }
   }, [screenInfo.isMobile, screenInfo.isTablet]);
+
+  // Close mobile nav when clicking outside or on navigation links
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isMobileNavOpen && screenInfo.isMobile) {
+        const target = event.target as Element;
+        // Close if clicking outside the mobile nav container
+        if (!target.closest('.mobile-nav-container') && !target.closest('.mobile-nav-trigger')) {
+          setIsMobileNavOpen(false);
+        }
+      }
+    };
+
+    // Also close on route change
+    const handleRouteChange = () => {
+      if (isMobileNavOpen && screenInfo.isMobile) {
+        setIsMobileNavOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isMobileNavOpen, screenInfo.isMobile]);
 
   // Set dark mode as default and remove theme switching
   useEffect(() => {
@@ -57,11 +86,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
+  const toggleMobileNav = () => {
+    setIsMobileNavOpen(!isMobileNavOpen);
+  };
+
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-400 overflow-x-hidden max-w-full">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-400 overflow-x-hidden overflow-y-auto max-w-full">
       {/* Mobile Layout - Stack vertically */}
       {screenInfo.isMobile ? (
-        <div className="flex flex-col h-screen w-full max-w-full overflow-x-hidden">
+        <div className="flex flex-col h-screen w-full max-w-full overflow-x-hidden overflow-y-auto">
           {/* Mobile Header with Navigation */}
           <motion.header
             initial={{ opacity: 0, y: -10 }}
@@ -70,6 +103,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             className="header-modern flex items-center justify-between px-4 py-3 bg-card border-b border-border w-full max-w-full overflow-x-hidden"
           >
             <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleMobileNav}
+                className="p-2 md:hidden mobile-nav-trigger"
+              >
+                {isMobileNavOpen ? <X size={20} /> : <Menu size={20} />}
+              </Button>
               <Logo size="sm" />
               <h1 className="text-lg font-heading font-bold text-foreground">
                 Avalanche Scouting
@@ -136,24 +177,39 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           </motion.header>
 
-          {/* Mobile Navigation Bar */}
-          <div className="bg-card border-b border-border px-2 py-2 w-full max-w-full overflow-x-hidden">
-            <Sidebar
-              isCollapsed={false}
-              onToggle={toggleSidebar}
-              user={user ? {
-                name: user.user_metadata?.full_name || user.email || 'User',
-                username: user.user_metadata?.username || user.email,
-                image: user.user_metadata?.avatar_url
-              } : undefined}
-              isDarkMode={isDarkMode}
-              isMobile={true}
-              isAdmin={isAdmin}
-            />
-          </div>
+          {/* Collapsible Mobile Navigation Bar */}
+          <AnimatePresence>
+            {isMobileNavOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mobile-nav-container bg-card border-b border-border w-full max-w-full overflow-x-hidden"
+              >
+                <div className="px-2 py-2">
+                  <Sidebar
+                    isCollapsed={false}
+                    onToggle={() => {
+                      toggleSidebar();
+                      setIsMobileNavOpen(false); // Close mobile nav when toggling
+                    }}
+                    user={user ? {
+                      name: user.user_metadata?.full_name || user.email || 'User',
+                      username: user.user_metadata?.username || user.email,
+                      image: user.user_metadata?.avatar_url
+                    } : undefined}
+                    isDarkMode={isDarkMode}
+                    isMobile={true}
+                    isAdmin={isAdmin}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Mobile Content */}
-          <div className="flex-1 overflow-auto w-full max-w-full">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full">
             <div className="container-main py-4 px-4 w-full max-w-full overflow-x-hidden">
               <div className="content-spacing w-full max-w-full">
                 {children}
@@ -163,7 +219,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       ) : (
         /* Desktop Layout - Side by side */
-        <div className="flex h-screen">
+        <div className="flex h-screen overflow-hidden">
           {/* Sidebar */}
           <div className={`transition-all duration-400 ${isSidebarCollapsed ? 'w-16' : 'w-64'} relative`}>
             <Sidebar
@@ -181,7 +237,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {/* Top Bar */}
             <motion.header
               initial={{ opacity: 0, y: -10 }}
@@ -270,7 +326,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3, delay: 0.1 }}
-              className="flex-1 overflow-auto"
+              className="flex-1 overflow-y-auto overflow-x-hidden"
             >
               <div className="container-main py-6">
                 <div className="content-spacing">

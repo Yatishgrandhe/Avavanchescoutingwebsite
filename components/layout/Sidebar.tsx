@@ -18,7 +18,8 @@ import {
   Database,
   FileText,
   List,
-  Eye
+  Eye,
+  BookOpen
 } from 'lucide-react';
 import { Button, Badge, Logo } from '../ui';
 import { cn } from '@/lib/utils';
@@ -47,6 +48,16 @@ const Sidebar: React.FC<SidebarProps> = ({
   const router = useRouter();
 
   const menuItems = [
+    {
+      title: 'Learn',
+      items: [
+        {
+          label: 'Game Rules',
+          href: '/learn-game',
+          icon: BookOpen,
+        },
+      ],
+    },
     {
       title: 'Scout',
       items: [

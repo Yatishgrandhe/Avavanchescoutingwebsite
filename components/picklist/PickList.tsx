@@ -150,15 +150,11 @@ interface TeamSelectorProps {
 }
 
 function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSelectorProps) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTeam, setSelectedTeam] = useState<string>('');
   const [sortBy, setSortBy] = useState<'score' | 'name' | 'number'>('score');
 
   const filteredTeams = availableTeams
-    .filter(team => 
-      !selectedTeamNumbers.includes(team.team_number) &&
-      (team.team_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       team.team_number.toString().includes(searchTerm))
-    )
+    .filter(team => !selectedTeamNumbers.includes(team.team_number))
     .sort((a, b) => {
       switch (sortBy) {
         case 'score':
@@ -172,21 +168,44 @@ function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSe
       }
     });
 
+  const handleAddSelectedTeam = () => {
+    if (!selectedTeam) return;
+    
+    const team = availableTeams.find(t => t.team_number.toString() === selectedTeam);
+    if (team) {
+      onAddTeam({
+        team_number: team.team_number,
+        team_name: team.team_name,
+        pick_order: 0, // Will be updated when added to list
+        stats: team.stats,
+      });
+      setSelectedTeam(''); // Reset selection
+    }
+  };
+
   return (
     <Card className="p-3 rounded-xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 w-full">
       <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-3">Available Teams</h3>
       
-      <div className="flex flex-col space-y-1 mb-3">
-        <Input
-          placeholder="Search teams..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 text-xs"
-        />
+      <div className="flex flex-col space-y-2 mb-3">
+        <select
+          value={selectedTeam}
+          onChange={(e) => setSelectedTeam(e.target.value)}
+          className="px-2 py-2 sm:py-1 border border-neutral-200 dark:border-neutral-600 rounded text-xs sm:text-sm bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 min-h-[40px]"
+        >
+          <option value="">Select a team to add...</option>
+          {filteredTeams.map((team) => (
+            <option key={team.team_number} value={team.team_number.toString()}>
+              Team {team.team_number} - {team.team_name}
+              {team.stats ? ` (${team.stats.avg_total_score.toFixed(1)} pts)` : ' (No stats)'}
+            </option>
+          ))}
+        </select>
+        
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as 'score' | 'name' | 'number')}
-          className="px-2 py-1 border border-neutral-200 dark:border-neutral-600 rounded text-xs bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100"
+          className="px-2 py-2 sm:py-1 border border-neutral-200 dark:border-neutral-600 rounded text-xs sm:text-sm bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 min-h-[40px]"
         >
           <option value="score">Sort by Score</option>
           <option value="name">Sort by Name</option>
@@ -194,55 +213,26 @@ function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSe
         </select>
       </div>
 
-      <div className="space-y-1 max-h-60 overflow-y-auto">
+      <Button
+        onClick={handleAddSelectedTeam}
+        disabled={!selectedTeam}
+        className="w-full px-2 py-2 sm:py-1 rounded bg-primary text-white hover:opacity-90 transition-opacity duration-300 text-xs sm:text-sm mb-3 min-h-[40px]"
+      >
+        <Plus className="h-3 w-3 mr-1" />
+        Add Selected Team
+      </Button>
+
+      <div className="space-y-1 max-h-40 overflow-y-auto">
         {filteredTeams.length === 0 ? (
           <div className="text-center py-4 text-neutral-500 dark:text-neutral-400">
             <Brain className="h-6 w-6 mx-auto mb-2 text-neutral-400" />
             <p className="text-xs">No teams available</p>
-            <p className="text-xs text-neutral-400 mt-1">Try adjusting your search or filters</p>
+            <p className="text-xs text-neutral-400 mt-1">All teams have been added</p>
           </div>
         ) : (
-          filteredTeams.map((team) => (
-            <div key={team.team_number} className="flex items-center justify-between p-2 border border-neutral-200 dark:border-neutral-600 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-700 hover:shadow-sm transition-all duration-300">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">Team {team.team_number}</span>
-                  <span className="text-xs text-neutral-500 dark:text-neutral-400 truncate">{team.team_name}</span>
-                </div>
-                {team.stats ? (
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    <div className="flex items-center space-x-1">
-                      <Target className="h-3 w-3 text-primary" />
-                      <span className="font-medium text-neutral-900 dark:text-neutral-100">{team.stats.avg_total_score.toFixed(1)}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <BarChart3 className="h-3 w-3 text-green-500" />
-                      <span className="text-neutral-600 dark:text-neutral-300">{team.stats.total_matches}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Shield className="h-3 w-3 text-purple-500" />
-                      <span className="text-neutral-600 dark:text-neutral-300">{team.stats.avg_defense_rating.toFixed(1)}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-xs text-neutral-400">No stats available</div>
-                )}
-              </div>
-              <Button
-                size="sm"
-                onClick={() => onAddTeam({
-                  team_number: team.team_number,
-                  team_name: team.team_name,
-                  pick_order: 0, // Will be updated when added to list
-                  stats: team.stats,
-                })}
-                className="ml-2 px-2 py-1 rounded bg-primary text-white hover:opacity-90 transition-opacity duration-300 flex-shrink-0 text-xs"
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                Add
-              </Button>
-            </div>
-          ))
+          <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
+            {filteredTeams.length} teams available
+          </div>
         )}
       </div>
     </Card>
@@ -286,24 +276,26 @@ export function PickList({ pickListId, eventKey = '2025test', onSave, session }:
       const teamsResponse = await fetch('/api/teams');
       const teamsData = await teamsResponse.json();
       
-      // Get team stats for all teams
+      // Get team stats for all teams, excluding Team Avalanche
       const teamsWithStats = await Promise.all(
-        teamsData.teams.map(async (team: any) => {
-          try {
-            const statsResponse = await fetch(`/api/team-stats?team_number=${team.team_number}`);
-            const statsData = await statsResponse.json();
-            return {
-              team_number: team.team_number,
-              team_name: team.team_name,
-              stats: statsData,
-            };
-          } catch (error) {
-            return {
-              team_number: team.team_number,
-              team_name: team.team_name,
-            };
-          }
-        })
+        teamsData.teams
+          .filter((team: any) => !team.team_name.toLowerCase().includes('avalanche'))
+          .map(async (team: any) => {
+            try {
+              const statsResponse = await fetch(`/api/team-stats?team_number=${team.team_number}`);
+              const statsData = await statsResponse.json();
+              return {
+                team_number: team.team_number,
+                team_name: team.team_name,
+                stats: statsData,
+              };
+            } catch (error) {
+              return {
+                team_number: team.team_number,
+                team_name: team.team_name,
+              };
+            }
+          })
       );
 
       setAvailableTeams(teamsWithStats);
@@ -456,8 +448,8 @@ export function PickList({ pickListId, eventKey = '2025test', onSave, session }:
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
-        <div className="xl:col-span-3">
-          <div className="flex items-center justify-between mb-3">
+        <div className="xl:col-span-3 order-2 xl:order-1">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 space-y-2 sm:space-y-0">
             <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Pick Order</h2>
             {teams.length > 0 && (
               <QuickComparison
@@ -497,7 +489,7 @@ export function PickList({ pickListId, eventKey = '2025test', onSave, session }:
           </DndContext>
         </div>
 
-        <div className="xl:col-span-2 space-y-4 min-w-[300px]">
+        <div className="xl:col-span-2 space-y-4 min-w-[300px] order-1 xl:order-2">
           <AdvancedTeamAnalysis
             availableTeams={availableTeams}
             currentPickList={teams}

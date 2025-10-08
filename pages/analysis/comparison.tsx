@@ -49,6 +49,38 @@ export default function TeamComparison() {
   const [error, setError] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [inputValue, setInputValue] = useState('');
+  const [availableTeams, setAvailableTeams] = useState<Array<{team_number: number, team_name: string}>>([]);
+  const [teamsLoading, setTeamsLoading] = useState(true);
+
+  // Load available teams from Supabase
+  useEffect(() => {
+    const loadTeams = async () => {
+      try {
+        setTeamsLoading(true);
+        const { data: teams, error } = await supabase
+          .from('teams')
+          .select('team_number, team_name')
+          .not('team_name', 'ilike', '%avalanche%')
+          .order('team_number');
+
+        if (error) {
+          console.error('Error loading teams:', error);
+          setError('Failed to load teams');
+        } else {
+          setAvailableTeams(teams || []);
+        }
+      } catch (err) {
+        console.error('Error loading teams:', err);
+        setError('Failed to load teams');
+      } finally {
+        setTeamsLoading(false);
+      }
+    };
+
+    if (user) {
+      loadTeams();
+    }
+  }, [user]);
 
   const addTeam = async (teamNumber: number) => {
     if (selectedTeams.includes(teamNumber) || selectedTeams.length >= 4) {
@@ -250,20 +282,32 @@ export default function TeamComparison() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex space-x-4 mb-4">
-                <Input
-                  type="number"
-                  placeholder="Enter team number (e.g., 1234)"
+              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 mb-4">
+                <select
                   value={inputValue}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputValue(e.target.value)}
-                  
-                  className="flex-1"
-                />
+                  onChange={(e) => setInputValue(e.target.value)}
+                  disabled={teamsLoading || loading}
+                  className={`flex-1 px-3 py-3 sm:py-2 border rounded-md text-sm sm:text-base min-h-[44px] ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300 text-gray-900'
+                  } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                >
+                  <option value="">
+                    {teamsLoading ? 'Loading teams...' : 'Select a team to compare'}
+                  </option>
+                  {availableTeams
+                    .filter(team => !selectedTeams.includes(team.team_number))
+                    .map(team => (
+                      <option key={team.team_number} value={team.team_number.toString()}>
+                        Team {team.team_number} - {team.team_name}
+                      </option>
+                    ))}
+                </select>
                 <Button
                   onClick={handleAddTeam}
-                  disabled={!inputValue || loading || selectedTeams.length >= 4}
-                  
-                  className="px-6"
+                  disabled={!inputValue || loading || selectedTeams.length >= 4 || teamsLoading}
+                  className="px-6 py-3 sm:py-2 text-sm sm:text-base"
                 >
                   {loading ? (
                     <motion.div
@@ -275,7 +319,8 @@ export default function TeamComparison() {
                   ) : (
                     <>
                       <Plus className="w-4 h-4 mr-2" />
-                      Add Team
+                      <span className="hidden sm:inline">Add Team</span>
+                      <span className="sm:hidden">Add</span>
                     </>
                   )}
                 </Button>
@@ -421,7 +466,68 @@ export default function TeamComparison() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
+                  {/* Mobile Card View */}
+                  <div className="block sm:hidden space-y-4">
+                    {teamComparisons.map((team, index) => (
+                      <div key={team.team_number} className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                            Team {team.team_number}
+                          </h3>
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                            {team.team_name}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Matches:</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.total_matches}</span>
+                          </div>
+                          <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Avg Score:</span>
+                            <span className={`ml-2 font-semibold text-blue-600`}>{team.avg_total_score}</span>
+                          </div>
+                          <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Auto:</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.avg_autonomous_points}</span>
+                          </div>
+                          <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Teleop:</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.avg_teleop_points}</span>
+                          </div>
+                          <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Endgame:</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.avg_endgame_points}</span>
+                          </div>
+                          <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Defense:</span>
+                            <span className={`ml-2 font-semibold ${
+                              team.avg_defense_rating >= 7 ? 'text-green-600' :
+                              team.avg_defense_rating >= 5 ? 'text-yellow-600' : 'text-red-600'
+                            }`}>
+                              {team.avg_defense_rating}/10
+                            </span>
+                          </div>
+                          <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Best:</span>
+                            <span className={`ml-2 font-semibold text-green-600`}>{team.best_score}</span>
+                          </div>
+                          <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Consistency:</span>
+                            <span className={`ml-2 font-semibold ${
+                              team.consistency_score >= 80 ? 'text-green-600' :
+                              team.consistency_score >= 60 ? 'text-yellow-600' : 'text-red-600'
+                            }`}>
+                              {team.consistency_score}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop Table View */}
+                  <div className="hidden sm:block overflow-x-auto">
                     <table className="w-full">
                       <thead>
                         <tr className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>

@@ -66,6 +66,38 @@ export default function AdvancedAnalysis() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [filters, setFilters] = useState<AnalysisFilters>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [availableTeams, setAvailableTeams] = useState<Array<{team_number: number, team_name: string}>>([]);
+  const [teamsLoading, setTeamsLoading] = useState(true);
+
+  // Load available teams from Supabase
+  useEffect(() => {
+    const loadTeams = async () => {
+      try {
+        setTeamsLoading(true);
+        const { data: teams, error } = await supabase
+          .from('teams')
+          .select('team_number, team_name')
+          .not('team_name', 'ilike', '%avalanche%')
+          .order('team_number');
+
+        if (error) {
+          console.error('Error loading teams:', error);
+          setError('Failed to load teams');
+        } else {
+          setAvailableTeams(teams || []);
+        }
+      } catch (err) {
+        console.error('Error loading teams:', err);
+        setError('Failed to load teams');
+      } finally {
+        setTeamsLoading(false);
+      }
+    };
+
+    if (user) {
+      loadTeams();
+    }
+  }, [user]);
 
   const handleTeamSearch = async () => {
     if (!selectedTeam) return;
@@ -327,18 +359,28 @@ export default function AdvancedAnalysis() {
             </CardHeader>
             <CardContent>
               <div className="flex space-x-4">
-                <Input
-                  type="number"
-                  placeholder="Enter team number (e.g., 1234)"
+                <select
                   value={selectedTeam || ''}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedTeam(parseInt(e.target.value) || null)}
-                  
-                  className="flex-1"
-                />
+                  onChange={(e) => setSelectedTeam(parseInt(e.target.value) || null)}
+                  disabled={teamsLoading || loading}
+                  className={`flex-1 px-3 py-2 border rounded-md ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300 text-gray-900'
+                  } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                >
+                  <option value="">
+                    {teamsLoading ? 'Loading teams...' : 'Select a team to analyze'}
+                  </option>
+                  {availableTeams.map(team => (
+                    <option key={team.team_number} value={team.team_number.toString()}>
+                      Team {team.team_number} - {team.team_name}
+                    </option>
+                  ))}
+                </select>
                 <Button
                   onClick={handleTeamSearch}
-                  disabled={!selectedTeam || loading}
-                  
+                  disabled={!selectedTeam || loading || teamsLoading}
                   className="px-8"
                 >
                   {loading ? (

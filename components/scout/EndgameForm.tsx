@@ -17,18 +17,8 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
   totalSteps,
 }) => {
   const [formData, setFormData] = useState({
-    endgame_park: false,
-    endgame_shallow_cage: false,
-    endgame_deep_cage: false,
     endgame_score: '',
   });
-
-  const handleCheckboxChange = (field: keyof typeof formData, value: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
 
   const handleSelectChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({
@@ -38,11 +28,24 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
   };
 
   const calculateTotal = () => {
-    return (
-      (formData.endgame_park ? SCORING_VALUES.endgame_park : 0) +
-      (formData.endgame_shallow_cage ? SCORING_VALUES.endgame_shallow_cage : 0) +
-      (formData.endgame_deep_cage ? SCORING_VALUES.endgame_deep_cage : 0)
-    );
+    switch (formData.endgame_score) {
+      case 'park':
+        return SCORING_VALUES.endgame_park;
+      case 'shallow':
+        return SCORING_VALUES.endgame_shallow_cage;
+      case 'deep':
+        return SCORING_VALUES.endgame_deep_cage;
+      case 'park_shallow':
+        return SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_shallow_cage;
+      case 'park_deep':
+        return SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_deep_cage;
+      case 'shallow_deep':
+        return SCORING_VALUES.endgame_shallow_cage + SCORING_VALUES.endgame_deep_cage;
+      case 'all':
+        return SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_shallow_cage + SCORING_VALUES.endgame_deep_cage;
+      default:
+        return 0;
+    }
   };
 
   const progressPercentage = (currentStep / totalSteps) * 100;
@@ -77,57 +80,6 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Park in Barge Zone */}
-          <div className="flex items-center justify-between p-4 bg-dark-700 rounded-lg">
-            <div>
-              <h3 className="text-white font-medium">Park in Barge Zone</h3>
-              <p className="text-gray-400 text-sm">Robot is parked in the barge zone at end of match</p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-reef-400 font-semibold">+{SCORING_VALUES.endgame_park} pts</span>
-              <input
-                type="checkbox"
-                checked={formData.endgame_park}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleCheckboxChange('endgame_park', e.target.checked)}
-                className="w-4 h-4 text-reef-600 bg-dark-600 border-dark-500 rounded focus:ring-reef-500"
-              />
-            </div>
-          </div>
-
-          {/* Shallow Cage */}
-          <div className="flex items-center justify-between p-4 bg-dark-700 rounded-lg">
-            <div>
-              <h3 className="text-white font-medium">Shallow Cage</h3>
-              <p className="text-gray-400 text-sm">Robot is lifted off ground via shallow cage</p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-reef-400 font-semibold">+{SCORING_VALUES.endgame_shallow_cage} pts</span>
-              <input
-                type="checkbox"
-                checked={formData.endgame_shallow_cage}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleCheckboxChange('endgame_shallow_cage', e.target.checked)}
-                className="w-4 h-4 text-reef-600 bg-dark-600 border-dark-500 rounded focus:ring-reef-500"
-              />
-            </div>
-          </div>
-
-          {/* Deep Cage */}
-          <div className="flex items-center justify-between p-4 bg-dark-700 rounded-lg">
-            <div>
-              <h3 className="text-white font-medium">Deep Cage</h3>
-              <p className="text-gray-400 text-sm">Robot is lifted off ground via deep cage</p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-reef-400 font-semibold">+{SCORING_VALUES.endgame_deep_cage} pts</span>
-              <input
-                type="checkbox"
-                checked={formData.endgame_deep_cage}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleCheckboxChange('endgame_deep_cage', e.target.checked)}
-                className="w-4 h-4 text-reef-600 bg-dark-600 border-dark-500 rounded focus:ring-reef-500"
-              />
-            </div>
-          </div>
-
           {/* Endgame Score Dropdown */}
           <div className="p-4 bg-dark-700 rounded-lg">
             <div className="mb-3">
@@ -173,7 +125,15 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
           </Button>
           
           <Button
-            onClick={() => onNext(formData)}
+            onClick={() => {
+              // Convert dropdown selection to ScoringNotes format
+              const scoringNotes: Partial<ScoringNotes> = {
+                endgame_park: formData.endgame_score === 'park' || formData.endgame_score === 'park_shallow' || formData.endgame_score === 'park_deep' || formData.endgame_score === 'all',
+                endgame_shallow_cage: formData.endgame_score === 'shallow' || formData.endgame_score === 'park_shallow' || formData.endgame_score === 'shallow_deep' || formData.endgame_score === 'all',
+                endgame_deep_cage: formData.endgame_score === 'deep' || formData.endgame_score === 'park_deep' || formData.endgame_score === 'shallow_deep' || formData.endgame_score === 'all',
+              };
+              onNext(scoringNotes);
+            }}
             className="bg-reef-600 hover:bg-reef-700 text-white"
           >
             Next

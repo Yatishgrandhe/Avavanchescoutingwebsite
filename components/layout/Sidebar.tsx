@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import { Button, Badge, Logo } from '../ui';
 import { cn } from '@/lib/utils';
-import { useAdmin } from '@/hooks/use-admin';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -34,6 +33,7 @@ interface SidebarProps {
   };
   isDarkMode?: boolean;
   isMobile?: boolean;
+  isAdmin?: boolean;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -41,10 +41,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   onToggle, 
   user, 
   isDarkMode = false,
-  isMobile = false 
+  isMobile = false,
+  isAdmin = false
 }) => {
   const router = useRouter();
-  const { isAdmin } = useAdmin();
 
   const menuItems = [
     {

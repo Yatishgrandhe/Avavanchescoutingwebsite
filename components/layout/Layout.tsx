@@ -18,6 +18,7 @@ import {
 import Sidebar from './Sidebar';
 import { useSupabase } from '@/pages/_app';
 import { useResponsive } from '@/lib/screen-detector';
+import { useAdmin } from '@/hooks/use-admin';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -26,6 +27,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, supabase } = useSupabase();
   const screenInfo = useResponsive();
+  const { isAdmin } = useAdmin();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true); // Always dark mode
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -146,6 +148,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               } : undefined}
               isDarkMode={isDarkMode}
               isMobile={true}
+              isAdmin={isAdmin}
             />
           </div>
 
@@ -173,6 +176,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               } : undefined}
               isDarkMode={isDarkMode}
               isMobile={false}
+              isAdmin={isAdmin}
             />
           </div>
 

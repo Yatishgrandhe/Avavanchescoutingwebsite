@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useSupabase } from '@/pages/_app';
-import { db } from '../lib/supabase';
 
 export function useAdmin() {
-  const { user, session } = useSupabase();
+  const { user, session, supabase } = useSupabase();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<any>(null);
 
   useEffect(() => {
     async function checkAdminStatus() {
-      if (!session) {
+      if (!session || !user) {
         setIsAdmin(false);
         setUserData(null);
         setLoading(false);
@@ -18,9 +17,10 @@ export function useAdmin() {
       }
 
       try {
-        const currentUser = await db.getCurrentUser();
-        setUserData(currentUser);
-        setIsAdmin(currentUser?.role === 'admin');
+        // Check if user has admin role in their metadata
+        const adminRole = user.user_metadata?.role === 'admin';
+        setIsAdmin(adminRole);
+        setUserData(user);
       } catch (error) {
         console.error('Error checking admin status:', error);
         setIsAdmin(false);
@@ -31,7 +31,7 @@ export function useAdmin() {
     }
 
     checkAdminStatus();
-  }, [session]);
+  }, [session, user]);
 
   return {
     isAdmin,

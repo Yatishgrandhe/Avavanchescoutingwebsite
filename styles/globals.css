@@ -2375,3 +2375,140 @@
     overflow-x: hidden !important;
   }
 }
+
+/* === FINAL UNIVERSAL MOBILE + VERTICAL VIEW FIXES === */
+
+/* General vertical (portrait) layout adjustments */
+@media screen and (orientation: portrait) {
+  html, body {
+    width: 100%;
+    max-width: 100vw !important;
+    height: auto;
+    overflow-x: hidden !important;
+    margin: 0;
+    padding: 0;
+    -webkit-text-size-adjust: 100%;
+    text-align: center;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    line-height: 1.6;
+    font-size: 1rem;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+
+  /* Make all containers fully fit vertical screens */
+  .container, .container-main, .content-container, .main-wrapper {
+    width: 100% !important;
+    max-width: 100vw !important;
+    padding: 1rem !important;
+    margin: 0 auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    box-sizing: border-box;
+  }
+
+  /* Sidebar auto-stacks vertically */
+  .sidebar, .sidebar-modern {
+    width: 100% !important;
+    height: auto !important;
+    position: relative !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1rem !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Ensure all cards and forms resize properly */
+  .card-modern, .form-container, .form-centered, .homepage-feature-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0.75rem 0 !important;
+    padding: 1rem !important;
+    box-sizing: border-box;
+    text-align: center;
+  }
+
+  /* Images and icons fit nicely */
+  img, svg, canvas, video {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block;
+    margin: 0 auto;
+  }
+
+  /* Buttons and inputs stay visible and usable */
+  button, .btn, .btn-primary, .btn-secondary, .btn-outline {
+    width: 100% !important;
+    min-height: 48px !important;
+    font-size: 1rem !important;
+    text-align: center !important;
+  }
+
+  input, select, textarea {
+    font-size: 16px !important; /* prevent iOS zoom */
+    width: 100% !important;
+    border-radius: 8px !important;
+    padding: 0.75rem !important;
+  }
+
+  /* Prevent overflow from headings or text */
+  h1, h2, h3, p, span, div {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    text-align: center !important;
+    max-width: 100% !important;
+  }
+
+  /* Ensure no element causes sideways scrolling */
+  * {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Add smooth auto-scaling when rotating devices */
+  html {
+    zoom: 1;
+    transform-origin: top center;
+    transition: transform 0.3s ease-in-out;
+  }
+}
+
+/* Handle extra-small screens (under 400px wide) */
+@media screen and (max-width: 400px) {
+  html, body {
+    font-size: 15px;
+  }
+  .form-container, .card-modern {
+    padding: 0.75rem !important;
+  }
+}
+
+/* Handle very tall mobile screens */
+@media screen and (max-height: 700px) {
+  body {
+    justify-content: flex-start !important;
+  }
+  .main-wrapper {
+    min-height: auto !important;
+  }
+}
+
+/* Ensure everything re-centers smoothly on orientation change */
+@media screen and (orientation: portrait), screen and (orientation: landscape) {
+  html, body, .container-main {
+    transition: all 0.4s ease-in-out !important;
+  }
+}

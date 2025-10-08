@@ -200,7 +200,6 @@ export function useResponsive() {
   
   return {
     ...screenInfo,
-    ...screenUtils,
     gridCols: screenUtils.getGridCols(screenInfo.size),
     sidebarWidth: screenUtils.getSidebarWidth(screenInfo.size),
     containerWidth: screenUtils.getContainerWidth(screenInfo.size),

@@ -25,19 +25,19 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, supabase } = useSupabase();
-  const { isMobile, isTablet, isDesktop, isLaptop, isUltraWide, size } = useResponsive();
+  const screenInfo = useResponsive();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true); // Always dark mode
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Auto-collapse sidebar on mobile/tablet
   useEffect(() => {
-    if (isMobile || isTablet) {
+    if (screenInfo.isMobile || screenInfo.isTablet) {
       setIsSidebarCollapsed(true);
     } else {
       setIsSidebarCollapsed(false);
     }
-  }, [isMobile, isTablet]);
+  }, [screenInfo.isMobile, screenInfo.isTablet]);
 
   // Set dark mode as default and remove theme switching
   useEffect(() => {
@@ -59,7 +59,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="min-h-screen bg-background text-foreground transition-colors duration-400">
       <div className="flex h-screen">
         {/* Sidebar */}
-        <div className={`transition-all duration-400 ${isSidebarCollapsed ? 'w-16' : 'w-64'} ${isMobile ? 'fixed inset-y-0 left-0 z-50' : 'relative'}`}>
+        <div className={`transition-all duration-400 ${isSidebarCollapsed ? 'w-16' : 'w-64'} ${screenInfo.isMobile ? 'fixed inset-y-0 left-0 z-50' : 'relative'}`}>
           <Sidebar
             isCollapsed={isSidebarCollapsed}
             onToggle={toggleSidebar}
@@ -69,12 +69,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               image: user.user_metadata?.avatar_url
             } : undefined}
             isDarkMode={isDarkMode}
-            isMobile={isMobile}
+            isMobile={screenInfo.isMobile}
           />
         </div>
 
         {/* Mobile overlay */}
-        {isMobile && !isSidebarCollapsed && (
+        {screenInfo.isMobile && !isSidebarCollapsed && (
           <div 
             className="fixed inset-0 bg-black/50 z-40"
             onClick={() => setIsSidebarCollapsed(true)}
@@ -92,7 +92,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           >
             <div className="flex items-center space-x-4">
               {/* Mobile menu button */}
-              {isMobile && (
+              {screenInfo.isMobile && (
                 <Button
                   variant="ghost"
                   size="sm"

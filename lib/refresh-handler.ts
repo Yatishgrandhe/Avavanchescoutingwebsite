@@ -2,7 +2,7 @@
 import React from 'react';
 
 export function handleRefreshResize() {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') return () => {}; // Return empty cleanup function for SSR
 
   // Force recalculation of layout on refresh
   const forceReflow = () => {

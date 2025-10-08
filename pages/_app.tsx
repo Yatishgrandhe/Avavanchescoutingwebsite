@@ -61,7 +61,9 @@ export default function App({ Component, pageProps }: AppProps) {
 
     return () => {
       subscription.unsubscribe();
-      cleanup();
+      if (cleanup) {
+        cleanup();
+      }
     };
   }, [supabase.auth]);
 

@@ -44,20 +44,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   // Close mobile nav when clicking outside or on navigation links
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: Event) => {
       if (isMobileNavOpen && screenInfo.isMobile) {
         const target = event.target as Element;
         // Close if clicking outside the mobile nav container
         if (!target.closest('.mobile-nav-container') && !target.closest('.mobile-nav-trigger')) {
           setIsMobileNavOpen(false);
         }
-      }
-    };
-
-    // Also close on route change
-    const handleRouteChange = () => {
-      if (isMobileNavOpen && screenInfo.isMobile) {
-        setIsMobileNavOpen(false);
       }
     };
 

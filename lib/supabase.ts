@@ -65,6 +65,7 @@ export const db = {
     match_id?: string;
     team_number?: number;
     alliance_color?: 'red' | 'blue';
+    alliance_position?: 1 | 2 | 3;
   }) {
     let query = supabase.from('scouting_data').select('*').order('created_at', { ascending: false });
     
@@ -76,6 +77,9 @@ export const db = {
     }
     if (filters?.alliance_color) {
       query = query.eq('alliance_color', filters.alliance_color);
+    }
+    if (filters?.alliance_position) {
+      query = query.eq('alliance_position', filters.alliance_position);
     }
     
     const { data, error } = await query;
@@ -140,5 +144,74 @@ export const db = {
       avg_total_score: Math.round(avgTotal * 100) / 100,
       avg_defense_rating: Math.round(avgDefense * 100) / 100,
     };
+  },
+
+  // Admin functions
+  async isUserAdmin(userId: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+    
+    if (error) return false;
+    return data?.role === 'admin';
+  },
+
+  async getCurrentUser(): Promise<any> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+    
+    if (error) return null;
+    return data;
+  },
+
+  // Pick Lists (Admin only)
+  async getPickLists() {
+    const { data, error } = await supabase
+      .from('pick_lists')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async createPickList(pickList: Omit<any, 'id' | 'created_at' | 'updated_at'>) {
+    const { data, error } = await supabase
+      .from('pick_lists')
+      .insert([pickList])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async updatePickList(id: string, updates: Partial<any>) {
+    const { data, error } = await supabase
+      .from('pick_lists')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async deletePickList(id: string) {
+    const { error } = await supabase
+      .from('pick_lists')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
   },
 };

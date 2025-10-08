@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { User, Session } from '@supabase/supabase-js';
 import Head from 'next/head';
 import { Toaster } from '@/components/ui/toaster';
+import { handleRefreshResize } from '@/lib/refresh-handler';
 
 import '@/styles/globals.css';
 
@@ -55,7 +56,13 @@ export default function App({ Component, pageProps }: AppProps) {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Handle refresh and resize
+    const cleanup = handleRefreshResize();
+
+    return () => {
+      subscription.unsubscribe();
+      cleanup();
+    };
   }, [supabase.auth]);
 
   return (
@@ -63,6 +70,11 @@ export default function App({ Component, pageProps }: AppProps) {
       <Head>
         <title>Avalanche Scouting</title>
         <meta name="description" content="Avalanche Scouting Data Management System" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="icon" type="image/png" sizes="32x32" href="/image.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/image.png" />

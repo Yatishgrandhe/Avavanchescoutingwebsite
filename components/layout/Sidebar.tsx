@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Button, Badge, Logo } from '../ui';
 import { cn } from '@/lib/utils';
+import { useAdmin } from '@/hooks/use-admin';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -42,6 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   isMobile = false 
 }) => {
   const router = useRouter();
+  const { isAdmin } = useAdmin();
 
   const menuItems = [
     {
@@ -59,7 +61,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         },
       ],
     },
-    {
+    ...(isAdmin ? [{
       title: 'Strategy',
       items: [
         {
@@ -68,7 +70,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           icon: List,
         },
       ],
-    },
+    }] : []),
     {
       title: 'Analysis',
       items: [

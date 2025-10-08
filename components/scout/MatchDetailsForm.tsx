@@ -20,7 +20,7 @@ interface Match {
 }
 
 interface MatchDetailsFormProps {
-  onNext: (matchData: Match, selectedTeam: number, allianceColor: 'red' | 'blue') => void;
+  onNext: (matchData: Match, selectedTeam: number, allianceColor: 'red' | 'blue', alliancePosition: 1 | 2 | 3) => void;
   onBack?: () => void;
   currentStep: number;
   totalSteps: number;
@@ -38,6 +38,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
   const [allianceColor, setAllianceColor] = useState<'red' | 'blue' | ''>('');
+  const [alliancePosition, setAlliancePosition] = useState<1 | 2 | 3 | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -72,12 +73,14 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
       setSelectedMatch(match);
       setSelectedTeam(null);
       setAllianceColor('');
+      setAlliancePosition(null);
     }
   };
 
-  const handleTeamSelect = (teamNumber: number, color: 'red' | 'blue') => {
+  const handleTeamSelect = (teamNumber: number, color: 'red' | 'blue', position: 1 | 2 | 3) => {
     setSelectedTeam(teamNumber);
     setAllianceColor(color);
+    setAlliancePosition(position);
   };
 
   const handleNext = () => {
@@ -91,8 +94,13 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
       return;
     }
 
+    if (!alliancePosition) {
+      setError('Please select an alliance position');
+      return;
+    }
+
     setError('');
-    onNext(selectedMatch, selectedTeam, allianceColor as 'red' | 'blue');
+    onNext(selectedMatch, selectedTeam, allianceColor as 'red' | 'blue', alliancePosition);
   };
 
   const progressPercentage = (currentStep / totalSteps) * 100;
@@ -188,12 +196,12 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
                     Red Alliance
                   </div>
                   <div className="space-y-2">
-                    {selectedMatch.red_teams.map((team) => (
+                    {selectedMatch.red_teams.map((team, index) => (
                       <motion.button
                         key={team.team_number}
-                        onClick={() => handleTeamSelect(team.team_number, 'red')}
+                        onClick={() => handleTeamSelect(team.team_number, 'red', (index + 1) as 1 | 2 | 3)}
                         className={`w-full p-3 rounded-lg border text-left transition-colors ${
-                          selectedTeam === team.team_number && allianceColor === 'red'
+                          selectedTeam === team.team_number && allianceColor === 'red' && alliancePosition === (index + 1)
                             ? 'border-red-500 bg-red-500/20 text-white'
                             : isDarkMode 
                               ? 'border-gray-600 bg-gray-700/50 hover:bg-gray-600/50 text-white'
@@ -202,8 +210,11 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
-                        <div className="font-semibold">
-                          Team {team.team_number}
+                        <div className="font-semibold flex items-center justify-between">
+                          <span>Team {team.team_number}</span>
+                          <span className="text-sm font-normal bg-red-500/20 px-2 py-1 rounded">
+                            Red {index + 1}
+                          </span>
                         </div>
                         <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                           {team.team_name}
@@ -219,12 +230,12 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
                     Blue Alliance
                   </div>
                   <div className="space-y-2">
-                    {selectedMatch.blue_teams.map((team) => (
+                    {selectedMatch.blue_teams.map((team, index) => (
                       <motion.button
                         key={team.team_number}
-                        onClick={() => handleTeamSelect(team.team_number, 'blue')}
+                        onClick={() => handleTeamSelect(team.team_number, 'blue', (index + 1) as 1 | 2 | 3)}
                         className={`w-full p-3 rounded-lg border text-left transition-colors ${
-                          selectedTeam === team.team_number && allianceColor === 'blue'
+                          selectedTeam === team.team_number && allianceColor === 'blue' && alliancePosition === (index + 1)
                             ? 'border-blue-500 bg-blue-500/20 text-white'
                             : isDarkMode 
                               ? 'border-gray-600 bg-gray-700/50 hover:bg-gray-600/50 text-white'
@@ -233,8 +244,11 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
-                        <div className="font-semibold">
-                          Team {team.team_number}
+                        <div className="font-semibold flex items-center justify-between">
+                          <span>Team {team.team_number}</span>
+                          <span className="text-sm font-normal bg-blue-500/20 px-2 py-1 rounded">
+                            Blue {index + 1}
+                          </span>
                         </div>
                         <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                           {team.team_name}
@@ -272,7 +286,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
           )}
           <Button
             onClick={handleNext}
-            disabled={!selectedMatch || !selectedTeam}
+            disabled={!selectedMatch || !selectedTeam || !alliancePosition}
             className="ml-auto"
           >
             Next

@@ -47,6 +47,7 @@ interface FormData {
   };
   teamNumber: number;
   allianceColor: 'red' | 'blue';
+  alliancePosition: 1 | 2 | 3;
   autonomous: Partial<ScoringNotes>;
   teleop: Partial<ScoringNotes>;
   endgame: Partial<ScoringNotes>;
@@ -69,6 +70,7 @@ export default function Scout() {
     },
     teamNumber: 0,
     allianceColor: 'red',
+    alliancePosition: 1,
     autonomous: {},
     teleop: {},
     endgame: {},
@@ -102,6 +104,7 @@ export default function Scout() {
         match_id: formData.matchData.match_id,
         team_number: formData.teamNumber,
         alliance_color: formData.allianceColor,
+        alliance_position: formData.alliancePosition,
         autonomous_points: autonomousPoints,
         teleop_points: teleopPoints,
         endgame_points: endgamePoints,
@@ -141,6 +144,7 @@ export default function Scout() {
           },
           teamNumber: 0,
           allianceColor: 'red',
+          alliancePosition: 1,
           autonomous: {},
           teleop: {},
           endgame: {},
@@ -244,12 +248,13 @@ export default function Scout() {
                     transition={{ duration: 0.3 }}
                   >
                     <MatchDetailsForm
-                      onNext={(matchData, teamNumber, allianceColor) => {
+                      onNext={(matchData, teamNumber, allianceColor, alliancePosition) => {
                         setFormData(prev => ({ 
                           ...prev, 
                           matchData, 
                           teamNumber, 
-                          allianceColor 
+                          allianceColor,
+                          alliancePosition
                         }));
                         setCurrentStep('autonomous');
                       }}

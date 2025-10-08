@@ -9,11 +9,13 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PickList as PickListType } from '@/lib/types';
 import { useSupabase } from '@/pages/_app';
-import { Plus, List, Trophy, Target, Users, GraduationCap } from 'lucide-react';
+import { useAdmin } from '@/hooks/use-admin';
+import { Plus, List, Trophy, Target, Users, GraduationCap, Shield, AlertCircle } from 'lucide-react';
 
 export default function PickListPage() {
   const router = useRouter();
   const { supabase, user, session } = useSupabase();
+  const { isAdmin, loading: adminLoading } = useAdmin();
   const [pickLists, setPickLists] = useState<PickListType[]>([]);
   const [selectedPickList, setSelectedPickList] = useState<PickListType | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -22,10 +24,10 @@ export default function PickListPage() {
   const [showEducation, setShowEducation] = useState(false);
 
   useEffect(() => {
-    if (session) {
+    if (session && isAdmin) {
       loadPickLists();
     }
-  }, [session]);
+  }, [session, isAdmin]);
 
   const loadPickLists = async () => {
     if (!session) return;
@@ -118,6 +120,37 @@ export default function PickListPage() {
       alert('Failed to delete pick list. Please try again.');
     }
   };
+
+  // Check if user is admin
+  if (adminLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+            <p className="text-gray-600">Checking permissions...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <Shield className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+            <p className="text-gray-600 mb-4">You need admin privileges to access pick lists.</p>
+            <Button onClick={() => router.push('/')} className="bg-blue-500 hover:bg-blue-600">
+              Go to Dashboard
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   if (isLoading) {
     return (

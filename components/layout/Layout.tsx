@@ -17,6 +17,7 @@ import {
 } from '../ui';
 import Sidebar from './Sidebar';
 import { useSupabase } from '@/pages/_app';
+import { useResponsive } from '@/lib/screen-detector';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -24,24 +25,19 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, supabase } = useSupabase();
+  const { isMobile, isTablet, isDesktop, isLaptop, isUltraWide, size } = useResponsive();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true); // Always dark mode
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
-  // Check for mobile screen size
+  // Auto-collapse sidebar on mobile/tablet
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth < 768) {
-        setIsSidebarCollapsed(true);
-      }
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+    if (isMobile || isTablet) {
+      setIsSidebarCollapsed(true);
+    } else {
+      setIsSidebarCollapsed(false);
+    }
+  }, [isMobile, isTablet]);
 
   // Set dark mode as default and remove theme switching
   useEffect(() => {

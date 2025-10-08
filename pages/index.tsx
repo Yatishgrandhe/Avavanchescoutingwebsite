@@ -26,26 +26,27 @@ import Layout from '@/components/layout/Layout';
 import Logo from '../components/ui/Logo';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useSupabase } from '@/pages/_app';
+import { useRefreshHandler } from '@/lib/refresh-handler';
 
 // Avalanche animation component
 const AvalancheAnimation = () => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary-dark via-primary to-primary-light"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5"></div>
       
       {/* Animated particles */}
-      {[...Array(100)].map((_, i) => (
+      {[...Array(80)].map((_, i) => (
         <motion.div
           key={i}
-          className="absolute w-1 h-1 bg-white rounded-full opacity-60"
+          className="absolute w-1 h-1 bg-primary/60 rounded-full"
           style={{
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
           }}
           animate={{
             y: [0, -30, 0],
-            opacity: [0.6, 1, 0.6],
+            opacity: [0.3, 0.8, 0.3],
             scale: [1, 1.2, 1],
           }}
           transition={{
@@ -57,23 +58,45 @@ const AvalancheAnimation = () => {
       ))}
       
       {/* Larger floating elements */}
-      {[...Array(8)].map((_, i) => (
+      {[...Array(12)].map((_, i) => (
         <motion.div
           key={`large-${i}`}
-          className="absolute w-2 h-2 bg-white/40 rounded-full"
+          className="absolute w-2 h-2 bg-primary/30 rounded-full"
           style={{
-            left: `${20 + i * 10}%`,
-            top: `${30 + (i % 2) * 40}%`,
+            left: `${15 + i * 7}%`,
+            top: `${20 + (i % 3) * 25}%`,
           }}
           animate={{
             y: [0, -40, 0],
-            opacity: [0.4, 0.8, 0.4],
+            opacity: [0.2, 0.6, 0.2],
             scale: [1, 1.5, 1],
           }}
           transition={{
             duration: 4 + i * 0.5,
             repeat: Infinity,
-            delay: i * 0.4,
+            delay: i * 0.3,
+          }}
+        />
+      ))}
+      
+      {/* Medium floating elements */}
+      {[...Array(20)].map((_, i) => (
+        <motion.div
+          key={`medium-${i}`}
+          className="absolute w-1.5 h-1.5 bg-white/20 rounded-full"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+          }}
+          animate={{
+            y: [0, -25, 0],
+            opacity: [0.1, 0.4, 0.1],
+            scale: [1, 1.3, 1],
+          }}
+          transition={{
+            duration: 2.5 + Math.random() * 1.5,
+            repeat: Infinity,
+            delay: Math.random() * 2,
           }}
         />
       ))}
@@ -156,6 +179,9 @@ export default function Home() {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingActivity, setLoadingActivity] = useState(true);
+
+  // Handle refresh and resize properly
+  useRefreshHandler();
 
   // Load dashboard statistics from Supabase
   useEffect(() => {
@@ -342,7 +368,7 @@ export default function Home() {
     return (
       <ProtectedRoute>
         <Layout>
-          <div className="space-y-8">
+          <div className="content-container space-y-8">
             {/* Welcome Section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -627,94 +653,72 @@ export default function Home() {
     );
   }
 
-  // Landing page for non-authenticated users
+  // Landing page for non-authenticated users - Match production site exactly
   return (
-    <div className="min-h-screen relative overflow-hidden bg-background">
-      {/* Avalanche Background */}
+    <div className="min-h-screen bg-background refresh-safe size-on-refresh relative overflow-hidden">
+      {/* Dynamic Background Animation */}
       <AvalancheAnimation />
       
-      {/* Header */}
-      <header className="relative z-10 flex justify-between items-center px-6 py-4">
-        <div className="flex items-center space-x-4">
-          <Logo size="lg" />
-          <div className="text-white font-heading font-bold text-2xl tracking-wide">
-            Avalanche Scouting
+      {/* Header Banner */}
+      <div className="bg-card/80 backdrop-blur-sm border-b border-border refresh-safe relative z-10">
+        <div className="flex items-center justify-between px-6 py-4 refresh-safe">
+          <div className="flex items-center space-x-3">
+            <Logo size="sm" />
+            <div>
+              <h2 className="text-lg font-heading font-bold text-card-foreground">Avalanche Scouting</h2>
+              <p className="text-xs text-muted-foreground">FRC 2025 Data Platform</p>
+            </div>
           </div>
         </div>
-        <div className="text-white/80 text-sm">
-          FRC 2025 Data Platform
-        </div>
-      </header>
+      </div>
 
       {/* Main Content */}
-      <div className="relative z-10 flex items-center justify-center min-h-screen px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="w-full max-w-4xl text-center"
-        >
-          {/* Hero Section */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="mb-12"
+      <div className="container-main refresh-safe size-on-refresh relative z-10">
+        {/* Hero Section */}
+        <div className="text-center py-12">
+          <h1 className="text-4xl font-heading font-bold text-foreground mb-4">
+            Professional FRC Scouting Platform
+          </h1>
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            Advanced analytics, real-time data collection, and comprehensive team analysis for competitive FRC teams
+          </p>
+          <Button
+            onClick={handleSignIn}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 text-lg"
           >
-            <h1 className="text-4xl font-heading font-bold text-white mb-6">
-              Professional FRC Scouting Platform
-            </h1>
-            <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
-              Advanced analytics, real-time data collection, and comprehensive team analysis for competitive FRC teams
-            </p>
-            <Button
-              onClick={handleSignIn}
-              className="btn-primary bg-secondary hover:bg-secondary/90 text-secondary-foreground px-8 py-4 text-lg"
-            >
-              <Play className="w-5 h-5 mr-2" />
-              Get Started
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </motion.div>
+            <Play className="w-5 h-5 mr-2" />
+            Get Started
+            <ArrowRight className="w-5 h-5 ml-2" />
+          </Button>
+        </div>
 
-          {/* Features Grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
-          >
-            {benefits.map((benefit, index) => (
-              <Card key={index} className="bg-white/10 backdrop-blur-lg border-white/20">
-                <CardContent className="p-6 text-center">
-                  <div className="p-3 bg-white/20 rounded-2xl w-fit mx-auto mb-4">
-                    <benefit.icon className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="font-heading font-semibold text-white mb-2">
-                    {benefit.title}
-                  </h3>
-                  <p className="text-sm text-white/70">
-                    {benefit.description}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </motion.div>
+        {/* Features Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 py-12">
+          {benefits.map((benefit, index) => (
+            <Card key={index} className="card-modern">
+              <CardContent className="p-6 text-center">
+                <div className="p-3 bg-primary/10 rounded-2xl w-fit mx-auto mb-4">
+                  <benefit.icon className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="font-heading font-semibold text-card-foreground mb-2">
+                  {benefit.title}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {benefit.description}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-          {/* Bottom Branding */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="text-center"
-          >
-            <div className="flex items-center justify-center space-x-2 text-white/40">
-              <Shield className="w-4 h-4" />
-              <span className="text-sm">Powered by Avalanche Robotics</span>
-              <Sparkles className="w-4 h-4" />
-            </div>
-          </motion.div>
-        </motion.div>
+        {/* Footer */}
+        <div className="text-center py-8">
+          <div className="flex items-center justify-center space-x-2 text-muted-foreground">
+            <Shield className="w-4 h-4" />
+            <span className="text-sm">Powered by Avalanche Robotics</span>
+            <Sparkles className="w-4 h-4" />
+          </div>
+        </div>
       </div>
     </div>
   );

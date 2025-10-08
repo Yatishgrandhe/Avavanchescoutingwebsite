@@ -20,3 +20,4 @@ export { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableC
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs'
 export { Toast, ToastProvider, ToastViewport, ToastTitle, ToastDescription, ToastClose, ToastAction } from './toast'
 export { Toaster } from './toaster'
+export { FormFieldWrapper, InputField, SelectField, TextareaField } from './form-field'

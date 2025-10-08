@@ -20,6 +20,7 @@ export interface ScoutingData {
   match_id: string;
   team_number: number;
   alliance_color: 'red' | 'blue';
+  alliance_position?: 1 | 2 | 3;
   autonomous_points: number;
   teleop_points: number;
   endgame_points: number;
@@ -60,6 +61,7 @@ export interface User {
   email: string;
   image?: string;
   username?: string;
+  role?: 'user' | 'admin';
 }
 
 export interface TeamStats {

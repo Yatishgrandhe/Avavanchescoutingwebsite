@@ -168,7 +168,7 @@ export default function PickListPage() {
   return (
     <ProtectedRoute>
       <Layout>
-        <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 overflow-x-auto">
+        <div className="min-h-screen bg-blue-50 dark:bg-blue-900 overflow-x-auto">
           <div className="w-full min-w-[1200px] px-2 sm:px-4 lg:px-6 py-4">
             {/* Header Section */}
             <div className="mb-4">
@@ -184,7 +184,7 @@ export default function PickListPage() {
                 <Button
                   onClick={() => setShowEducation(!showEducation)}
                   variant="outline"
-                  className="px-2 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-300 flex items-center space-x-1 text-xs"
+                  className="px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors duration-300 flex items-center space-x-1 text-xs"
                 >
                   <GraduationCap className="h-3 w-3" />
                   <span>{showEducation ? 'Hide' : 'Show'} Education</span>
@@ -202,7 +202,7 @@ export default function PickListPage() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
               {/* Pick Lists Sidebar */}
               <div className="lg:col-span-1">
-                <Card className="p-3 rounded-xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+                <Card className="p-3 rounded-xl shadow-card dark:shadow-card-dark bg-blue-100 dark:bg-blue-800 border border-blue-200 dark:border-blue-700">
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">My Pick Lists</h2>
                     <Button
@@ -215,7 +215,7 @@ export default function PickListPage() {
                   </div>
 
                   {isCreatingNew && (
-                    <div className="mb-3 p-2 border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-50 dark:bg-neutral-700">
+                    <div className="mb-3 p-2 border border-blue-200 dark:border-blue-700 rounded-lg bg-blue-50 dark:bg-blue-700">
                       <Input
                         placeholder="Pick list name..."
                         value={newPickListName}
@@ -237,7 +237,7 @@ export default function PickListPage() {
                             setIsCreatingNew(false);
                             setNewPickListName('');
                           }}
-                          className="px-2 py-1 rounded-full border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors duration-300 text-xs"
+                          className="px-2 py-1 rounded-full border-blue-200 dark:border-blue-600 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-600 transition-colors duration-300 text-xs"
                         >
                           Cancel
                         </Button>
@@ -260,7 +260,7 @@ export default function PickListPage() {
                           className={`p-2 rounded-lg cursor-pointer transition-all duration-300 border ${
                             selectedPickList?.id === pickList.id
                               ? 'bg-primary/10 border-primary/30 shadow-md'
-                              : 'bg-neutral-50 dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-600 hover:shadow-sm'
+                              : 'bg-blue-50 dark:bg-blue-700 border-blue-200 dark:border-blue-600 hover:bg-blue-100 dark:hover:bg-blue-600 hover:shadow-sm'
                           }`}
                           onClick={() => handleSelectPickList(pickList)}
                         >
@@ -292,7 +292,7 @@ export default function PickListPage() {
                 </Card>
 
                 {/* Educational Content */}
-                <Card className="p-6 mt-6 rounded-2xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+                <Card className="p-6 mt-6 rounded-2xl shadow-card dark:shadow-card-dark bg-blue-100 dark:bg-blue-800 border border-blue-200 dark:border-blue-700">
                   <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Pick List Tips</h3>
                   <div className="space-y-4 text-sm text-neutral-600 dark:text-neutral-300">
                     <div className="flex items-start space-x-3">
@@ -330,7 +330,7 @@ export default function PickListPage() {
                     session={session}
                   />
                 ) : (
-                  <Card className="p-8 text-center rounded-2xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+                  <Card className="p-8 text-center rounded-2xl shadow-card dark:shadow-card-dark bg-blue-100 dark:bg-blue-800 border border-blue-200 dark:border-blue-700">
                     <List className="h-12 w-12 text-neutral-400 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
                       Select a Pick List

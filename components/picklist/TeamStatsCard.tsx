@@ -35,7 +35,7 @@ export function TeamStatsCard({
   };
 
   return (
-    <Card className={`p-4 hover:shadow-md transition-shadow ${className}`}>
+    <Card className={`p-4 hover:shadow-md transition-shadow bg-blue-100 dark:bg-blue-800 border border-blue-200 dark:border-blue-700 ${className}`}>
       <div className="flex items-start justify-between mb-3">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">
@@ -53,7 +53,7 @@ export function TeamStatsCard({
       </div>
 
       {notes && (
-        <div className="mb-3 p-2 bg-gray-50 rounded-md">
+        <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-700 rounded-md">
           <p className="text-sm text-gray-700 italic">"{notes}"</p>
         </div>
       )}
@@ -100,7 +100,7 @@ export function TeamStatsCard({
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+      <div className="flex items-center justify-between pt-2 border-t border-blue-200 dark:border-blue-600">
         <div className="flex items-center space-x-2">
           <Shield className="h-4 w-4 text-gray-500" />
           <span className="text-xs text-gray-500">Defense</span>

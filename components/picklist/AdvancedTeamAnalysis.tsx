@@ -191,10 +191,10 @@ export function AdvancedTeamAnalysis({
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'primary': return 'bg-yellow-100 text-yellow-800';
-      case 'defensive': return 'bg-blue-100 text-blue-800';
-      case 'specialist': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'primary': return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
+      case 'defensive': return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200';
+      case 'specialist': return 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200';
+      default: return 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200';
     }
   };
 
@@ -206,7 +206,7 @@ export function AdvancedTeamAnalysis({
   };
 
   return (
-    <Card className="p-3 sm:p-4 rounded-xl shadow-card dark:shadow-card-dark bg-blue-100 dark:bg-blue-800 border border-blue-200 dark:border-blue-700 w-full min-w-[250px]">
+    <Card className="p-3 sm:p-4 rounded-xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 w-full min-w-[250px]">
       <div className="flex flex-col space-y-3 mb-3">
         <div className="flex items-center space-x-2">
           <Brain className="h-4 w-4 text-purple-600" />
@@ -227,7 +227,7 @@ export function AdvancedTeamAnalysis({
             size="sm"
             variant="outline"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="px-2 py-2 sm:py-1 rounded border-blue-200 dark:border-blue-600 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-600 transition-colors duration-300 text-xs sm:text-sm"
+            className="px-2 py-2 sm:py-1 rounded border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors duration-300 text-xs sm:text-sm"
           >
             <BarChart3 className="h-3 w-3 mr-1" />
             <span className="hidden sm:inline">{showAdvanced ? 'Hide' : 'Show'} Analysis Details</span>
@@ -237,17 +237,17 @@ export function AdvancedTeamAnalysis({
       </div>
 
       {/* Analysis Mode Description */}
-      <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-700 rounded-lg">
+      <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
         <div className="flex items-center space-x-2 mb-1">
           <Lightbulb className="h-3 w-3 text-yellow-500" />
-          <span className="text-xs font-medium text-neutral-900 dark:text-neutral-100">
+          <span className="text-xs font-medium text-blue-900 dark:text-blue-100">
             {analysisMode === 'balanced' && 'Balanced Strategy'}
             {analysisMode === 'aggressive' && 'Aggressive Scoring'}
             {analysisMode === 'defensive' && 'Defensive Focus'}
             {analysisMode === 'specialist' && 'Specialist Roles'}
           </span>
         </div>
-        <p className="text-xs text-neutral-600 dark:text-neutral-300">
+        <p className="text-xs text-blue-800 dark:text-blue-200">
           {analysisMode === 'balanced' && 'Prioritizes well-rounded teams with good scoring and defense capabilities'}
           {analysisMode === 'aggressive' && 'Focuses on high-scoring teams for offensive strategies'}
           {analysisMode === 'defensive' && 'Emphasizes defensive capabilities and endgame performance'}
@@ -261,7 +261,7 @@ export function AdvancedTeamAnalysis({
           size="sm"
           variant="outline"
           onClick={() => setShowAI(!showAI)}
-          className="w-full px-2 py-1 rounded border-blue-200 dark:border-blue-600 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-600 transition-colors duration-300 text-xs"
+          className="w-full px-2 py-1 rounded border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors duration-300 text-xs"
         >
           <Sparkles className="h-3 w-3 mr-1" />
           {showAI ? 'Hide' : 'Show'} AI Analysis
@@ -305,7 +305,7 @@ export function AdvancedTeamAnalysis({
           aiSuggestions.map((suggestion, index) => (
             <div
               key={suggestion.team_number}
-              className="flex flex-col sm:flex-row sm:items-start justify-between p-2 sm:p-3 border border-blue-200 dark:border-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-700 transition-colors duration-300"
+              className="flex flex-col sm:flex-row sm:items-start justify-between p-2 sm:p-3 border border-neutral-200 dark:border-neutral-600 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-300"
             >
               <div className="flex-1 min-w-0 mb-2 sm:mb-0">
                 <div className="flex flex-wrap items-center space-x-1 mb-2">
@@ -354,7 +354,7 @@ export function AdvancedTeamAnalysis({
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {suggestion.reasoning.slice(0, 2).map((reason, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs border-blue-200 dark:border-blue-600 text-blue-700 dark:text-blue-300 px-1 py-0.5">
+                        <Badge key={idx} variant="outline" className="text-xs border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 px-1 py-0.5">
                           {reason}
                         </Badge>
                       ))}
@@ -389,7 +389,7 @@ export function AdvancedTeamAnalysis({
 
       {/* Quick Stats */}
       {aiSuggestions.length > 0 && (
-        <div className="mt-3 pt-2 border-t border-blue-200 dark:border-blue-600">
+        <div className="mt-3 pt-2 border-t border-neutral-200 dark:border-neutral-600">
           <div className="grid grid-cols-4 gap-2 text-xs">
             <div className="text-center">
               <div className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">

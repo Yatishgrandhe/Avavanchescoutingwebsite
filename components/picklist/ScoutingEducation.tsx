@@ -25,17 +25,17 @@ interface StrategyTipProps {
 function StrategyTip({ icon, title, description, category }: StrategyTipProps) {
   const getCategoryColor = (cat: string) => {
     switch (cat) {
-      case 'scoring': return 'bg-green-100 text-green-800';
-      case 'defense': return 'bg-blue-100 text-blue-800';
-      case 'strategy': return 'bg-purple-100 text-purple-800';
-      case 'alliance': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'scoring': return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
+      case 'defense': return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200';
+      case 'strategy': return 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200';
+      case 'alliance': return 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200';
+      default: return 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200';
     }
   };
 
   return (
-    <div className="flex items-start space-x-3 p-4 bg-blue-100 dark:bg-blue-800 rounded-lg border border-blue-200 dark:border-blue-700 hover:shadow-md transition-shadow">
-      <div className="flex-shrink-0 p-2 bg-blue-200 dark:bg-blue-700 rounded-lg">
+    <div className="flex items-start space-x-3 p-4 bg-card rounded-lg border border-border hover:shadow-md transition-shadow">
+      <div className="flex-shrink-0 p-2 bg-gray-100 rounded-lg">
         {icon}
       </div>
       <div className="flex-1">
@@ -61,7 +61,7 @@ function ExpandableSection({ title, children, defaultExpanded = false }: Expanda
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <Card className="p-4 bg-blue-100 dark:bg-blue-800 border border-blue-200 dark:border-blue-700">
+    <Card className="p-4">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex items-center justify-between w-full text-left"
@@ -102,15 +102,15 @@ export function ScoutingEducation() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex space-x-1 bg-blue-100 dark:bg-blue-800 p-1 rounded-lg border border-blue-200 dark:border-blue-700">
+      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
             className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
               activeTab === tab.id
-                ? 'bg-blue-200 dark:bg-blue-700 text-blue-600 shadow-sm'
-                : 'text-blue-600 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100'
+                ? 'bg-card text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             <tab.icon className="h-4 w-4" />

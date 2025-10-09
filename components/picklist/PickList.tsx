@@ -59,13 +59,13 @@ function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemPro
 
   return (
     <div ref={setNodeRef} style={style} className="relative">
-      <Card className="p-6 mb-3 bg-blue-100 dark:bg-blue-800 border-l-4 border-l-primary rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
+      <Card className="p-6 mb-3 bg-neutral-100 dark:bg-neutral-800 border-l-4 border-l-primary rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-4 flex-1">
             <div
               {...attributes}
               {...listeners}
-              className="cursor-grab hover:cursor-grabbing p-2 text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors duration-300"
+              className="cursor-grab hover:cursor-grabbing p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-300"
             >
               <GripVertical className="h-5 w-5" />
             </div>
@@ -105,7 +105,7 @@ function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemPro
                         setNotes(team.notes || '');
                         setIsEditingNotes(false);
                       }}
-                      className="px-4 py-2 rounded-full border-blue-200 dark:border-blue-600 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-600 transition-colors duration-300"
+                      className="px-4 py-2 rounded-full border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors duration-300"
                     >
                       Cancel
                     </Button>
@@ -119,7 +119,7 @@ function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemPro
                       size="sm"
                       variant="ghost"
                       onClick={() => setIsEditingNotes(true)}
-                      className="p-2 h-8 w-8 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors duration-300"
+                      className="p-2 h-8 w-8 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-300"
                     >
                       <Edit3 className="h-3 w-3" />
                     </Button>
@@ -184,7 +184,7 @@ function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSe
   };
 
   return (
-    <Card className="p-3 rounded-xl shadow-card dark:shadow-card-dark bg-blue-100 dark:bg-blue-800 border border-blue-200 dark:border-blue-700 w-full">
+    <Card className="p-3 rounded-xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 w-full">
       <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-3">Available Teams</h3>
       
       <div className="flex flex-col space-y-2 mb-3">
@@ -479,7 +479,7 @@ export function PickList({ pickListId, eventKey = '2025test', onSave, session }:
             >
               <div className="space-y-3">
                 {teams.length === 0 ? (
-                  <Card className="p-8 text-center rounded-xl bg-blue-100 dark:bg-blue-800 border border-blue-200 dark:border-blue-700">
+                  <Card className="p-8 text-center rounded-xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
                     <Target className="h-12 w-12 mx-auto mb-4 text-neutral-400" />
                     <p className="text-neutral-500 dark:text-neutral-400">No teams selected yet. Add teams from the available list.</p>
                   </Card>

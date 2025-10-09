@@ -19,8 +19,8 @@ export function TeamComparisonModal({ teams, isOpen, onClose }: TeamComparisonMo
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-blue-100 dark:bg-blue-800 rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto border border-blue-200 dark:border-blue-700">
-        <div className="flex items-center justify-between p-6 border-b border-blue-200 dark:border-blue-600">
+      <div className="bg-card rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900">Team Comparison</h2>
           <Button
             variant="ghost"
@@ -59,7 +59,7 @@ export function TeamComparisonModal({ teams, isOpen, onClose }: TeamComparisonMo
               </div>
 
               {/* Detailed Comparison Table */}
-              <Card className="p-6 bg-blue-50 dark:bg-blue-700 border border-blue-200 dark:border-blue-600">
+              <Card className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Detailed Comparison</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -79,7 +79,7 @@ export function TeamComparisonModal({ teams, isOpen, onClose }: TeamComparisonMo
                         <tr key={team.team_number} className="border-b border-gray-100">
                           <td className="py-3 px-2">
                             <div className="flex items-center space-x-2">
-                              <Badge variant="secondary">#{team.pick_order}</Badge>
+                              <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">#{team.pick_order}</Badge>
                               <div>
                                 <div className="font-medium text-gray-900">
                                   Team {team.team_number}
@@ -121,7 +121,7 @@ export function TeamComparisonModal({ teams, isOpen, onClose }: TeamComparisonMo
               </Card>
 
               {/* Alliance Analysis */}
-              <Card className="p-6 bg-blue-50 dark:bg-blue-700 border border-blue-200 dark:border-blue-600">
+              <Card className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Alliance Analysis</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -239,7 +239,7 @@ export function QuickComparison({ teams, onOpenComparison }: QuickComparisonProp
   const avgDefense = teamsWithStats.reduce((sum, team) => sum + (team.stats?.avg_defense_rating || 0), 0) / teamsWithStats.length;
 
   return (
-    <Card className="p-4 bg-blue-100 dark:bg-blue-800 border border-blue-200 dark:border-blue-700">
+    <Card className="p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-gray-900">Alliance Preview</h3>
         <Button size="sm" onClick={onOpenComparison}>
@@ -265,7 +265,7 @@ export function QuickComparison({ teams, onOpenComparison }: QuickComparisonProp
         </div>
       </div>
       
-      <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-600">
+      <div className="mt-3 pt-3 border-t border-gray-200">
         <p className="text-xs text-gray-500">
           {teamsWithStats.length} teams with stats • {teams.length - teamsWithStats.length} teams pending data
         </p>

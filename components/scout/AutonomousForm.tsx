@@ -139,11 +139,17 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                   type="checkbox"
                   checked={formData.auto_leave}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_leave', e.target.checked)}
-                  className={`w-6 h-6 rounded border-2 cursor-pointer ${
+                  className={`w-6 h-6 rounded border-2 cursor-pointer appearance-none checked:bg-blue-600 checked:border-blue-600 checked:text-white ${
                     isDarkMode 
-                      ? 'text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500' 
-                      : 'text-green-600 bg-background border-border focus:ring-green-500'
+                      ? 'bg-gray-600 border-gray-500 focus:ring-blue-500' 
+                      : 'bg-background border-border focus:ring-blue-500'
                   }`}
+                  style={{
+                    backgroundImage: formData.auto_leave ? 'url("data:image/svg+xml,%3csvg viewBox=\'0 0 16 16\' fill=\'white\' xmlns=\'http://www.w3.org/2000/svg\'%3e%3cpath d=\'m13.854 3.646-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 9.293l6.646-6.647a.5.5 0 0 1 .708.708z\'/%3e%3c/svg%3e")' : 'none',
+                    backgroundSize: '16px 16px',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat'
+                  }}
                 />
               </div>
             </div>

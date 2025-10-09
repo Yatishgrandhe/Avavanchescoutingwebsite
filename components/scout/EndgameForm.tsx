@@ -35,14 +35,6 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
         return SCORING_VALUES.endgame_shallow_cage;
       case 'deep':
         return SCORING_VALUES.endgame_deep_cage;
-      case 'park_shallow':
-        return SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_shallow_cage;
-      case 'park_deep':
-        return SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_deep_cage;
-      case 'shallow_deep':
-        return SCORING_VALUES.endgame_shallow_cage + SCORING_VALUES.endgame_deep_cage;
-      case 'all':
-        return SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_shallow_cage + SCORING_VALUES.endgame_deep_cage;
       default:
         return 0;
     }
@@ -95,13 +87,9 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
               </SelectTrigger>
               <SelectContent className="bg-card border-border">
                 <SelectItem value="none" className="text-white hover:bg-gray-700">No Endgame Score</SelectItem>
-                <SelectItem value="park" className="text-white hover:bg-gray-700">Park in Barge Zone (+{SCORING_VALUES.endgame_park} pts)</SelectItem>
-                <SelectItem value="shallow" className="text-white hover:bg-gray-700">Off-the-ground via shallow CAGE (+{SCORING_VALUES.endgame_shallow_cage} pts)</SelectItem>
-                <SelectItem value="deep" className="text-white hover:bg-gray-700">Off-the-ground via deep CAGE (+{SCORING_VALUES.endgame_deep_cage} pts)</SelectItem>
-                <SelectItem value="park_shallow" className="text-white hover:bg-gray-700">Park + Shallow Cage (+{SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_shallow_cage} pts)</SelectItem>
-                <SelectItem value="park_deep" className="text-white hover:bg-gray-700">Park + Deep Cage (+{SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_deep_cage} pts)</SelectItem>
-                <SelectItem value="shallow_deep" className="text-white hover:bg-gray-700">Shallow + Deep Cage (+{SCORING_VALUES.endgame_shallow_cage + SCORING_VALUES.endgame_deep_cage} pts)</SelectItem>
-                <SelectItem value="all" className="text-white hover:bg-gray-700">All Endgame Actions (+{SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_shallow_cage + SCORING_VALUES.endgame_deep_cage} pts)</SelectItem>
+                <SelectItem value="park" className="text-white hover:bg-gray-700">Park in the BARGE ZONE (+{SCORING_VALUES.endgame_park} points)</SelectItem>
+                <SelectItem value="shallow" className="text-white hover:bg-gray-700">Off-the-ground via shallow CAGE (+{SCORING_VALUES.endgame_shallow_cage} points)</SelectItem>
+                <SelectItem value="deep" className="text-white hover:bg-gray-700">Off-the-ground via deep CAGE (+{SCORING_VALUES.endgame_deep_cage} points)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -128,9 +116,9 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
             onClick={() => {
               // Convert dropdown selection to ScoringNotes format
               const scoringNotes: Partial<ScoringNotes> = {
-                endgame_park: formData.endgame_score === 'park' || formData.endgame_score === 'park_shallow' || formData.endgame_score === 'park_deep' || formData.endgame_score === 'all',
-                endgame_shallow_cage: formData.endgame_score === 'shallow' || formData.endgame_score === 'park_shallow' || formData.endgame_score === 'shallow_deep' || formData.endgame_score === 'all',
-                endgame_deep_cage: formData.endgame_score === 'deep' || formData.endgame_score === 'park_deep' || formData.endgame_score === 'shallow_deep' || formData.endgame_score === 'all',
+                endgame_park: formData.endgame_score === 'park',
+                endgame_shallow_cage: formData.endgame_score === 'shallow',
+                endgame_deep_cage: formData.endgame_score === 'deep',
               };
               onNext(scoringNotes);
             }}

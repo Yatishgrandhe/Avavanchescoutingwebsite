@@ -3012,4 +3012,21 @@ body::-webkit-scrollbar-thumb:hover,
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
   }
+  
+  /* Mobile-friendly checkbox styles */
+  input[type="checkbox"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    min-width: 32px;
+    min-height: 32px;
+    touch-action: manipulation;
+  }
+  
+  @media (max-width: 640px) {
+    input[type="checkbox"] {
+      min-width: 40px;
+      min-height: 40px;
+    }
+  }
 }

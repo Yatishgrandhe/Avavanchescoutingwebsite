@@ -130,25 +130,30 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 sm:space-x-4">
               <span className={`font-bold text-lg ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
                 +{SCORING_VALUES.auto_leave} pts
               </span>
-              <div className="relative">
+              <div className="relative flex items-center justify-center">
                 <input
                   type="checkbox"
                   checked={formData.auto_leave}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_leave', e.target.checked)}
-                  className={`w-6 h-6 rounded border-2 cursor-pointer appearance-none checked:bg-blue-600 checked:border-blue-600 checked:text-white ${
-                    isDarkMode 
-                      ? 'bg-gray-600 border-gray-500 focus:ring-blue-500' 
-                      : 'bg-background border-border focus:ring-blue-500'
-                  }`}
+                  className={`w-10 h-10 sm:w-8 sm:h-8 rounded border-2 cursor-pointer appearance-none transition-all duration-200 select-none ${
+                    formData.auto_leave
+                      ? 'bg-blue-600 border-blue-600 shadow-lg'
+                      : isDarkMode 
+                        ? 'bg-gray-600 border-gray-500 hover:border-gray-400 hover:bg-gray-500' 
+                        : 'bg-background border-border hover:border-gray-400 hover:bg-gray-50'
+                  } focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:scale-95`}
                   style={{
                     backgroundImage: formData.auto_leave ? 'url("data:image/svg+xml,%3csvg viewBox=\'0 0 16 16\' fill=\'white\' xmlns=\'http://www.w3.org/2000/svg\'%3e%3cpath d=\'m13.854 3.646-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 9.293l6.646-6.647a.5.5 0 0 1 .708.708z\'/%3e%3c/svg%3e")' : 'none',
-                    backgroundSize: '16px 16px',
+                    backgroundSize: '24px 24px',
                     backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat'
+                    backgroundRepeat: 'no-repeat',
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none',
+                    touchAction: 'manipulation'
                   }}
                 />
               </div>

@@ -307,7 +307,7 @@ export default function AdvancedAnalysis() {
               exit={{ opacity: 0, height: 0 }}
               className="mb-6"
             >
-              <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <Card className="bg-card border-border">
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Input
@@ -342,7 +342,7 @@ export default function AdvancedAnalysis() {
           )}
 
           {/* Team Search */}
-          <Card className={`mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <Card className="mb-8 bg-card border-border">
             <CardHeader>
               <CardTitle className={`flex items-center space-x-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 <motion.div
@@ -366,7 +366,7 @@ export default function AdvancedAnalysis() {
                   className={`flex-1 px-3 py-2 border rounded-md ${
                     isDarkMode 
                       ? 'bg-gray-700 border-gray-600 text-white' 
-                      : 'bg-white border-gray-300 text-gray-900'
+                      : 'bg-background border-border text-foreground'
                   } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 >
                   <option value="">
@@ -422,7 +422,7 @@ export default function AdvancedAnalysis() {
             >
               {/* Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                <Card className="bg-card border-border">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -438,7 +438,7 @@ export default function AdvancedAnalysis() {
                   </CardContent>
                 </Card>
 
-                <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                <Card className="bg-card border-border">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -454,7 +454,7 @@ export default function AdvancedAnalysis() {
                   </CardContent>
                 </Card>
 
-                <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                <Card className="bg-card border-border">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -470,7 +470,7 @@ export default function AdvancedAnalysis() {
                   </CardContent>
                 </Card>
 
-                <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                <Card className="bg-card border-border">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -489,7 +489,7 @@ export default function AdvancedAnalysis() {
 
               {/* Detailed Metrics */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                <Card className="bg-card border-border">
                   <CardHeader>
                     <CardTitle className={`${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                       Scoring Breakdown
@@ -517,7 +517,7 @@ export default function AdvancedAnalysis() {
                   </CardContent>
                 </Card>
 
-                <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                <Card className="bg-card border-border">
                   <CardHeader>
                     <CardTitle className={`${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                       Performance Range
@@ -547,7 +547,7 @@ export default function AdvancedAnalysis() {
               </div>
 
               {/* Recent Performance */}
-              <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <Card className="bg-card border-border">
                 <CardHeader>
                   <CardTitle className={`${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                     Recent Performance

@@ -174,10 +174,10 @@ export default function LearnGame() {
                 <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
                   Learn the Game
                 </h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm sm:text-base">
+                <p className="text-muted-foreground mt-1 text-sm sm:text-base">
                   Comprehensive guide to FIRST Robotics Competition gameplay
                 </p>
               </div>
@@ -185,61 +185,28 @@ export default function LearnGame() {
           </div>
 
           {/* Video Section */}
-          <Card className="mb-6 sm:mb-8 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <Card className="mb-6 sm:mb-8 bg-card border-border">
             <CardHeader>
-              <CardTitle className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 text-gray-900 dark:text-white">
+              <CardTitle className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 text-foreground">
                 <div className="flex items-center space-x-2">
                   <Play className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                   <span className="text-lg sm:text-xl">Game Introduction Video</span>
                 </div>
               </CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
+              <CardDescription className="text-muted-foreground text-sm sm:text-base">
                 Watch this official game animation to understand the basics
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-                {videoUrl ? (
-                  <video
-                    className="w-full h-full object-cover"
-                    controls
-                    muted={isMuted}
-                    onPlay={() => setIsPlaying(true)}
-                    onPause={() => setIsPlaying(false)}
-                  >
-                    <source src={videoUrl} type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
-                ) : (
-                  <div className="flex items-center justify-center h-full bg-gray-900">
-                    <div className="text-center">
-                      <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                      <p className="text-white text-lg mb-2">Video Coming Soon</p>
-                      <p className="text-gray-400 text-sm">
-                        Official game animation will be embedded here
-                      </p>
-                      <div className="mt-4 p-4 bg-gray-800 rounded-lg">
-                        <p className="text-gray-300 text-sm">
-                          <strong>Placeholder:</strong> This is where the official FIRST Robotics Competition 
-                          game animation video will be embedded. The video will provide a comprehensive 
-                          overview of the game rules, field layout, and scoring mechanisms.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Video Controls Overlay */}
-                <div className="absolute bottom-4 right-4 flex space-x-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setIsMuted(!isMuted)}
-                    className="bg-black/50 hover:bg-black/70 text-white border-0"
-                  >
-                    {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                  </Button>
-                </div>
+                <iframe
+                  src="https://www.youtube.com/embed/YWbxcjlY9JY"
+                  title="FIRST Robotics Competition Game Animation"
+                  className="w-full h-full"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
               </div>
             </CardContent>
           </Card>
@@ -264,16 +231,16 @@ export default function LearnGame() {
                           {section.icon}
                         </div>
                         <div>
-                          <CardTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
+                          <CardTitle className="text-foreground text-lg sm:text-xl">
                             {section.title}
                           </CardTitle>
                         </div>
                       </div>
-                      <div className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                      <div className="p-2 hover:bg-muted rounded-lg transition-colors">
                         {expandedSections.has(section.id) ? (
-                          <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                          <ChevronDown className="w-5 h-5 text-muted-foreground" />
                         ) : (
-                          <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                          <ChevronRight className="w-5 h-5 text-muted-foreground" />
                         )}
                       </div>
                     </div>
@@ -282,7 +249,7 @@ export default function LearnGame() {
                   {expandedSections.has(section.id) && (
                     <CardContent className="pt-0">
                       <div className="space-y-4">
-                        <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                        <p className="text-foreground leading-relaxed">
                           {section.content}
                         </p>
                         
@@ -294,12 +261,12 @@ export default function LearnGame() {
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ duration: 0.3, delay: subIndex * 0.1 }}
-                                className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border-l-4 border-blue-500"
+                                className="p-4 bg-muted/50 rounded-lg border-l-4 border-blue-500"
                               >
-                                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                                <h4 className="font-semibold text-foreground mb-2">
                                   {subsection.title}
                                 </h4>
-                                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                                <p className="text-muted-foreground text-sm leading-relaxed">
                                   {subsection.content}
                                 </p>
                               </motion.div>
@@ -333,11 +300,11 @@ export default function LearnGame() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 bg-card rounded-lg border border-border">
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">
+                  <div className="p-4 bg-background rounded-lg border border-border">
+                    <h4 className="font-semibold text-foreground mb-2 text-sm sm:text-base">
                       Official Game Manual
                     </h4>
-                    <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm mb-3">
+                    <p className="text-muted-foreground text-xs sm:text-sm mb-3">
                       Complete rules, regulations, and technical specifications
                     </p>
                     <Button size="sm" variant="outline" className="w-full text-xs sm:text-sm">
@@ -345,11 +312,11 @@ export default function LearnGame() {
                     </Button>
                   </div>
                   
-                  <div className="p-4 bg-card rounded-lg border border-border">
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">
+                  <div className="p-4 bg-background rounded-lg border border-border">
+                    <h4 className="font-semibold text-foreground mb-2 text-sm sm:text-base">
                       Strategy Guide
                     </h4>
-                    <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm mb-3">
+                    <p className="text-muted-foreground text-xs sm:text-sm mb-3">
                       Advanced tactics and strategic considerations
                     </p>
                     <Button size="sm" variant="outline" className="w-full text-xs sm:text-sm">

@@ -631,7 +631,7 @@ export default function PitScouting() {
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={handleBack} className="bg-white/10 border-white/30 text-white hover:bg-white/20">
+                    <Button variant="outline" onClick={handleBack} className="bg-card/10 border-border/30 text-foreground hover:bg-card/20">
                       <ArrowLeft className="mr-2 w-4 h-4" />
                       Back
                     </Button>
@@ -728,7 +728,7 @@ export default function PitScouting() {
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={handleBack} className="bg-white/10 border-white/30 text-white hover:bg-white/20">
+                    <Button variant="outline" onClick={handleBack} className="bg-card/10 border-border/30 text-foreground hover:bg-card/20">
                       <ArrowLeft className="mr-2 w-4 h-4" />
                       Back
                     </Button>

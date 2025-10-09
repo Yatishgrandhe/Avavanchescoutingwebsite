@@ -213,7 +213,7 @@ export default function PitScouting() {
   return (
     <Layout>
       <div className="min-h-full p-4 md:p-6">
-        <div className="max-w-7xl mx-auto">
+        <div className="w-full max-w-full mx-auto">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -268,7 +268,7 @@ export default function PitScouting() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
-                className="w-full max-w-sm mx-auto sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl"
+                className="w-full max-w-full mx-auto px-4 sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl"
               >
                 <Card>
                   <CardHeader>
@@ -336,7 +336,7 @@ export default function PitScouting() {
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm font-medium mb-2">
                           Programming Language
@@ -497,7 +497,7 @@ export default function PitScouting() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
-                className="w-full max-w-sm mx-auto sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl"
+                className="w-full max-w-full mx-auto px-4 sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl"
               >
                 <Card>
                   <CardHeader>
@@ -513,7 +513,7 @@ export default function PitScouting() {
                     {/* Autonomous Capabilities */}
                     <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
                       <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">Autonomous Capabilities</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                         <div>
                           <label className="block text-sm font-medium mb-2">
                             Autonomous Strategy <span className="text-red-500">*</span>
@@ -551,7 +551,7 @@ export default function PitScouting() {
                     {/* Teleop Capabilities */}
                     <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
                       <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">Teleop Capabilities</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                         <div>
                           <label className="block text-sm font-medium mb-2">
                             Teleop Strategy <span className="text-red-500">*</span>
@@ -589,7 +589,7 @@ export default function PitScouting() {
                     {/* Endgame Capabilities */}
                     <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
                       <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">Endgame Capabilities</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                         <div>
                           <label className="block text-sm font-medium mb-2">
                             Endgame Strategy <span className="text-red-500">*</span>
@@ -644,7 +644,7 @@ export default function PitScouting() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
-                className="w-full max-w-sm mx-auto sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl"
+                className="w-full max-w-full mx-auto px-4 sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl"
               >
                 <Card>
                   <CardHeader>
@@ -742,7 +742,7 @@ export default function PitScouting() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
-                className="w-full max-w-sm mx-auto sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl"
+                className="w-full max-w-full mx-auto px-4 sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl"
               >
                 <Card>
                   <CardHeader>
@@ -777,7 +777,7 @@ export default function PitScouting() {
                       </motion.div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                       <div className="bg-muted rounded-lg p-4 border">
                         <h3 className="font-semibold mb-3">Basic Information</h3>
                         <p className="text-sm text-muted-foreground">Team: {formData.teamNumber}</p>
@@ -798,7 +798,7 @@ export default function PitScouting() {
 
                     <div className="bg-muted rounded-lg p-4 border">
                       <h3 className="font-semibold mb-3">Drive Train Details</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                           <p className="text-sm text-muted-foreground"><strong>Type:</strong> {formData.driveTrainDetails.type || 'N/A'}</p>
                           <p className="text-sm text-muted-foreground mt-2"><strong>Auto Capabilities:</strong></p>
@@ -815,7 +815,7 @@ export default function PitScouting() {
 
                     <div className="bg-muted rounded-lg p-4 border">
                       <h3 className="font-semibold mb-3">Capabilities Summary</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                           <p className="text-sm text-muted-foreground"><strong>Autonomous:</strong></p>
                           <p className="text-sm text-muted-foreground">{formData.autonomousCapabilities.length > 0 ? formData.autonomousCapabilities.join(', ') : 'N/A'}</p>
@@ -833,7 +833,7 @@ export default function PitScouting() {
 
                     <div className="bg-muted rounded-lg p-4 border">
                       <h3 className="font-semibold mb-3">Analysis Summary</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                           <p className="text-sm text-muted-foreground"><strong>Strengths:</strong></p>
                           <p className="text-sm text-muted-foreground">{formData.strengths.length > 0 ? formData.strengths.join(', ') : 'N/A'}</p>

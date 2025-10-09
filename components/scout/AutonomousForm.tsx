@@ -163,7 +163,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
               </h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               <Counter
                 value={formData.auto_coral_trough}
                 onChange={(value: number) => handleInputChange('auto_coral_trough', value)}
@@ -222,7 +222,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
               </h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               <Counter
                 value={formData.auto_algae_processor}
                 onChange={(value: number) => handleInputChange('auto_algae_processor', value)}

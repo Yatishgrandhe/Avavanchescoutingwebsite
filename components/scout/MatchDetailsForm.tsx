@@ -189,7 +189,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
                 Select Team to Scout <span className="text-red-500">*</span>
               </label>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                 {/* Red Alliance */}
                 <div className="space-y-2">
                   <div className={`text-sm font-medium ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>

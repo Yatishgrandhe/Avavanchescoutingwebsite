@@ -82,7 +82,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
             <textarea
               value={formData.comments}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('comments', e.target.value)}
-              className="w-full h-24 sm:h-32 bg-black border border-dark-600 text-white rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-reef-500 text-sm sm:text-base"
+              className="w-full h-24 sm:h-32 lg:h-36 xl:h-40 bg-black border border-dark-600 text-white rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-reef-500 text-sm sm:text-base"
               placeholder="Add any additional observations, strategies observed, or notable robot capabilities..."
             />
           </div>

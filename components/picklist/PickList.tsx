@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import {
   DndContext,
   closestCenter,
@@ -25,7 +26,7 @@ import { TeamStatsCard, QuickStats } from './TeamStatsCard';
 import { TeamComparisonModal, QuickComparison } from './TeamComparisonModal';
 import { AdvancedTeamAnalysis } from './AdvancedTeamAnalysis';
 import { TeamStats, PickListTeam } from '@/lib/types';
-import { GripVertical, Plus, Save, Trash2, Edit3, Brain, Target, BarChart3, Shield } from 'lucide-react';
+import { GripVertical, Plus, Save, Trash2, Edit3, Brain, Target, BarChart3, Shield, ExternalLink } from 'lucide-react';
 
 interface SortableTeamItemProps {
   team: PickListTeam;
@@ -34,6 +35,7 @@ interface SortableTeamItemProps {
 }
 
 function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemProps) {
+  const router = useRouter();
   const {
     attributes,
     listeners,
@@ -51,6 +53,10 @@ function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemPro
 
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notes, setNotes] = useState(team.notes || '');
+
+  const handleTeamClick = () => {
+    router.push(`/team/${team.team_number}`);
+  };
 
   const handleSaveNotes = () => {
     onUpdateNotes(team.team_number, notes);
@@ -72,9 +78,15 @@ function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemPro
             
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-3">
-                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                  #{team.pick_order} - Team {team.team_number}
-                </h3>
+                <button
+                  onClick={handleTeamClick}
+                  className="flex items-center space-x-2 hover:text-primary transition-colors duration-300 group"
+                >
+                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 group-hover:text-primary">
+                    #{team.pick_order} - Team {team.team_number}
+                  </h3>
+                  <ExternalLink className="h-4 w-4 text-neutral-400 group-hover:text-primary transition-colors duration-300" />
+                </button>
                 <span className="text-sm text-neutral-500 dark:text-neutral-400">{team.team_name}</span>
               </div>
               

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +18,8 @@ import {
   Award,
   AlertTriangle,
   CheckCircle,
-  Sparkles
+  Sparkles,
+  ExternalLink
 } from 'lucide-react';
 
 interface TeamSuggestion {
@@ -60,12 +62,17 @@ export function AdvancedTeamAnalysis({
   onAddTeam, 
   selectedTeamNumbers 
 }: AdvancedTeamAnalysisProps) {
+  const router = useRouter();
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
   const [aiAnalysis, setAiAnalysis] = useState<AIPickListAnalysis | null>(null);
   const [coralStats, setCoralStats] = useState<CoralStats[]>([]);
   const [analysisMode, setAnalysisMode] = useState<'balanced' | 'aggressive' | 'defensive' | 'specialist'>('balanced');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAI, setShowAI] = useState(true);
+
+  const handleTeamClick = (teamNumber: number) => {
+    router.push(`/team/${teamNumber}`);
+  };
 
   useEffect(() => {
     generateAISuggestions();
@@ -344,7 +351,13 @@ export function AdvancedTeamAnalysis({
                     <Badge variant="secondary" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs px-1 py-0.5">
                       #{index + 1}
                     </Badge>
-                    <span className="font-medium">Team {coral.team_number}</span>
+                    <button
+                      onClick={() => handleTeamClick(coral.team_number)}
+                      className="flex items-center space-x-1 hover:text-green-600 dark:hover:text-green-400 transition-colors duration-300 group"
+                    >
+                      <span className="font-medium group-hover:text-green-600 dark:group-hover:text-green-400">Team {coral.team_number}</span>
+                      <ExternalLink className="h-3 w-3 text-green-500 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors duration-300" />
+                    </button>
                     <span className="text-green-700 dark:text-green-300">
                       {coral.avg_coral_points.toFixed(1)} avg coral pts
                     </span>
@@ -403,9 +416,15 @@ export function AdvancedTeamAnalysis({
                     #{index + 1}
                   </Badge>
                   {getCategoryIcon(suggestion.category)}
-                  <h4 className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm sm:text-base">
-                    Team {suggestion.team_number}
-                  </h4>
+                  <button
+                    onClick={() => handleTeamClick(suggestion.team_number)}
+                    className="flex items-center space-x-1 hover:text-primary transition-colors duration-300 group"
+                  >
+                    <h4 className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm sm:text-base group-hover:text-primary">
+                      Team {suggestion.team_number}
+                    </h4>
+                    <ExternalLink className="h-3 w-3 text-neutral-400 group-hover:text-primary transition-colors duration-300" />
+                  </button>
                   <Badge className={`${getCategoryColor(suggestion.category)} text-xs px-1 py-0.5`}>
                     {suggestion.category}
                   </Badge>

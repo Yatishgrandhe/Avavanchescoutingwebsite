@@ -241,7 +241,7 @@ export default function Scout() {
           </div>
 
           {/* Form Content */}
-          <Card>
+          <Card className="w-full max-w-sm mx-auto sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl">
             <CardContent className="p-6">
               <AnimatePresence mode="wait">
                 {currentStep === 'match-details' && (

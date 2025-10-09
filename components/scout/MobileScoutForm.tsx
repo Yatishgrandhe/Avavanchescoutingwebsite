@@ -161,7 +161,7 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
       </div>
 
       {/* Form Content */}
-      <Card className="mb-6">
+      <Card className="mb-6 w-full max-w-sm mx-auto sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl">
         <CardContent className="p-4">
           <AnimatePresence mode="wait">
             {currentStep === 'match-details' && (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/router';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui';
 import { Button } from '../../components/ui';
 import { Input } from '../../components/ui';
@@ -221,18 +222,9 @@ export default function TeamComparison() {
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-md mx-auto p-8"
-        >
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-lg">Please sign in to access team comparison</p>
-        </motion.div>
-      </div>
-    );
+    const router = useRouter();
+    router.push('/');
+    return null;
   }
 
   return (

@@ -231,7 +231,7 @@ export default function MobileDashboard() {
   }
 
   if (!user) {
-    router.push('/auth/signin');
+    router.push('/');
     return null;
   }
 

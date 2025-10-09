@@ -181,7 +181,7 @@ export default function MobileScout() {
   }
 
   if (!user) {
-    router.push('/auth/signin');
+    router.push('/');
     return null;
   }
 

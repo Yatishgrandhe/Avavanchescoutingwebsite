@@ -28,7 +28,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/auth/signin');
+      router.push('/');
     }
   }, [user, loading, router]);
 

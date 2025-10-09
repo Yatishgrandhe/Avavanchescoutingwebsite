@@ -207,7 +207,7 @@ export default function PitScoutingMobile() {
   }
 
   if (!user) {
-    router.push('/auth/signin');
+    router.push('/');
     return null;
   }
 

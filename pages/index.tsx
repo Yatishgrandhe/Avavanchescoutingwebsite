@@ -20,7 +20,8 @@ import {
   Activity,
   Clock,
   CheckCircle,
-  Loader2
+  Loader2,
+  AlertTriangle
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import Logo from '../components/ui/Logo';
@@ -179,9 +180,20 @@ export default function Home() {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingActivity, setLoadingActivity] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Handle refresh and resize properly
   useRefreshHandler();
+
+  // Check for error messages in URL parameters
+  useEffect(() => {
+    const { message, error } = router.query;
+    if (message && typeof message === 'string') {
+      setErrorMessage(message);
+      // Clear the URL parameters after displaying the message
+      router.replace('/', undefined, { shallow: true });
+    }
+  }, [router.query, router]);
 
   // Load dashboard statistics from Supabase
   useEffect(() => {
@@ -682,6 +694,25 @@ export default function Home() {
           <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Advanced analytics, real-time data collection, and comprehensive team analysis for competitive FRC teams
           </p>
+          
+          {/* Error Message Display */}
+          {errorMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-2xl mx-auto mb-8 p-4 bg-destructive/10 border border-destructive/20 rounded-lg"
+            >
+              <div className="flex items-center justify-center space-x-2 text-destructive mb-2">
+                <AlertTriangle className="w-5 h-5" />
+                <span className="font-semibold">Access Restricted</span>
+              </div>
+              <p className="text-destructive text-sm">{errorMessage}</p>
+              <p className="text-muted-foreground text-xs mt-2">
+                Please join the Avalanche Discord server to gain access to this platform.
+              </p>
+            </motion.div>
+          )}
+          
           <Button
             onClick={handleSignIn}
             className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 md:px-8 py-3 text-base md:text-lg w-full sm:w-auto"

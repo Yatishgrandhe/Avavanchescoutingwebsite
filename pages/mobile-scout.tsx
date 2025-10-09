@@ -188,31 +188,31 @@ export default function MobileScout() {
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile Header */}
-      <div className="bg-card border-b border-border p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
+      <div className="bg-card border-b border-border p-3 sm:p-4">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.push('/')}
-              className="p-2"
+              className="p-1 sm:p-2"
             >
-              <Home size={20} />
+              <Home size={18} className="sm:w-5 sm:h-5" />
             </Button>
-            <h1 className="text-xl font-bold text-foreground">Scouting Session</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-foreground">Scouting Session</h1>
           </div>
-          <Badge variant="outline" className="text-sm">
+          <Badge variant="outline" className="text-xs sm:text-sm">
             Step {currentStepIndex + 1} of {steps.length}
           </Badge>
         </div>
         
         {/* Progress Bar */}
-        <div className="space-y-2 mb-4">
-          <div className="flex justify-between text-sm text-muted-foreground">
+        <div className="space-y-2 mb-3 sm:mb-4">
+          <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
             <span>Progress</span>
             <span>{Math.round(progress)}%</span>
           </div>
-          <Progress value={progress} className="h-3" />
+          <Progress value={progress} className="h-2 sm:h-3" />
         </div>
 
         {/* Mobile Step Indicators */}

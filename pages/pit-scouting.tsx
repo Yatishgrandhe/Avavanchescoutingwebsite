@@ -182,27 +182,27 @@ export default function PitScouting() {
 
   return (
     <Layout>
-      <div className="min-h-full p-4 md:p-6 lg:p-8">
+      <div className="min-h-full p-3 sm:p-4 md:p-6 lg:p-8">
         <div className="w-full mx-auto">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="mb-6 md:mb-8"
+            className="mb-4 sm:mb-6 md:mb-8"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-3 sm:mb-4">
               <motion.div
                 animate={{ rotate: [0, 10, -10, 0] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
-                <Wrench className="w-8 h-8 text-primary" />
+                <Wrench className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
               </motion.div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
                   Pit Scouting
                 </h1>
-                <p className="mt-2 text-muted-foreground">
+                <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">
                   Comprehensive robot analysis and documentation
                 </p>
               </div>
@@ -210,12 +210,12 @@ export default function PitScouting() {
           </motion.div>
 
           {/* Progress Indicator */}
-          <div className="mb-6 md:mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-foreground">
+          <div className="mb-4 sm:mb-6 md:mb-8">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <span className="text-xs sm:text-sm font-medium text-foreground">
                 Step {currentStep} of {totalSteps}
               </span>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-xs sm:text-sm text-muted-foreground">
                 {Math.round((currentStep / totalSteps) * 100)}% Complete
               </span>
             </div>

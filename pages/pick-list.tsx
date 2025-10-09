@@ -168,70 +168,66 @@ export default function PickListPage() {
   return (
     <ProtectedRoute>
       <Layout>
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-          <div className="container mx-auto px-4 py-6 max-w-7xl">
+        <div className="min-h-screen bg-background overflow-x-auto">
+          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             {/* Header Section */}
             <div className="mb-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+                  <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">
                     Pick Lists
                   </h1>
-                  <p className="text-slate-600 dark:text-slate-400">
+                  <p className="text-muted-foreground">
                     Create and manage team pick lists for alliance selection
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Button
-                    onClick={() => setShowEducation(!showEducation)}
-                    variant="outline"
-                    className="px-4 py-2 rounded-lg border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <GraduationCap className="h-4 w-4" />
-                    <span>{showEducation ? 'Hide' : 'Show'} Tips</span>
-                  </Button>
-                  <Button
-                    onClick={() => setIsCreatingNew(true)}
-                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>New Pick List</span>
-                  </Button>
-                </div>
+                <Button
+                  onClick={() => setShowEducation(!showEducation)}
+                  variant="outline"
+                  className="flex items-center space-x-2"
+                >
+                  <GraduationCap className="h-4 w-4" />
+                  <span>{showEducation ? 'Hide' : 'Show'} Education</span>
+                </Button>
               </div>
             </div>
 
             {showEducation && (
-              <div className="mb-6">
+              <div className="mb-8">
                 <ScoutingEducation />
               </div>
             )}
 
-            {/* Main Content */}
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               {/* Pick Lists Sidebar */}
-              <div className="xl:col-span-1">
-                <Card className="p-6 rounded-xl shadow-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <div className="lg:col-span-1">
+                <Card className="p-6 rounded-lg shadow-sm border">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">My Pick Lists</h2>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">
-                      {pickLists.length} total
-                    </div>
+                    <h2 className="text-lg font-semibold text-foreground">My Pick Lists</h2>
+                    <Button
+                      size="sm"
+                      onClick={() => setIsCreatingNew(true)}
+                      className="flex items-center space-x-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>New</span>
+                    </Button>
                   </div>
 
                   {isCreatingNew && (
-                    <div className="mb-6 p-4 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700">
+                    <div className="mb-6 p-4 border rounded-lg bg-muted/50">
                       <Input
-                        placeholder="Enter pick list name..."
+                        placeholder="Pick list name..."
                         value={newPickListName}
                         onChange={(e) => setNewPickListName(e.target.value)}
-                        className="mb-3 bg-white dark:bg-slate-600 border-slate-300 dark:border-slate-500 text-slate-900 dark:text-slate-100"
+                        className="mb-3"
                       />
                       <div className="flex space-x-2">
                         <Button 
                           size="sm" 
                           onClick={handleCreateNew}
-                          className="px-3 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
+                          className="flex-1"
                         >
                           Create
                         </Button>
@@ -242,7 +238,7 @@ export default function PickListPage() {
                             setIsCreatingNew(false);
                             setNewPickListName('');
                           }}
-                          className="px-3 py-1 rounded-md border-slate-300 dark:border-slate-500 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors duration-200"
+                          className="flex-1"
                         >
                           Cancel
                         </Button>
@@ -253,12 +249,9 @@ export default function PickListPage() {
                   <div className="space-y-3">
                     {pickLists.length === 0 ? (
                       <div className="text-center py-8">
-                        <List className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-                        <p className="text-slate-500 dark:text-slate-400 mb-4">
-                          No pick lists yet
-                        </p>
-                        <p className="text-sm text-slate-400 dark:text-slate-500">
-                          Create your first pick list to get started
+                        <List className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                        <p className="text-muted-foreground">
+                          No pick lists yet. Create your first one!
                         </p>
                       </div>
                     ) : (
@@ -267,21 +260,19 @@ export default function PickListPage() {
                           key={pickList.id}
                           className={`p-4 rounded-lg cursor-pointer transition-all duration-200 border ${
                             selectedPickList?.id === pickList.id
-                              ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 shadow-md'
-                              : 'bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 hover:shadow-sm'
+                              ? 'bg-primary/10 border-primary/30 shadow-md'
+                              : 'bg-card border-border hover:bg-muted/50 hover:shadow-sm'
                           }`}
                           onClick={() => handleSelectPickList(pickList)}
                         >
                           <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <h3 className="font-medium text-slate-900 dark:text-slate-100 mb-1">
+                            <div>
+                              <h3 className="font-medium text-foreground mb-1">
                                 {pickList.name}
                               </h3>
-                              <div className="flex items-center space-x-4 text-sm text-slate-500 dark:text-slate-400">
-                                <span>{pickList.teams.length} teams</span>
-                                <span>•</span>
-                                <span>{new Date(pickList.updated_at).toLocaleDateString()}</span>
-                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {pickList.teams.length} teams
+                              </p>
                             </div>
                             <Button
                               size="sm"
@@ -290,7 +281,7 @@ export default function PickListPage() {
                                 e.stopPropagation();
                                 handleDeletePickList(pickList.id);
                               }}
-                              className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 h-6 w-6 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
+                              className="text-destructive hover:text-destructive/80 p-1 h-6 w-6 rounded-full hover:bg-destructive/10 transition-colors"
                             >
                               ×
                             </Button>
@@ -301,29 +292,29 @@ export default function PickListPage() {
                   </div>
                 </Card>
 
-                {/* Quick Tips */}
-                <Card className="p-6 mt-6 rounded-xl shadow-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Quick Tips</h3>
-                  <div className="space-y-4">
+                {/* Educational Content */}
+                <Card className="p-6 mt-6 rounded-lg shadow-sm border">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">Pick List Tips</h3>
+                  <div className="space-y-4 text-sm text-muted-foreground">
                     <div className="flex items-start space-x-3">
-                      <Target className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                      <Target className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">Focus on Total Score</p>
-                        <p className="text-slate-600 dark:text-slate-400 text-sm">Teams with higher average scores are generally more reliable.</p>
+                        <p className="font-medium text-foreground">Focus on Total Score</p>
+                        <p>Teams with higher average scores are generally more reliable.</p>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
-                      <Trophy className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                      <Trophy className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">Consider Consistency</p>
-                        <p className="text-slate-600 dark:text-slate-400 text-sm">Look for teams with consistent performance across matches.</p>
+                        <p className="font-medium text-foreground">Consider Consistency</p>
+                        <p>Look for teams with consistent performance across matches.</p>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
-                      <Users className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                      <Users className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">Balance Your Alliance</p>
-                        <p className="text-slate-600 dark:text-slate-400 text-sm">Mix high-scoring teams with reliable defensive partners.</p>
+                        <p className="font-medium text-foreground">Balance Your Alliance</p>
+                        <p>Mix high-scoring teams with reliable defensive partners.</p>
                       </div>
                     </div>
                   </div>
@@ -331,40 +322,28 @@ export default function PickListPage() {
               </div>
 
               {/* Main Content */}
-              <div className="xl:col-span-3">
+              <div className="lg:col-span-3">
                 {selectedPickList ? (
-                  <div className="space-y-6">
-                    <Card className="p-6 rounded-xl shadow-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                      <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                          {selectedPickList.name}
-                        </h2>
-                        <div className="text-sm text-slate-500 dark:text-slate-400">
-                          Last updated: {new Date(selectedPickList.updated_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </Card>
-                    <PickList
-                      pickListId={selectedPickList.id}
-                      eventKey={selectedPickList.event_key}
-                      onSave={handleSavePickList}
-                      session={session}
-                    />
-                  </div>
+                  <PickList
+                    pickListId={selectedPickList.id}
+                    eventKey={selectedPickList.event_key}
+                    onSave={handleSavePickList}
+                    session={session}
+                  />
                 ) : (
-                  <Card className="p-12 text-center rounded-xl shadow-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                    <List className="h-16 w-16 text-slate-400 mx-auto mb-6" />
-                    <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-3">
+                  <Card className="p-12 text-center rounded-lg shadow-sm border">
+                    <List className="h-16 w-16 text-muted-foreground mx-auto mb-6" />
+                    <h3 className="text-xl font-semibold text-foreground mb-3">
                       Select a Pick List
                     </h3>
-                    <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-md mx-auto">
+                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                       Choose an existing pick list from the sidebar or create a new one to get started with team selection.
                     </p>
                     <Button 
                       onClick={() => setIsCreatingNew(true)}
-                      className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200 flex items-center space-x-2 mx-auto"
+                      className="flex items-center space-x-2 mx-auto"
                     >
-                      <Plus className="h-5 w-5" />
+                      <Plus className="h-4 w-4" />
                       <span>Create New Pick List</span>
                     </Button>
                   </Card>

@@ -66,7 +66,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
               type="number"
               min="1"
               max="10"
-              value={formData.defense_rating}
+              value={formData.defense_rating || ''}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('defense_rating', parseInt(e.target.value) || 1)}
               className="bg-black border-dark-600 text-white"
               placeholder="Rate the team's defensive play from 1-10"

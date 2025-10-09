@@ -21,13 +21,12 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     auto_leave: false,
-    auto_l1: false,
-    auto_l2: false,
-    auto_l3: false,
-    auto_l4: false,
-    auto_move_off_line: false,
-    auto_clean_reef_low: false,
-    auto_clean_reef_high: false,
+    auto_coral_trough: 0,
+    auto_coral_l2: 0,
+    auto_coral_l3: 0,
+    auto_coral_l4: 0,
+    auto_algae_processor: 0,
+    auto_algae_net: 0,
   });
 
   const handleInputChange = (field: keyof typeof formData, value: number | boolean) => {
@@ -40,12 +39,12 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
   const calculateTotal = () => {
     return (
       (formData.auto_leave ? SCORING_VALUES.auto_leave : 0) +
-      (formData.auto_l1 ? SCORING_VALUES.auto_coral_trough : 0) +
-      (formData.auto_l2 ? SCORING_VALUES.auto_coral_l2 : 0) +
-      (formData.auto_l3 ? SCORING_VALUES.auto_coral_l3 : 0) +
-      (formData.auto_l4 ? SCORING_VALUES.auto_coral_l4 : 0) +
-      (formData.auto_clean_reef_low ? SCORING_VALUES.auto_algae_processor : 0) +
-      (formData.auto_clean_reef_high ? SCORING_VALUES.auto_algae_net : 0)
+      (formData.auto_coral_trough * SCORING_VALUES.auto_coral_trough) +
+      (formData.auto_coral_l2 * SCORING_VALUES.auto_coral_l2) +
+      (formData.auto_coral_l3 * SCORING_VALUES.auto_coral_l3) +
+      (formData.auto_coral_l4 * SCORING_VALUES.auto_coral_l4) +
+      (formData.auto_algae_processor * SCORING_VALUES.auto_algae_processor) +
+      (formData.auto_algae_net * SCORING_VALUES.auto_algae_net)
     );
   };
 
@@ -135,20 +134,22 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
               <span className={`font-bold text-lg ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
                 +{SCORING_VALUES.auto_leave} pts
               </span>
-              <input
-                type="checkbox"
-                checked={formData.auto_leave}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_leave', e.target.checked)}
-                className={`w-5 h-5 rounded border-2 ${
-                  isDarkMode 
-                    ? 'text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500' 
-                    : 'text-green-600 bg-background border-border focus:ring-green-500'
-                }`}
-              />
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={formData.auto_leave}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_leave', e.target.checked)}
+                  className={`w-6 h-6 rounded border-2 cursor-pointer ${
+                    isDarkMode 
+                      ? 'text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500' 
+                      : 'text-green-600 bg-background border-border focus:ring-green-500'
+                  }`}
+                />
+              </div>
             </div>
           </motion.div>
 
-          {/* What can you do in auto */}
+          {/* Coral Scoring */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -160,50 +161,89 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                 <TreePine className={`w-6 h-6 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
               </div>
               <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                What can you do in auto
+                CORAL Scoring
               </h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                { key: 'auto_l1', label: 'L1', points: SCORING_VALUES.auto_coral_trough },
-                { key: 'auto_l2', label: 'L2', points: SCORING_VALUES.auto_coral_l2 },
-                { key: 'auto_l3', label: 'L3', points: SCORING_VALUES.auto_coral_l3 },
-                { key: 'auto_l4', label: 'L4', points: SCORING_VALUES.auto_coral_l4 },
-                { key: 'auto_move_off_line', label: 'Move off of the starting line ONLY', points: 0 },
-                { key: 'auto_clean_reef_low', label: 'Clean the reef (LOW algae)', points: SCORING_VALUES.auto_algae_processor },
-                { key: 'auto_clean_reef_high', label: 'Clean the reef (HIGH algae)', points: SCORING_VALUES.auto_algae_net },
-              ].map((option) => (
-                <div key={option.key} className={`flex items-center justify-between p-4 rounded-lg ${
-                  isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
-                }`}>
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      id={option.key}
-                      checked={formData[option.key as keyof typeof formData] as boolean}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(option.key as keyof typeof formData, e.target.checked)}
-                      className={`w-5 h-5 rounded border-2 ${
-                        isDarkMode 
-                          ? 'text-primary bg-gray-600 border-gray-500 focus:ring-primary' 
-                          : 'text-primary bg-background border-border focus:ring-primary'
-                      }`}
-                    />
-                    <label htmlFor={option.key} className={`text-sm font-medium ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>
-                      {option.label}
-                    </label>
-                  </div>
-                  {option.points > 0 && (
-                    <span className={`font-bold text-sm ${
-                      isDarkMode ? 'text-green-400' : 'text-green-600'
-                    }`}>
-                      +{option.points} pts
-                    </span>
-                  )}
-                </div>
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <Counter
+                value={formData.auto_coral_trough}
+                onChange={(value: number) => handleInputChange('auto_coral_trough', value)}
+                min={0}
+                max={10}
+                label="Trough (L1)"
+                points={SCORING_VALUES.auto_coral_trough}
+                isDarkMode={isDarkMode}
+              />
+              
+              <Counter
+                value={formData.auto_coral_l2}
+                onChange={(value: number) => handleInputChange('auto_coral_l2', value)}
+                min={0}
+                max={10}
+                label="Level 2 Branch"
+                points={SCORING_VALUES.auto_coral_l2}
+                isDarkMode={isDarkMode}
+              />
+              
+              <Counter
+                value={formData.auto_coral_l3}
+                onChange={(value: number) => handleInputChange('auto_coral_l3', value)}
+                min={0}
+                max={10}
+                label="Level 3 Branch"
+                points={SCORING_VALUES.auto_coral_l3}
+                isDarkMode={isDarkMode}
+              />
+              
+              <Counter
+                value={formData.auto_coral_l4}
+                onChange={(value: number) => handleInputChange('auto_coral_l4', value)}
+                min={0}
+                max={10}
+                label="Level 4 Branch"
+                points={SCORING_VALUES.auto_coral_l4}
+                isDarkMode={isDarkMode}
+              />
+            </div>
+          </motion.div>
+
+          {/* Algae Scoring */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="space-y-6"
+          >
+            <div className="flex items-center space-x-3">
+              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-teal-900/30' : 'bg-teal-100'}`}>
+                <Waves className={`w-6 h-6 ${isDarkMode ? 'text-teal-400' : 'text-teal-600'}`} />
+              </div>
+              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                ALGAE Scoring
+              </h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <Counter
+                value={formData.auto_algae_processor}
+                onChange={(value: number) => handleInputChange('auto_algae_processor', value)}
+                min={0}
+                max={10}
+                label="PROCESSOR"
+                points={SCORING_VALUES.auto_algae_processor}
+                isDarkMode={isDarkMode}
+              />
+              
+              <Counter
+                value={formData.auto_algae_net}
+                onChange={(value: number) => handleInputChange('auto_algae_net', value)}
+                min={0}
+                max={10}
+                label="NET"
+                points={SCORING_VALUES.auto_algae_net}
+                isDarkMode={isDarkMode}
+              />
             </div>
           </motion.div>
 

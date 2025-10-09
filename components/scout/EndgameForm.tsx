@@ -93,15 +93,15 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
               <SelectTrigger className="w-full bg-dark-600 border-dark-500 text-white">
                 <SelectValue placeholder="Select endgame score" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-600">
-                <SelectItem value="none" className="text-white hover:bg-gray-700 bg-gray-800">No Endgame Score</SelectItem>
-                <SelectItem value="park" className="text-white hover:bg-gray-700 bg-gray-800">Park in Barge Zone (+{SCORING_VALUES.endgame_park} pts)</SelectItem>
-                <SelectItem value="shallow" className="text-white hover:bg-gray-700 bg-gray-800">Shallow Cage (+{SCORING_VALUES.endgame_shallow_cage} pts)</SelectItem>
-                <SelectItem value="deep" className="text-white hover:bg-gray-700 bg-gray-800">Deep Cage (+{SCORING_VALUES.endgame_deep_cage} pts)</SelectItem>
-                <SelectItem value="park_shallow" className="text-white hover:bg-gray-700 bg-gray-800">Park + Shallow Cage (+{SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_shallow_cage} pts)</SelectItem>
-                <SelectItem value="park_deep" className="text-white hover:bg-gray-700 bg-gray-800">Park + Deep Cage (+{SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_deep_cage} pts)</SelectItem>
-                <SelectItem value="shallow_deep" className="text-white hover:bg-gray-700 bg-gray-800">Shallow + Deep Cage (+{SCORING_VALUES.endgame_shallow_cage + SCORING_VALUES.endgame_deep_cage} pts)</SelectItem>
-                <SelectItem value="all" className="text-white hover:bg-gray-700 bg-gray-800">All Endgame Actions (+{SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_shallow_cage + SCORING_VALUES.endgame_deep_cage} pts)</SelectItem>
+              <SelectContent className="bg-dark-700 border-dark-600 text-white">
+                <SelectItem value="none" className="text-white hover:bg-dark-600">No Endgame Score</SelectItem>
+                <SelectItem value="park" className="text-white hover:bg-dark-600">Park in Barge Zone (+{SCORING_VALUES.endgame_park} pts)</SelectItem>
+                <SelectItem value="shallow" className="text-white hover:bg-dark-600">Shallow Cage (+{SCORING_VALUES.endgame_shallow_cage} pts)</SelectItem>
+                <SelectItem value="deep" className="text-white hover:bg-dark-600">Deep Cage (+{SCORING_VALUES.endgame_deep_cage} pts)</SelectItem>
+                <SelectItem value="park_shallow" className="text-white hover:bg-dark-600">Park + Shallow Cage (+{SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_shallow_cage} pts)</SelectItem>
+                <SelectItem value="park_deep" className="text-white hover:bg-dark-600">Park + Deep Cage (+{SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_deep_cage} pts)</SelectItem>
+                <SelectItem value="shallow_deep" className="text-white hover:bg-dark-600">Shallow + Deep Cage (+{SCORING_VALUES.endgame_shallow_cage + SCORING_VALUES.endgame_deep_cage} pts)</SelectItem>
+                <SelectItem value="all" className="text-white hover:bg-dark-600">All Endgame Actions (+{SCORING_VALUES.endgame_park + SCORING_VALUES.endgame_shallow_cage + SCORING_VALUES.endgame_deep_cage} pts)</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -77,7 +77,7 @@ export default function MobileScout() {
     teleop: {},
     endgame: {},
     miscellaneous: {
-      defense_rating: 0,
+      defense_rating: 1,
       comments: '',
     },
   });
@@ -158,7 +158,7 @@ export default function MobileScout() {
           teleop: {},
           endgame: {},
           miscellaneous: {
-            defense_rating: 0,
+            defense_rating: 1,
             comments: '',
           },
         });

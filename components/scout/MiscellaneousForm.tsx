@@ -16,7 +16,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
   totalSteps,
 }) => {
   const [formData, setFormData] = useState({
-    defense_rating: 0,
+    defense_rating: 1,
     comments: '',
   });
 
@@ -67,7 +67,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
               min="1"
               max="10"
               value={formData.defense_rating}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('defense_rating', parseInt(e.target.value) || 0)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('defense_rating', parseInt(e.target.value) || 1)}
               className="bg-black border-dark-600 text-white"
               placeholder="Rate the team's defensive play from 1-10"
             />

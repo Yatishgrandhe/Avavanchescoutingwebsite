@@ -31,6 +31,7 @@ interface PitScoutingData {
   driveType: string;
   driveTrainDetails: {
     type: string;
+    otherType?: string;
     autoCapabilities: string;
     teleopCapabilities: string;
     driveCamps: number;
@@ -66,6 +67,7 @@ export default function PitScouting() {
     driveType: '',
     driveTrainDetails: {
       type: '',
+      otherType: '',
       autoCapabilities: '',
       teleopCapabilities: '',
       driveCamps: 0,
@@ -167,6 +169,7 @@ export default function PitScouting() {
           driveType: '',
           driveTrainDetails: {
             type: '',
+            otherType: '',
             autoCapabilities: '',
             teleopCapabilities: '',
             driveCamps: 0,
@@ -349,79 +352,138 @@ export default function PitScouting() {
                       </div>
                     </div>
 
-                    {/* Drive Train Details Section */}
+                    {/* Drive Train Section */}
                     <div className="bg-muted p-4 rounded-lg border">
-                      <h3 className="text-lg font-semibold mb-4 text-foreground">Drive Train Details</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-2">
-                            Drive Train Type <span className="text-destructive">*</span>
-                          </label>
-                          <Input
-                            placeholder="e.g., 6-wheel West Coast, 4-wheel Swerve"
-                            value={formData.driveTrainDetails.type}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
+                      <h3 className="text-lg font-semibold mb-4 text-foreground">Drive Train</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="radio"
+                            id="drive-8wheel"
+                            name="driveTrain"
+                            value="8-wheel tan"
+                            checked={formData.driveTrainDetails.type === "8-wheel tan"}
+                            onChange={(e) => setFormData(prev => ({ 
                               ...prev, 
                               driveTrainDetails: { ...prev.driveTrainDetails, type: e.target.value }
                             }))}
+                            className="w-4 h-4 text-primary focus:ring-primary border-gray-300"
                           />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2">
-                            Number of Drive Camps
+                          <label htmlFor="drive-8wheel" className="text-sm font-medium text-foreground">
+                            8-wheel tan
                           </label>
-                          <Input
-                            type="number"
-                            placeholder="0"
-                            value={formData.driveTrainDetails.driveCamps || ''}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="radio"
+                            id="drive-swerve"
+                            name="driveTrain"
+                            value="Swerve"
+                            checked={formData.driveTrainDetails.type === "Swerve"}
+                            onChange={(e) => setFormData(prev => ({ 
                               ...prev, 
-                              driveTrainDetails: { ...prev.driveTrainDetails, driveCamps: parseInt(e.target.value) || 0 }
+                              driveTrainDetails: { ...prev.driveTrainDetails, type: e.target.value }
                             }))}
+                            className="w-4 h-4 text-primary focus:ring-primary border-gray-300"
                           />
+                          <label htmlFor="drive-swerve" className="text-sm font-medium text-foreground">
+                            Swerve
+                          </label>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="radio"
+                            id="drive-other"
+                            name="driveTrain"
+                            value="Other"
+                            checked={formData.driveTrainDetails.type === "Other"}
+                            onChange={(e) => setFormData(prev => ({ 
+                              ...prev, 
+                              driveTrainDetails: { ...prev.driveTrainDetails, type: e.target.value }
+                            }))}
+                            className="w-4 h-4 text-primary focus:ring-primary border-gray-300"
+                          />
+                          <label htmlFor="drive-other" className="text-sm font-medium text-foreground">
+                            Other:
+                          </label>
+                          {formData.driveTrainDetails.type === "Other" && (
+                            <Input
+                              placeholder="Specify other drive train type"
+                              value={formData.driveTrainDetails.otherType || ''}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
+                                ...prev, 
+                                driveTrainDetails: { ...prev.driveTrainDetails, otherType: e.target.value }
+                              }))}
+                              className="ml-2 flex-1"
+                            />
+                          )}
                         </div>
                       </div>
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium mb-2">
-                          What they do in Auto <span className="text-destructive">*</span>
-                        </label>
-                        <textarea
-                          className="w-full h-20 lg:h-24 xl:h-28 px-3 py-2 border border-input rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                          placeholder="Describe their autonomous capabilities and strategies..."
-                          value={formData.driveTrainDetails.autoCapabilities}
-                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            driveTrainDetails: { ...prev.driveTrainDetails, autoCapabilities: e.target.value }
-                          }))}
-                        />
+                    </div>
+
+                    {/* What can you do in auto Section */}
+                    <div className="bg-muted p-4 rounded-lg border">
+                      <h3 className="text-lg font-semibold mb-4 text-foreground">What can you do in auto</h3>
+                      <div className="space-y-3">
+                        {['L1', 'L2', 'L3', 'L4', 'Move off of the starting line ONLY', 'Clean the reef (LOW algae)', 'Clean the reef (HIGH algae)'].map((option) => (
+                          <div key={option} className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              id={`auto-${option.replace(/\s+/g, '-').toLowerCase()}`}
+                              checked={formData.autonomousCapabilities.includes(option)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData(prev => ({ 
+                                    ...prev, 
+                                    autonomousCapabilities: [...prev.autonomousCapabilities, option]
+                                  }));
+                                } else {
+                                  setFormData(prev => ({ 
+                                    ...prev, 
+                                    autonomousCapabilities: prev.autonomousCapabilities.filter(cap => cap !== option)
+                                  }));
+                                }
+                              }}
+                              className="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded"
+                            />
+                            <label htmlFor={`auto-${option.replace(/\s+/g, '-').toLowerCase()}`} className="text-sm font-medium text-foreground">
+                              {option}
+                            </label>
+                          </div>
+                        ))}
                       </div>
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium mb-2">
-                          What they do during Teleop <span className="text-destructive">*</span>
-                        </label>
-                        <textarea
-                          className="w-full h-20 lg:h-24 xl:h-28 px-3 py-2 border border-input rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                          placeholder="Describe their teleop capabilities and strategies..."
-                          value={formData.driveTrainDetails.teleopCapabilities}
-                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            driveTrainDetails: { ...prev.driveTrainDetails, teleopCapabilities: e.target.value }
-                          }))}
-                        />
-                      </div>
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium mb-2">
-                          How will they decide who will drive in playoffs?
-                        </label>
-                        <textarea
-                          className="w-full h-20 lg:h-24 xl:h-28 px-3 py-2 border border-input rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                          placeholder="Describe their playoff driver selection process..."
-                          value={formData.driveTrainDetails.playoffDriver}
-                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            driveTrainDetails: { ...prev.driveTrainDetails, playoffDriver: e.target.value }
-                          }))}
-                        />
+                    </div>
+
+                    {/* What can you do during telop Section */}
+                    <div className="bg-muted p-4 rounded-lg border">
+                      <h3 className="text-lg font-semibold mb-4 text-foreground">What can you do during telop</h3>
+                      <div className="space-y-3">
+                        {['L1', 'L2', 'L3', 'L4', 'Processor', 'Barge', 'Defense'].map((option) => (
+                          <div key={option} className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              id={`teleop-${option.replace(/\s+/g, '-').toLowerCase()}`}
+                              checked={formData.teleopCapabilities.includes(option)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData(prev => ({ 
+                                    ...prev, 
+                                    teleopCapabilities: [...prev.teleopCapabilities, option]
+                                  }));
+                                } else {
+                                  setFormData(prev => ({ 
+                                    ...prev, 
+                                    teleopCapabilities: prev.teleopCapabilities.filter(cap => cap !== option)
+                                  }));
+                                }
+                              }}
+                              className="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded"
+                            />
+                            <label htmlFor={`teleop-${option.replace(/\s+/g, '-').toLowerCase()}`} className="text-sm font-medium text-foreground">
+                              {option}
+                            </label>
+                          </div>
+                        ))}
                       </div>
                     </div>
 

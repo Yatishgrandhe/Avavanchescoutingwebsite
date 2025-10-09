@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { Button } from '../components/ui';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui';
@@ -49,6 +49,7 @@ export default function MobileDashboard() {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingActivity, setLoadingActivity] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Handle refresh and resize properly
   useRefreshHandler();
@@ -251,16 +252,98 @@ export default function MobileDashboard() {
             </Button>
             <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push('/')}
-            className="p-2"
-          >
-            <Menu size={20} />
-          </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2"
+            >
+              <Menu size={20} />
+            </Button>
         </div>
       </div>
+
+      {/* Mobile Navigation Menu */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-card border-b border-border"
+          >
+          <div className="p-4 space-y-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                router.push('/scout');
+                setIsMenuOpen(false);
+              }}
+            >
+              <Target className="w-4 h-4 mr-2" />
+              Start Scouting
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                router.push('/pit-scouting');
+                setIsMenuOpen(false);
+              }}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Pit Scouting
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                router.push('/analysis/data');
+                setIsMenuOpen(false);
+              }}
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Data Analysis
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                router.push('/analysis/comparison');
+                setIsMenuOpen(false);
+              }}
+            >
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Team Comparison
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                router.push('/pick-list');
+                setIsMenuOpen(false);
+              }}
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Pick Lists
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                router.push('/learn-game');
+                setIsMenuOpen(false);
+              }}
+            >
+              <Database className="w-4 h-4 mr-2" />
+              Learn Game
+            </Button>
+          </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Content */}
       <div className="p-4 space-y-6">

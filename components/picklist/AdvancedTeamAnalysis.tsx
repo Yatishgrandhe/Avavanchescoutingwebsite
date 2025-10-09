@@ -28,6 +28,25 @@ interface TeamSuggestion {
   compatibility: number;
 }
 
+interface CoralStats {
+  team_number: number;
+  total_matches: number;
+  total_coral_points: number;
+  avg_coral_points: number;
+  autonomous_coral_points: number;
+  teleop_coral_points: number;
+  coral_trough_count: number;
+  coral_l2_count: number;
+  coral_l3_count: number;
+  coral_l4_count: number;
+  avg_autonomous_coral_points: number;
+  avg_teleop_coral_points: number;
+  avg_coral_trough_count: number;
+  avg_coral_l2_count: number;
+  avg_coral_l3_count: number;
+  avg_coral_l4_count: number;
+}
+
 interface AdvancedTeamAnalysisProps {
   availableTeams: Array<{ team_number: number; team_name: string; stats?: TeamStats }>;
   currentPickList: PickListTeam[];
@@ -43,13 +62,27 @@ export function AdvancedTeamAnalysis({
 }: AdvancedTeamAnalysisProps) {
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
   const [aiAnalysis, setAiAnalysis] = useState<AIPickListAnalysis | null>(null);
+  const [coralStats, setCoralStats] = useState<CoralStats[]>([]);
   const [analysisMode, setAnalysisMode] = useState<'balanced' | 'aggressive' | 'defensive' | 'specialist'>('balanced');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAI, setShowAI] = useState(true);
 
   useEffect(() => {
     generateAISuggestions();
+    fetchCoralStats();
   }, [availableTeams, currentPickList, analysisMode]);
+
+  const fetchCoralStats = async () => {
+    try {
+      const response = await fetch('/api/coral-stats');
+      if (response.ok) {
+        const data = await response.json();
+        setCoralStats(data.coralStats || []);
+      }
+    } catch (error) {
+      console.error('Error fetching coral stats:', error);
+    }
+  };
 
   const generateAISuggestions = () => {
     const analysis = teamPickAI.generatePickListAnalysis(availableTeams, currentPickList);
@@ -289,6 +322,63 @@ export function AdvancedTeamAnalysis({
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Coral Scoring Analysis */}
+      {showAI && coralStats.length > 0 && (
+        <div className="mb-3 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+          <div className="flex items-center space-x-2 mb-2">
+            <Target className="h-3 w-3 text-green-600" />
+            <span className="text-xs font-medium text-green-900 dark:text-green-100">Top Coral Scorers</span>
+          </div>
+          <div className="space-y-1 text-xs text-green-800 dark:text-green-200">
+            {coralStats.slice(0, 3).map((coral, index) => {
+              const team = availableTeams.find(t => t.team_number === coral.team_number);
+              const isAlreadySelected = selectedTeamNumbers.includes(coral.team_number);
+              
+              return (
+                <div key={coral.team_number} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="secondary" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs px-1 py-0.5">
+                      #{index + 1}
+                    </Badge>
+                    <span className="font-medium">Team {coral.team_number}</span>
+                    <span className="text-green-700 dark:text-green-300">
+                      {coral.avg_coral_points.toFixed(1)} avg coral pts
+                    </span>
+                  </div>
+                  {!isAlreadySelected && (
+                    <Button
+                      size="sm"
+                      onClick={() => onAddTeam({
+                        team_number: coral.team_number,
+                        team_name: team?.team_name || `Team ${coral.team_number}`,
+                        pick_order: 0,
+                        stats: undefined,
+                      })}
+                      className="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700 transition-colors duration-300 text-xs"
+                    >
+                      <Award className="h-3 w-3 mr-1" />
+                      Add
+                    </Button>
+                  )}
+                  {isAlreadySelected && (
+                    <Badge variant="outline" className="text-xs border-green-200 dark:border-green-600 text-green-700 dark:text-green-300 px-1 py-0.5">
+                      Selected
+                    </Badge>
+                  )}
+                </div>
+              );
+            })}
+            <div className="mt-2 text-green-700 dark:text-green-300">
+              <div className="font-medium mb-1">Coral Scoring Breakdown:</div>
+              <div>• Trough: 2-3 pts each</div>
+              <div>• Level 2: 3-4 pts each</div>
+              <div>• Level 3: 4-6 pts each</div>
+              <div>• Level 4: 5-7 pts each</div>
+            </div>
           </div>
         </div>
       )}

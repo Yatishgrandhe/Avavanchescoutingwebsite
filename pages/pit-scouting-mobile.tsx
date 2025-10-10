@@ -593,8 +593,8 @@ export default function PitScoutingMobile() {
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Question 2: What can they do in auto</h3>
                     <div className="space-y-3">
                       {['L1', 'L2', 'L3', 'L4', 'Move off of the starting line ONLY', 'Clean the reef (LOW algae)', 'Clean the reef (HIGH algae)'].map((option) => (
-                        <div key={option} className="flex items-center p-3 rounded-lg bg-card border border-border hover:bg-muted/50 transition-colors">
-                          <span className="text-sm font-medium text-foreground flex-1 pr-3 min-w-0">{option}</span>
+                        <div key={option} className="flex items-start p-3 rounded-lg bg-card border border-border hover:bg-muted/50 transition-colors">
+                          <span className="text-sm font-medium text-foreground flex-1 pr-3 min-w-0 break-words">{option}</span>
                           <input
                             type="checkbox"
                             checked={formData.autonomousCapabilities.includes(option)}
@@ -611,7 +611,7 @@ export default function PitScoutingMobile() {
                                 }));
                               }
                             }}
-                            className="w-5 h-5 text-primary bg-background border-2 border-primary rounded cursor-pointer focus:ring-2 focus:ring-primary focus:ring-offset-2 flex-shrink-0"
+                            className="mt-0.5 w-5 h-5 text-primary bg-background border-2 border-primary rounded cursor-pointer focus:ring-2 focus:ring-primary focus:ring-offset-2 flex-shrink-0"
                           />
                         </div>
                       ))}
@@ -623,8 +623,8 @@ export default function PitScoutingMobile() {
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Question 3: What can they do during teleop</h3>
                     <div className="space-y-3">
                       {['L1', 'L2', 'L3', 'L4', 'Processor', 'Barge', 'Defense'].map((option) => (
-                        <div key={option} className="flex items-center p-3 rounded-lg bg-card border border-border hover:bg-muted/50 transition-colors">
-                          <span className="text-sm font-medium text-foreground flex-1 pr-3 min-w-0">{option}</span>
+                        <div key={option} className="flex items-start p-3 rounded-lg bg-card border border-border hover:bg-muted/50 transition-colors">
+                          <span className="text-sm font-medium text-foreground flex-1 pr-3 min-w-0 break-words">{option}</span>
                           <input
                             type="checkbox"
                             checked={formData.teleopCapabilities.includes(option)}
@@ -641,7 +641,7 @@ export default function PitScoutingMobile() {
                                 }));
                               }
                             }}
-                            className="w-5 h-5 text-primary bg-background border-2 border-primary rounded cursor-pointer focus:ring-2 focus:ring-primary focus:ring-offset-2 flex-shrink-0"
+                            className="mt-0.5 w-5 h-5 text-primary bg-background border-2 border-primary rounded cursor-pointer focus:ring-2 focus:ring-primary focus:ring-offset-2 flex-shrink-0"
                           />
                         </div>
                       ))}

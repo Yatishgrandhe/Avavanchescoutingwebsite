@@ -134,25 +134,26 @@ const Sidebar: React.FC<SidebarProps> = ({
           .mobile-nav-container {
             display: flex;
             align-items: center;
-            padding: 0 16px; /* Add horizontal padding to the container */
-            gap: 24px; /* Increased gap for more spacing */
+            justify-content: space-evenly; /* Evenly distribute items */
+            padding: 0 8px; /* Reduced padding for better space utilization */
+            width: 100%;
+            min-height: 75px;
           }
           
           .mobile-nav-item {
-            flex-shrink: 0; /* Prevent items from shrinking */
+            flex: 1; /* Equal flex distribution */
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 75px;
             max-height: 75px;
-            min-width: 95px;
-            max-width: 115px;
-            padding: 12px 8px;
+            padding: 8px 4px; /* Reduced padding for better fit */
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
             cursor: pointer;
             border-radius: 12px;
+            margin: 0 2px; /* Small margin between items */
           }
           
           /* Phone-specific styles - only apply to actual phones */
@@ -160,51 +161,52 @@ const Sidebar: React.FC<SidebarProps> = ({
             /* Portrait orientation for phones */
             @media (orientation: portrait) {
               .mobile-nav-container {
-                padding: 12px 20px;
-                gap: 28px;
+                padding: 8px 4px;
+                min-height: 70px;
               }
 
               .mobile-nav-item {
-                min-width: 90px;
-                max-width: 105px;
                 min-height: 70px;
                 max-height: 70px;
+                padding: 6px 2px;
               }
               
               .mobile-nav-item span {
-                font-size: 12px;
+                font-size: 11px;
                 font-weight: 500;
+                line-height: 1.2;
               }
               
               .mobile-nav-item svg {
-                width: 20px;
-                height: 20px;
-                margin-bottom: 5px;
+                width: 18px;
+                height: 18px;
+                margin-bottom: 4px;
               }
             }
 
             /* Landscape orientation for phones */
             @media (orientation: landscape) {
               .mobile-nav-container {
-                padding: 8px 16px;
-                gap: 20px;
+                padding: 6px 8px;
+                min-height: 60px;
               }
 
               .mobile-nav-item {
-                min-width: 85px;
-                max-width: 100px;
                 min-height: 60px;
                 max-height: 60px;
+                padding: 4px 2px;
               }
               
               .mobile-nav-item span {
-                font-size: 11px;
+                font-size: 10px;
+                font-weight: 500;
+                line-height: 1.1;
               }
               
               .mobile-nav-item svg {
-                width: 18px;
-                height: 18px;
-                margin-bottom: 3px;
+                width: 16px;
+                height: 16px;
+                margin-bottom: 2px;
               }
             }
           }
@@ -212,13 +214,24 @@ const Sidebar: React.FC<SidebarProps> = ({
           /* Small phones in portrait */
           @media screen and (max-width: 480px) and (orientation: portrait) {
             .mobile-nav-container {
-              padding: 10px 16px;
-              gap: 22px;
+              padding: 6px 2px;
+              min-height: 65px;
             }
 
             .mobile-nav-item {
-              min-width: 80px;
-              max-width: 95px;
+              min-height: 65px;
+              max-height: 65px;
+              padding: 4px 1px;
+            }
+            
+            .mobile-nav-item span {
+              font-size: 10px;
+            }
+            
+            .mobile-nav-item svg {
+              width: 16px;
+              height: 16px;
+              margin-bottom: 3px;
             }
           }
           

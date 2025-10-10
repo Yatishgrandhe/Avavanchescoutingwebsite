@@ -137,15 +137,18 @@ const Sidebar: React.FC<SidebarProps> = ({
             }
             
             .mobile-nav-item {
-              min-width: 65px !important;
-              max-width: 80px !important;
-              padding: 8px 4px !important;
+              min-width: 80px !important;
+              max-width: 95px !important;
+              padding: 8px 6px !important;
             }
             
             .mobile-nav-item span {
               font-size: 10px !important;
-              line-height: 1.2 !important;
+              line-height: 1.1 !important;
               max-width: 100% !important;
+              white-space: nowrap !important;
+              overflow: hidden !important;
+              text-overflow: ellipsis !important;
             }
             
             .mobile-nav-item svg {
@@ -162,14 +165,17 @@ const Sidebar: React.FC<SidebarProps> = ({
             }
             
             .mobile-nav-item {
-              min-width: 60px !important;
-              max-width: 75px !important;
-              padding: 6px 3px !important;
+              min-width: 70px !important;
+              max-width: 85px !important;
+              padding: 6px 4px !important;
             }
             
             .mobile-nav-item span {
               font-size: 9px !important;
               line-height: 1.1 !important;
+              white-space: nowrap !important;
+              overflow: hidden !important;
+              text-overflow: ellipsis !important;
             }
             
             .mobile-nav-item svg {
@@ -195,7 +201,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           return (
             <div className="w-full bg-card border-b border-border">
-              <nav className="flex items-center space-x-3 mobile-nav-scroll scrollbar-hide px-3 py-3 overflow-x-auto">
+              <nav className="flex items-center space-x-4 mobile-nav-scroll scrollbar-hide px-4 py-3 overflow-x-auto">
                 {mobileItems.map((item) => {
               const isActive = router.pathname === item.href;
               const Icon = item.icon;
@@ -215,14 +221,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                       }
                     }}
                     className={cn(
-                      "flex flex-col items-center justify-center mobile-nav-item rounded-lg transition-all duration-200 px-2 py-2 min-w-[70px] max-w-[85px] flex-shrink-0",
+                      "flex flex-col items-center justify-center mobile-nav-item rounded-lg transition-all duration-200 px-3 py-2 min-w-[80px] max-w-[95px] flex-shrink-0",
                       isActive 
                         ? "bg-primary text-primary-foreground" 
                         : "text-muted-foreground hover:text-accent-foreground hover:bg-accent"
                     )}
                   >
                     <Icon size={18} className="mb-1 flex-shrink-0" />
-                    <span className="font-medium text-center text-xs leading-tight break-words max-w-full">
+                    <span className="font-medium text-center text-xs leading-tight max-w-full truncate">
                       {item.label}
                     </span>
                   </motion.div>

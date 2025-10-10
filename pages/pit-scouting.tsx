@@ -29,9 +29,10 @@ interface PitScoutingData {
   teamNumber: number;
   robotName: string;
   driveType: string;
-  autonomousCapabilities: string;
-  teleopCapabilities: string;
-  endgameCapabilities: string;
+  driveTrainOther?: string; // For "Other" drivetrain option
+  autonomousCapabilities: string[];
+  teleopCapabilities: string[];
+  endgameCapabilities: string[];
   robotDimensions: {
     length?: number;
     width?: number;
@@ -54,9 +55,10 @@ export default function PitScouting() {
     teamNumber: 0,
     robotName: '',
     driveType: '',
-    autonomousCapabilities: '',
-    teleopCapabilities: '',
-    endgameCapabilities: '',
+    driveTrainOther: '',
+    autonomousCapabilities: [],
+    teleopCapabilities: [],
+    endgameCapabilities: [],
     robotDimensions: {
       height: 0,
     },
@@ -119,7 +121,26 @@ export default function PitScouting() {
     try {
       // Prepare the data with submitter information
       const submissionData = {
-        ...formData,
+        team_number: formData.teamNumber,
+        robot_name: formData.robotName,
+        drive_type: formData.driveType === 'Other' ? formData.driveTrainOther : formData.driveType,
+        drive_train_details: {
+          type: formData.driveType === 'Other' ? formData.driveTrainOther : formData.driveType,
+          auto_capabilities: formData.autonomousCapabilities.join(', '),
+          teleop_capabilities: formData.teleopCapabilities.join(', '),
+          drive_camps: 0, // Default value
+          playoff_driver: 'TBD' // Default value
+        },
+        autonomous_capabilities: formData.autonomousCapabilities,
+        teleop_capabilities: formData.teleopCapabilities,
+        endgame_capabilities: formData.endgameCapabilities,
+        robot_dimensions: formData.robotDimensions,
+        weight: formData.weight,
+        programming_language: formData.programmingLanguage,
+        notes: formData.notes,
+        strengths: [], // Will be populated from notes or separate fields
+        weaknesses: [], // Will be populated from notes or separate fields
+        overall_rating: formData.overallRating,
         submitted_by: user?.id,
         submitted_by_email: user?.email,
         submitted_by_name: user?.user_metadata?.full_name || user?.email,
@@ -128,15 +149,16 @@ export default function PitScouting() {
 
       console.log('Pit scouting data:', submissionData);
       
-      // TODO: Implement pit scouting data submission to Supabase
-      // This would be something like:
-      // const { data, error } = await supabase
-      //   .from('pit_scouting_data')
-      //   .insert([submissionData]);
+      // Submit to Supabase using MCP
+      const { data, error } = await supabase
+        .from('pit_scouting_data')
+        .insert([submissionData]);
+
+      if (error) {
+        throw new Error(`Failed to save pit scouting data: ${error.message}`);
+      }
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      console.log('Successfully saved pit scouting data:', data);
       setSubmitSuccess(true);
       
       // Reset form after successful submission
@@ -145,9 +167,10 @@ export default function PitScouting() {
           teamNumber: 0,
           robotName: '',
           driveType: '',
-          autonomousCapabilities: '',
-          teleopCapabilities: '',
-          endgameCapabilities: '',
+          driveTrainOther: '',
+          autonomousCapabilities: [],
+          teleopCapabilities: [],
+          endgameCapabilities: [],
           robotDimensions: { height: 0 },
           weight: 0,
           programmingLanguage: '',
@@ -306,17 +329,57 @@ export default function PitScouting() {
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div className="space-y-6">
+                      {/* Drive Train Selection */}
                       <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Drive Type
+                        <label className="block text-sm font-medium mb-3">
+                          Drive Train <span className="text-destructive">*</span>
                         </label>
-                        <Input
-                          placeholder="e.g., Tank, Swerve, Mecanum"
-                          value={formData.driveType}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, driveType: e.target.value }))}
-                        />
+                        <div className="space-y-3">
+                          {['8-wheel tan', 'Swerve'].map((option) => (
+                            <label key={option} className="flex items-center space-x-3 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="driveType"
+                                value={option}
+                                checked={formData.driveType === option}
+                                onChange={(e) => setFormData(prev => ({ 
+                                  ...prev, 
+                                  driveType: e.target.value,
+                                  driveTrainOther: '' // Clear other when selecting predefined option
+                                }))}
+                                className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
+                              />
+                              <span className="text-sm font-medium">{option}</span>
+                            </label>
+                          ))}
+                          <div className="flex items-center space-x-3">
+                            <input
+                              type="radio"
+                              name="driveType"
+                              value="Other"
+                              checked={formData.driveType === 'Other'}
+                              onChange={(e) => setFormData(prev => ({ 
+                                ...prev, 
+                                driveType: e.target.value 
+                              }))}
+                              className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
+                            />
+                            <span className="text-sm font-medium">Other:</span>
+                            <Input
+                              placeholder="Specify drive train type"
+                              value={formData.driveTrainOther || ''}
+                              onChange={(e) => setFormData(prev => ({ 
+                                ...prev, 
+                                driveTrainOther: e.target.value 
+                              }))}
+                              disabled={formData.driveType !== 'Other'}
+                              className="flex-1 max-w-xs"
+                            />
+                          </div>
+                        </div>
                       </div>
+
                       <div>
                         <label className="block text-sm font-medium mb-2">
                           Programming Language
@@ -413,61 +476,64 @@ export default function PitScouting() {
                       Assess robot capabilities for each game period
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4 sm:space-y-6">
+                  <CardContent className="space-y-6 sm:space-y-8">
                     {/* Autonomous Capabilities */}
-                    <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
-                      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">Autonomous Capabilities</h3>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          What can the robot do in autonomous? <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                          className="w-full h-24 sm:h-32 lg:h-36 xl:h-40 px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                          placeholder="Describe their autonomous capabilities (e.g., Leave starting zone, Score coral in trough, Score algae in processor, etc.)..."
-                          value={formData.autonomousCapabilities}
-                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            autonomousCapabilities: e.target.value
-                          }))}
-                        />
+                    <div className="bg-gray-50 dark:bg-gray-800 p-4 sm:p-6 rounded-lg border">
+                      <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-white">Question 2: What can you do in auto</h3>
+                      <div className="space-y-3">
+                        {['L1', 'L2', 'L3', 'L4', 'Move off of the starting line ONLY', 'Clean the reef (LOW algae)', 'Clean the reef (HIGH algae)'].map((option) => (
+                          <label key={option} className="flex items-center space-x-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.autonomousCapabilities.includes(option)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    autonomousCapabilities: [...prev.autonomousCapabilities, option]
+                                  }));
+                                } else {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    autonomousCapabilities: prev.autonomousCapabilities.filter(cap => cap !== option)
+                                  }));
+                                }
+                              }}
+                              className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
+                            />
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">{option}</span>
+                          </label>
+                        ))}
                       </div>
                     </div>
 
                     {/* Teleop Capabilities */}
-                    <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
-                      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">Teleop Capabilities</h3>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          What can the robot do during teleop? <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                          className="w-full h-24 sm:h-32 lg:h-36 xl:h-40 px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                          placeholder="Describe their teleop capabilities (e.g., Score coral on branches, Score algae in processor/net, Park in barge zone, etc.)..."
-                          value={formData.teleopCapabilities}
-                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            teleopCapabilities: e.target.value
-                          }))}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Endgame Capabilities */}
-                    <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
-                      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">Endgame Capabilities</h3>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          What can the robot do in endgame? <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                          className="w-full h-24 sm:h-32 lg:h-36 xl:h-40 px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                          placeholder="Describe their endgame capabilities (e.g., Park in barge zone, Shallow cage, Deep cage, etc.)..."
-                          value={formData.endgameCapabilities}
-                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            endgameCapabilities: e.target.value
-                          }))}
-                        />
+                    <div className="bg-gray-50 dark:bg-gray-800 p-4 sm:p-6 rounded-lg border">
+                      <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-white">Question 3: What can you do during teleop</h3>
+                      <div className="space-y-3">
+                        {['L1', 'L2', 'L3', 'L4', 'Processor', 'Barge', 'Defense'].map((option) => (
+                          <label key={option} className="flex items-center space-x-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.teleopCapabilities.includes(option)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    teleopCapabilities: [...prev.teleopCapabilities, option]
+                                  }));
+                                } else {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    teleopCapabilities: prev.teleopCapabilities.filter(cap => cap !== option)
+                                  }));
+                                }
+                              }}
+                              className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
+                            />
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">{option}</span>
+                          </label>
+                        ))}
                       </div>
                     </div>
                   </CardContent>
@@ -601,7 +667,7 @@ export default function PitScouting() {
                         <h3 className="font-semibold mb-3">Basic Information</h3>
                         <p className="text-sm text-muted-foreground">Team: {formData.teamNumber}</p>
                         <p className="text-sm text-muted-foreground">Robot: {formData.robotName || 'N/A'}</p>
-                        <p className="text-sm text-muted-foreground">Drive: {formData.driveType || 'N/A'}</p>
+                        <p className="text-sm text-muted-foreground">Drive: {formData.driveType === 'Other' ? formData.driveTrainOther : formData.driveType || 'N/A'}</p>
                         <p className="text-sm text-muted-foreground">Language: {formData.programmingLanguage || 'N/A'}</p>
                       </div>
 
@@ -617,18 +683,42 @@ export default function PitScouting() {
 
                     <div className="bg-muted rounded-lg p-4 border">
                       <h3 className="font-semibold mb-3">Capabilities Summary</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
-                          <p className="text-sm text-muted-foreground"><strong>Autonomous:</strong></p>
-                          <p className="text-sm text-muted-foreground">{formData.autonomousCapabilities || 'N/A'}</p>
+                          <p className="text-sm text-muted-foreground font-medium mb-2">Autonomous:</p>
+                          <div className="space-y-1">
+                            {formData.autonomousCapabilities.length > 0 ? (
+                              formData.autonomousCapabilities.map((cap, index) => (
+                                <p key={index} className="text-sm text-muted-foreground">• {cap}</p>
+                              ))
+                            ) : (
+                              <p className="text-sm text-muted-foreground">N/A</p>
+                            )}
+                          </div>
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground"><strong>Teleop:</strong></p>
-                          <p className="text-sm text-muted-foreground">{formData.teleopCapabilities || 'N/A'}</p>
+                          <p className="text-sm text-muted-foreground font-medium mb-2">Teleop:</p>
+                          <div className="space-y-1">
+                            {formData.teleopCapabilities.length > 0 ? (
+                              formData.teleopCapabilities.map((cap, index) => (
+                                <p key={index} className="text-sm text-muted-foreground">• {cap}</p>
+                              ))
+                            ) : (
+                              <p className="text-sm text-muted-foreground">N/A</p>
+                            )}
+                          </div>
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground"><strong>Endgame:</strong></p>
-                          <p className="text-sm text-muted-foreground">{formData.endgameCapabilities || 'N/A'}</p>
+                          <p className="text-sm text-muted-foreground font-medium mb-2">Endgame:</p>
+                          <div className="space-y-1">
+                            {formData.endgameCapabilities.length > 0 ? (
+                              formData.endgameCapabilities.map((cap, index) => (
+                                <p key={index} className="text-sm text-muted-foreground">• {cap}</p>
+                              ))
+                            ) : (
+                              <p className="text-sm text-muted-foreground">N/A</p>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

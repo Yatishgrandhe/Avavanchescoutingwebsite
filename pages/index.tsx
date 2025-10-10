@@ -386,15 +386,15 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="text-center space-y-4"
+              className="text-center space-y-6 lg:space-y-8"
             >
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-4">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 lg:gap-4 mb-6 lg:mb-8">
                 <Logo size="lg" />
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-heading font-bold text-foreground">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-heading font-bold text-foreground leading-tight">
                   Welcome to Avalanche
                 </h1>
               </div>
-              <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto px-4">
+              <p className="text-lg sm:text-xl lg:text-2xl xl:text-3xl text-muted-foreground max-w-4xl mx-auto px-4 lg:px-6 leading-relaxed">
                 Professional FRC scouting platform with advanced analytics and real-time data collection
               </p>
             </motion.div>
@@ -404,70 +404,70 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 xl:gap-10"
             >
-              <Card className="card-modern group cursor-pointer bg-card border-border" onClick={() => router.push('/scout')}>
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
-                    <div className="p-3 bg-primary rounded-2xl text-primary-foreground">
-                      <Target size={24} />
+              <Card className="card-modern group cursor-pointer bg-card border-border hover:shadow-lg transition-all duration-300" onClick={() => router.push('/scout')}>
+                <CardContent className="p-6 lg:p-8 xl:p-10">
+                  <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 lg:space-x-8">
+                    <div className="p-4 lg:p-5 bg-primary rounded-2xl text-primary-foreground">
+                      <Target size={28} className="lg:w-8 lg:h-8" />
                     </div>
                     <div className="flex-1 min-w-0 text-center sm:text-left">
-                      <h3 className="font-heading font-semibold text-card-foreground">Start Scouting</h3>
-                      <p className="text-sm text-muted-foreground">Begin collecting match data</p>
+                      <h3 className="font-heading font-semibold text-card-foreground text-lg lg:text-xl xl:text-2xl mb-2">Start Scouting</h3>
+                      <p className="text-sm lg:text-base xl:text-lg text-muted-foreground">Begin collecting match data</p>
                     </div>
-                    <Badge variant="secondary" className="bg-primary/10 text-primary">
+                    <Badge variant="secondary" className="bg-primary/10 text-primary text-xs lg:text-sm">
                       Primary
                     </Badge>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="card-modern group cursor-pointer bg-card border-border" onClick={() => router.push('/pit-scouting')}>
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
-                    <div className="p-3 bg-secondary rounded-2xl text-secondary-foreground">
-                      <Settings size={24} />
+              <Card className="card-modern group cursor-pointer bg-card border-border hover:shadow-lg transition-all duration-300" onClick={() => router.push('/pit-scouting')}>
+                <CardContent className="p-6 lg:p-8 xl:p-10">
+                  <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 lg:space-x-8">
+                    <div className="p-4 lg:p-5 bg-secondary rounded-2xl text-secondary-foreground">
+                      <Settings size={28} className="lg:w-8 lg:h-8" />
                     </div>
                     <div className="flex-1 min-w-0 text-center sm:text-left">
-                      <h3 className="font-heading font-semibold text-card-foreground">Pit Scouting</h3>
-                      <p className="text-sm text-muted-foreground">Analyze robot capabilities</p>
+                      <h3 className="font-heading font-semibold text-card-foreground text-lg lg:text-xl xl:text-2xl mb-2">Pit Scouting</h3>
+                      <p className="text-sm lg:text-base xl:text-lg text-muted-foreground">Analyze robot capabilities</p>
                     </div>
-                    <Badge variant="secondary" className="bg-secondary/10 text-secondary">
+                    <Badge variant="secondary" className="bg-secondary/10 text-secondary text-xs lg:text-sm">
                       New
                     </Badge>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="card-modern group cursor-pointer bg-card border-border" onClick={() => router.push('/analysis/data')}>
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
-                    <div className="p-3 bg-warning rounded-2xl text-white">
-                      <BarChart3 size={24} />
+              <Card className="card-modern group cursor-pointer bg-card border-border hover:shadow-lg transition-all duration-300" onClick={() => router.push('/analysis/data')}>
+                <CardContent className="p-6 lg:p-8 xl:p-10">
+                  <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 lg:space-x-8">
+                    <div className="p-4 lg:p-5 bg-warning rounded-2xl text-white">
+                      <BarChart3 size={28} className="lg:w-8 lg:h-8" />
                     </div>
                     <div className="flex-1 min-w-0 text-center sm:text-left">
-                      <h3 className="font-heading font-semibold text-card-foreground">Data Analysis</h3>
-                      <p className="text-sm text-muted-foreground">View comprehensive analytics</p>
+                      <h3 className="font-heading font-semibold text-card-foreground text-lg lg:text-xl xl:text-2xl mb-2">Data Analysis</h3>
+                      <p className="text-sm lg:text-base xl:text-lg text-muted-foreground">View comprehensive analytics</p>
                     </div>
-                    <Badge variant="secondary" className="bg-warning/10 text-warning">
+                    <Badge variant="secondary" className="bg-warning/10 text-warning text-xs lg:text-sm">
                       Featured
                     </Badge>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="card-modern group cursor-pointer bg-card border-border" onClick={() => router.push('/analysis/comparison')}>
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
-                    <div className="p-3 bg-card border border-border rounded-2xl text-foreground">
-                      <TrendingUp size={24} />
+              <Card className="card-modern group cursor-pointer bg-card border-border hover:shadow-lg transition-all duration-300" onClick={() => router.push('/analysis/comparison')}>
+                <CardContent className="p-6 lg:p-8 xl:p-10">
+                  <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 lg:space-x-8">
+                    <div className="p-4 lg:p-5 bg-card border border-border rounded-2xl text-foreground">
+                      <TrendingUp size={28} className="lg:w-8 lg:h-8" />
                     </div>
                     <div className="flex-1 min-w-0 text-center sm:text-left">
-                      <h3 className="font-heading font-semibold text-card-foreground">Team Comparison</h3>
-                      <p className="text-sm text-muted-foreground">Compare team performance</p>
+                      <h3 className="font-heading font-semibold text-card-foreground text-lg lg:text-xl xl:text-2xl mb-2">Team Comparison</h3>
+                      <p className="text-sm lg:text-base xl:text-lg text-muted-foreground">Compare team performance</p>
                     </div>
-                    <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                    <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs lg:text-sm">
                       Analytics
                     </Badge>
                   </div>
@@ -480,13 +480,13 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 xl:gap-10"
             >
-              <Card className="stat-card bg-card border-border">
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
+              <Card className="stat-card bg-card border-border hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 lg:p-8 xl:p-10">
+                  <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
                     <div className="min-w-0 text-center sm:text-left">
-                      <p className="text-sm font-medium text-muted-foreground">Total Matches</p>
+                      <p className="text-sm lg:text-base font-medium text-muted-foreground mb-2">Total Matches</p>
                       {loadingStats ? (
                         <div className="flex items-center justify-center sm:justify-start space-x-2">
                           <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -494,25 +494,25 @@ export default function Home() {
                         </div>
                       ) : (
                         <>
-                          <p className="text-xl sm:text-2xl font-heading font-bold text-card-foreground">{dashboardStats.totalMatches}</p>
-                          <p className="text-xs text-primary font-medium">
+                          <p className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-heading font-bold text-card-foreground mb-2">{dashboardStats.totalMatches}</p>
+                          <p className="text-xs lg:text-sm text-primary font-medium">
                             {dashboardStats.totalMatches > 0 ? 'Active matches tracked' : 'No matches yet'}
                           </p>
                         </>
                       )}
                     </div>
-                    <div className="p-3 bg-primary/10 rounded-2xl">
-                      <Target className="w-6 h-6 text-primary" />
+                    <div className="p-4 lg:p-5 bg-primary/10 rounded-2xl">
+                      <Target className="w-8 h-8 lg:w-10 lg:h-10 text-primary" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="stat-card bg-card border-border">
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
+              <Card className="stat-card bg-card border-border hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 lg:p-8 xl:p-10">
+                  <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
                     <div className="min-w-0 text-center sm:text-left">
-                      <p className="text-sm font-medium text-muted-foreground">Teams Registered</p>
+                      <p className="text-sm lg:text-base font-medium text-muted-foreground mb-2">Teams Registered</p>
                       {loadingStats ? (
                         <div className="flex items-center justify-center sm:justify-start space-x-2">
                           <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -520,25 +520,25 @@ export default function Home() {
                         </div>
                       ) : (
                         <>
-                          <p className="text-xl sm:text-2xl font-heading font-bold text-card-foreground">{dashboardStats.teamsCount}</p>
-                          <p className="text-xs text-secondary font-medium">
+                          <p className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-heading font-bold text-card-foreground mb-2">{dashboardStats.teamsCount}</p>
+                          <p className="text-xs lg:text-sm text-secondary font-medium">
                             {dashboardStats.teamsCount > 0 ? 'Teams in database' : 'No teams registered'}
                           </p>
                         </>
                       )}
                     </div>
-                    <div className="p-3 bg-secondary/10 rounded-2xl">
-                      <Users className="w-6 h-6 text-secondary" />
+                    <div className="p-4 lg:p-5 bg-secondary/10 rounded-2xl">
+                      <Users className="w-8 h-8 lg:w-10 lg:h-10 text-secondary" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="stat-card bg-card border-border">
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
+              <Card className="stat-card bg-card border-border hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 lg:p-8 xl:p-10">
+                  <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
                     <div className="min-w-0 text-center sm:text-left">
-                      <p className="text-sm font-medium text-muted-foreground">Data Points</p>
+                      <p className="text-sm lg:text-base font-medium text-muted-foreground mb-2">Data Points</p>
                       {loadingStats ? (
                         <div className="flex items-center justify-center sm:justify-start space-x-2">
                           <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -546,25 +546,25 @@ export default function Home() {
                         </div>
                       ) : (
                         <>
-                          <p className="text-xl sm:text-2xl font-heading font-bold text-card-foreground">{dashboardStats.dataPoints}</p>
-                          <p className="text-xs text-warning font-medium">
+                          <p className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-heading font-bold text-card-foreground mb-2">{dashboardStats.dataPoints}</p>
+                          <p className="text-xs lg:text-sm text-warning font-medium">
                             {dashboardStats.dataPoints > 0 ? 'Scouting entries collected' : 'Start scouting!'}
                           </p>
                         </>
                       )}
                     </div>
-                    <div className="p-3 bg-warning/10 rounded-2xl">
-                      <Database className="w-6 h-6 text-warning" />
+                    <div className="p-4 lg:p-5 bg-warning/10 rounded-2xl">
+                      <Database className="w-8 h-8 lg:w-10 lg:h-10 text-warning" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="stat-card bg-card border-border">
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
+              <Card className="stat-card bg-card border-border hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 lg:p-8 xl:p-10">
+                  <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
                     <div className="min-w-0 text-center sm:text-left">
-                      <p className="text-sm font-medium text-muted-foreground">Data Coverage</p>
+                      <p className="text-sm lg:text-base font-medium text-muted-foreground mb-2">Data Coverage</p>
                       {loadingStats ? (
                         <div className="flex items-center justify-center sm:justify-start space-x-2">
                           <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -572,15 +572,15 @@ export default function Home() {
                         </div>
                       ) : (
                         <>
-                          <p className="text-xl sm:text-2xl font-heading font-bold text-card-foreground">{dashboardStats.successRate}%</p>
-                          <p className="text-xs text-success font-medium">
+                          <p className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-heading font-bold text-card-foreground mb-2">{dashboardStats.successRate}%</p>
+                          <p className="text-xs lg:text-sm text-success font-medium">
                             {dashboardStats.successRate > 0 ? 'Matches with data' : 'No data yet'}
                           </p>
                         </>
                       )}
                     </div>
-                    <div className="p-3 bg-success/10 rounded-2xl">
-                      <Shield className="w-6 h-6 text-success" />
+                    <div className="p-4 lg:p-5 bg-success/10 rounded-2xl">
+                      <Shield className="w-8 h-8 lg:w-10 lg:h-10 text-success" />
                     </div>
                   </div>
                 </CardContent>
@@ -641,18 +641,18 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.8 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 xl:gap-10"
             >
               {features.map((feature, index) => (
-                <Card key={index} className="card-modern bg-card border-border">
-                  <CardContent className="p-4 md:p-6 text-center">
-                    <div className="p-3 bg-primary/10 rounded-2xl w-fit mx-auto mb-4">
-                      <feature.icon className="w-6 h-6 text-primary" />
+                <Card key={index} className="card-modern bg-card border-border hover:shadow-lg transition-all duration-300">
+                  <CardContent className="p-6 lg:p-8 xl:p-10 text-center">
+                    <div className="p-4 lg:p-5 bg-primary/10 rounded-2xl w-fit mx-auto mb-6">
+                      <feature.icon className="w-8 h-8 lg:w-10 lg:h-10 text-primary" />
                     </div>
-                    <h3 className="font-heading font-semibold text-card-foreground mb-2 text-sm sm:text-base">
+                    <h3 className="font-heading font-semibold text-card-foreground mb-3 text-lg lg:text-xl xl:text-2xl">
                       {feature.title}
                     </h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
+                    <p className="text-sm lg:text-base xl:text-lg text-muted-foreground leading-relaxed">
                       {feature.description}
                     </p>
                   </CardContent>

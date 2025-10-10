@@ -105,7 +105,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 {isMobileNavOpen ? <X size={20} /> : <Menu size={20} />}
               </Button>
               <Logo size="sm" />
-              <h1 className="text-lg font-heading font-bold text-foreground">
+              <h1 className="text-lg lg:text-xl xl:text-2xl font-heading font-bold text-foreground">
                 Avalanche Scouting
               </h1>
             </div>
@@ -236,15 +236,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className="header-modern flex items-center justify-between px-4 sm:px-6 lg:px-8"
+              className="header-modern flex items-center justify-between px-4 sm:px-6 lg:px-8 xl:px-10"
             >
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-4 lg:space-x-6 xl:space-x-8">
                 <Logo size="md" />
                 <motion.h1 
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.1 }}
-                  className="text-xl font-heading font-bold tracking-wide text-foreground"
+                  className="text-xl lg:text-2xl xl:text-3xl font-heading font-bold tracking-wide text-foreground"
                 >
                   Avalanche Scouting
                 </motion.h1>

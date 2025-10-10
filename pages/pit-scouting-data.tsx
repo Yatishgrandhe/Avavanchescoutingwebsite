@@ -22,7 +22,10 @@ import {
   User,
   Calendar,
   Wrench,
-  Target
+  Target,
+  X,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -66,50 +69,58 @@ export default function PitScoutingData() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState('all');
   const [selectedView, setSelectedView] = useState('table');
+  const [selectedItem, setSelectedItem] = useState<PitScoutingData | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   // Load pit scouting data
   useEffect(() => {
     const loadPitData = async () => {
       setLoadingData(true);
       try {
-        // For now, we'll create mock data since the pit scouting table doesn't exist yet
-        // In a real implementation, you would query the pit_scouting_data table
-        const mockData: PitScoutingData[] = [
-          {
-            id: '1',
-            team_number: 1234,
-            robot_name: 'ThunderBot',
-            drive_type: 'Swerve Drive',
-            drive_train_details: {
-              type: '4-wheel Swerve',
-              auto_capabilities: 'Can score 2-3 pieces consistently, moves to scoring position',
-              teleop_capabilities: 'Fast cycle time, can score 4-5 pieces per cycle',
-              drive_camps: 2,
-              playoff_driver: 'Will rotate between top 2 drivers based on performance'
-            },
-            robot_dimensions: {
-              length: 32,
-              width: 28,
-              height: 45
-            },
-            weight: 125,
-            programming_language: 'Java',
-            notes: 'Very consistent robot, good driver training',
-            strengths: ['Consistent scoring', 'Fast cycles', 'Good drivers'],
-            weaknesses: ['Struggles with defense', 'Limited endgame'],
-            overall_rating: 8,
-            submitted_by: user?.id || 'unknown',
-            submitted_by_email: user?.email || 'unknown@example.com',
-            submitted_by_name: user?.user_metadata?.full_name || 'Unknown User',
-            submitted_at: new Date().toISOString(),
-            created_at: new Date().toISOString()
-          }
-        ];
+        // Load real data from Supabase
+        const { data: pitScoutingData, error } = await supabase
+          .from('pit_scouting_data')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw new Error(`Failed to load pit scouting data: ${error.message}`);
+        }
+
+        // Transform the data to match our interface
+        const transformedData: PitScoutingData[] = (pitScoutingData || []).map((item: any) => ({
+          id: item.id,
+          team_number: item.team_number,
+          robot_name: item.robot_name || 'Unknown Robot',
+          drive_type: item.drive_type || 'Unknown',
+          drive_train_details: item.drive_train_details || {
+            type: item.drive_type || 'Unknown',
+            auto_capabilities: '',
+            teleop_capabilities: '',
+            drive_camps: 0,
+            playoff_driver: 'TBD'
+          },
+          robot_dimensions: item.robot_dimensions || { height: 0 },
+          weight: item.weight || 0,
+          programming_language: item.programming_language || 'Unknown',
+          notes: item.notes || '',
+          strengths: item.strengths || [],
+          weaknesses: item.weaknesses || [],
+          overall_rating: item.overall_rating || 0,
+          submitted_by: item.submitted_by,
+          submitted_by_email: item.submitted_by_email,
+          submitted_by_name: item.submitted_by_name,
+          submitted_at: item.submitted_at,
+          created_at: item.created_at
+        }));
         
-        setPitData(mockData);
-        setFilteredData(mockData);
+        setPitData(transformedData);
+        setFilteredData(transformedData);
       } catch (error) {
         console.error('Error loading pit scouting data:', error);
+        // Fallback to empty array on error
+        setPitData([]);
+        setFilteredData([]);
       } finally {
         setLoadingData(false);
       }
@@ -138,6 +149,16 @@ export default function PitScoutingData() {
 
     setFilteredData(filtered);
   }, [pitData, searchTerm, selectedTeam]);
+
+  const handleViewDetails = (item: PitScoutingData) => {
+    setSelectedItem(item);
+    setShowDetailModal(true);
+  };
+
+  const closeDetailModal = () => {
+    setShowDetailModal(false);
+    setSelectedItem(null);
+  };
 
   if (loading) {
     return (
@@ -279,7 +300,12 @@ export default function PitScoutingData() {
                             {new Date(item.created_at).toLocaleDateString()}
                           </TableCell>
                           <TableCell>
-                            <Button variant="outline" size="sm" className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+                              onClick={() => handleViewDetails(item)}
+                            >
                               <Eye className="h-4 w-4 mr-1" />
                               View
                             </Button>
@@ -335,6 +361,17 @@ export default function PitScoutingData() {
                           {new Date(item.created_at).toLocaleDateString()}
                         </div>
                       </div>
+                      <div className="pt-3">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+                          onClick={() => handleViewDetails(item)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Details
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -354,6 +391,164 @@ export default function PitScoutingData() {
                   </p>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Detailed View Modal */}
+            {showDetailModal && selectedItem && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                  <div className="flex items-center justify-between p-6 border-b border-gray-700">
+                    <h2 className="text-2xl font-bold text-white">Team {selectedItem.team_number} - {selectedItem.robot_name}</h2>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={closeDetailModal}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      <X className="h-6 w-6" />
+                    </Button>
+                  </div>
+                  
+                  <div className="p-6 space-y-6">
+                    {/* Basic Information */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="bg-gray-700 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-white mb-3">Basic Information</h3>
+                        <div className="space-y-2">
+                          <p className="text-sm text-gray-300"><span className="font-medium">Team Number:</span> {selectedItem.team_number}</p>
+                          <p className="text-sm text-gray-300"><span className="font-medium">Robot Name:</span> {selectedItem.robot_name}</p>
+                          <p className="text-sm text-gray-300"><span className="font-medium">Drive Type:</span> {selectedItem.drive_type}</p>
+                          <p className="text-sm text-gray-300"><span className="font-medium">Programming Language:</span> {selectedItem.programming_language}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-700 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-white mb-3">Robot Specifications</h3>
+                        <div className="space-y-2">
+                          <p className="text-sm text-gray-300">
+                            <span className="font-medium">Dimensions:</span> {
+                              selectedItem.robot_dimensions.length && selectedItem.robot_dimensions.width 
+                                ? `${selectedItem.robot_dimensions.length}" × ${selectedItem.robot_dimensions.width}" × ${selectedItem.robot_dimensions.height}"`
+                                : `${selectedItem.robot_dimensions.height}" (H only)`
+                            }
+                          </p>
+                          <p className="text-sm text-gray-300"><span className="font-medium">Weight:</span> {selectedItem.weight} lbs</p>
+                          <p className="text-sm text-gray-300"><span className="font-medium">Overall Rating:</span> {selectedItem.overall_rating}/10</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Capabilities */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-gray-700 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-white mb-3">Autonomous Capabilities</h3>
+                        <div className="space-y-1">
+                          {selectedItem.autonomous_capabilities && selectedItem.autonomous_capabilities.length > 0 ? (
+                            selectedItem.autonomous_capabilities.map((cap, index) => (
+                              <div key={index} className="flex items-center space-x-2">
+                                <CheckCircle className="h-4 w-4 text-green-400" />
+                                <span className="text-sm text-gray-300">{cap}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-gray-400">No autonomous capabilities specified</p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-700 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-white mb-3">Teleop Capabilities</h3>
+                        <div className="space-y-1">
+                          {selectedItem.teleop_capabilities && selectedItem.teleop_capabilities.length > 0 ? (
+                            selectedItem.teleop_capabilities.map((cap, index) => (
+                              <div key={index} className="flex items-center space-x-2">
+                                <CheckCircle className="h-4 w-4 text-green-400" />
+                                <span className="text-sm text-gray-300">{cap}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-gray-400">No teleop capabilities specified</p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-700 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-white mb-3">Endgame Capabilities</h3>
+                        <div className="space-y-1">
+                          {selectedItem.endgame_capabilities && selectedItem.endgame_capabilities.length > 0 ? (
+                            selectedItem.endgame_capabilities.map((cap, index) => (
+                              <div key={index} className="flex items-center space-x-2">
+                                <CheckCircle className="h-4 w-4 text-green-400" />
+                                <span className="text-sm text-gray-300">{cap}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-gray-400">No endgame capabilities specified</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Strengths and Weaknesses */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="bg-gray-700 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-white mb-3">Strengths</h3>
+                        <div className="space-y-1">
+                          {selectedItem.strengths && selectedItem.strengths.length > 0 ? (
+                            selectedItem.strengths.map((strength, index) => (
+                              <div key={index} className="flex items-center space-x-2">
+                                <CheckCircle className="h-4 w-4 text-green-400" />
+                                <span className="text-sm text-gray-300">{strength}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-gray-400">No strengths specified</p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-700 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-white mb-3">Weaknesses</h3>
+                        <div className="space-y-1">
+                          {selectedItem.weaknesses && selectedItem.weaknesses.length > 0 ? (
+                            selectedItem.weaknesses.map((weakness, index) => (
+                              <div key={index} className="flex items-center space-x-2">
+                                <AlertCircle className="h-4 w-4 text-red-400" />
+                                <span className="text-sm text-gray-300">{weakness}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-gray-400">No weaknesses specified</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Notes */}
+                    {selectedItem.notes && (
+                      <div className="bg-gray-700 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-white mb-3">Notes</h3>
+                        <p className="text-sm text-gray-300">{selectedItem.notes}</p>
+                      </div>
+                    )}
+
+                    {/* Submission Info */}
+                    <div className="bg-gray-700 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-white mb-3">Submission Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-300"><span className="font-medium">Submitted by:</span> {selectedItem.submitted_by_name}</p>
+                          <p className="text-sm text-gray-300"><span className="font-medium">Email:</span> {selectedItem.submitted_by_email}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-300"><span className="font-medium">Submitted at:</span> {new Date(selectedItem.submitted_at).toLocaleString()}</p>
+                          <p className="text-sm text-gray-300"><span className="font-medium">Created:</span> {new Date(selectedItem.created_at).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>

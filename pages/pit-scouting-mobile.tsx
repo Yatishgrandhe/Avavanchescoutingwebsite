@@ -593,7 +593,7 @@ export default function PitScoutingMobile() {
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Question 2: What can they do in auto</h3>
                     <div className="space-y-3">
                       {['L1', 'L2', 'L3', 'L4', 'Move off of the starting line ONLY', 'Clean the reef (LOW algae)', 'Clean the reef (HIGH algae)'].map((option) => (
-                        <label key={option} className="flex items-start gap-3 cursor-pointer">
+                        <label key={option} className="flex items-center gap-2 cursor-pointer">
                           <input
                             type="checkbox"
                             checked={formData.autonomousCapabilities.includes(option)}
@@ -610,9 +610,9 @@ export default function PitScoutingMobile() {
                                 }));
                               }
                             }}
-                            className="mt-1 w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 flex-shrink-0"
+                            className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 flex-shrink-0"
                           />
-                          <span className="text-sm font-medium text-foreground flex-1 min-w-0 text-left">{option}</span>
+                          <span className="text-sm font-medium text-foreground flex-1">{option}</span>
                         </label>
                       ))}
                     </div>

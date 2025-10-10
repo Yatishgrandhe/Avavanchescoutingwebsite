@@ -117,58 +117,123 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   // Mobile navigation - horizontal scrollable layout with Dashboard
   if (isMobile) {
-    const mobileItems = [
-      {
-        label: 'Dashboard',
-        href: '/mobile-dashboard',
-        icon: Home,
-      },
-      {
-        label: 'Scout',
-        href: '/mobile-scout',
-        icon: ClipboardList,
-      },
-      ...menuItems.flatMap(section => section.items).filter(item => item.href !== '/scout')
-    ];
-
     return (
-      <div className="w-full">
-        <nav className="flex items-center space-x-2 mobile-nav-scroll scrollbar-hide">
-          {mobileItems.map((item) => {
-            const isActive = router.pathname === item.href;
-            const Icon = item.icon;
+      <>
+        <style jsx>{`
+          .mobile-nav-scroll {
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+          }
+          
+          .mobile-nav-item {
+            min-height: 60px;
+            max-height: 60px;
+          }
+          
+          @media screen and (orientation: portrait) {
+            .mobile-nav-scroll {
+              padding-left: 12px;
+              padding-right: 12px;
+            }
             
-            return (
-              <Link key={item.href} href={item.href}>
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    // Close mobile nav when clicking on a link
-                    if (isMobile) {
-                      // Add a small delay to ensure the navigation happens first
-                      setTimeout(() => {
-                        onToggle();
-                      }, 100);
-                    }
-                  }}
-                  className={cn(
-                    "flex flex-col items-center justify-center mobile-nav-item rounded-lg transition-all duration-200",
-                    isActive 
-                      ? "bg-primary text-primary-foreground" 
-                      : "text-muted-foreground hover:text-accent-foreground hover:bg-accent"
-                  )}
-                >
-                  <Icon size={20} className="mb-1" />
-                  <span className="font-medium truncate text-center">
-                    {item.label}
-                  </span>
-                </motion.div>
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
+            .mobile-nav-item {
+              min-width: 65px !important;
+              max-width: 80px !important;
+              padding: 8px 4px !important;
+            }
+            
+            .mobile-nav-item span {
+              font-size: 10px !important;
+              line-height: 1.2 !important;
+              max-width: 100% !important;
+            }
+            
+            .mobile-nav-item svg {
+              width: 16px !important;
+              height: 16px !important;
+              margin-bottom: 2px !important;
+            }
+          }
+          
+          @media screen and (max-width: 480px) {
+            .mobile-nav-scroll {
+              padding-left: 8px;
+              padding-right: 8px;
+            }
+            
+            .mobile-nav-item {
+              min-width: 60px !important;
+              max-width: 75px !important;
+              padding: 6px 3px !important;
+            }
+            
+            .mobile-nav-item span {
+              font-size: 9px !important;
+              line-height: 1.1 !important;
+            }
+            
+            .mobile-nav-item svg {
+              width: 14px !important;
+              height: 14px !important;
+            }
+          }
+        `}</style>
+        {(() => {
+          const mobileItems = [
+            {
+              label: 'Dashboard',
+              href: '/mobile-dashboard',
+              icon: Home,
+            },
+            {
+              label: 'Scout',
+              href: '/mobile-scout',
+              icon: ClipboardList,
+            },
+            ...menuItems.flatMap(section => section.items).filter(item => item.href !== '/scout')
+          ];
+
+          return (
+            <div className="w-full bg-card border-b border-border">
+              <nav className="flex items-center space-x-3 mobile-nav-scroll scrollbar-hide px-3 py-3 overflow-x-auto">
+                {mobileItems.map((item) => {
+              const isActive = router.pathname === item.href;
+              const Icon = item.icon;
+              
+              return (
+                <Link key={item.href} href={item.href}>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      // Close mobile nav when clicking on a link
+                      if (isMobile) {
+                        // Add a small delay to ensure the navigation happens first
+                        setTimeout(() => {
+                          onToggle();
+                        }, 100);
+                      }
+                    }}
+                    className={cn(
+                      "flex flex-col items-center justify-center mobile-nav-item rounded-lg transition-all duration-200 px-2 py-2 min-w-[70px] max-w-[85px] flex-shrink-0",
+                      isActive 
+                        ? "bg-primary text-primary-foreground" 
+                        : "text-muted-foreground hover:text-accent-foreground hover:bg-accent"
+                    )}
+                  >
+                    <Icon size={18} className="mb-1 flex-shrink-0" />
+                    <span className="font-medium text-center text-xs leading-tight break-words max-w-full">
+                      {item.label}
+                    </span>
+                  </motion.div>
+                </Link>
+              );
+            })}
+              </nav>
+            </div>
+          );
+        })()}
+      </>
     );
   }
 
@@ -181,8 +246,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       className="sidebar-modern h-full flex flex-col"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <div className="flex items-center space-x-3 min-w-0">
+      <div className="flex items-center justify-between p-6 border-b border-border min-h-[90px]">
+        <div className="flex items-center space-x-4 min-w-0 flex-1">
           <Logo size="sm" />
           
           <AnimatePresence>
@@ -194,10 +259,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                 transition={{ delay: 0.1 }}
                 className="min-w-0"
               >
-                <h2 className="font-heading font-bold text-card-foreground truncate">
+                <h2 className="font-heading font-bold text-card-foreground leading-tight">
                   Avalanche
                 </h2>
-                <p className="text-muted-foreground truncate">
+                <p className="text-muted-foreground text-sm leading-tight mt-2">
                   Scouting Platform
                 </p>
               </motion.div>
@@ -216,7 +281,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
+      <nav className="flex-1 p-6 space-y-6 overflow-y-auto">
         {/* Dashboard Button */}
         <div className="mb-6">
           <Link href="/">
@@ -243,7 +308,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -10 }}
-                    className="flex-1 font-medium truncate"
+                    className="flex-1 font-medium leading-tight break-words"
                   >
                     Dashboard
                   </motion.span>
@@ -267,14 +332,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ delay: 0.1 + sectionIndex * 0.1 }}
-                  className="font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-4"
+                  className="font-semibold text-muted-foreground uppercase tracking-wider mb-4 mt-6 px-2 text-xs"
                 >
                   {section.title}
                 </motion.h3>
               )}
             </AnimatePresence>
             
-            <div className="space-y-1">
+            <div className="space-y-2 px-2">
               {section.items.map((item, itemIndex) => (
                 <Link key={item.href} href={item.href}>
                   <motion.div
@@ -303,7 +368,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -10 }}
-                          className="flex-1 font-medium truncate"
+                          className="flex-1 font-medium leading-tight break-words"
                         >
                           {item.label}
                         </motion.span>
@@ -328,9 +393,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="p-4 border-t border-border"
+          className="p-6 border-t border-border"
         >
-          <div className="flex items-center space-x-3 min-w-0">
+          <div className="flex items-center space-x-4 min-w-0">
             <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-primary-foreground text-sm font-medium">
                 {user.name.charAt(0).toUpperCase()}
@@ -344,10 +409,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                   exit={{ opacity: 0, x: -10 }}
                   className="flex-1 min-w-0"
                 >
-                  <p className="font-medium text-card-foreground truncate">
+                  <p className="font-medium text-card-foreground leading-tight break-words">
                     {user.name}
                   </p>
-                  <p className="text-muted-foreground truncate">
+                  <p className="text-muted-foreground text-sm leading-tight mt-2 break-words">
                     {user.username}
                   </p>
                 </motion.div>

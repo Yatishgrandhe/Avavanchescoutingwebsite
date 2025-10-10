@@ -416,9 +416,9 @@ export default function PitScouting() {
                                   driveType: e.target.value,
                                   driveTrainOther: '' // Clear other when selecting predefined option
                                 }))}
-                                className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
+                                className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 flex-shrink-0"
                               />
-                              <span className="text-sm font-medium">{option}</span>
+                              <span className="text-sm font-medium flex-1">{option}</span>
                             </label>
                           ))}
                           <div className="flex items-center space-x-3">
@@ -431,9 +431,9 @@ export default function PitScouting() {
                                 ...prev, 
                                 driveType: e.target.value 
                               }))}
-                              className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
+                              className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 flex-shrink-0"
                             />
-                            <span className="text-sm font-medium">Other:</span>
+                            <span className="text-sm font-medium flex-shrink-0">Other:</span>
                             <Input
                               placeholder="Specify drive train type"
                               value={formData.driveTrainOther || ''}
@@ -578,9 +578,9 @@ export default function PitScouting() {
                                   }));
                                 }
                               }}
-                              className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
+                              className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 flex-shrink-0"
                             />
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">{option}</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">{option}</span>
                           </label>
                         ))}
                       </div>
@@ -608,9 +608,9 @@ export default function PitScouting() {
                                   }));
                                 }
                               }}
-                              className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
+                              className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 flex-shrink-0"
                             />
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">{option}</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">{option}</span>
                           </label>
                         ))}
                       </div>
@@ -659,6 +659,36 @@ export default function PitScouting() {
                         {validationError}
                       </motion.div>
                     )}
+
+                    {/* Endgame Capabilities */}
+                    <div className="bg-gray-50 dark:bg-gray-800 p-4 sm:p-6 rounded-lg border">
+                      <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-white">Question 4: What can they do during endgame</h3>
+                      <div className="space-y-3">
+                        {['Climb', 'Balance', 'Park', 'None'].map((option) => (
+                          <label key={option} className="flex items-center space-x-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.endgameCapabilities.includes(option)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    endgameCapabilities: [...prev.endgameCapabilities, option]
+                                  }));
+                                } else {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    endgameCapabilities: prev.endgameCapabilities.filter(cap => cap !== option)
+                                  }));
+                                }
+                              }}
+                              className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 flex-shrink-0"
+                            />
+                            <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">{option}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
 
                     {/* Overall Rating */}
                     <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">

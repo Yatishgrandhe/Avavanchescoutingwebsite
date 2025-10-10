@@ -110,6 +110,7 @@ input[type="checkbox"] {
   touch-action: manipulation !important;
   vertical-align: middle;
   outline: none !important;
+  flex-shrink: 0; /* Prevent checkbox from scaling down */
 }
 
 input[type="checkbox"]:checked {
@@ -125,6 +126,38 @@ input[type="checkbox"]:checked::after {
   font-size: 18px;
   color: white;
   font-weight: bold;
+}
+
+/* === CHECKBOX LABEL FIXES FOR MOBILE PORTRAIT === */
+/* Ensure checkbox and text always align properly */
+label {
+  display: flex;            /* Keep checkbox + text on the same row */
+  align-items: center;      /* Vertically align */
+  gap: 8px;                 /* Space between checkbox and text */
+  font-size: 1rem;
+  line-height: 1.2;
+  white-space: normal;      /* Allow wrapping instead of cutting off */
+  width: 100%;
+  cursor: pointer;
+}
+
+/* Fix checkbox sizing on mobile so it doesn't push away text */
+input[type="checkbox"] {
+  flex-shrink: 0;          /* Prevent checkbox from scaling down */
+  width: 20px;
+  height: 20px;
+}
+
+/* Additional fix for very narrow screens */
+@media (max-width: 400px) {
+  label {
+    flex-wrap: wrap;       /* Allow text to wrap under checkbox */
+    gap: 4px;
+  }
+
+  input[type="checkbox"] {
+    margin-bottom: 4px;    /* Adds slight spacing when wrapped */
+  }
 }
 
 /* === RESPONSIVE FIX FOR PORTRAIT PHONES === */

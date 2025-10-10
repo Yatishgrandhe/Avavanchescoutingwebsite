@@ -123,29 +123,116 @@ const Sidebar: React.FC<SidebarProps> = ({
           .mobile-nav-scroll {
             -webkit-overflow-scrolling: touch;
             scroll-behavior: smooth;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+          }
+          
+          .mobile-nav-scroll::-webkit-scrollbar {
+            display: none;
           }
           
           .mobile-nav-item {
-            min-height: 60px;
-            max-height: 60px;
+            min-height: 70px;
+            max-height: 70px;
+            min-width: 90px;
+            max-width: 110px;
+            padding: 12px 8px;
+            margin-right: 16px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
           }
           
-          @media screen and (orientation: portrait) {
+          .mobile-nav-item:last-child {
+            margin-right: 24px;
+          }
+          
+          /* Phone-specific styles - only apply to actual phones */
+          @media screen and (max-width: 767px) and (orientation: portrait) {
+            .mobile-nav-scroll {
+              padding-left: 16px;
+              padding-right: 16px;
+              padding-top: 8px;
+              padding-bottom: 8px;
+            }
+            
+            .mobile-nav-item {
+              min-width: 85px !important;
+              max-width: 100px !important;
+              padding: 10px 6px !important;
+              margin-right: 20px !important;
+              min-height: 65px !important;
+              max-height: 65px !important;
+            }
+            
+            .mobile-nav-item span {
+              font-size: 11px !important;
+              line-height: 1.2 !important;
+              max-width: 100% !important;
+              white-space: nowrap !important;
+              overflow: hidden !important;
+              text-overflow: ellipsis !important;
+              font-weight: 500 !important;
+            }
+            
+            .mobile-nav-item svg {
+              width: 18px !important;
+              height: 18px !important;
+              margin-bottom: 4px !important;
+            }
+          }
+          
+          /* Small phones in portrait */
+          @media screen and (max-width: 480px) and (orientation: portrait) {
             .mobile-nav-scroll {
               padding-left: 12px;
               padding-right: 12px;
             }
             
             .mobile-nav-item {
-              min-width: 80px !important;
-              max-width: 95px !important;
-              padding: 8px 6px !important;
+              min-width: 75px !important;
+              max-width: 90px !important;
+              padding: 8px 4px !important;
+              margin-right: 16px !important;
+              min-height: 60px !important;
+              max-height: 60px !important;
             }
             
             .mobile-nav-item span {
               font-size: 10px !important;
               line-height: 1.1 !important;
-              max-width: 100% !important;
+              white-space: nowrap !important;
+              overflow: hidden !important;
+              text-overflow: ellipsis !important;
+            }
+            
+            .mobile-nav-item svg {
+              width: 16px !important;
+              height: 16px !important;
+              margin-bottom: 3px !important;
+            }
+          }
+          
+          /* Landscape orientation for phones */
+          @media screen and (max-width: 767px) and (orientation: landscape) {
+            .mobile-nav-scroll {
+              padding-left: 12px;
+              padding-right: 12px;
+              padding-top: 6px;
+              padding-bottom: 6px;
+            }
+            
+            .mobile-nav-item {
+              min-width: 80px !important;
+              max-width: 95px !important;
+              padding: 8px 4px !important;
+              margin-right: 12px !important;
+              min-height: 55px !important;
+              max-height: 55px !important;
+            }
+            
+            .mobile-nav-item span {
+              font-size: 10px !important;
+              line-height: 1.1 !important;
               white-space: nowrap !important;
               overflow: hidden !important;
               text-overflow: ellipsis !important;
@@ -158,29 +245,10 @@ const Sidebar: React.FC<SidebarProps> = ({
             }
           }
           
-          @media screen and (max-width: 480px) {
+          /* Ensure tablets and larger don't get mobile nav styles */
+          @media screen and (min-width: 768px) {
             .mobile-nav-scroll {
-              padding-left: 8px;
-              padding-right: 8px;
-            }
-            
-            .mobile-nav-item {
-              min-width: 70px !important;
-              max-width: 85px !important;
-              padding: 6px 4px !important;
-            }
-            
-            .mobile-nav-item span {
-              font-size: 9px !important;
-              line-height: 1.1 !important;
-              white-space: nowrap !important;
-              overflow: hidden !important;
-              text-overflow: ellipsis !important;
-            }
-            
-            .mobile-nav-item svg {
-              width: 14px !important;
-              height: 14px !important;
+              display: none !important;
             }
           }
         `}</style>
@@ -201,7 +269,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           return (
             <div className="w-full bg-card border-b border-border">
-              <nav className="flex items-center space-x-4 mobile-nav-scroll scrollbar-hide px-4 py-3 overflow-x-auto">
+              <nav className="flex items-center mobile-nav-scroll overflow-x-auto">
                 {mobileItems.map((item) => {
               const isActive = router.pathname === item.href;
               const Icon = item.icon;
@@ -209,8 +277,8 @@ const Sidebar: React.FC<SidebarProps> = ({
               return (
                 <Link key={item.href} href={item.href}>
                   <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       // Close mobile nav when clicking on a link
                       if (isMobile) {
@@ -221,14 +289,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                       }
                     }}
                     className={cn(
-                      "flex flex-col items-center justify-center mobile-nav-item rounded-lg transition-all duration-200 px-3 py-2 min-w-[80px] max-w-[95px] flex-shrink-0",
+                      "flex flex-col items-center justify-center mobile-nav-item rounded-lg transition-all duration-200 flex-shrink-0 cursor-pointer",
                       isActive 
-                        ? "bg-primary text-primary-foreground" 
+                        ? "bg-primary text-primary-foreground shadow-sm" 
                         : "text-muted-foreground hover:text-accent-foreground hover:bg-accent"
                     )}
                   >
-                    <Icon size={18} className="mb-1 flex-shrink-0" />
-                    <span className="font-medium text-center text-xs leading-tight max-w-full truncate">
+                    <Icon size={18} className="flex-shrink-0" />
+                    <span className="font-medium text-center leading-tight max-w-full truncate">
                       {item.label}
                     </span>
                   </motion.div>

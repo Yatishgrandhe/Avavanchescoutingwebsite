@@ -43,6 +43,9 @@ interface PitScoutingData {
     drive_camps: number;
     playoff_driver: string;
   };
+  autonomous_capabilities: string[];
+  teleop_capabilities: string[];
+  endgame_capabilities: string[];
   robot_dimensions: {
     length?: number;
     width?: number;
@@ -444,7 +447,7 @@ export default function PitScoutingData() {
                         <h3 className="text-lg font-semibold text-white mb-3">Autonomous Capabilities</h3>
                         <div className="space-y-1">
                           {selectedItem.autonomous_capabilities && selectedItem.autonomous_capabilities.length > 0 ? (
-                            selectedItem.autonomous_capabilities.map((cap, index) => (
+                            selectedItem.autonomous_capabilities.map((cap: string, index: number) => (
                               <div key={index} className="flex items-center space-x-2">
                                 <CheckCircle className="h-4 w-4 text-green-400" />
                                 <span className="text-sm text-gray-300">{cap}</span>
@@ -460,7 +463,7 @@ export default function PitScoutingData() {
                         <h3 className="text-lg font-semibold text-white mb-3">Teleop Capabilities</h3>
                         <div className="space-y-1">
                           {selectedItem.teleop_capabilities && selectedItem.teleop_capabilities.length > 0 ? (
-                            selectedItem.teleop_capabilities.map((cap, index) => (
+                            selectedItem.teleop_capabilities.map((cap: string, index: number) => (
                               <div key={index} className="flex items-center space-x-2">
                                 <CheckCircle className="h-4 w-4 text-green-400" />
                                 <span className="text-sm text-gray-300">{cap}</span>
@@ -476,7 +479,7 @@ export default function PitScoutingData() {
                         <h3 className="text-lg font-semibold text-white mb-3">Endgame Capabilities</h3>
                         <div className="space-y-1">
                           {selectedItem.endgame_capabilities && selectedItem.endgame_capabilities.length > 0 ? (
-                            selectedItem.endgame_capabilities.map((cap, index) => (
+                            selectedItem.endgame_capabilities.map((cap: string, index: number) => (
                               <div key={index} className="flex items-center space-x-2">
                                 <CheckCircle className="h-4 w-4 text-green-400" />
                                 <span className="text-sm text-gray-300">{cap}</span>
@@ -495,7 +498,7 @@ export default function PitScoutingData() {
                         <h3 className="text-lg font-semibold text-white mb-3">Strengths</h3>
                         <div className="space-y-1">
                           {selectedItem.strengths && selectedItem.strengths.length > 0 ? (
-                            selectedItem.strengths.map((strength, index) => (
+                            selectedItem.strengths.map((strength: string, index: number) => (
                               <div key={index} className="flex items-center space-x-2">
                                 <CheckCircle className="h-4 w-4 text-green-400" />
                                 <span className="text-sm text-gray-300">{strength}</span>
@@ -511,7 +514,7 @@ export default function PitScoutingData() {
                         <h3 className="text-lg font-semibold text-white mb-3">Weaknesses</h3>
                         <div className="space-y-1">
                           {selectedItem.weaknesses && selectedItem.weaknesses.length > 0 ? (
-                            selectedItem.weaknesses.map((weakness, index) => (
+                            selectedItem.weaknesses.map((weakness: string, index: number) => (
                               <div key={index} className="flex items-center space-x-2">
                                 <AlertCircle className="h-4 w-4 text-red-400" />
                                 <span className="text-sm text-gray-300">{weakness}</span>

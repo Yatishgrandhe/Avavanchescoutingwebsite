@@ -290,7 +290,7 @@ body {
 .sidebar h1,
 .sidebar p,
 .sidebar span {
-  font-size: inherit !important;
+  /* Removed forced font-size inheritance */
 }
 
 /* Navigation icons should maintain original sizing */
@@ -324,9 +324,7 @@ body {
     padding-right: 16px !important;
   }
   
-  .header-modern h1 {
-    font-size: 1.125rem !important;
-  }
+  /* Removed forced font-size for navigation h1 */
   
   .header-modern button {
     padding: 8px !important;

@@ -67,6 +67,9 @@ export default function App({ Component, pageProps }: AppProps) {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <meta name="msapplication-navbutton-color" content="#1A2B7C" />
+        <meta name="apple-mobile-web-app-title" content="Avalanche Scouting" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="icon" type="image/png" sizes="32x32" href="/image.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/image.png" />

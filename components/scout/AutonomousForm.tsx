@@ -51,12 +51,37 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
   const progressPercentage = (currentStep / totalSteps) * 100;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3 }}
-      className="max-w-6xl mx-auto"
-    >
+    <>
+      <style jsx>{`
+        input[type="checkbox"]:checked::after {
+          content: '✓';
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          font-size: 14px;
+          font-weight: bold;
+          color: white;
+          pointer-events: none;
+        }
+        
+        @media (orientation: portrait) {
+          input[type="checkbox"] {
+            width: 28px !important;
+            height: 28px !important;
+          }
+          
+          input[type="checkbox"]:checked::after {
+            font-size: 16px;
+          }
+        }
+      `}</style>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+        className="max-w-6xl mx-auto"
+      >
       <Card className="bg-card border-border">
         {/* Progress Bar */}
         <div className="px-6 pt-6">
@@ -139,7 +164,13 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                   type="checkbox"
                   checked={formData.auto_leave}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_leave', e.target.checked)}
-                  className="w-5 h-5 cursor-pointer"
+                  className="w-6 h-6 cursor-pointer appearance-none bg-background border-2 border-primary rounded-md transition-all duration-200 hover:border-primary/80 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 checked:bg-primary checked:border-primary"
+                  style={{
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    WebkitUserSelect: 'none',
+                    userSelect: 'none'
+                  }}
                 />
               </div>
             </div>
@@ -273,7 +304,12 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
             <Button
               variant="outline"
               onClick={onBack}
-              
+              style={{
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation',
+                WebkitUserSelect: 'none',
+                userSelect: 'none'
+              }}
             >
               Previous
             </Button>
@@ -285,14 +321,20 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
           >
             <Button
               onClick={() => onNext(formData)}
-              
+              style={{
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation',
+                WebkitUserSelect: 'none',
+                userSelect: 'none'
+              }}
             >
               Next: Teleop
             </Button>
           </motion.div>
         </CardFooter>
       </Card>
-    </motion.div>
+      </motion.div>
+    </>
   );
 };
 

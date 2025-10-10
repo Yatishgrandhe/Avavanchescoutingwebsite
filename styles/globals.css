@@ -4,9 +4,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* === UNIVERSAL MOBILE-FRIENDLY STYLES === */
+/* === GLOBAL RESET AND ANTI-HIGHLIGHT === */
 * {
-  -webkit-tap-highlight-color: transparent; /* Removes white flash on tap */
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent; /* ✅ Removes white/gray tap flash */
   -webkit-touch-callout: none; /* Disables callout on iOS */
   -webkit-user-select: none; /* Prevents text selection on mobile */
   -moz-user-select: none;
@@ -29,21 +32,26 @@ html {
   -ms-text-size-adjust: 100%;
 }
 
-body {
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+html, body {
+  width: 100%;
+  height: 100%;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+  overscroll-behavior: none;
 }
 
-/* === FORM ELEMENTS - NO WHITE FLASH === */
-input, select, textarea, button {
+/* === REMOVE FLASH/WHITE OVERLAY ON MOBILE TAP === */
+button, a, input, label {
   -webkit-tap-highlight-color: transparent;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
   touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
   outline: none;
   transition: all 0.2s ease-in-out;
 }
@@ -54,75 +62,84 @@ input:focus, select:focus, textarea:focus, button:focus {
   box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
 }
 
-/* === BUTTON STYLES - NO WHITE FLASH === */
+/* === BUTTONS === */
 button {
+  display: inline-block;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.25s ease;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  cursor: pointer;
-  border: none;
   outline: none;
 }
 
+button:hover {
+  background-color: hsl(var(--primary) / 0.9);
+}
+
 button:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
   -webkit-tap-highlight-color: transparent;
 }
 
-/* === CHECKBOX FIX - PROPER CHECKMARK DISPLAY === */
+/* === CHECKBOX FIX (visible checkmark + consistent styling) === */
 input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  accent-color: hsl(var(--primary));
+  width: 22px;
+  height: 22px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: hsl(var(--background));
+  border: 2px solid hsl(var(--primary));
+  border-radius: 6px;
   cursor: pointer;
-  vertical-align: middle;
+  position: relative;
+  transition: all 0.2s ease;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  border: 2px solid hsl(var(--border));
-  border-radius: 4px;
-  background-color: hsl(var(--background));
-  position: relative;
+  vertical-align: middle;
 }
 
-/* Cross-browser checkbox checkmark */
 input[type="checkbox"]:checked {
   background-color: hsl(var(--primary));
   border-color: hsl(var(--primary));
-  background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='m13.854 3.646-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 9.293l6.646-6.647a.5.5 0 0 1 .708.708z'/%3e%3c/svg%3e");
-  background-size: 16px 16px;
-  background-position: center;
-  background-repeat: no-repeat;
 }
 
-/* Fallback for browsers that don't support accent-color */
-@supports not (accent-color: auto) {
-  input[type="checkbox"] {
-    appearance: none;
-    background-color: hsl(var(--background));
-    border: 2px solid hsl(var(--border));
-    border-radius: 4px;
-    position: relative;
+input[type="checkbox"]:checked::after {
+  content: '✔';
+  position: absolute;
+  left: 4px;
+  top: -1px;
+  font-size: 18px;
+  color: white;
+  font-weight: bold;
+}
+
+/* === RESPONSIVE FIX FOR PORTRAIT PHONES === */
+@media (orientation: portrait) {
+  body {
+    font-size: 16px;
   }
 
-  input[type="checkbox"]:checked {
-    background-color: hsl(var(--primary));
-    border-color: hsl(var(--primary));
+  input, button, label {
+    font-size: 1rem;
+  }
+
+  input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
   }
 
   input[type="checkbox"]:checked::after {
-    content: '✓';
-    position: absolute;
-    left: 2px;
-    top: -1px;
-    font-size: 16px;
-    color: white;
-    font-weight: bold;
-  }
-}
-
-/* === RESPONSIVE TEXT SIZING FOR VERTICAL MOBILE === */
-@media (orientation: portrait) and (max-width: 768px) {
-  html {
-    font-size: 14px;
+    left: 5px;
+    top: 0px;
+    font-size: 20px;
   }
   
   h1 {
@@ -188,10 +205,27 @@ input[type="checkbox"]:checked {
 
 *:active {
   -webkit-tap-highlight-color: transparent !important;
+  background-color: transparent !important;
 }
 
 *:hover {
   -webkit-tap-highlight-color: transparent !important;
+}
+
+*:visited {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+*:link {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Re-enable text selection for content areas */
+input, textarea, [contenteditable], p, span, div[role="textbox"], h1, h2, h3, h4, h5, h6 {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
 }
 
 /* === IMPROVE SCROLLING ON MOBILE === */
@@ -203,6 +237,83 @@ html {
 body {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+}
+
+/* === NAVIGATION BAR PROTECTION - PREVENT GLOBAL STYLES FROM AFFECTING NAV === */
+.header-modern,
+.header-modern *,
+.mobile-nav-container,
+.mobile-nav-container *,
+.sidebar,
+.sidebar * {
+  -webkit-tap-highlight-color: initial !important;
+  -webkit-user-select: initial !important;
+  -moz-user-select: initial !important;
+  -ms-user-select: initial !important;
+  user-select: initial !important;
+}
+
+/* Navigation buttons should maintain their original styling */
+.header-modern button,
+.mobile-nav-container button,
+.sidebar button {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1) !important;
+  touch-action: manipulation !important;
+  min-height: auto !important;
+  min-width: auto !important;
+}
+
+/* Navigation text should maintain original sizing */
+.header-modern h1,
+.header-modern p,
+.header-modern span,
+.mobile-nav-container h1,
+.mobile-nav-container p,
+.mobile-nav-container span,
+.sidebar h1,
+.sidebar p,
+.sidebar span {
+  font-size: inherit !important;
+}
+
+/* Navigation icons should maintain original sizing */
+.header-modern svg,
+.mobile-nav-container svg,
+.sidebar svg {
+  width: inherit !important;
+  height: inherit !important;
+}
+
+/* Navigation dropdowns should work normally */
+.header-modern .dropdown-menu,
+.mobile-nav-container .dropdown-menu,
+.sidebar .dropdown-menu {
+  -webkit-tap-highlight-color: initial !important;
+}
+
+/* Navigation links should work normally */
+.header-modern a,
+.mobile-nav-container a,
+.sidebar a {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1) !important;
+  touch-action: manipulation !important;
+}
+
+/* Ensure navigation maintains proper spacing */
+@media (max-width: 768px) {
+  .header-modern,
+  .mobile-nav-container {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  
+  .header-modern h1 {
+    font-size: 1.125rem !important;
+  }
+  
+  .header-modern button {
+    padding: 8px !important;
+  }
 }
 
 /* CSS Variables - Dark Mode Default */

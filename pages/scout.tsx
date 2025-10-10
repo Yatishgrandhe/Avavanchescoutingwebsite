@@ -16,7 +16,8 @@ import {
   Zap,
   Trophy,
   FileText,
-  Eye
+  Eye,
+  AlertCircle
 } from 'lucide-react';
 import MatchDetailsForm from '@/components/scout/MatchDetailsForm';
 import AutonomousForm from '@/components/scout/AutonomousForm';
@@ -61,6 +62,7 @@ interface FormData {
 export default function Scout() {
   const { user, loading } = useSupabase();
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
     matchData: {
       match_id: '',
@@ -92,6 +94,66 @@ export default function Scout() {
 
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
+
+  const validateStep = (step: ScoutingStep): boolean => {
+    switch (step) {
+      case 'match-details':
+        // Required: Match selection and team selection
+        if (!formData.matchData.match_id) return false;
+        if (!formData.teamNumber) return false;
+        return true;
+      
+      case 'autonomous':
+        // Autonomous form doesn't have required fields marked with *
+        return true;
+      
+      case 'teleop':
+        // Teleop form doesn't have required fields marked with *
+        return true;
+      
+      case 'endgame':
+        // Required: At least one endgame capability
+        if (!formData.endgame.endgame_park && !formData.endgame.endgame_shallow_cage && !formData.endgame.endgame_deep_cage) return false;
+        return true;
+      
+      case 'miscellaneous':
+        // Required: Defense rating and comments
+        if (!formData.miscellaneous.defense_rating || formData.miscellaneous.defense_rating < 1) return false;
+        if (!formData.miscellaneous.comments.trim()) return false;
+        return true;
+      
+      case 'review':
+        return true;
+      
+      default:
+        return true;
+    }
+  };
+
+  const handleStepNext = (nextStep: ScoutingStep) => {
+    setValidationError(null);
+    
+    if (validateStep(currentStep)) {
+      setCurrentStep(nextStep);
+    } else {
+      // Show validation error
+      let errorMessage = '';
+      switch (currentStep) {
+        case 'match-details':
+          errorMessage = 'Please select a match and team before proceeding.';
+          break;
+        case 'endgame':
+          errorMessage = 'Please select at least one endgame capability before proceeding.';
+          break;
+        case 'miscellaneous':
+          errorMessage = 'Please provide a defense rating and comments before proceeding.';
+          break;
+        default:
+          errorMessage = 'Please complete all required fields before proceeding.';
+      }
+      setValidationError(errorMessage);
+    }
+  };
 
   const handleSubmit = async () => {
     try {
@@ -243,6 +305,17 @@ export default function Scout() {
           {/* Form Content */}
           <Card className="w-full mx-auto px-4">
             <CardContent className="p-6">
+              {validationError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center mb-4"
+                >
+                  <AlertCircle className="h-5 w-5 mr-2" />
+                  {validationError}
+                </motion.div>
+              )}
+
               <AnimatePresence mode="wait">
                 {currentStep === 'match-details' && (
                   <motion.div
@@ -261,7 +334,7 @@ export default function Scout() {
                           allianceColor,
                           alliancePosition
                         }));
-                        setCurrentStep('autonomous');
+                        handleStepNext('autonomous');
                       }}
                       currentStep={currentStepIndex}
                       totalSteps={steps.length}
@@ -280,7 +353,7 @@ export default function Scout() {
                     <AutonomousForm
                       onNext={(data) => {
                         setFormData(prev => ({ ...prev, autonomous: data }));
-                        setCurrentStep('teleop');
+                        handleStepNext('teleop');
                       }}
                       onBack={() => setCurrentStep('match-details')}
                       currentStep={currentStepIndex}
@@ -300,7 +373,7 @@ export default function Scout() {
                     <TeleopForm
                       onNext={(data) => {
                         setFormData(prev => ({ ...prev, teleop: data }));
-                        setCurrentStep('endgame');
+                        handleStepNext('endgame');
                       }}
                       onBack={() => setCurrentStep('autonomous')}
                       currentStep={currentStepIndex}
@@ -321,7 +394,7 @@ export default function Scout() {
                     <EndgameForm
                       onNext={(data) => {
                         setFormData(prev => ({ ...prev, endgame: data }));
-                        setCurrentStep('miscellaneous');
+                        handleStepNext('miscellaneous');
                       }}
                       onBack={() => setCurrentStep('teleop')}
                       currentStep={currentStepIndex}
@@ -341,7 +414,7 @@ export default function Scout() {
                     <MiscellaneousForm
                       onNext={(data) => {
                         setFormData(prev => ({ ...prev, miscellaneous: data }));
-                        setCurrentStep('review');
+                        handleStepNext('review');
                       }}
                       onBack={() => setCurrentStep('endgame')}
                       currentStep={currentStepIndex}

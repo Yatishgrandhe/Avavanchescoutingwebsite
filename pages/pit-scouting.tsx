@@ -468,7 +468,7 @@ export default function PitScouting() {
                         <Input
                           type="number"
                           placeholder="Optional"
-                          value={formData.robotDimensions.length || ''}
+                          value={formData.robotDimensions.length?.toString() || ''}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
                             ...prev, 
                             robotDimensions: { ...prev.robotDimensions, length: e.target.value ? parseFloat(e.target.value) : undefined }
@@ -482,7 +482,7 @@ export default function PitScouting() {
                         <Input
                           type="number"
                           placeholder="Optional"
-                          value={formData.robotDimensions.width || ''}
+                          value={formData.robotDimensions.width?.toString() || ''}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
                             ...prev, 
                             robotDimensions: { ...prev.robotDimensions, width: e.target.value ? parseFloat(e.target.value) : undefined }
@@ -496,7 +496,7 @@ export default function PitScouting() {
                         <Input
                           type="number"
                           placeholder="Optional"
-                          value={formData.robotDimensions.height || ''}
+                          value={formData.robotDimensions.height?.toString() || ''}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
                             ...prev, 
                             robotDimensions: { ...prev.robotDimensions, height: e.target.value ? parseFloat(e.target.value) : undefined }
@@ -510,7 +510,7 @@ export default function PitScouting() {
                         <Input
                           type="number"
                           placeholder="Optional"
-                          value={formData.weight || ''}
+                          value={formData.weight?.toString() || ''}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, weight: e.target.value ? parseFloat(e.target.value) : undefined }))}
                         />
                       </div>
@@ -672,7 +672,7 @@ export default function PitScouting() {
                           min="1"
                           max="10"
                           placeholder="8"
-                          value={formData.overallRating || ''}
+                          value={formData.overallRating.toString()}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
                             ...prev, 
                             overallRating: parseInt(e.target.value) || 0

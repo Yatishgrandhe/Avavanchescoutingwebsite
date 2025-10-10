@@ -263,7 +263,7 @@ export default function MobileDashboard() {
         >
           <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
           
-          <div className="card-container">
+          <div className="grid grid-cols-1 gap-4">
             <Card className="card-modern cursor-pointer" onClick={() => router.push('/mobile-scout')}>
               <CardContent className="p-4">
                 <div className="flex items-center space-x-4">
@@ -326,7 +326,7 @@ export default function MobileDashboard() {
         >
           <h3 className="text-lg font-semibold text-foreground">Statistics</h3>
           
-          <div className="card-container">
+          <div className="grid grid-cols-2 gap-4">
             <Card className="stat-card bg-card border-border">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">

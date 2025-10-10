@@ -590,64 +590,61 @@ export default function PitScoutingMobile() {
 
                   {/* Autonomous Capabilities */}
                   <div className="bg-muted p-4 rounded-lg border">
-                    <h3 className="text-lg font-semibold mb-4 text-foreground">Autonomous Capabilities</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Autonomous Strategy <span className="text-destructive">*</span>
+                    <h3 className="text-lg font-semibold mb-4 text-foreground">Question 2: What can they do in auto</h3>
+                    <div className="space-y-3">
+                      {['L1', 'L2', 'L3', 'L4', 'Move off of the starting line ONLY', 'Clean the reef (LOW algae)', 'Clean the reef (HIGH algae)'].map((option) => (
+                        <label key={option} className="flex items-center space-x-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.autonomousCapabilities.includes(option)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  autonomousCapabilities: [...prev.autonomousCapabilities, option]
+                                }));
+                              } else {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  autonomousCapabilities: prev.autonomousCapabilities.filter(cap => cap !== option)
+                                }));
+                              }
+                            }}
+                            className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 flex-shrink-0"
+                          />
+                          <span className="text-sm font-medium text-foreground flex-1">{option}</span>
                         </label>
-                        <textarea
-                          className="w-full h-24 px-3 py-2 border border-input rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                          placeholder="Describe their autonomous strategy and capabilities..."
-                          value={formData.autonomousCapabilities.join(', ')}
-                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            autonomousCapabilities: e.target.value.split(',').map(s => s.trim()).filter(s => s)
-                          }))}
-                        />
-                      </div>
+                      ))}
                     </div>
                   </div>
 
                   {/* Teleop Capabilities */}
                   <div className="bg-muted p-4 rounded-lg border">
-                    <h3 className="text-lg font-semibold mb-4 text-foreground">Teleop Capabilities</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Teleop Strategy <span className="text-destructive">*</span>
+                    <h3 className="text-lg font-semibold mb-4 text-foreground">Question 3: What can they do during teleop</h3>
+                    <div className="space-y-3">
+                      {['L1', 'L2', 'L3', 'L4', 'Processor', 'Barge', 'Defense'].map((option) => (
+                        <label key={option} className="flex items-center space-x-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.teleopCapabilities.includes(option)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  teleopCapabilities: [...prev.teleopCapabilities, option]
+                                }));
+                              } else {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  teleopCapabilities: prev.teleopCapabilities.filter(cap => cap !== option)
+                                }));
+                              }
+                            }}
+                            className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 flex-shrink-0"
+                          />
+                          <span className="text-sm font-medium text-foreground flex-1">{option}</span>
                         </label>
-                        <textarea
-                          className="w-full h-24 px-3 py-2 border border-input rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                          placeholder="Describe their teleop strategy and capabilities..."
-                          value={formData.teleopCapabilities.join(', ')}
-                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            teleopCapabilities: e.target.value.split(',').map(s => s.trim()).filter(s => s)
-                          }))}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Endgame Capabilities */}
-                  <div className="bg-muted p-4 rounded-lg border">
-                    <h3 className="text-lg font-semibold mb-4 text-foreground">Endgame Capabilities</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Endgame Strategy <span className="text-destructive">*</span>
-                        </label>
-                        <textarea
-                          className="w-full h-24 px-3 py-2 border border-input rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                          placeholder="Describe their endgame strategy and capabilities..."
-                          value={formData.endgameCapabilities.join(', ')}
-                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            endgameCapabilities: e.target.value.split(',').map(s => s.trim()).filter(s => s)
-                          }))}
-                        />
-                      </div>
+                      ))}
                     </div>
                   </div>
                 </CardContent>
@@ -694,6 +691,36 @@ export default function PitScoutingMobile() {
                       {validationError}
                     </motion.div>
                   )}
+
+                  {/* Endgame Capabilities */}
+                  <div className="bg-muted p-4 rounded-lg border">
+                    <h3 className="text-lg font-semibold mb-4 text-foreground">Question 4: What can they do during endgame</h3>
+                    <div className="space-y-3">
+                      {['Climb', 'Balance', 'Park', 'None'].map((option) => (
+                        <label key={option} className="flex items-center space-x-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.endgameCapabilities.includes(option)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  endgameCapabilities: [...prev.endgameCapabilities, option]
+                                }));
+                              } else {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  endgameCapabilities: prev.endgameCapabilities.filter(cap => cap !== option)
+                                }));
+                              }
+                            }}
+                            className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 flex-shrink-0"
+                          />
+                          <span className="text-sm font-medium text-foreground flex-1">{option}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
 
                   {/* Strengths */}
                   <div className="bg-muted p-4 rounded-lg border">
@@ -831,7 +858,7 @@ export default function PitScoutingMobile() {
                       <h3 className="font-semibold mb-3">Basic Information</h3>
                       <p className="text-sm text-muted-foreground">Team: {formData.teamNumber}</p>
                       <p className="text-sm text-muted-foreground">Robot: {formData.robotName || 'N/A'}</p>
-                      <p className="text-sm text-muted-foreground">Drive: {formData.driveType || 'N/A'}</p>
+                      <p className="text-sm text-muted-foreground">Drive: {formData.driveTrainDetails.type || 'N/A'}</p>
                       <p className="text-sm text-muted-foreground">Drive Camps: {formData.driveTrainDetails.driveCamps || 0}</p>
                     </div>
 
@@ -842,6 +869,48 @@ export default function PitScoutingMobile() {
                       </p>
                       <p className="text-sm text-muted-foreground">Weight: {formData.weight} lbs</p>
                       <p className="text-sm text-muted-foreground">Language: {formData.programmingLanguage || 'N/A'}</p>
+                    </div>
+
+                    <div className="bg-muted rounded-lg p-4 border">
+                      <h3 className="font-semibold mb-3">Capabilities Summary</h3>
+                      <div className="space-y-2">
+                        <div>
+                          <p className="text-sm text-muted-foreground font-medium">Autonomous:</p>
+                          <div className="space-y-1">
+                            {formData.autonomousCapabilities.length > 0 ? (
+                              formData.autonomousCapabilities.map((cap, index) => (
+                                <p key={index} className="text-sm text-muted-foreground">• {cap}</p>
+                              ))
+                            ) : (
+                              <p className="text-sm text-muted-foreground">N/A</p>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground font-medium">Teleop:</p>
+                          <div className="space-y-1">
+                            {formData.teleopCapabilities.length > 0 ? (
+                              formData.teleopCapabilities.map((cap, index) => (
+                                <p key={index} className="text-sm text-muted-foreground">• {cap}</p>
+                              ))
+                            ) : (
+                              <p className="text-sm text-muted-foreground">N/A</p>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground font-medium">Endgame:</p>
+                          <div className="space-y-1">
+                            {formData.endgameCapabilities.length > 0 ? (
+                              formData.endgameCapabilities.map((cap, index) => (
+                                <p key={index} className="text-sm text-muted-foreground">• {cap}</p>
+                              ))
+                            ) : (
+                              <p className="text-sm text-muted-foreground">N/A</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="bg-muted rounded-lg p-4 border">

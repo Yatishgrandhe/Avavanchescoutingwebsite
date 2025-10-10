@@ -160,7 +160,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   )}
                 >
                   <Icon size={20} className="mb-1" />
-                  <span className="text-xs font-medium truncate text-center">
+                  <span className="font-medium truncate text-center">
                     {item.label}
                   </span>
                 </motion.div>
@@ -194,10 +194,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                 transition={{ delay: 0.1 }}
                 className="min-w-0"
               >
-                <h2 className="text-lg font-heading font-bold text-card-foreground truncate">
+                <h2 className="font-heading font-bold text-card-foreground truncate">
                   Avalanche
                 </h2>
-                <p className="text-xs text-muted-foreground truncate">
+                <p className="text-muted-foreground truncate">
                   Scouting Platform
                 </p>
               </motion.div>
@@ -267,7 +267,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ delay: 0.1 + sectionIndex * 0.1 }}
-                  className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-4"
+                  className="font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-4"
                 >
                   {section.title}
                 </motion.h3>
@@ -344,10 +344,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                   exit={{ opacity: 0, x: -10 }}
                   className="flex-1 min-w-0"
                 >
-                  <p className="text-sm font-medium text-card-foreground truncate">
+                  <p className="font-medium text-card-foreground truncate">
                     {user.name}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-muted-foreground truncate">
                     {user.username}
                   </p>
                 </motion.div>

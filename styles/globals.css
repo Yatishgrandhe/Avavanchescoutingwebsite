@@ -1365,7 +1365,7 @@ body {
     
     .sidebar-modern nav a {
       padding: 0.5rem;
-      font-size: 0.875rem;
+      /* Removed forced font-size */
       flex: 1;
       text-align: center;
       border-radius: 0.5rem;
@@ -2947,7 +2947,7 @@ body::-webkit-scrollbar-thumb:hover,
     text-align: center;
     padding: 0.75rem 0.5rem;
     border-radius: 6px;
-    font-size: 0.875rem;
+    /* Removed forced font-size */
   }
 
   /* Prevent image overflow */
@@ -3177,7 +3177,7 @@ body::-webkit-scrollbar-thumb:hover,
     text-align: center;
     padding: 0.75rem 0.5rem;
     border-radius: 6px;
-    font-size: 0.875rem;
+    /* Removed forced font-size */
   }
 
   /* Better text handling */
@@ -3248,7 +3248,7 @@ body::-webkit-scrollbar-thumb:hover,
   
   .nav-item {
     padding: 0.5rem 0.25rem;
-    font-size: 0.8rem;
+    /* Removed forced font-size */
   }
 }
 

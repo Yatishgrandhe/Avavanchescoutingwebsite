@@ -479,7 +479,7 @@ export default function PitScouting() {
                   <CardContent className="space-y-6 sm:space-y-8">
                     {/* Autonomous Capabilities */}
                     <div className="bg-gray-50 dark:bg-gray-800 p-4 sm:p-6 rounded-lg border">
-                      <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-white">Question 2: What can you do in auto</h3>
+                      <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-white">Question 2: What can they do in auto</h3>
                       <div className="space-y-3">
                         {['L1', 'L2', 'L3', 'L4', 'Move off of the starting line ONLY', 'Clean the reef (LOW algae)', 'Clean the reef (HIGH algae)'].map((option) => (
                           <label key={option} className="flex items-center space-x-3 cursor-pointer">
@@ -509,7 +509,7 @@ export default function PitScouting() {
 
                     {/* Teleop Capabilities */}
                     <div className="bg-gray-50 dark:bg-gray-800 p-4 sm:p-6 rounded-lg border">
-                      <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-white">Question 3: What can you do during teleop</h3>
+                      <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-white">Question 3: What can they do during teleop</h3>
                       <div className="space-y-3">
                         {['L1', 'L2', 'L3', 'L4', 'Processor', 'Barge', 'Defense'].map((option) => (
                           <label key={option} className="flex items-center space-x-3 cursor-pointer">

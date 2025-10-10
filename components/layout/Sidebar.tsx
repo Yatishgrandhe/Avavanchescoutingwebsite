@@ -252,8 +252,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       className="sidebar-modern h-full flex flex-col"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-6 lg:p-8 xl:p-10 border-b border-border min-h-[90px] lg:min-h-[110px] xl:min-h-[130px]">
-        <div className="flex items-center space-x-4 lg:space-x-6 xl:space-x-8 min-w-0 flex-1">
+      <div className="flex items-center justify-between p-4 lg:p-5 border-b border-border min-h-[70px] lg:min-h-[80px]">
+        <div className="flex items-center space-x-3 lg:space-x-4 min-w-0 flex-1">
           <Logo size="sm" />
           
           <AnimatePresence>
@@ -265,10 +265,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                 transition={{ delay: 0.1 }}
                 className="min-w-0"
               >
-                <h2 className="font-heading font-bold text-card-foreground leading-tight text-lg lg:text-xl xl:text-2xl">
+                <h2 className="font-heading font-bold text-card-foreground leading-tight text-base lg:text-lg">
                   Avalanche
                 </h2>
-                <p className="text-muted-foreground text-sm lg:text-base xl:text-lg leading-tight mt-2 lg:mt-3">
+                <p className="text-muted-foreground text-xs lg:text-sm leading-tight mt-1 lg:mt-2">
                   Scouting Platform
                 </p>
               </motion.div>
@@ -287,9 +287,9 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-6 lg:p-8 xl:p-10 space-y-6 lg:space-y-8 xl:space-y-10 overflow-y-auto">
+      <nav className="flex-1 p-4 lg:p-5 space-y-4 lg:space-y-5 overflow-y-auto">
         {/* Dashboard Button */}
-        <div className="mb-6 lg:mb-8 xl:mb-10">
+        <div className="mb-4 lg:mb-5">
           <Link href="/">
             <motion.div
               whileHover={{ scale: 1.02 }}
@@ -307,21 +307,21 @@ const Sidebar: React.FC<SidebarProps> = ({
                 router.pathname === "/" && "active"
               )}
             >
-              <Home size={20} className="flex-shrink-0 lg:w-6 lg:h-6 xl:w-7 xl:h-7" />
+              <Home size={18} className="flex-shrink-0 lg:w-5 lg:h-5" />
               <AnimatePresence>
                 {!isCollapsed && (
                   <motion.span
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -10 }}
-                    className="flex-1 font-medium leading-tight break-words text-sm lg:text-base xl:text-lg"
+                    className="flex-1 font-medium leading-tight break-words text-sm lg:text-sm"
                   >
                     Dashboard
                   </motion.span>
                 )}
               </AnimatePresence>
               {router.pathname === "/" && !isCollapsed && (
-                <Badge variant="secondary" className="bg-primary/20 text-primary text-xs lg:text-sm">
+                <Badge variant="secondary" className="bg-primary/20 text-primary text-xs">
                   Active
                 </Badge>
               )}
@@ -338,14 +338,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ delay: 0.1 + sectionIndex * 0.1 }}
-                  className="font-semibold text-muted-foreground uppercase tracking-wider mb-4 lg:mb-6 xl:mb-8 mt-6 lg:mt-8 xl:mt-10 px-2 text-xs lg:text-sm xl:text-base"
+                  className="font-semibold text-muted-foreground uppercase tracking-wider mb-3 lg:mb-4 mt-4 lg:mt-5 px-2 text-xs"
                 >
                   {section.title}
                 </motion.h3>
               )}
             </AnimatePresence>
             
-            <div className="space-y-2 lg:space-y-3 xl:space-y-4 px-2">
+            <div className="space-y-1 lg:space-y-2 px-2">
               {section.items.map((item, itemIndex) => (
                 <Link key={item.href} href={item.href}>
                   <motion.div
@@ -367,21 +367,21 @@ const Sidebar: React.FC<SidebarProps> = ({
                       router.pathname === item.href && "active"
                     )}
                   >
-                    <item.icon size={20} className="flex-shrink-0 lg:w-6 lg:h-6 xl:w-7 xl:h-7" />
+                    <item.icon size={18} className="flex-shrink-0 lg:w-5 lg:h-5" />
                     <AnimatePresence>
                       {!isCollapsed && (
                         <motion.span
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -10 }}
-                          className="flex-1 font-medium leading-tight break-words text-sm lg:text-base xl:text-lg"
+                          className="flex-1 font-medium leading-tight break-words text-sm"
                         >
                           {item.label}
                         </motion.span>
                       )}
                     </AnimatePresence>
                     {router.pathname === item.href && !isCollapsed && (
-                      <Badge variant="secondary" className="bg-primary/20 text-primary text-xs lg:text-sm">
+                      <Badge variant="secondary" className="bg-primary/20 text-primary text-xs">
                         Active
                       </Badge>
                     )}
@@ -399,11 +399,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="p-6 lg:p-8 xl:p-10 border-t border-border"
+          className="p-4 lg:p-5 border-t border-border"
         >
-          <div className="flex items-center space-x-4 lg:space-x-6 xl:space-x-8 min-w-0">
-            <div className="w-8 h-8 lg:w-10 lg:h-10 xl:w-12 xl:h-12 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-primary-foreground text-sm lg:text-base xl:text-lg font-medium">
+          <div className="flex items-center space-x-3 lg:space-x-4 min-w-0">
+            <div className="w-7 h-7 lg:w-8 lg:h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-primary-foreground text-xs lg:text-sm font-medium">
                 {user.name.charAt(0).toUpperCase()}
               </span>
             </div>
@@ -415,10 +415,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                   exit={{ opacity: 0, x: -10 }}
                   className="flex-1 min-w-0"
                 >
-                  <p className="font-medium text-card-foreground leading-tight break-words text-sm lg:text-base xl:text-lg">
+                  <p className="font-medium text-card-foreground leading-tight break-words text-xs lg:text-sm">
                     {user.name}
                   </p>
-                  <p className="text-muted-foreground text-sm lg:text-base xl:text-lg leading-tight mt-2 lg:mt-3 break-words">
+                  <p className="text-muted-foreground text-xs leading-tight mt-1 break-words">
                     {user.username}
                   </p>
                 </motion.div>

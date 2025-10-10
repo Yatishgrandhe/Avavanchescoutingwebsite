@@ -404,7 +404,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5"
+              className="card-container"
             >
               <Card className="card-modern group cursor-pointer bg-card border-border hover:shadow-lg transition-all duration-300" onClick={() => router.push('/scout')}>
                 <CardContent className="p-4 lg:p-5">
@@ -480,7 +480,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5"
+              className="card-container"
             >
               <Card className="stat-card bg-card border-border hover:shadow-lg transition-all duration-300">
                 <CardContent className="p-4 lg:p-5">
@@ -641,7 +641,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.8 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5"
+              className="card-container"
             >
               {features.map((feature, index) => (
                 <Card key={index} className="card-modern bg-card border-border hover:shadow-lg transition-all duration-300">

@@ -134,26 +134,27 @@ const Sidebar: React.FC<SidebarProps> = ({
           .mobile-nav-container {
             display: flex;
             align-items: center;
-            justify-content: space-evenly; /* Evenly distribute items */
-            padding: 0 8px; /* Reduced padding for better space utilization */
-            width: 100%;
+            padding: 0 20px; /* 0.5 inch padding on sides */
+            gap: 20px; /* 0.5 inch gap between items */
+            width: max-content; /* Allow container to grow beyond screen width */
             min-height: 75px;
           }
           
           .mobile-nav-item {
-            flex: 1; /* Equal flex distribution */
+            flex-shrink: 0; /* Prevent items from shrinking */
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 75px;
             max-height: 75px;
-            padding: 8px 4px; /* Reduced padding for better fit */
+            min-width: 80px; /* Minimum width for touch targets */
+            max-width: 100px; /* Maximum width to prevent stretching */
+            padding: 8px 12px;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
             cursor: pointer;
             border-radius: 12px;
-            margin: 0 2px; /* Small margin between items */
           }
           
           /* Phone-specific styles - only apply to actual phones */
@@ -161,14 +162,17 @@ const Sidebar: React.FC<SidebarProps> = ({
             /* Portrait orientation for phones */
             @media (orientation: portrait) {
               .mobile-nav-container {
-                padding: 8px 4px;
+                padding: 0 20px; /* 0.5 inch padding on sides */
+                gap: 20px; /* 0.5 inch gap between items */
                 min-height: 70px;
               }
 
               .mobile-nav-item {
                 min-height: 70px;
                 max-height: 70px;
-                padding: 6px 2px;
+                min-width: 75px; /* Slightly smaller for portrait */
+                max-width: 90px;
+                padding: 6px 10px;
               }
               
               .mobile-nav-item span {
@@ -187,14 +191,17 @@ const Sidebar: React.FC<SidebarProps> = ({
             /* Landscape orientation for phones */
             @media (orientation: landscape) {
               .mobile-nav-container {
-                padding: 6px 8px;
+                padding: 0 20px; /* 0.5 inch padding on sides */
+                gap: 20px; /* 0.5 inch gap between items */
                 min-height: 60px;
               }
 
               .mobile-nav-item {
                 min-height: 60px;
                 max-height: 60px;
-                padding: 4px 2px;
+                min-width: 70px; /* Smaller for landscape */
+                max-width: 85px;
+                padding: 4px 8px;
               }
               
               .mobile-nav-item span {
@@ -214,14 +221,17 @@ const Sidebar: React.FC<SidebarProps> = ({
           /* Small phones in portrait */
           @media screen and (max-width: 480px) and (orientation: portrait) {
             .mobile-nav-container {
-              padding: 6px 2px;
+              padding: 0 20px; /* 0.5 inch padding on sides */
+              gap: 20px; /* 0.5 inch gap between items */
               min-height: 65px;
             }
 
             .mobile-nav-item {
               min-height: 65px;
               max-height: 65px;
-              padding: 4px 1px;
+              min-width: 70px; /* Smaller for small phones */
+              max-width: 85px;
+              padding: 4px 8px;
             }
             
             .mobile-nav-item span {

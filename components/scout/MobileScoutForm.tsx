@@ -14,7 +14,8 @@ import {
   FileText,
   Eye,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
+  AlertCircle
 } from 'lucide-react';
 import MatchDetailsForm from './MatchDetailsForm';
 import AutonomousForm from './AutonomousForm';
@@ -80,6 +81,7 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
       comments: '',
     },
   });
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const steps = [
     { id: 'match-details', title: 'Match Details', icon: Target, shortTitle: 'Match' },
@@ -93,13 +95,94 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
+  const validateStep = (step: ScoutingStep): boolean => {
+    switch (step) {
+      case 'match-details':
+        // Required: Match ID, Team Number, Alliance Position
+        if (!formData.matchData.match_id) return false;
+        if (!formData.teamNumber) return false;
+        if (!formData.alliancePosition) return false;
+        return true;
+      
+      case 'autonomous':
+        // Required: At least some autonomous data
+        const autonomousKeys = Object.keys(formData.autonomous);
+        if (autonomousKeys.length === 0) return false;
+        const hasAutonomousData = autonomousKeys.some(key => {
+          const value = formData.autonomous[key as keyof typeof formData.autonomous];
+          return value !== undefined && value !== null && value !== 0 && value !== '';
+        });
+        return hasAutonomousData;
+      
+      case 'teleop':
+        // Required: At least some teleop data
+        const teleopKeys = Object.keys(formData.teleop);
+        if (teleopKeys.length === 0) return false;
+        const hasTeleopData = teleopKeys.some(key => {
+          const value = formData.teleop[key as keyof typeof formData.teleop];
+          return value !== undefined && value !== null && value !== 0 && value !== '';
+        });
+        return hasTeleopData;
+      
+      case 'endgame':
+        // Required: At least some endgame data
+        const endgameKeys = Object.keys(formData.endgame);
+        if (endgameKeys.length === 0) return false;
+        const hasEndgameData = endgameKeys.some(key => {
+          const value = formData.endgame[key as keyof typeof formData.endgame];
+          return value !== undefined && value !== null && value !== 0 && value !== '';
+        });
+        return hasEndgameData;
+      
+      case 'miscellaneous':
+        // Required: Defense rating (1-10)
+        if (formData.miscellaneous.defense_rating === 0) return false;
+        return true;
+      
+      case 'review':
+        // Review step doesn't need validation
+        return true;
+      
+      default:
+        return true;
+    }
+  };
+
   const handleNext = () => {
-    if (currentStepIndex < steps.length - 1) {
-      setCurrentStep(steps[currentStepIndex + 1].id as ScoutingStep);
+    setValidationError(null);
+    
+    if (validateStep(currentStep)) {
+      if (currentStepIndex < steps.length - 1) {
+        setCurrentStep(steps[currentStepIndex + 1].id as ScoutingStep);
+      }
+    } else {
+      // Show validation error
+      let errorMessage = '';
+      switch (currentStep) {
+        case 'match-details':
+          errorMessage = 'Please select a match, team, and alliance position.';
+          break;
+        case 'autonomous':
+          errorMessage = 'Please fill in at least one autonomous capability.';
+          break;
+        case 'teleop':
+          errorMessage = 'Please fill in at least one teleop capability.';
+          break;
+        case 'endgame':
+          errorMessage = 'Please fill in at least one endgame capability.';
+          break;
+        case 'miscellaneous':
+          errorMessage = 'Please provide a defense rating (1-10).';
+          break;
+        default:
+          errorMessage = 'Please complete all required fields before proceeding.';
+      }
+      setValidationError(errorMessage);
     }
   };
 
   const handleBack = () => {
+    setValidationError(null);
     if (currentStepIndex > 0) {
       setCurrentStep(steps[currentStepIndex - 1].id as ScoutingStep);
     }
@@ -163,6 +246,17 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
       {/* Form Content */}
       <Card className="mb-6 w-full max-w-sm mx-auto sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl">
         <CardContent className="p-4">
+          {validationError && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center mb-4"
+            >
+              <AlertCircle className="h-5 w-5 mr-2" />
+              {validationError}
+            </motion.div>
+          )}
+
           <AnimatePresence mode="wait">
             {currentStep === 'match-details' && (
               <motion.div
@@ -181,7 +275,7 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
                       allianceColor,
                       alliancePosition
                     }));
-                    setCurrentStep('autonomous');
+                    handleNext();
                   }}
                   currentStep={currentStepIndex}
                   totalSteps={steps.length}
@@ -200,9 +294,9 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
                 <AutonomousForm
                   onNext={(data) => {
                     setFormData(prev => ({ ...prev, autonomous: data }));
-                    setCurrentStep('teleop');
+                    handleNext();
                   }}
-                  onBack={() => setCurrentStep('match-details')}
+                  onBack={handleBack}
                   currentStep={currentStepIndex}
                   totalSteps={steps.length}
                 />
@@ -220,9 +314,9 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
                 <TeleopForm
                   onNext={(data) => {
                     setFormData(prev => ({ ...prev, teleop: data }));
-                    setCurrentStep('endgame');
+                    handleNext();
                   }}
-                  onBack={() => setCurrentStep('autonomous')}
+                  onBack={handleBack}
                   currentStep={currentStepIndex}
                   totalSteps={steps.length}
                   isDarkMode={true}
@@ -241,9 +335,9 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
                 <EndgameForm
                   onNext={(data) => {
                     setFormData(prev => ({ ...prev, endgame: data }));
-                    setCurrentStep('miscellaneous');
+                    handleNext();
                   }}
-                  onBack={() => setCurrentStep('teleop')}
+                  onBack={handleBack}
                   currentStep={currentStepIndex}
                   totalSteps={steps.length}
                 />
@@ -261,9 +355,9 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
                 <MiscellaneousForm
                   onNext={(data) => {
                     setFormData(prev => ({ ...prev, miscellaneous: data }));
-                    setCurrentStep('review');
+                    handleNext();
                   }}
-                  onBack={() => setCurrentStep('endgame')}
+                  onBack={handleBack}
                   currentStep={currentStepIndex}
                   totalSteps={steps.length}
                 />

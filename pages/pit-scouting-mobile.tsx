@@ -89,6 +89,7 @@ export default function PitScoutingMobile() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const totalSteps = 4;
 
@@ -120,9 +121,63 @@ export default function PitScoutingMobile() {
     loadTeams();
   }, []);
 
+  const validateStep = (step: number): boolean => {
+    switch (step) {
+      case 1:
+        // Required: Team Number, Robot Name, Drive Type
+        if (!formData.teamNumber) return false;
+        if (!formData.robotName.trim()) return false;
+        if (!formData.driveTrainDetails.type.trim()) return false;
+        return true;
+      
+      case 2:
+        // Required: At least one autonomous capability and one teleop capability
+        if (formData.autonomousCapabilities.length === 0) return false;
+        if (formData.teleopCapabilities.length === 0) return false;
+        return true;
+      
+      case 3:
+        // Required: At least one endgame capability
+        if (formData.endgameCapabilities.length === 0) return false;
+        return true;
+      
+      case 4:
+        // Required: Overall rating
+        if (formData.overallRating === 0) return false;
+        return true;
+      
+      default:
+        return true;
+    }
+  };
+
   const handleNext = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+    setValidationError(null);
+    
+    if (validateStep(currentStep)) {
+      if (currentStep < totalSteps) {
+        setCurrentStep(currentStep + 1);
+      }
+    } else {
+      // Show validation error
+      let errorMessage = '';
+      switch (currentStep) {
+        case 1:
+          errorMessage = 'Please select a team, enter robot name, and choose drive type.';
+          break;
+        case 2:
+          errorMessage = 'Please select at least one autonomous capability and one teleop capability.';
+          break;
+        case 3:
+          errorMessage = 'Please select at least one endgame capability.';
+          break;
+        case 4:
+          errorMessage = 'Please provide an overall rating.';
+          break;
+        default:
+          errorMessage = 'Please complete all required fields before proceeding.';
+      }
+      setValidationError(errorMessage);
     }
   };
 
@@ -290,6 +345,17 @@ export default function PitScoutingMobile() {
                     >
                       <AlertCircle className="h-5 w-5 mr-2" />
                       {teamsError}
+                    </motion.div>
+                  )}
+
+                  {validationError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center"
+                    >
+                      <AlertCircle className="h-5 w-5 mr-2" />
+                      {validationError}
                     </motion.div>
                   )}
 
@@ -511,6 +577,17 @@ export default function PitScoutingMobile() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  {validationError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center"
+                    >
+                      <AlertCircle className="h-5 w-5 mr-2" />
+                      {validationError}
+                    </motion.div>
+                  )}
+
                   {/* Autonomous Capabilities */}
                   <div className="bg-muted p-4 rounded-lg border">
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Autonomous Capabilities</h3>
@@ -607,6 +684,17 @@ export default function PitScoutingMobile() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  {validationError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center"
+                    >
+                      <AlertCircle className="h-5 w-5 mr-2" />
+                      {validationError}
+                    </motion.div>
+                  )}
+
                   {/* Strengths */}
                   <div className="bg-muted p-4 rounded-lg border">
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Strengths</h3>
@@ -713,6 +801,17 @@ export default function PitScoutingMobile() {
                     >
                       <XCircle className="h-5 w-5 mr-2" />
                       {submitError}
+                    </motion.div>
+                  )}
+
+                  {validationError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center"
+                    >
+                      <AlertCircle className="h-5 w-5 mr-2" />
+                      {validationError}
                     </motion.div>
                   )}
 

@@ -134,8 +134,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           .mobile-nav-container {
             display: flex;
             align-items: center;
-            padding: 0 20px; /* 0.5 inch padding on sides */
-            gap: 20px; /* 0.5 inch gap between items */
+            padding: 0 0.5in; /* 0.5 inch padding on sides */
+            gap: 0.5in; /* 0.5 inch gap between items */
             width: max-content; /* Allow container to grow beyond screen width */
             min-height: 75px;
           }
@@ -162,8 +162,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             /* Portrait orientation for phones */
             @media (orientation: portrait) {
               .mobile-nav-container {
-                padding: 0 20px; /* 0.5 inch padding on sides */
-                gap: 20px; /* 0.5 inch gap between items */
+                padding: 0 0.5in; /* 0.5 inch padding on sides */
+                gap: 0.5in; /* 0.5 inch gap between items */
                 min-height: 70px;
               }
 
@@ -191,8 +191,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             /* Landscape orientation for phones */
             @media (orientation: landscape) {
               .mobile-nav-container {
-                padding: 0 20px; /* 0.5 inch padding on sides */
-                gap: 20px; /* 0.5 inch gap between items */
+                padding: 0 0.5in; /* 0.5 inch padding on sides */
+                gap: 0.5in; /* 0.5 inch gap between items */
                 min-height: 60px;
               }
 
@@ -218,13 +218,13 @@ const Sidebar: React.FC<SidebarProps> = ({
             }
           }
           
-          /* Small phones in portrait */
-          @media screen and (max-width: 480px) and (orientation: portrait) {
-            .mobile-nav-container {
-              padding: 0 20px; /* 0.5 inch padding on sides */
-              gap: 20px; /* 0.5 inch gap between items */
-              min-height: 65px;
-            }
+  /* Small phones in portrait */
+  @media screen and (max-width: 480px) and (orientation: portrait) {
+    .mobile-nav-container {
+      padding: 0 0.5in; /* 0.5 inch padding on sides */
+      gap: 0.5in; /* 0.5 inch gap between items */
+      min-height: 65px;
+    }
 
             .mobile-nav-item {
               min-height: 65px;
@@ -256,15 +256,54 @@ const Sidebar: React.FC<SidebarProps> = ({
           const mobileItems = [
             {
               label: 'Dashboard',
-              href: '/mobile-dashboard',
+              href: '/',
               icon: Home,
             },
             {
+              label: 'Game Rules',
+              href: '/learn-game',
+              icon: BookOpen,
+            },
+            {
               label: 'Scout',
-              href: '/mobile-scout',
+              href: '/scout',
               icon: ClipboardList,
             },
-            ...menuItems.flatMap(section => section.items).filter(item => item.href !== '/scout')
+            {
+              label: 'Pit Scouting',
+              href: '/pit-scouting',
+              icon: Wrench,
+            },
+            {
+              label: 'Pit Data',
+              href: '/pit-scouting-data',
+              icon: Eye,
+            },
+            {
+              label: 'Pick Lists',
+              href: '/pick-list',
+              icon: List,
+            },
+            {
+              label: 'Data Analysis',
+              href: '/analysis/data',
+              icon: Database,
+            },
+            {
+              label: 'Basic Analysis',
+              href: '/analysis/basic',
+              icon: BarChart3,
+            },
+            {
+              label: 'Advanced Analysis',
+              href: '/analysis/advanced',
+              icon: TrendingUp,
+            },
+            {
+              label: 'Comparison',
+              href: '/analysis/comparison',
+              icon: ArrowLeftRight,
+            },
           ];
 
           return (

@@ -125,6 +125,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             scroll-behavior: smooth;
             scrollbar-width: none; /* For Firefox */
             -ms-overflow-style: none; /* For Internet Explorer and Edge */
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            white-space: nowrap;
+            display: flex;
+            width: 100%;
+            max-width: 100vw;
           }
 
           .mobile-nav-scroll::-webkit-scrollbar {
@@ -138,6 +144,9 @@ const Sidebar: React.FC<SidebarProps> = ({
             gap: 0.5in; /* 0.5 inch gap between items */
             width: max-content; /* Allow container to grow beyond screen width */
             min-height: 75px;
+            flex-wrap: nowrap;
+            overflow-x: visible;
+            overflow-y: visible;
           }
           
           .mobile-nav-item {

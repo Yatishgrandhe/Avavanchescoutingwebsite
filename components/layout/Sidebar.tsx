@@ -123,125 +123,102 @@ const Sidebar: React.FC<SidebarProps> = ({
           .mobile-nav-scroll {
             -webkit-overflow-scrolling: touch;
             scroll-behavior: smooth;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
+            scrollbar-width: none; /* For Firefox */
+            -ms-overflow-style: none; /* For Internet Explorer and Edge */
           }
-          
+
           .mobile-nav-scroll::-webkit-scrollbar {
-            display: none;
+            display: none; /* For Chrome, Safari, and Opera */
+          }
+
+          .mobile-nav-container {
+            display: flex;
+            align-items: center;
+            padding: 0 16px; /* Add horizontal padding to the container */
+            gap: 24px; /* Increased gap for more spacing */
           }
           
           .mobile-nav-item {
-            min-height: 70px;
-            max-height: 70px;
-            min-width: 90px;
-            max-width: 110px;
+            flex-shrink: 0; /* Prevent items from shrinking */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 75px;
+            max-height: 75px;
+            min-width: 95px;
+            max-width: 115px;
             padding: 12px 8px;
-            margin-right: 16px;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
-          }
-          
-          .mobile-nav-item:last-child {
-            margin-right: 24px;
+            cursor: pointer;
+            border-radius: 12px;
           }
           
           /* Phone-specific styles - only apply to actual phones */
-          @media screen and (max-width: 767px) and (orientation: portrait) {
-            .mobile-nav-scroll {
-              padding-left: 16px;
-              padding-right: 16px;
-              padding-top: 8px;
-              padding-bottom: 8px;
+          @media screen and (max-width: 767px) {
+            /* Portrait orientation for phones */
+            @media (orientation: portrait) {
+              .mobile-nav-container {
+                padding: 12px 20px;
+                gap: 28px;
+              }
+
+              .mobile-nav-item {
+                min-width: 90px;
+                max-width: 105px;
+                min-height: 70px;
+                max-height: 70px;
+              }
+              
+              .mobile-nav-item span {
+                font-size: 12px;
+                font-weight: 500;
+              }
+              
+              .mobile-nav-item svg {
+                width: 20px;
+                height: 20px;
+                margin-bottom: 5px;
+              }
             }
-            
-            .mobile-nav-item {
-              min-width: 85px !important;
-              max-width: 100px !important;
-              padding: 10px 6px !important;
-              margin-right: 20px !important;
-              min-height: 65px !important;
-              max-height: 65px !important;
-            }
-            
-            .mobile-nav-item span {
-              font-size: 11px !important;
-              line-height: 1.2 !important;
-              max-width: 100% !important;
-              white-space: nowrap !important;
-              overflow: hidden !important;
-              text-overflow: ellipsis !important;
-              font-weight: 500 !important;
-            }
-            
-            .mobile-nav-item svg {
-              width: 18px !important;
-              height: 18px !important;
-              margin-bottom: 4px !important;
+
+            /* Landscape orientation for phones */
+            @media (orientation: landscape) {
+              .mobile-nav-container {
+                padding: 8px 16px;
+                gap: 20px;
+              }
+
+              .mobile-nav-item {
+                min-width: 85px;
+                max-width: 100px;
+                min-height: 60px;
+                max-height: 60px;
+              }
+              
+              .mobile-nav-item span {
+                font-size: 11px;
+              }
+              
+              .mobile-nav-item svg {
+                width: 18px;
+                height: 18px;
+                margin-bottom: 3px;
+              }
             }
           }
           
           /* Small phones in portrait */
           @media screen and (max-width: 480px) and (orientation: portrait) {
-            .mobile-nav-scroll {
-              padding-left: 12px;
-              padding-right: 12px;
+            .mobile-nav-container {
+              padding: 10px 16px;
+              gap: 22px;
             }
-            
+
             .mobile-nav-item {
-              min-width: 75px !important;
-              max-width: 90px !important;
-              padding: 8px 4px !important;
-              margin-right: 16px !important;
-              min-height: 60px !important;
-              max-height: 60px !important;
-            }
-            
-            .mobile-nav-item span {
-              font-size: 10px !important;
-              line-height: 1.1 !important;
-              white-space: nowrap !important;
-              overflow: hidden !important;
-              text-overflow: ellipsis !important;
-            }
-            
-            .mobile-nav-item svg {
-              width: 16px !important;
-              height: 16px !important;
-              margin-bottom: 3px !important;
-            }
-          }
-          
-          /* Landscape orientation for phones */
-          @media screen and (max-width: 767px) and (orientation: landscape) {
-            .mobile-nav-scroll {
-              padding-left: 12px;
-              padding-right: 12px;
-              padding-top: 6px;
-              padding-bottom: 6px;
-            }
-            
-            .mobile-nav-item {
-              min-width: 80px !important;
-              max-width: 95px !important;
-              padding: 8px 4px !important;
-              margin-right: 12px !important;
-              min-height: 55px !important;
-              max-height: 55px !important;
-            }
-            
-            .mobile-nav-item span {
-              font-size: 10px !important;
-              line-height: 1.1 !important;
-              white-space: nowrap !important;
-              overflow: hidden !important;
-              text-overflow: ellipsis !important;
-            }
-            
-            .mobile-nav-item svg {
-              width: 16px !important;
-              height: 16px !important;
-              margin-bottom: 2px !important;
+              min-width: 80px;
+              max-width: 95px;
             }
           }
           
@@ -269,40 +246,38 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           return (
             <div className="w-full bg-card border-b border-border">
-              <nav className="flex items-center mobile-nav-scroll overflow-x-auto">
-                {mobileItems.map((item) => {
-              const isActive = router.pathname === item.href;
-              const Icon = item.icon;
-              
-              return (
-                <Link key={item.href} href={item.href}>
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      // Close mobile nav when clicking on a link
-                      if (isMobile) {
-                        // Add a small delay to ensure the navigation happens first
-                        setTimeout(() => {
-                          onToggle();
-                        }, 100);
-                      }
-                    }}
-                    className={cn(
-                      "flex flex-col items-center justify-center mobile-nav-item rounded-lg transition-all duration-200 flex-shrink-0 cursor-pointer",
-                      isActive 
-                        ? "bg-primary text-primary-foreground shadow-sm" 
-                        : "text-muted-foreground hover:text-accent-foreground hover:bg-accent"
-                    )}
-                  >
-                    <Icon size={18} className="flex-shrink-0" />
-                    <span className="font-medium text-center leading-tight max-w-full truncate">
-                      {item.label}
-                    </span>
-                  </motion.div>
-                </Link>
-              );
-            })}
+              <nav className="mobile-nav-scroll overflow-x-auto">
+                <div className="mobile-nav-container">
+                  {mobileItems.map((item) => {
+                    const isActive = router.pathname === item.href;
+                    const Icon = item.icon;
+                    
+                    return (
+                      <Link key={item.href} href={item.href} passHref>
+                        <motion.div
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => {
+                            if (isMobile) {
+                              setTimeout(() => onToggle(), 100);
+                            }
+                          }}
+                          className={cn(
+                            "mobile-nav-item transition-all duration-200",
+                            isActive 
+                              ? "bg-primary text-primary-foreground shadow-md" 
+                              : "text-muted-foreground hover:text-accent-foreground hover:bg-accent"
+                          )}
+                        >
+                          <Icon size={20} className="flex-shrink-0" />
+                          <span className="font-medium text-center leading-tight max-w-full truncate mt-1">
+                            {item.label}
+                          </span>
+                        </motion.div>
+                      </Link>
+                    );
+                  })}
+                </div>
               </nav>
             </div>
           );

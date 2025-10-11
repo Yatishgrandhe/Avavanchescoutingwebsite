@@ -88,7 +88,9 @@ button:active {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* === CHECKBOX FIX (visible checkmark + consistent styling) === */
+/* === IMPROVED CHECKBOX FIX - Works on all mobile orientations === */
+
+/* Base checkbox styling */
 input[type="checkbox"] {
   width: 22px;
   height: 22px;
@@ -101,16 +103,10 @@ input[type="checkbox"] {
   cursor: pointer;
   position: relative;
   transition: all 0.2s ease;
-  -webkit-tap-highlight-color: transparent !important;
-  -webkit-touch-callout: none !important;
-  -webkit-user-select: none !important;
-  -moz-user-select: none !important;
-  -ms-user-select: none !important;
-  user-select: none !important;
-  touch-action: manipulation !important;
+  flex-shrink: 0;
+  display: inline-block;
   vertical-align: middle;
-  outline: none !important;
-  flex-shrink: 0; /* Prevent checkbox from scaling down */
+  margin: 0;
 }
 
 input[type="checkbox"]:checked {
@@ -118,127 +114,100 @@ input[type="checkbox"]:checked {
   border-color: hsl(var(--primary));
 }
 
+/* CRITICAL FIX: Use content instead of text for checkmark */
 input[type="checkbox"]:checked::after {
-  content: '';
+  content: "";
   position: absolute;
+  display: block;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -60%) rotate(45deg);
-  width: 6px;
-  height: 12px;
+  width: 5px;
+  height: 10px;
   border: solid white;
   border-width: 0 2px 2px 0;
-  pointer-events: none;
+  transform: translate(-50%, -60%) rotate(45deg);
 }
 
-/* === CHECKBOX LABEL FIXES FOR MOBILE PORTRAIT === */
-/* Ensure checkbox and text always align properly */
-label {
-  display: flex;            /* Keep checkbox + text on the same row */
-  align-items: center;      /* Vertically align */
-  gap: 8px;                 /* Space between checkbox and text */
-  font-size: 1rem;
-  line-height: 1.2;
-  white-space: normal;      /* Allow wrapping instead of cutting off */
-  width: 100%;
-  cursor: pointer;
-}
-
-/* Fix checkbox sizing on mobile so it doesn't push away text */
-input[type="checkbox"] {
-  flex-shrink: 0;          /* Prevent checkbox from scaling down */
-  width: 20px;
-  height: 20px;
-}
-
-/* Additional fix for very narrow screens */
-@media (max-width: 400px) {
-  label {
-    flex-wrap: wrap;       /* Allow text to wrap under checkbox */
-    gap: 4px;
-  }
-
-  input[type="checkbox"] {
-    margin-bottom: 4px;    /* Adds slight spacing when wrapped */
-  }
-}
-
-/* === RESPONSIVE FIX FOR PORTRAIT PHONES === */
+/* === MOBILE PORTRAIT ORIENTATION FIX === */
 @media screen and (max-width: 768px) and (orientation: portrait) {
-  body {
-    font-size: 16px;
-  }
-
-  input, button, label {
-    font-size: 1rem;
-  }
-
   input[type="checkbox"] {
-    width: 26px;
-    height: 26px;
-    min-width: 26px;
-    min-height: 26px;
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    touch-action: manipulation !important;
-    outline: none !important;
-    border-radius: 4px;
-    border-width: 2px;
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+    flex-shrink: 0 !important;
+    display: inline-block !important;
+    position: relative !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
-
+  
+  input[type="checkbox"]:checked::after {
+    content: "" !important;
+    position: absolute !important;
+    display: block !important;
+    left: 50% !important;
+    top: 50% !important;
+    width: 6px !important;
+    height: 11px !important;
+    border: solid white !important;
+    border-width: 0 2.5px 2.5px 0 !important;
+    transform: translate(-50%, -60%) rotate(45deg) !important;
+  }
+  
+  /* Ensure label doesn't interfere */
   label {
     display: flex !important;
     align-items: center !important;
-    gap: 12px !important;
-    font-size: 1rem !important;
-    line-height: 1.4 !important;
+    gap: 10px !important;
     cursor: pointer !important;
   }
-
-  input[type="checkbox"]:checked::after {
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -60%) rotate(45deg);
-    width: 7px;
-    height: 14px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    pointer-events: none;
+  
+  label input[type="checkbox"] {
+    order: -1; /* Put checkbox first */
+    flex-shrink: 0 !important;
   }
 }
 
-/* === LANDSCAPE ORIENTATION FIXES === */
-@media (orientation: landscape) {
+/* === MOBILE LANDSCAPE ORIENTATION === */
+@media screen and (max-width: 768px) and (orientation: landscape) {
   input[type="checkbox"] {
-    width: 22px;
-    height: 22px;
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    -ms-user-select: none !important;
-    user-select: none !important;
-    touch-action: manipulation !important;
-    outline: none !important;
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
   }
   
-  input[type="checkbox"]:active {
-    -webkit-tap-highlight-color: transparent !important;
-    background-color: transparent !important;
-    transform: none !important;
-  }
-  
-  input[type="checkbox"]:focus {
-    -webkit-tap-highlight-color: transparent !important;
-    outline: none !important;
-    box-shadow: none !important;
-  }
-  
-  input[type="checkbox"]:hover {
-    -webkit-tap-highlight-color: transparent !important;
+  input[type="checkbox"]:checked::after {
+    content: "" !important;
+    width: 5px !important;
+    height: 9px !important;
+    border-width: 0 2px 2px 0 !important;
+    transform: translate(-50%, -60%) rotate(45deg) !important;
   }
 }
+
+/* === VERY SMALL SCREENS === */
+@media screen and (max-width: 400px) {
+  input[type="checkbox"] {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    min-height: 26px !important;
+  }
+  
+  input[type="checkbox"]:checked::after {
+    width: 7px !important;
+    height: 12px !important;
+    border-width: 0 3px 3px 0 !important;
+  }
+  
+  label {
+    gap: 12px !important;
+    font-size: 1rem !important;
+  }
+}
+
 
 /* === MOBILE-SPECIFIC IMPROVEMENTS === */
 @media (max-width: 768px) {
@@ -1181,100 +1150,6 @@ body {
     }
   }
 
-  /* Mobile Checkbox Optimizations */
-  @media screen and (max-width: 768px) {
-    /* Portrait orientation for phones */
-    @media (orientation: portrait) {
-      input[type="checkbox"] {
-        width: 24px !important;
-        height: 24px !important;
-        min-width: 24px !important;
-        min-height: 24px !important;
-        -webkit-tap-highlight-color: transparent !important;
-        -webkit-touch-callout: none !important;
-        -webkit-user-select: none !important;
-        touch-action: manipulation !important;
-        outline: none !important;
-        border-radius: 4px !important;
-        border: 2px solid hsl(var(--primary)) !important;
-        background-color: hsl(var(--background)) !important;
-        cursor: pointer !important;
-        flex-shrink: 0 !important;
-      }
-      
-      input[type="checkbox"]:checked {
-        background-color: hsl(var(--primary)) !important;
-        border-color: hsl(var(--primary)) !important;
-      }
-      
-      input[type="checkbox"]:checked::after {
-        content: '' !important;
-        position: absolute !important;
-        left: 50% !important;
-        top: 50% !important;
-        transform: translate(-50%, -60%) rotate(45deg) !important;
-        width: 8px !important;
-        height: 16px !important;
-        border: solid hsl(var(--primary-foreground)) !important;
-        border-width: 0 2px 2px 0 !important;
-        pointer-events: none !important;
-      }
-      
-      input[type="checkbox"]:active,
-      input[type="checkbox"]:focus,
-      input[type="checkbox"]:hover {
-        -webkit-tap-highlight-color: transparent !important;
-        outline: none !important;
-        box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2) !important;
-      }
-    }
-
-    /* Landscape orientation for phones */
-    @media (orientation: landscape) {
-      input[type="checkbox"] {
-        width: 20px !important;
-        height: 20px !important;
-        min-width: 20px !important;
-        min-height: 20px !important;
-        -webkit-tap-highlight-color: transparent !important;
-        -webkit-touch-callout: none !important;
-        -webkit-user-select: none !important;
-        touch-action: manipulation !important;
-        outline: none !important;
-        border-radius: 3px !important;
-        border: 2px solid hsl(var(--primary)) !important;
-        background-color: hsl(var(--background)) !important;
-        cursor: pointer !important;
-        flex-shrink: 0 !important;
-      }
-      
-      input[type="checkbox"]:checked {
-        background-color: hsl(var(--primary)) !important;
-        border-color: hsl(var(--primary)) !important;
-      }
-      
-      input[type="checkbox"]:checked::after {
-        content: '' !important;
-        position: absolute !important;
-        left: 50% !important;
-        top: 50% !important;
-        transform: translate(-50%, -60%) rotate(45deg) !important;
-        width: 6px !important;
-        height: 12px !important;
-        border: solid hsl(var(--primary-foreground)) !important;
-        border-width: 0 2px 2px 0 !important;
-        pointer-events: none !important;
-      }
-      
-      input[type="checkbox"]:active,
-      input[type="checkbox"]:focus,
-      input[type="checkbox"]:hover {
-        -webkit-tap-highlight-color: transparent !important;
-        outline: none !important;
-        box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2) !important;
-      }
-    }
-  }
   
   /* Header Styles */
   .header-modern {

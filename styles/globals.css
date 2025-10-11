@@ -272,6 +272,58 @@ input[type="checkbox"]:checked::after {
   .checkbox-card-label input[type="checkbox"]:checked ~ span {
     font-weight: 600 !important;
   }
+  
+  /* Radix UI Checkbox mobile portrait fixes */
+  [data-radix-checkbox-root] {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+    flex-shrink: 0 !important;
+    border-radius: 6px !important;
+    border-width: 2.5px !important;
+    cursor: pointer !important;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+  }
+  
+  [data-radix-checkbox-root]:active {
+    transform: scale(0.95) !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  
+  [data-radix-checkbox-root][data-state="checked"] {
+    background-color: hsl(var(--primary)) !important;
+    border-color: hsl(var(--primary)) !important;
+  }
+  
+  [data-radix-checkbox-root][data-state="unchecked"] {
+    background-color: hsl(var(--background)) !important;
+    border-color: hsl(var(--primary)) !important;
+  }
+  
+  /* Ensure proper touch targets */
+  label {
+    min-height: 56px !important;
+    padding: 12px !important;
+    gap: 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    cursor: pointer !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  
+  label span {
+    flex: 1 !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    line-height: 1.5 !important;
+    font-size: 1rem !important;
+    color: hsl(var(--foreground)) !important;
+  }
 }
 
 /* === MOBILE LANDSCAPE ORIENTATION === */
@@ -318,6 +370,34 @@ input[type="checkbox"]:checked::after {
     border-width: 0 2px 2px 0 !important;
     transform: translate(-50%, -60%) rotate(45deg) !important;
     pointer-events: none !important;
+  }
+  
+  /* Radix UI Checkbox mobile landscape fixes */
+  [data-radix-checkbox-root] {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+    flex-shrink: 0 !important;
+    border-radius: 4px !important;
+    border-width: 2px !important;
+    cursor: pointer !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  
+  [data-radix-checkbox-root]:active {
+    transform: scale(0.95) !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  
+  [data-radix-checkbox-root][data-state="checked"] {
+    background-color: hsl(var(--primary)) !important;
+    border-color: hsl(var(--primary)) !important;
+  }
+  
+  [data-radix-checkbox-root][data-state="unchecked"] {
+    background-color: hsl(var(--background)) !important;
+    border-color: hsl(var(--primary)) !important;
   }
 }
 

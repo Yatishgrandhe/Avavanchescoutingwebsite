@@ -41,9 +41,6 @@ interface PitScoutingData {
   weight?: number;
   programmingLanguage: string;
   notes: string;
-  strengths: string[];
-  weaknesses: string[];
-  overallRating: number;
 }
 
 export default function PitScouting() {
@@ -67,9 +64,6 @@ export default function PitScouting() {
     weight: 0,
     programmingLanguage: '',
     notes: '',
-    strengths: [],
-    weaknesses: [],
-    overallRating: 0,
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -77,7 +71,7 @@ export default function PitScouting() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
 
-  const totalSteps = 4;
+  const totalSteps = 3;
 
   // Load teams from database
   useEffect(() => {
@@ -129,11 +123,6 @@ export default function PitScouting() {
         if (formData.endgameCapabilities.length === 0) return false;
         return true;
       
-      case 4:
-        // Required: Overall rating
-        if (formData.overallRating === 0) return false;
-        return true;
-      
       default:
         return true;
     }
@@ -159,9 +148,6 @@ export default function PitScouting() {
           break;
         case 3:
           errorMessage = 'Please select at least one endgame capability.';
-          break;
-        case 4:
-          errorMessage = 'Please provide an overall rating.';
           break;
         default:
           errorMessage = 'Please complete all required fields before proceeding.';
@@ -200,10 +186,6 @@ export default function PitScouting() {
         throw new Error('Please select at least one endgame capability');
       }
 
-      if (formData.overallRating === 0) {
-        throw new Error('Please provide an overall rating');
-      }
-
       // Prepare the data with submitter information
       const submissionData = {
         team_number: formData.teamNumber,
@@ -223,9 +205,9 @@ export default function PitScouting() {
         weight: formData.weight,
         programming_language: formData.programmingLanguage,
         notes: formData.notes,
-        strengths: formData.strengths,
-        weaknesses: formData.weaknesses,
-        overall_rating: formData.overallRating,
+        strengths: [],
+        weaknesses: [],
+        overall_rating: 0,
         submitted_by: user.id,
         submitted_by_email: user.email,
         submitted_by_name: user.user_metadata?.full_name || user.email,
@@ -263,9 +245,6 @@ export default function PitScouting() {
           weight: 0,
           programmingLanguage: '',
           notes: '',
-          strengths: [],
-          weaknesses: [],
-          overallRating: 0,
         });
         setCurrentStep(1);
         setSubmitSuccess(false);
@@ -721,7 +700,7 @@ export default function PitScouting() {
                             <SelectValue placeholder="Select an endgame capability" />
                           </SelectTrigger>
                           <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
-                            {['Climb', 'Balance', 'Park', 'None'].map((option) => (
+                            {['Shallow Climb', 'Deep Climb', 'Park', 'None'].map((option) => (
                               <SelectItem 
                                 key={option} 
                                 value={option}
@@ -735,56 +714,6 @@ export default function PitScouting() {
                       </div>
                     </div>
 
-                    {/* Overall Rating */}
-                    <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
-                      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">Overall Rating</h3>
-                      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                        <label className="block text-sm font-medium">
-                          Rate this robot (1-10): <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="10"
-                          placeholder="8"
-                          value={formData.overallRating.toString()}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            overallRating: parseInt(e.target.value) || 0
-                          }))}
-                          className="w-20 text-sm sm:text-base"
-                        />
-                        <span className="text-sm text-gray-500">(1 = Poor, 10 = Excellent)</span>
-                      </div>
-                    </div>
-
-                    {/* Strengths */}
-                    <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
-                      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">Strengths</h3>
-                      <textarea
-                        className="w-full h-24 sm:h-28 px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                        placeholder="List the robot's key strengths and advantages (separate with commas)..."
-                        value={formData.strengths.join(', ')}
-                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                          ...prev, 
-                          strengths: e.target.value.split(',').map(s => s.trim()).filter(s => s)
-                        }))}
-                      />
-                    </div>
-
-                    {/* Weaknesses */}
-                    <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
-                      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">Weaknesses</h3>
-                      <textarea
-                        className="w-full h-24 sm:h-28 px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                        placeholder="List the robot's weaknesses and areas for improvement (separate with commas)..."
-                        value={formData.weaknesses.join(', ')}
-                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                          ...prev, 
-                          weaknesses: e.target.value.split(',').map(s => s.trim()).filter(s => s)
-                        }))}
-                      />
-                    </div>
 
                     {/* General Notes */}
                     <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
@@ -805,192 +734,8 @@ export default function PitScouting() {
                       <ArrowLeft className="mr-2 w-4 h-4" />
                       Back
                     </Button>
-        <Button onClick={handleNext}>
-          Next <ArrowRight className="ml-2 w-4 h-4" />
-        </Button>
-                  </CardFooter>
-                </Card>
-              </motion.div>
-            )}
-
-            {currentStep === 4 && (
-              <motion.div
-                key="step-4"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="w-full mx-auto px-4"
-              >
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-3 text-white">
-                      <Camera className="w-6 h-6 text-purple-400" />
-                      <span>Review & Submit</span>
-                    </CardTitle>
-                    <CardDescription className="text-white/80">
-                      Review your pit scouting data and submit
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {submitError && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-red-500/20 text-red-400 p-3 rounded-md text-sm text-center flex items-center justify-center"
-                      >
-                        <XCircle className="h-5 w-5 mr-2" />
-                        {submitError}
-                      </motion.div>
-                    )}
-
-                    {/* Debug Information */}
-                    {process.env.NODE_ENV === 'development' && (
-                      <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-600 text-xs text-gray-300">
-                        <h4 className="font-semibold mb-2">Debug Info:</h4>
-                        <p>User: {user ? `${user.email} (${user.id})` : 'Not authenticated'}</p>
-                        <p>Form Data: {JSON.stringify({
-                          teamNumber: formData.teamNumber,
-                          robotName: formData.robotName,
-                          driveType: formData.driveType,
-                          autonomousCapabilities: formData.autonomousCapabilities,
-                          teleopCapabilities: formData.teleopCapabilities,
-                          endgameCapabilities: formData.endgameCapabilities,
-                          overallRating: formData.overallRating
-                        }, null, 2)}</p>
-                      </div>
-                    )}
-
-                    {validationError && hasInteracted && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center"
-                      >
-                        <AlertCircle className="h-5 w-5 mr-2" />
-                        {validationError}
-                      </motion.div>
-                    )}
-
-                    {submitSuccess && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-green-500/20 text-green-400 p-3 rounded-md text-sm text-center flex items-center justify-center"
-                      >
-                        <CheckCircle className="h-5 w-5 mr-2" />
-                        Pit scouting data submitted successfully! Redirecting...
-                      </motion.div>
-                    )}
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                      <div className="bg-muted rounded-lg p-4 border">
-                        <h3 className="font-semibold mb-3">Basic Information</h3>
-                        <p className="text-sm text-muted-foreground">Team: {formData.teamNumber}</p>
-                        <p className="text-sm text-muted-foreground">Robot: {formData.robotName || 'N/A'}</p>
-                        <p className="text-sm text-muted-foreground">Drive: {formData.driveType === 'Other' ? formData.driveTrainOther : formData.driveType || 'N/A'}</p>
-                        <p className="text-sm text-muted-foreground">Language: {formData.programmingLanguage || 'N/A'}</p>
-                      </div>
-
-                      <div className="bg-muted rounded-lg p-4 border">
-                        <h3 className="font-semibold mb-3">Robot Specs</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Dimensions: {formData.robotDimensions.length ? `${formData.robotDimensions.length}"` : 'N/A'} × {formData.robotDimensions.width ? `${formData.robotDimensions.width}"` : 'N/A'} × {formData.robotDimensions.height}"
-                        </p>
-                        <p className="text-sm text-muted-foreground">Weight: {formData.weight} lbs</p>
-                        <p className="text-sm text-muted-foreground">Rating: {formData.overallRating}/10</p>
-                      </div>
-                    </div>
-
-                    <div className="bg-muted rounded-lg p-4 border">
-                      <h3 className="font-semibold mb-3">Capabilities Summary</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div>
-                          <p className="text-sm text-muted-foreground font-medium mb-2">Autonomous:</p>
-                          <div className="space-y-1">
-                            {formData.autonomousCapabilities.length > 0 ? (
-                              formData.autonomousCapabilities.map((cap, index) => (
-                                <p key={index} className="text-sm text-muted-foreground">• {cap}</p>
-                              ))
-                            ) : (
-                              <p className="text-sm text-muted-foreground">N/A</p>
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground font-medium mb-2">Teleop:</p>
-                          <div className="space-y-1">
-                            {formData.teleopCapabilities.length > 0 ? (
-                              formData.teleopCapabilities.map((cap, index) => (
-                                <p key={index} className="text-sm text-muted-foreground">• {cap}</p>
-                              ))
-                            ) : (
-                              <p className="text-sm text-muted-foreground">N/A</p>
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground font-medium mb-2">Endgame:</p>
-                          <div className="space-y-1">
-                            {formData.endgameCapabilities.length > 0 ? (
-                              formData.endgameCapabilities.map((cap, index) => (
-                                <p key={index} className="text-sm text-muted-foreground">• {cap}</p>
-                              ))
-                            ) : (
-                              <p className="text-sm text-muted-foreground">N/A</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-muted rounded-lg p-4 border">
-                      <h3 className="font-semibold mb-3">Strengths & Weaknesses</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-muted-foreground font-medium mb-2">Strengths:</p>
-                          <div className="space-y-1">
-                            {formData.strengths.length > 0 ? (
-                              formData.strengths.map((strength, index) => (
-                                <p key={index} className="text-sm text-muted-foreground">• {strength}</p>
-                              ))
-                            ) : (
-                              <p className="text-sm text-muted-foreground">N/A</p>
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground font-medium mb-2">Weaknesses:</p>
-                          <div className="space-y-1">
-                            {formData.weaknesses.length > 0 ? (
-                              formData.weaknesses.map((weakness, index) => (
-                                <p key={index} className="text-sm text-muted-foreground">• {weakness}</p>
-                              ))
-                            ) : (
-                              <p className="text-sm text-muted-foreground">N/A</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-muted rounded-lg p-4 border">
-                      <h3 className="font-semibold mb-3">Notes</h3>
-                      <p className="text-sm text-muted-foreground">{formData.notes || 'N/A'}</p>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={handleBack} >
-                      <ArrowLeft className="mr-2 w-4 h-4" />
-                      Back
-                    </Button>
-        <Button onClick={handleSubmit} disabled={submitting}>
-          {submitting ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="mr-2 h-4 w-4" />
-          )}
-          {submitting ? 'Submitting...' : 'Submit Pit Data'}
+        <Button onClick={handleSubmit}>
+          Submit <ArrowRight className="ml-2 w-4 h-4" />
         </Button>
                   </CardFooter>
                 </Card>

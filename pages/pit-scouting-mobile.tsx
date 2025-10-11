@@ -726,7 +726,7 @@ export default function PitScoutingMobile() {
                           <SelectValue placeholder="Select an endgame capability" />
                         </SelectTrigger>
                         <SelectContent className="bg-background border-input">
-                          {['Climb', 'Balance', 'Park', 'None'].map((option) => (
+                          {['Shallow Climb', 'Deep Climb', 'Park', 'None'].map((option) => (
                             <SelectItem 
                               key={option} 
                               value={option}

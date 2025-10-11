@@ -62,12 +62,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       title: 'Scout',
       items: [
         {
-          label: 'Avalanche Form',
+          label: 'Scouting Form',
           href: '/scout',
           icon: ClipboardList,
         },
         {
-          label: 'Pit Scouting',
+          label: 'Scouting Form',
           href: '/pit-scouting',
           icon: Wrench,
         },
@@ -274,12 +274,12 @@ const Sidebar: React.FC<SidebarProps> = ({
               icon: BookOpen,
             },
             {
-              label: 'Scout',
+              label: 'Scouting Form',
               href: '/scout',
               icon: ClipboardList,
             },
             {
-              label: 'Pit Scouting',
+              label: 'Scouting Form',
               href: '/pit-scouting',
               icon: Wrench,
             },

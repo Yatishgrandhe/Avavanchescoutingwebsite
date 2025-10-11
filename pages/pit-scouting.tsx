@@ -169,9 +169,11 @@ export default function PitScouting() {
         setCurrentStep(currentStep + 1);
       }
     } else {
-      // Show validation error
-      const errorMessage = getStepErrorMessage(currentStep, validation.errors);
-      setValidationError(errorMessage);
+      // Show validation error only if there are actual errors
+      if (Object.keys(validation.errors).length > 0) {
+        const errorMessage = getStepErrorMessage(currentStep, validation.errors);
+        setValidationError(errorMessage);
+      }
     }
   };
 

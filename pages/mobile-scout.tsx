@@ -116,11 +116,12 @@ export default function MobileScout() {
       
       case 'endgame':
         // Required: Endgame selection (including "none" as a valid selection)
+        // Check if any endgame option is selected (true) or explicitly set to false (none selected)
         const hasEndgameSelection = Boolean(
           formData.endgame.endgame_park || 
           formData.endgame.endgame_shallow_cage || 
           formData.endgame.endgame_deep_cage ||
-          // Check if all are false (which means "none" was selected)
+          // Check if all are explicitly false (which means "none" was selected)
           (formData.endgame.endgame_park === false && 
            formData.endgame.endgame_shallow_cage === false && 
            formData.endgame.endgame_deep_cage === false)
@@ -129,7 +130,7 @@ export default function MobileScout() {
       
       case 'miscellaneous':
         // Required: Defense rating and comments
-        if (!formData.miscellaneous.defense_rating || formData.miscellaneous.defense_rating < 1) return false;
+        if (!formData.miscellaneous.defense_rating || formData.miscellaneous.defense_rating < 1 || formData.miscellaneous.defense_rating > 10) return false;
         if (!formData.miscellaneous.comments.trim()) return false;
         return true;
       

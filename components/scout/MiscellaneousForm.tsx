@@ -19,12 +19,17 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
     defense_rating: 1 as number | string,
     comments: '',
   });
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleInputChange = (field: keyof typeof formData, value: string | number) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
     }));
+    // Clear validation error when user makes changes
+    if (validationError) {
+      setValidationError(null);
+    }
   };
 
   const progressPercentage = (currentStep / totalSteps) * 100;
@@ -59,6 +64,13 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
         </CardHeader>
 
         <CardContent className="space-y-4 sm:space-y-6">
+          {/* Validation Error */}
+          {validationError && (
+            <div className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center">
+              <span>{validationError}</span>
+            </div>
+          )}
+
           {/* Defense Rating */}
           <div className="space-y-4">
             <h3 className="text-white font-semibold text-lg">Defense Rating <span className="text-red-500">*</span></h3>
@@ -73,7 +85,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
                   setFormData(prev => ({ ...prev, defense_rating: '' }));
                 } else {
                   const numValue = parseInt(value);
-                  if (!isNaN(numValue) && numValue >= 1 && numValue <= 10) {
+                  if (!isNaN(numValue)) {
                     setFormData(prev => ({ ...prev, defense_rating: numValue }));
                   }
                 }
@@ -108,10 +120,26 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
           </Button>
           
           <Button
-            onClick={() => onNext({
-              defense_rating: formData.defense_rating === '' ? 0 : Number(formData.defense_rating),
-              comments: formData.comments
-            })}
+            onClick={() => {
+              // Validate required fields
+              const defenseRating = formData.defense_rating === '' ? 0 : Number(formData.defense_rating);
+              const comments = formData.comments.trim();
+              
+              if (!defenseRating || defenseRating < 1 || defenseRating > 10) {
+                setValidationError('Please provide a defense rating between 1 and 10.');
+                return;
+              }
+              
+              if (!comments) {
+                setValidationError('Please provide comments before proceeding.');
+                return;
+              }
+
+              onNext({
+                defense_rating: defenseRating,
+                comments: comments
+              });
+            }}
             className="bg-reef-600 hover:bg-reef-700 text-white"
           >
             Next

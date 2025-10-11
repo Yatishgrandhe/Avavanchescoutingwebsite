@@ -19,12 +19,17 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
   const [formData, setFormData] = useState({
     endgame_score: '',
   });
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleSelectChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
     }));
+    // Clear validation error when user makes a selection
+    if (validationError) {
+      setValidationError(null);
+    }
   };
 
   const calculateTotal = () => {
@@ -72,6 +77,13 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
         </CardHeader>
 
         <CardContent className="space-y-6">
+          {/* Validation Error */}
+          {validationError && (
+            <div className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center">
+              <span>{validationError}</span>
+            </div>
+          )}
+
           {/* Endgame Score Dropdown */}
           <div className="space-y-3">
             <label className="block text-sm font-medium text-white">
@@ -114,6 +126,12 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
           
           <Button
             onClick={() => {
+              // Validate required field
+              if (!formData.endgame_score) {
+                setValidationError('Please select an endgame score before proceeding.');
+                return;
+              }
+
               // Convert dropdown selection to ScoringNotes format
               const scoringNotes: Partial<ScoringNotes> = {
                 endgame_park: formData.endgame_score === 'park' ? true : false,

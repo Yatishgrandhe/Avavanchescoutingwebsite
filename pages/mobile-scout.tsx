@@ -107,7 +107,7 @@ export default function MobileScout() {
       case 'teleop':
         return true; // No required fields
       case 'endgame':
-        // Check if any endgame option is selected or explicitly set to false
+        // Check if endgame data has been set (any boolean value means user made a selection)
         return Boolean(
           formData.endgame.endgame_park !== undefined || 
           formData.endgame.endgame_shallow_cage !== undefined || 
@@ -129,8 +129,8 @@ export default function MobileScout() {
   const handleStepNext = (nextStep: ScoutingStep) => {
     setValidationError(null);
     
-    // Skip validation for match-details as MatchDetailsForm handles its own validation
-    if (currentStep === 'match-details') {
+    // Skip validation for forms that handle their own validation
+    if (currentStep === 'match-details' || currentStep === 'endgame' || currentStep === 'miscellaneous') {
       setCurrentStep(nextStep);
       return;
     }
@@ -141,12 +141,6 @@ export default function MobileScout() {
     } else {
       let errorMessage = '';
       switch (currentStep) {
-        case 'endgame':
-          errorMessage = 'Please select an endgame score before proceeding.';
-          break;
-        case 'miscellaneous':
-          errorMessage = 'Please provide a defense rating (1-10) and comments before proceeding.';
-          break;
         default:
           errorMessage = 'Please complete all required fields before proceeding.';
       }
@@ -360,7 +354,7 @@ export default function MobileScout() {
                 <AutonomousForm
                   onNext={(data) => {
                     setFormData(prev => ({ ...prev, autonomous: data }));
-                    handleStepNext('teleop');
+                    setCurrentStep('teleop');
                   }}
                   onBack={() => setCurrentStep('match-details')}
                   currentStep={currentStepIndex}
@@ -372,7 +366,7 @@ export default function MobileScout() {
                 <TeleopForm
                   onNext={(data) => {
                     setFormData(prev => ({ ...prev, teleop: data }));
-                    handleStepNext('endgame');
+                    setCurrentStep('endgame');
                   }}
                   onBack={() => setCurrentStep('autonomous')}
                   currentStep={currentStepIndex}
@@ -385,7 +379,7 @@ export default function MobileScout() {
                 <EndgameForm
                   onNext={(data) => {
                     setFormData(prev => ({ ...prev, endgame: data }));
-                    handleStepNext('miscellaneous');
+                    setCurrentStep('miscellaneous');
                   }}
                   onBack={() => setCurrentStep('teleop')}
                   currentStep={currentStepIndex}
@@ -397,7 +391,7 @@ export default function MobileScout() {
                 <MiscellaneousForm
                   onNext={(data) => {
                     setFormData(prev => ({ ...prev, miscellaneous: data }));
-                    handleStepNext('review');
+                    setCurrentStep('review');
                   }}
                   onBack={() => setCurrentStep('endgame')}
                   currentStep={currentStepIndex}
@@ -526,7 +520,7 @@ export default function MobileScout() {
             <Button
               onClick={() => {
                 if (currentStepIndex < steps.length - 1) {
-                  setCurrentStep(steps[currentStepIndex + 1].id as ScoutingStep);
+                  handleStepNext(steps[currentStepIndex + 1].id as ScoutingStep);
                 }
               }}
               className="flex-1"

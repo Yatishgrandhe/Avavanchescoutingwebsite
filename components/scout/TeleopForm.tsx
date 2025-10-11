@@ -54,24 +54,24 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
       transition={{ duration: 0.3 }}
       className="max-w-6xl mx-auto min-h-[500px]"
     >
-      <Card className="bg-dark-800 border-dark-700">
+      <Card className="bg-card border-border">
         {/* Progress Bar */}
         <div className="px-6 pt-6">
-          <div className="w-full bg-dark-700 rounded-full h-2">
+          <div className="w-full bg-muted rounded-full h-2">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progressPercentage}%` }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-gradient-to-r from-reef-400 to-reef-600 h-2 rounded-full"
+              className="bg-gradient-to-r from-primary to-primary/80 h-2 rounded-full"
             />
           </div>
         </div>
 
         <CardHeader className="text-center">
-          <CardTitle className="text-white text-2xl font-bold">
+          <CardTitle className="text-foreground text-2xl font-bold">
             Teleop Period
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             Score the teleop period actions (2 minutes 15 seconds)
           </CardDescription>
         </CardHeader>
@@ -79,7 +79,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
         <CardContent className="space-y-6">
           {/* Coral Scoring */}
           <div className="space-y-4">
-            <h3 className="text-white font-semibold text-lg">Coral Scoring</h3>
+            <h3 className="text-foreground font-semibold text-lg">Coral Scoring</h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               <Counter
@@ -126,7 +126,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
 
           {/* Algae Scoring */}
           <div className="space-y-4">
-            <h3 className="text-white font-semibold text-lg">Algae Scoring</h3>
+            <h3 className="text-foreground font-semibold text-lg">Algae Scoring</h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               <Counter
@@ -152,10 +152,10 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
           </div>
 
           {/* Total Points Display */}
-          <div className="p-4 bg-reef-900/20 border border-reef-700 rounded-lg">
+          <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
             <div className="flex justify-between items-center">
-              <span className="text-white font-semibold">Total Teleop Points:</span>
-              <span className="text-reef-400 text-2xl font-bold">{calculateTotal()}</span>
+              <span className="text-foreground font-semibold">Total Teleop Points:</span>
+              <span className="text-primary text-2xl font-bold">{calculateTotal()}</span>
             </div>
           </div>
         </CardContent>
@@ -164,14 +164,14 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
           <Button
             variant="outline"
             onClick={onBack}
-            className="border-dark-600 text-gray-300 hover:bg-dark-700 hover:text-white"
+            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             Previous
           </Button>
           
           <Button
             onClick={() => onNext(formData)}
-            className="bg-reef-600 hover:bg-reef-700 text-white"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             Next
           </Button>

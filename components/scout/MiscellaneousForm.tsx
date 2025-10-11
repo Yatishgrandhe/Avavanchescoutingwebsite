@@ -41,24 +41,24 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
       transition={{ duration: 0.3 }}
       className="max-w-6xl mx-auto min-h-[500px]"
     >
-      <Card className="bg-dark-800 border-dark-700">
+      <Card className="bg-card border-border">
         {/* Progress Bar */}
         <div className="px-6 pt-6">
-          <div className="w-full bg-dark-700 rounded-full h-2">
+          <div className="w-full bg-muted rounded-full h-2">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progressPercentage}%` }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-gradient-to-r from-reef-400 to-reef-600 h-2 rounded-full"
+              className="bg-gradient-to-r from-primary to-primary/80 h-2 rounded-full"
             />
           </div>
         </div>
 
         <CardHeader className="text-center">
-          <CardTitle className="text-white text-2xl font-bold">
+          <CardTitle className="text-foreground text-2xl font-bold">
             Additional Notes
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             Add any additional observations and comments
           </CardDescription>
         </CardHeader>
@@ -73,7 +73,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
 
           {/* Defense Rating */}
           <div className="space-y-4">
-            <h3 className="text-white font-semibold text-lg">Defense Rating <span className="text-red-500">*</span></h3>
+            <h3 className="text-foreground font-semibold text-lg">Defense Rating <span className="text-destructive">*</span></h3>
             <Input
               type="number"
               min="1"
@@ -90,21 +90,21 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
                   }
                 }
               }}
-              className="bg-black border-dark-600 text-white"
+              className="bg-background border-border text-foreground"
               placeholder="Rate the team's defensive play from 1-10"
             />
-            <p className="text-gray-400 text-sm">
+            <p className="text-muted-foreground text-sm">
               1 = No defense, 10 = Exceptional defensive play
             </p>
           </div>
 
           {/* Comments */}
           <div className="space-y-4">
-            <h3 className="text-white font-semibold text-lg">Comments <span className="text-red-500">*</span></h3>
+            <h3 className="text-foreground font-semibold text-lg">Comments <span className="text-destructive">*</span></h3>
             <textarea
               value={formData.comments}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('comments', e.target.value)}
-              className="w-full h-24 sm:h-32 lg:h-36 xl:h-40 bg-black border border-dark-600 text-white rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-reef-500 text-sm sm:text-base"
+              className="w-full h-24 sm:h-32 lg:h-36 xl:h-40 bg-background border border-border text-foreground rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary text-sm sm:text-base"
               placeholder="Add any additional observations, strategies observed, or notable robot capabilities..."
             />
           </div>
@@ -114,7 +114,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
           <Button
             variant="outline"
             onClick={onBack}
-            className="border-dark-600 text-gray-300 hover:bg-dark-700 hover:text-white"
+            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             Previous
           </Button>
@@ -140,7 +140,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
                 comments: comments
               });
             }}
-            className="bg-reef-600 hover:bg-reef-700 text-white"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             Next
           </Button>

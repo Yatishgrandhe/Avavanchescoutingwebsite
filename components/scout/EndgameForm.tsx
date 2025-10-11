@@ -54,24 +54,24 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
       transition={{ duration: 0.3 }}
       className="max-w-6xl mx-auto min-h-[500px]"
     >
-      <Card className="bg-dark-800 border-dark-700">
+      <Card className="bg-card border-border">
         {/* Progress Bar */}
         <div className="px-6 pt-6">
-          <div className="w-full bg-dark-700 rounded-full h-2">
+          <div className="w-full bg-muted rounded-full h-2">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progressPercentage}%` }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-gradient-to-r from-reef-400 to-reef-600 h-2 rounded-full"
+              className="bg-gradient-to-r from-primary to-primary/80 h-2 rounded-full"
             />
           </div>
         </div>
 
         <CardHeader className="text-center">
-          <CardTitle className="text-white text-2xl font-bold">
+          <CardTitle className="text-foreground text-2xl font-bold">
             Endgame
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             Score the endgame actions (during teleop period)
           </CardDescription>
         </CardHeader>
@@ -86,10 +86,10 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
 
           {/* Endgame Score Dropdown */}
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-white">
-              Endgame Score <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-foreground">
+              Endgame Score <span className="text-destructive">*</span>
             </label>
-            <p className="text-gray-400 text-sm">Select the endgame score achieved during teleop period</p>
+            <p className="text-muted-foreground text-sm">Select the endgame score achieved during teleop period</p>
             <Select 
               value={formData.endgame_score} 
               onValueChange={(value) => handleSelectChange('endgame_score', value)}
@@ -98,19 +98,19 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
                 <SelectValue placeholder="Select endgame score..." />
               </SelectTrigger>
               <SelectContent className="bg-card border-border">
-                <SelectItem value="none" className="text-white hover:bg-gray-700">No Endgame Score</SelectItem>
-                <SelectItem value="park" className="text-white hover:bg-gray-700">Park in the BARGE ZONE (+{SCORING_VALUES.endgame_park} points)</SelectItem>
-                <SelectItem value="shallow" className="text-white hover:bg-gray-700">Off-the-ground via shallow CAGE (+{SCORING_VALUES.endgame_shallow_cage} points)</SelectItem>
-                <SelectItem value="deep" className="text-white hover:bg-gray-700">Off-the-ground via deep CAGE (+{SCORING_VALUES.endgame_deep_cage} points)</SelectItem>
+                <SelectItem value="none" className="text-foreground hover:bg-muted">No Endgame Score</SelectItem>
+                <SelectItem value="park" className="text-foreground hover:bg-muted">Park in the BARGE ZONE (+{SCORING_VALUES.endgame_park} points)</SelectItem>
+                <SelectItem value="shallow" className="text-foreground hover:bg-muted">Off-the-ground via shallow CAGE (+{SCORING_VALUES.endgame_shallow_cage} points)</SelectItem>
+                <SelectItem value="deep" className="text-foreground hover:bg-muted">Off-the-ground via deep CAGE (+{SCORING_VALUES.endgame_deep_cage} points)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Total Points Display */}
-          <div className="p-4 bg-reef-900/20 border border-reef-700 rounded-lg">
+          <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
             <div className="flex justify-between items-center">
-              <span className="text-white font-semibold">Total Endgame Points:</span>
-              <span className="text-reef-400 text-2xl font-bold">{calculateTotal()}</span>
+              <span className="text-foreground font-semibold">Total Endgame Points:</span>
+              <span className="text-primary text-2xl font-bold">{calculateTotal()}</span>
             </div>
           </div>
         </CardContent>
@@ -119,7 +119,7 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
           <Button
             variant="outline"
             onClick={onBack}
-            className="border-dark-600 text-gray-300 hover:bg-dark-700 hover:text-white"
+            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             Previous
           </Button>
@@ -140,7 +140,7 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
               };
               onNext(scoringNotes);
             }}
-            className="bg-reef-600 hover:bg-reef-700 text-white"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             Next
           </Button>

@@ -114,7 +114,7 @@ export default function Scout() {
       
       case 'endgame':
         // Required: At least one endgame capability
-        const hasEndgameSelection = formData.endgame.endgame_park || formData.endgame.endgame_shallow_cage || formData.endgame.endgame_deep_cage;
+        const hasEndgameSelection = Boolean(formData.endgame.endgame_park || formData.endgame.endgame_shallow_cage || formData.endgame.endgame_deep_cage);
         return hasEndgameSelection;
       
       case 'miscellaneous':

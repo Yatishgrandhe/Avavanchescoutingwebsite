@@ -435,15 +435,15 @@ const TeamDetail: React.FC<TeamDetailProps> = () => {
                           <Shield className="w-4 h-4 text-muted-foreground" />
                           <span className="text-sm font-medium">Defense Rating:</span>
                           <div className="flex items-center gap-1">
-                            {[...Array(5)].map((_, i) => (
+                            {[...Array(10)].map((_, i) => (
                               <div
                                 key={i}
-                                className={`w-3 h-3 rounded-full ${
+                                className={`w-2 h-2 rounded-full ${
                                   i < (data.defense_rating || 0) ? 'bg-yellow-500' : 'bg-gray-200'
                                 }`}
                               />
                             ))}
-                            <span className="ml-2 text-sm font-semibold">{data.defense_rating || 0}/5</span>
+                            <span className="ml-2 text-sm font-semibold">{data.defense_rating || 0}/10</span>
                           </div>
                         </div>
 

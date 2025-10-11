@@ -64,6 +64,7 @@ export default function MobileScout() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     matchData: {
       match_id: '',
@@ -133,6 +134,7 @@ export default function MobileScout() {
 
   const handleStepNext = (nextStep: ScoutingStep) => {
     setValidationError(null);
+    setHasInteracted(true);
     
     if (validateStep(currentStep)) {
       setCurrentStep(nextStep);
@@ -310,7 +312,7 @@ export default function MobileScout() {
 
       {/* Form Content */}
       <div className="p-4">
-        {validationError && (
+        {validationError && hasInteracted && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}

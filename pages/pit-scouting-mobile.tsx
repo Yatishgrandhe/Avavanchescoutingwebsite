@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, CheckboxCard } from '../components/ui';
+import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui';
 import { 
   Wrench, 
   CheckCircle, 
@@ -90,6 +90,7 @@ export default function PitScoutingMobile() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   const totalSteps = 4;
 
@@ -153,6 +154,7 @@ export default function PitScoutingMobile() {
 
   const handleNext = () => {
     setValidationError(null);
+    setHasInteracted(true);
     
     if (validateStep(currentStep)) {
       if (currentStep < totalSteps) {
@@ -348,7 +350,7 @@ export default function PitScoutingMobile() {
                     </motion.div>
                   )}
 
-                  {validationError && (
+                  {validationError && hasInteracted && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -577,7 +579,7 @@ export default function PitScoutingMobile() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {validationError && (
+                  {validationError && hasInteracted && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -593,25 +595,32 @@ export default function PitScoutingMobile() {
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Question 2: What can they do in auto</h3>
                     <div className="space-y-3">
                       {['L1', 'L2', 'L3', 'L4', 'Move off of the starting line ONLY', 'Clean the reef (LOW algae)', 'Clean the reef (HIGH algae)'].map((option) => (
-                        <CheckboxCard
-                          key={option}
-                          id={`auto-${option}`}
-                          label={option}
-                          checked={formData.autonomousCapabilities.includes(option)}
-                          onChange={(checked) => {
-                            if (checked) {
-                              setFormData(prev => ({
-                                ...prev,
-                                autonomousCapabilities: [...prev.autonomousCapabilities, option]
-                              }));
-                            } else {
-                              setFormData(prev => ({
-                                ...prev,
-                                autonomousCapabilities: prev.autonomousCapabilities.filter(cap => cap !== option)
-                              }));
-                            }
-                          }}
-                        />
+                        <div key={option} className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
+                          <input
+                            type="checkbox"
+                            id={`auto-${option}`}
+                            checked={formData.autonomousCapabilities.includes(option)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  autonomousCapabilities: [...prev.autonomousCapabilities, option]
+                                }));
+                              } else {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  autonomousCapabilities: prev.autonomousCapabilities.filter(cap => cap !== option)
+                                }));
+                              }
+                            }}
+                          />
+                          <label 
+                            htmlFor={`auto-${option}`}
+                            className="flex-1 text-sm font-medium text-foreground cursor-pointer"
+                          >
+                            {option}
+                          </label>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -621,25 +630,32 @@ export default function PitScoutingMobile() {
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Question 3: What can they do during teleop</h3>
                     <div className="space-y-3">
                       {['L1', 'L2', 'L3', 'L4', 'Processor', 'Barge', 'Defense'].map((option) => (
-                        <CheckboxCard
-                          key={option}
-                          id={`teleop-${option}`}
-                          label={option}
-                          checked={formData.teleopCapabilities.includes(option)}
-                          onChange={(checked) => {
-                            if (checked) {
-                              setFormData(prev => ({
-                                ...prev,
-                                teleopCapabilities: [...prev.teleopCapabilities, option]
-                              }));
-                            } else {
-                              setFormData(prev => ({
-                                ...prev,
-                                teleopCapabilities: prev.teleopCapabilities.filter(cap => cap !== option)
-                              }));
-                            }
-                          }}
-                        />
+                        <div key={option} className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
+                          <input
+                            type="checkbox"
+                            id={`teleop-${option}`}
+                            checked={formData.teleopCapabilities.includes(option)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  teleopCapabilities: [...prev.teleopCapabilities, option]
+                                }));
+                              } else {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  teleopCapabilities: prev.teleopCapabilities.filter(cap => cap !== option)
+                                }));
+                              }
+                            }}
+                          />
+                          <label 
+                            htmlFor={`teleop-${option}`}
+                            className="flex-1 text-sm font-medium text-foreground cursor-pointer"
+                          >
+                            {option}
+                          </label>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -677,7 +693,7 @@ export default function PitScoutingMobile() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {validationError && (
+                  {validationError && hasInteracted && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -691,28 +707,32 @@ export default function PitScoutingMobile() {
                   {/* Endgame Capabilities */}
                   <div className="bg-muted p-4 rounded-lg border">
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Question 4: What can they do during endgame</h3>
-                    <div className="space-y-3">
-                      {['Climb', 'Balance', 'Park', 'None'].map((option) => (
-                        <CheckboxCard
-                          key={option}
-                          id={`endgame-${option}`}
-                          label={option}
-                          checked={formData.endgameCapabilities.includes(option)}
-                          onChange={(checked) => {
-                            if (checked) {
-                              setFormData(prev => ({
-                                ...prev,
-                                endgameCapabilities: [...prev.endgameCapabilities, option]
-                              }));
-                            } else {
-                              setFormData(prev => ({
-                                ...prev,
-                                endgameCapabilities: prev.endgameCapabilities.filter(cap => cap !== option)
-                              }));
-                            }
-                          }}
-                        />
-                      ))}
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-foreground">
+                        Select Endgame Capability
+                      </label>
+                      <Select
+                        value={formData.endgameCapabilities[0] || ''}
+                        onValueChange={(value) => setFormData(prev => ({
+                          ...prev,
+                          endgameCapabilities: value ? [value] : []
+                        }))}
+                      >
+                        <SelectTrigger className="w-full bg-background border-input text-foreground">
+                          <SelectValue placeholder="Select an endgame capability" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border-input">
+                          {['Climb', 'Balance', 'Park', 'None'].map((option) => (
+                            <SelectItem 
+                              key={option} 
+                              value={option}
+                              className="text-foreground hover:bg-muted"
+                            >
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
@@ -825,7 +845,7 @@ export default function PitScoutingMobile() {
                     </motion.div>
                   )}
 
-                  {validationError && (
+                  {validationError && hasInteracted && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}

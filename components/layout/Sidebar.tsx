@@ -125,6 +125,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             scroll-behavior: smooth;
             scrollbar-width: none; /* For Firefox */
             -ms-overflow-style: none; /* For Internet Explorer and Edge */
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            white-space: nowrap;
+            display: flex;
+            width: 100%;
+            max-width: 100vw;
           }
 
           .mobile-nav-scroll::-webkit-scrollbar {
@@ -134,8 +140,13 @@ const Sidebar: React.FC<SidebarProps> = ({
           .mobile-nav-container {
             display: flex;
             align-items: center;
-            padding: 0 16px; /* Add horizontal padding to the container */
-            gap: 24px; /* Increased gap for more spacing */
+            padding: 0 0.5in; /* 0.5 inch padding on sides */
+            gap: 0.5in; /* 0.5 inch gap between items */
+            width: max-content; /* Allow container to grow beyond screen width */
+            min-height: 75px;
+            flex-wrap: nowrap;
+            overflow-x: visible;
+            overflow-y: visible;
           }
           
           .mobile-nav-item {
@@ -146,9 +157,9 @@ const Sidebar: React.FC<SidebarProps> = ({
             justify-content: center;
             min-height: 75px;
             max-height: 75px;
-            min-width: 95px;
-            max-width: 115px;
-            padding: 12px 8px;
+            min-width: 80px; /* Minimum width for touch targets */
+            max-width: 100px; /* Maximum width to prevent stretching */
+            padding: 8px 12px;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
             cursor: pointer;
@@ -160,65 +171,86 @@ const Sidebar: React.FC<SidebarProps> = ({
             /* Portrait orientation for phones */
             @media (orientation: portrait) {
               .mobile-nav-container {
-                padding: 12px 20px;
-                gap: 28px;
+                padding: 0 0.5in; /* 0.5 inch padding on sides */
+                gap: 0.5in; /* 0.5 inch gap between items */
+                min-height: 70px;
               }
 
               .mobile-nav-item {
-                min-width: 90px;
-                max-width: 105px;
                 min-height: 70px;
                 max-height: 70px;
+                min-width: 75px; /* Slightly smaller for portrait */
+                max-width: 90px;
+                padding: 6px 10px;
               }
               
               .mobile-nav-item span {
-                font-size: 12px;
+                font-size: 11px;
                 font-weight: 500;
+                line-height: 1.2;
               }
               
               .mobile-nav-item svg {
-                width: 20px;
-                height: 20px;
-                margin-bottom: 5px;
+                width: 18px;
+                height: 18px;
+                margin-bottom: 4px;
               }
             }
 
             /* Landscape orientation for phones */
             @media (orientation: landscape) {
               .mobile-nav-container {
-                padding: 8px 16px;
-                gap: 20px;
+                padding: 0 0.5in; /* 0.5 inch padding on sides */
+                gap: 0.5in; /* 0.5 inch gap between items */
+                min-height: 60px;
               }
 
               .mobile-nav-item {
-                min-width: 85px;
-                max-width: 100px;
                 min-height: 60px;
                 max-height: 60px;
+                min-width: 70px; /* Smaller for landscape */
+                max-width: 85px;
+                padding: 4px 8px;
               }
               
               .mobile-nav-item span {
-                font-size: 11px;
+                font-size: 10px;
+                font-weight: 500;
+                line-height: 1.1;
               }
               
               .mobile-nav-item svg {
-                width: 18px;
-                height: 18px;
-                margin-bottom: 3px;
+                width: 16px;
+                height: 16px;
+                margin-bottom: 2px;
               }
             }
           }
           
-          /* Small phones in portrait */
-          @media screen and (max-width: 480px) and (orientation: portrait) {
-            .mobile-nav-container {
-              padding: 10px 16px;
-              gap: 22px;
-            }
+  /* Small phones in portrait */
+  @media screen and (max-width: 480px) and (orientation: portrait) {
+    .mobile-nav-container {
+      padding: 0 0.5in; /* 0.5 inch padding on sides */
+      gap: 0.5in; /* 0.5 inch gap between items */
+      min-height: 65px;
+    }
 
             .mobile-nav-item {
-              min-width: 80px;
-              max-width: 95px;
+              min-height: 65px;
+              max-height: 65px;
+              min-width: 70px; /* Smaller for small phones */
+              max-width: 85px;
+              padding: 4px 8px;
+            }
+            
+            .mobile-nav-item span {
+              font-size: 10px;
+            }
+            
+            .mobile-nav-item svg {
+              width: 16px;
+              height: 16px;
+              margin-bottom: 3px;
             }
           }
           
@@ -233,15 +265,54 @@ const Sidebar: React.FC<SidebarProps> = ({
           const mobileItems = [
             {
               label: 'Dashboard',
-              href: '/mobile-dashboard',
+              href: '/',
               icon: Home,
             },
             {
+              label: 'Game Rules',
+              href: '/learn-game',
+              icon: BookOpen,
+            },
+            {
               label: 'Scout',
-              href: '/mobile-scout',
+              href: '/scout',
               icon: ClipboardList,
             },
-            ...menuItems.flatMap(section => section.items).filter(item => item.href !== '/scout')
+            {
+              label: 'Pit Scouting',
+              href: '/pit-scouting',
+              icon: Wrench,
+            },
+            {
+              label: 'Pit Data',
+              href: '/pit-scouting-data',
+              icon: Eye,
+            },
+            {
+              label: 'Pick Lists',
+              href: '/pick-list',
+              icon: List,
+            },
+            {
+              label: 'Data Analysis',
+              href: '/analysis/data',
+              icon: Database,
+            },
+            {
+              label: 'Basic Analysis',
+              href: '/analysis/basic',
+              icon: BarChart3,
+            },
+            {
+              label: 'Advanced Analysis',
+              href: '/analysis/advanced',
+              icon: TrendingUp,
+            },
+            {
+              label: 'Comparison',
+              href: '/analysis/comparison',
+              icon: ArrowLeftRight,
+            },
           ];
 
           return (

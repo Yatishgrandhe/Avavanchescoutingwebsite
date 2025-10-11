@@ -1,0 +1,10 @@
+[33m38cbd77[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m refactor: Update Sidebar and Checkbox components for improved layout and usability
+[33m0179617[m refactor: Enhance mobile navigation styling in Sidebar component for improved usability
+[33mab86256[m refactor: Update checkbox layout and styling in PitScouting components for improved consistency
+[33m2aa368f[m refactor: Enhance checkbox styling and layout in PitScouting components for improved user experience
+[33m12341c9[m refactor: Improve checkbox layout and styling in PitScouting components for consistency
+[33m7d86790[m refactor: Update checkbox layout and styling in PitScouting components for improved usability
+[33m08879ba[m feat: Revise PitScouting component to enhance capabilities input and summary
+[33mfa1e0f8[m feat: Add endgame capabilities section to PitScouting component
+[33mfd8365c[m feat: Add validation logic to MobileScout and Scout components for improved form navigation
+[33m3e11919[m refactor: Simplify MobileScoutForm and Scout components by removing validation logic

@@ -263,7 +263,7 @@ export default function PitScouting() {
   return (
     <Layout>
       <div className="min-h-full p-3 sm:p-4 md:p-6 lg:p-8">
-        <div className="w-full mx-auto">
+        <div className="w-full max-w-7xl mx-auto">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -279,10 +279,10 @@ export default function PitScouting() {
                 <Wrench className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
               </motion.div>
               <div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
+                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground">
                   Pit Scouting
                 </h1>
-                <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">
+                <p className="mt-1 sm:mt-2 text-sm sm:text-base lg:text-lg text-muted-foreground">
                   Comprehensive robot analysis and documentation
                 </p>
               </div>
@@ -460,7 +460,7 @@ export default function PitScouting() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       <div>
                         <label className="block text-sm font-medium mb-2">
                           Length (in) <span className="text-muted-foreground text-xs">(Optional)</span>

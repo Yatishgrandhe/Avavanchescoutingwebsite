@@ -246,10 +246,10 @@ export default function MobileDashboard() {
           transition={{ duration: 0.6 }}
           className="text-center space-y-4"
         >
-          <h2 className="text-2xl font-bold text-foreground">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">
             Welcome to Avalanche
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base lg:text-lg text-muted-foreground">
             Professional FRC scouting platform with advanced analytics
           </p>
         </motion.div>
@@ -261,7 +261,7 @@ export default function MobileDashboard() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="space-y-4"
         >
-          <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
+          <h3 className="text-lg sm:text-xl lg:text-2xl font-semibold text-foreground">Quick Actions</h3>
           
           <div className="grid grid-cols-1 gap-4">
             <Card className="card-modern cursor-pointer" onClick={() => router.push('/mobile-scout')}>

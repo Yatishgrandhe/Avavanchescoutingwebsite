@@ -164,7 +164,7 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
       </div>
 
       {/* Content */}
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-6 data-page">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

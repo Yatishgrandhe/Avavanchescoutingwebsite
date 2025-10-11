@@ -261,7 +261,7 @@ export default function MobileScout() {
             >
               <Home size={18} className="sm:w-5 sm:h-5" />
             </Button>
-            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">Scouting Session</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-foreground">Scouting Session</h1>
           </div>
           <Badge variant="outline" className="text-xs sm:text-sm">
             Step {currentStepIndex + 1} of {steps.length}

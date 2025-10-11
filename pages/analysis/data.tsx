@@ -224,7 +224,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   return (
     <ProtectedRoute>
       <Layout>
-        <div className="space-y-6">
+        <div className="space-y-6 data-page">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}

@@ -252,8 +252,8 @@ export default function Scout() {
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
               <div>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold">Scouting Session</h1>
-                <p className="text-muted-foreground text-sm sm:text-base lg:text-lg">
+                <h1 className="text-2xl sm:text-3xl font-bold">Scouting Session</h1>
+                <p className="text-muted-foreground text-sm sm:text-base">
                   Collect comprehensive match data for FRC 2025
                 </p>
               </div>

@@ -174,10 +174,10 @@ export default function PickListPage() {
             <div className="mb-6 sm:mb-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <div>
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground mb-1 sm:mb-2">
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-1 sm:mb-2">
                     Pick Lists
                   </h1>
-                  <p className="text-sm sm:text-base lg:text-lg text-muted-foreground">
+                  <p className="text-sm sm:text-base text-muted-foreground">
                     Create and manage team pick lists for alliance selection
                   </p>
                 </div>

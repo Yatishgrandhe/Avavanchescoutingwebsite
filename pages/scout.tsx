@@ -115,14 +115,11 @@ export default function Scout() {
       
       case 'endgame':
         // Required: Endgame selection (including "none" as a valid selection)
+        // Check if any endgame field has been set (true, false, or undefined means user made a selection)
         const hasEndgameSelection = Boolean(
-          formData.endgame.endgame_park || 
-          formData.endgame.endgame_shallow_cage || 
-          formData.endgame.endgame_deep_cage ||
-          // Check if all are false (which means "none" was selected)
-          (formData.endgame.endgame_park === false && 
-           formData.endgame.endgame_shallow_cage === false && 
-           formData.endgame.endgame_deep_cage === false)
+          formData.endgame.endgame_park !== undefined || 
+          formData.endgame.endgame_shallow_cage !== undefined || 
+          formData.endgame.endgame_deep_cage !== undefined
         );
         return hasEndgameSelection;
       
@@ -158,7 +155,7 @@ export default function Scout() {
       let errorMessage = '';
       switch (currentStep) {
         case 'endgame':
-          errorMessage = 'Please select an endgame score (including "No Endgame Score") before proceeding.';
+          errorMessage = 'Please select an endgame score before proceeding.';
           break;
         case 'miscellaneous':
           errorMessage = 'Please provide a defense rating and comments before proceeding.';
@@ -341,7 +338,8 @@ export default function Scout() {
                 )}
               </div>
 
-              <AnimatePresence mode="wait">
+              <div className="min-h-[600px]">
+                <AnimatePresence mode="wait">
                 {currentStep === 'match-details' && (
                   <motion.div
                     key="match-details"
@@ -560,7 +558,8 @@ export default function Scout() {
                     </div>
                   </motion.div>
                 )}
-              </AnimatePresence>
+                </AnimatePresence>
+              </div>
             </CardContent>
           </Card>
         </div>

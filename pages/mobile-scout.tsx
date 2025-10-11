@@ -324,83 +324,84 @@ export default function MobileScout() {
 
         <Card className="mb-6 min-h-[600px]">
           <CardContent className="p-4">
-            <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-              className="min-h-[500px]"
-            >
-              {currentStep === 'match-details' && (
-                <MatchDetailsForm
-                  onNext={(matchData, teamNumber, allianceColor, alliancePosition) => {
-                    setFormData(prev => ({ 
-                      ...prev, 
-                      matchData, 
-                      teamNumber, 
-                      allianceColor,
-                      alliancePosition
-                    }));
-                    setValidationError(null); // Clear any validation errors
-                    handleStepNext('autonomous');
-                  }}
-                  currentStep={currentStepIndex}
-                  totalSteps={steps.length}
-                />
-              )}
+            <div className="min-h-[500px]">
+              <motion.div
+                key={currentStep}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="min-h-[500px]"
+              >
+                {currentStep === 'match-details' && (
+                  <MatchDetailsForm
+                    onNext={(matchData, teamNumber, allianceColor, alliancePosition) => {
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        matchData, 
+                        teamNumber, 
+                        allianceColor,
+                        alliancePosition
+                      }));
+                      setValidationError(null); // Clear any validation errors
+                      handleStepNext('autonomous');
+                    }}
+                    currentStep={currentStepIndex}
+                    totalSteps={steps.length}
+                  />
+                )}
 
-              {currentStep === 'autonomous' && (
-                <AutonomousForm
-                  onNext={(data) => {
-                    setFormData(prev => ({ ...prev, autonomous: data }));
-                    setCurrentStep('teleop');
-                  }}
-                  onBack={() => setCurrentStep('match-details')}
-                  currentStep={currentStepIndex}
-                  totalSteps={steps.length}
-                />
-              )}
+                {currentStep === 'autonomous' && (
+                  <AutonomousForm
+                    onNext={(data) => {
+                      setFormData(prev => ({ ...prev, autonomous: data }));
+                      setCurrentStep('teleop');
+                    }}
+                    onBack={() => setCurrentStep('match-details')}
+                    currentStep={currentStepIndex}
+                    totalSteps={steps.length}
+                  />
+                )}
 
-              {currentStep === 'teleop' && (
-                <TeleopForm
-                  onNext={(data) => {
-                    setFormData(prev => ({ ...prev, teleop: data }));
-                    setCurrentStep('endgame');
-                  }}
-                  onBack={() => setCurrentStep('autonomous')}
-                  currentStep={currentStepIndex}
-                  totalSteps={steps.length}
-                  isDarkMode={true}
-                />
-              )}
+                {currentStep === 'teleop' && (
+                  <TeleopForm
+                    onNext={(data) => {
+                      setFormData(prev => ({ ...prev, teleop: data }));
+                      setCurrentStep('endgame');
+                    }}
+                    onBack={() => setCurrentStep('autonomous')}
+                    currentStep={currentStepIndex}
+                    totalSteps={steps.length}
+                    isDarkMode={true}
+                  />
+                )}
 
-              {currentStep === 'endgame' && (
-                <EndgameForm
-                  onNext={(data) => {
-                    setFormData(prev => ({ ...prev, endgame: data }));
-                    setCurrentStep('miscellaneous');
-                  }}
-                  onBack={() => setCurrentStep('teleop')}
-                  currentStep={currentStepIndex}
-                  totalSteps={steps.length}
-                />
-              )}
+                {currentStep === 'endgame' && (
+                  <EndgameForm
+                    onNext={(data) => {
+                      setFormData(prev => ({ ...prev, endgame: data }));
+                      setCurrentStep('miscellaneous');
+                    }}
+                    onBack={() => setCurrentStep('teleop')}
+                    currentStep={currentStepIndex}
+                    totalSteps={steps.length}
+                  />
+                )}
 
-              {currentStep === 'miscellaneous' && (
-                <MiscellaneousForm
-                  onNext={(data) => {
-                    setFormData(prev => ({ ...prev, miscellaneous: data }));
-                    setCurrentStep('review');
-                  }}
-                  onBack={() => setCurrentStep('endgame')}
-                  currentStep={currentStepIndex}
-                  totalSteps={steps.length}
-                />
-              )}
+                {currentStep === 'miscellaneous' && (
+                  <MiscellaneousForm
+                    onNext={(data) => {
+                      setFormData(prev => ({ ...prev, miscellaneous: data }));
+                      setCurrentStep('review');
+                    }}
+                    onBack={() => setCurrentStep('endgame')}
+                    currentStep={currentStepIndex}
+                    totalSteps={steps.length}
+                  />
+                )}
 
-              {currentStep === 'review' && (
-                <div className="space-y-6">
+                {currentStep === 'review' && (
+                  <div className="space-y-6">
                   <div>
                     <h2 className="text-xl font-bold mb-2">Review Scouting Data</h2>
                     <p className="text-muted-foreground text-sm">
@@ -478,7 +479,8 @@ export default function MobileScout() {
                   </div>
                 </div>
               )}
-            </motion.div>
+              </motion.div>
+            </div>
           </CardContent>
         </Card>
 

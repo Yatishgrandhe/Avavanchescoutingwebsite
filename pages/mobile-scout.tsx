@@ -115,8 +115,16 @@ export default function MobileScout() {
         return true;
       
       case 'endgame':
-        // Required: At least one endgame capability
-        const hasEndgameSelection = Boolean(formData.endgame.endgame_park || formData.endgame.endgame_shallow_cage || formData.endgame.endgame_deep_cage);
+        // Required: Endgame selection (including "none" as a valid selection)
+        const hasEndgameSelection = Boolean(
+          formData.endgame.endgame_park || 
+          formData.endgame.endgame_shallow_cage || 
+          formData.endgame.endgame_deep_cage ||
+          // Check if all are false (which means "none" was selected)
+          (formData.endgame.endgame_park === false && 
+           formData.endgame.endgame_shallow_cage === false && 
+           formData.endgame.endgame_deep_cage === false)
+        );
         return hasEndgameSelection;
       
       case 'miscellaneous':
@@ -151,7 +159,7 @@ export default function MobileScout() {
       let errorMessage = '';
       switch (currentStep) {
         case 'endgame':
-          errorMessage = 'Please select at least one endgame capability before proceeding.';
+          errorMessage = 'Please select an endgame score (including "No Endgame Score") before proceeding.';
           break;
         case 'miscellaneous':
           errorMessage = 'Please provide a defense rating and comments before proceeding.';

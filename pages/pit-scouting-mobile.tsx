@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Checkbox } from '../components/ui';
+import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui';
 import { 
   Wrench, 
   CheckCircle, 
@@ -594,11 +594,12 @@ export default function PitScoutingMobile() {
                     <div className="space-y-3">
                       {['L1', 'L2', 'L3', 'L4', 'Move off of the starting line ONLY', 'Clean the reef (LOW algae)', 'Clean the reef (HIGH algae)'].map((option) => (
                         <div key={option} className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
-                          <Checkbox
+                          <input
+                            type="checkbox"
                             id={`auto-${option}`}
                             checked={formData.autonomousCapabilities.includes(option)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
+                            onChange={(e) => {
+                              if (e.target.checked) {
                                 setFormData(prev => ({
                                   ...prev,
                                   autonomousCapabilities: [...prev.autonomousCapabilities, option]
@@ -610,7 +611,6 @@ export default function PitScoutingMobile() {
                                 }));
                               }
                             }}
-                            className="h-6 w-6"
                           />
                           <label 
                             htmlFor={`auto-${option}`}
@@ -629,11 +629,12 @@ export default function PitScoutingMobile() {
                     <div className="space-y-3">
                       {['L1', 'L2', 'L3', 'L4', 'Processor', 'Barge', 'Defense'].map((option) => (
                         <div key={option} className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
-                          <Checkbox
+                          <input
+                            type="checkbox"
                             id={`teleop-${option}`}
                             checked={formData.teleopCapabilities.includes(option)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
+                            onChange={(e) => {
+                              if (e.target.checked) {
                                 setFormData(prev => ({
                                   ...prev,
                                   teleopCapabilities: [...prev.teleopCapabilities, option]
@@ -645,7 +646,6 @@ export default function PitScoutingMobile() {
                                 }));
                               }
                             }}
-                            className="h-6 w-6"
                           />
                           <label 
                             htmlFor={`teleop-${option}`}
@@ -708,11 +708,12 @@ export default function PitScoutingMobile() {
                     <div className="space-y-3">
                       {['Climb', 'Balance', 'Park', 'None'].map((option) => (
                         <div key={option} className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
-                          <Checkbox
+                          <input
+                            type="checkbox"
                             id={`endgame-${option}`}
                             checked={formData.endgameCapabilities.includes(option)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
+                            onChange={(e) => {
+                              if (e.target.checked) {
                                 setFormData(prev => ({
                                   ...prev,
                                   endgameCapabilities: [...prev.endgameCapabilities, option]
@@ -724,7 +725,6 @@ export default function PitScoutingMobile() {
                                 }));
                               }
                             }}
-                            className="h-6 w-6"
                           />
                           <label 
                             htmlFor={`endgame-${option}`}

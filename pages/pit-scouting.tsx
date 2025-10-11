@@ -3,7 +3,7 @@ import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
 import Layout from '@/components/layout/Layout';
-import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Checkbox } from '../components/ui';
+import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui';
 import { 
   Wrench, 
   CheckCircle, 
@@ -562,11 +562,12 @@ export default function PitScouting() {
                       <div className="space-y-3">
                         {['L1', 'L2', 'L3', 'L4', 'Move off of the starting line ONLY', 'Clean the reef (LOW algae)', 'Clean the reef (HIGH algae)'].map((option) => (
                           <div key={option} className="flex items-center space-x-3 p-3 rounded-lg bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            <Checkbox
+                            <input
+                              type="checkbox"
                               id={`auto-${option}`}
                               checked={formData.autonomousCapabilities.includes(option)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
+                              onChange={(e) => {
+                                if (e.target.checked) {
                                   setFormData(prev => ({
                                     ...prev,
                                     autonomousCapabilities: [...prev.autonomousCapabilities, option]
@@ -578,7 +579,6 @@ export default function PitScouting() {
                                   }));
                                 }
                               }}
-                              className="h-6 w-6"
                             />
                             <label 
                               htmlFor={`auto-${option}`}
@@ -597,11 +597,12 @@ export default function PitScouting() {
                       <div className="space-y-3">
                         {['L1', 'L2', 'L3', 'L4', 'Processor', 'Barge', 'Defense'].map((option) => (
                           <div key={option} className="flex items-center space-x-3 p-3 rounded-lg bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            <Checkbox
+                            <input
+                              type="checkbox"
                               id={`teleop-${option}`}
                               checked={formData.teleopCapabilities.includes(option)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
+                              onChange={(e) => {
+                                if (e.target.checked) {
                                   setFormData(prev => ({
                                     ...prev,
                                     teleopCapabilities: [...prev.teleopCapabilities, option]
@@ -613,7 +614,6 @@ export default function PitScouting() {
                                   }));
                                 }
                               }}
-                              className="h-6 w-6"
                             />
                             <label 
                               htmlFor={`teleop-${option}`}
@@ -676,11 +676,12 @@ export default function PitScouting() {
                       <div className="space-y-3">
                         {['Climb', 'Balance', 'Park', 'None'].map((option) => (
                           <div key={option} className="flex items-center space-x-3 p-3 rounded-lg bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            <Checkbox
+                            <input
+                              type="checkbox"
                               id={`endgame-${option}`}
                               checked={formData.endgameCapabilities.includes(option)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
+                              onChange={(e) => {
+                                if (e.target.checked) {
                                   setFormData(prev => ({
                                     ...prev,
                                     endgameCapabilities: [...prev.endgameCapabilities, option]
@@ -692,7 +693,6 @@ export default function PitScouting() {
                                   }));
                                 }
                               }}
-                              className="h-6 w-6"
                             />
                             <label 
                               htmlFor={`endgame-${option}`}

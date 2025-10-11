@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui';
+import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Checkbox } from '../components/ui';
 import { 
   Wrench, 
   CheckCircle, 
@@ -593,34 +593,30 @@ export default function PitScoutingMobile() {
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Question 2: What can they do in auto</h3>
                     <div className="space-y-3">
                       {['L1', 'L2', 'L3', 'L4', 'Move off of the starting line ONLY', 'Clean the reef (LOW algae)', 'Clean the reef (HIGH algae)'].map((option) => (
-                        <div key={option} className="checkbox-card-wrapper">
+                        <div key={option} className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
+                          <Checkbox
+                            id={`auto-${option}`}
+                            checked={formData.autonomousCapabilities.includes(option)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  autonomousCapabilities: [...prev.autonomousCapabilities, option]
+                                }));
+                              } else {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  autonomousCapabilities: prev.autonomousCapabilities.filter(cap => cap !== option)
+                                }));
+                              }
+                            }}
+                            className="h-6 w-6"
+                          />
                           <label 
                             htmlFor={`auto-${option}`}
-                            className="checkbox-card-label"
-                            style={{
-                              borderColor: formData.autonomousCapabilities.includes(option) ? 'hsl(var(--primary))' : 'hsl(var(--border))',
-                              backgroundColor: formData.autonomousCapabilities.includes(option) ? 'hsl(var(--primary) / 0.1)' : 'hsl(var(--background))'
-                            }}
+                            className="flex-1 text-sm font-medium text-foreground cursor-pointer"
                           >
-                            <input
-                              type="checkbox"
-                              id={`auto-${option}`}
-                              checked={formData.autonomousCapabilities.includes(option)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    autonomousCapabilities: [...prev.autonomousCapabilities, option]
-                                  }));
-                                } else {
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    autonomousCapabilities: prev.autonomousCapabilities.filter(cap => cap !== option)
-                                  }));
-                                }
-                              }}
-                            />
-                            <span>{option}</span>
+                            {option}
                           </label>
                         </div>
                       ))}
@@ -632,34 +628,30 @@ export default function PitScoutingMobile() {
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Question 3: What can they do during teleop</h3>
                     <div className="space-y-3">
                       {['L1', 'L2', 'L3', 'L4', 'Processor', 'Barge', 'Defense'].map((option) => (
-                        <div key={option} className="checkbox-card-wrapper">
+                        <div key={option} className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
+                          <Checkbox
+                            id={`teleop-${option}`}
+                            checked={formData.teleopCapabilities.includes(option)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  teleopCapabilities: [...prev.teleopCapabilities, option]
+                                }));
+                              } else {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  teleopCapabilities: prev.teleopCapabilities.filter(cap => cap !== option)
+                                }));
+                              }
+                            }}
+                            className="h-6 w-6"
+                          />
                           <label 
                             htmlFor={`teleop-${option}`}
-                            className="checkbox-card-label"
-                            style={{
-                              borderColor: formData.teleopCapabilities.includes(option) ? 'hsl(var(--primary))' : 'hsl(var(--border))',
-                              backgroundColor: formData.teleopCapabilities.includes(option) ? 'hsl(var(--primary) / 0.1)' : 'hsl(var(--background))'
-                            }}
+                            className="flex-1 text-sm font-medium text-foreground cursor-pointer"
                           >
-                            <input
-                              type="checkbox"
-                              id={`teleop-${option}`}
-                              checked={formData.teleopCapabilities.includes(option)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    teleopCapabilities: [...prev.teleopCapabilities, option]
-                                  }));
-                                } else {
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    teleopCapabilities: prev.teleopCapabilities.filter(cap => cap !== option)
-                                  }));
-                                }
-                              }}
-                            />
-                            <span>{option}</span>
+                            {option}
                           </label>
                         </div>
                       ))}
@@ -715,34 +707,30 @@ export default function PitScoutingMobile() {
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Question 4: What can they do during endgame</h3>
                     <div className="space-y-3">
                       {['Climb', 'Balance', 'Park', 'None'].map((option) => (
-                        <div key={option} className="checkbox-card-wrapper">
+                        <div key={option} className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
+                          <Checkbox
+                            id={`endgame-${option}`}
+                            checked={formData.endgameCapabilities.includes(option)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  endgameCapabilities: [...prev.endgameCapabilities, option]
+                                }));
+                              } else {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  endgameCapabilities: prev.endgameCapabilities.filter(cap => cap !== option)
+                                }));
+                              }
+                            }}
+                            className="h-6 w-6"
+                          />
                           <label 
                             htmlFor={`endgame-${option}`}
-                            className="checkbox-card-label"
-                            style={{
-                              borderColor: formData.endgameCapabilities.includes(option) ? 'hsl(var(--primary))' : 'hsl(var(--border))',
-                              backgroundColor: formData.endgameCapabilities.includes(option) ? 'hsl(var(--primary) / 0.1)' : 'hsl(var(--background))'
-                            }}
+                            className="flex-1 text-sm font-medium text-foreground cursor-pointer"
                           >
-                            <input
-                              type="checkbox"
-                              id={`endgame-${option}`}
-                              checked={formData.endgameCapabilities.includes(option)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    endgameCapabilities: [...prev.endgameCapabilities, option]
-                                  }));
-                                } else {
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    endgameCapabilities: prev.endgameCapabilities.filter(cap => cap !== option)
-                                  }));
-                                }
-                              }}
-                            />
-                            <span>{option}</span>
+                            {option}
                           </label>
                         </div>
                       ))}

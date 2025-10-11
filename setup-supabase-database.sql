@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS scouting_data (
   notes JSONB DEFAULT '{}',
   
   -- Additional metrics
-  defense_rating INTEGER CHECK (defense_rating >= 1 AND defense_rating <= 5) DEFAULT 3,
+  defense_rating INTEGER CHECK (defense_rating >= 1 AND defense_rating <= 10) DEFAULT 5,
   comments TEXT,
   
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

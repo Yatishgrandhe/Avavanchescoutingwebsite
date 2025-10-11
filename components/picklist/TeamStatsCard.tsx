@@ -105,7 +105,7 @@ export function TeamStatsCard({
           <Shield className="h-4 w-4 text-gray-500" />
           <span className="text-xs text-gray-500">Defense</span>
           <span className={`text-sm font-semibold ${getDefenseColor(stats.avg_defense_rating)}`}>
-            {stats.avg_defense_rating.toFixed(1)}/5
+            {stats.avg_defense_rating.toFixed(1)}/10
           </span>
         </div>
         

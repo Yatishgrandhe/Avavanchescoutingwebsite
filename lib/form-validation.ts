@@ -66,9 +66,9 @@ export const commonRules = {
   defenseRating: {
     required: true,
     min: 1,
-    max: 5,
+    max: 10,
     custom: (value: number) => {
-      if (value < 1 || value > 5) return 'Defense rating must be between 1 and 5';
+      if (value < 1 || value > 10) return 'Defense rating must be between 1 and 10';
       return null;
     }
   },

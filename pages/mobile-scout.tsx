@@ -136,15 +136,19 @@ export default function MobileScout() {
     setValidationError(null);
     setHasInteracted(true);
     
+    // Skip validation for match-details as MatchDetailsForm handles its own validation
+    if (currentStep === 'match-details') {
+      setCurrentStep(nextStep);
+      return;
+    }
+    
+    // Validate the current step before proceeding to next step
     if (validateStep(currentStep)) {
       setCurrentStep(nextStep);
     } else {
       // Show validation error
       let errorMessage = '';
       switch (currentStep) {
-        case 'match-details':
-          errorMessage = 'Please select a match and team before proceeding.';
-          break;
         case 'endgame':
           errorMessage = 'Please select at least one endgame capability before proceeding.';
           break;
@@ -344,6 +348,7 @@ export default function MobileScout() {
                       allianceColor,
                       alliancePosition
                     }));
+                    setValidationError(null); // Clear any validation errors
                     handleStepNext('autonomous');
                   }}
                   currentStep={currentStepIndex}

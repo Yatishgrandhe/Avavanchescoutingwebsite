@@ -638,15 +638,15 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               <td className="p-2 md:p-3 font-bold text-sm md:text-lg text-primary">{data.final_score}</td>
                               <td className="p-2 md:p-3">
                                 <div className="flex items-center gap-1">
-                                  {[...Array(5)].map((_, i) => (
+                                  {[...Array(10)].map((_, i) => (
                                     <div
                                       key={i}
-                                      className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${
+                                      className={`w-1 h-1 md:w-1.5 md:h-1.5 rounded-full ${
                                         i < data.defense_rating ? 'bg-warning' : 'bg-muted'
                                       }`}
                                     />
                                   ))}
-                                  <span className="ml-1 md:ml-2 text-xs md:text-sm">{data.defense_rating}/5</span>
+                                  <span className="ml-1 md:ml-2 text-xs md:text-sm">{data.defense_rating}/10</span>
                                 </div>
                               </td>
                               {showUploaderInfo && (

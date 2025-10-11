@@ -467,8 +467,8 @@ export default function PitScoutingData() {
 
             {/* Detailed View Modal */}
             {showDetailModal && selectedItem && (
-              <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end justify-center z-50 p-4 pb-16">
-                <div className="bg-card rounded-xl max-w-6xl w-full max-h-[85vh] overflow-y-auto shadow-2xl border border-border animate-in fade-in-0 zoom-in-95 duration-300">
+              <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+                <div className="bg-card rounded-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-border animate-in fade-in-0 zoom-in-95 duration-300">
                   <div className="sticky top-0 bg-gradient-to-r from-primary to-secondary p-6 rounded-t-xl">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">

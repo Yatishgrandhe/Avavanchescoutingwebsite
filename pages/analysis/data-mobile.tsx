@@ -357,15 +357,15 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
                         <div className="flex items-center justify-center gap-2">
                           <span className="text-xs text-muted-foreground">Defense:</span>
                           <div className="flex items-center gap-1">
-                            {[...Array(5)].map((_, i) => (
+                            {[...Array(10)].map((_, i) => (
                               <div
                                 key={i}
-                                className={`w-2 h-2 rounded-full ${
+                                className={`w-1.5 h-1.5 rounded-full ${
                                   i < data.defense_rating ? 'bg-warning' : 'bg-muted'
                                 }`}
                               />
                             ))}
-                            <span className="ml-2 text-sm">{data.defense_rating}/5</span>
+                            <span className="ml-2 text-sm">{data.defense_rating}/10</span>
                           </div>
                         </div>
 

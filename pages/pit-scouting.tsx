@@ -3,7 +3,7 @@ import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
 import Layout from '@/components/layout/Layout';
-import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui';
+import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Checkbox } from '../components/ui';
 import { 
   Wrench, 
   CheckCircle, 
@@ -561,13 +561,12 @@ export default function PitScouting() {
                       <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-white">Question 2: What can they do in auto</h3>
                       <div className="space-y-3">
                         {['L1', 'L2', 'L3', 'L4', 'Move off of the starting line ONLY', 'Clean the reef (LOW algae)', 'Clean the reef (HIGH algae)'].map((option) => (
-                          <div key={option} className="flex items-start p-3 rounded-lg bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            <span className="text-sm font-medium text-gray-900 dark:text-white flex-1 pr-3 min-w-0 break-words">{option}</span>
-                            <input
-                              type="checkbox"
+                          <div key={option} className="flex items-center space-x-3 p-3 rounded-lg bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <Checkbox
+                              id={`auto-${option}`}
                               checked={formData.autonomousCapabilities.includes(option)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
+                              onCheckedChange={(checked) => {
+                                if (checked) {
                                   setFormData(prev => ({
                                     ...prev,
                                     autonomousCapabilities: [...prev.autonomousCapabilities, option]
@@ -579,8 +578,14 @@ export default function PitScouting() {
                                   }));
                                 }
                               }}
-                              className="cursor-pointer"
+                              className="h-6 w-6"
                             />
+                            <label 
+                              htmlFor={`auto-${option}`}
+                              className="flex-1 text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
+                            >
+                              {option}
+                            </label>
                           </div>
                         ))}
                       </div>
@@ -591,13 +596,12 @@ export default function PitScouting() {
                       <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-white">Question 3: What can they do during teleop</h3>
                       <div className="space-y-3">
                         {['L1', 'L2', 'L3', 'L4', 'Processor', 'Barge', 'Defense'].map((option) => (
-                          <div key={option} className="flex items-start p-3 rounded-lg bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            <span className="text-sm font-medium text-gray-900 dark:text-white flex-1 pr-3 min-w-0 break-words">{option}</span>
-                            <input
-                              type="checkbox"
+                          <div key={option} className="flex items-center space-x-3 p-3 rounded-lg bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <Checkbox
+                              id={`teleop-${option}`}
                               checked={formData.teleopCapabilities.includes(option)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
+                              onCheckedChange={(checked) => {
+                                if (checked) {
                                   setFormData(prev => ({
                                     ...prev,
                                     teleopCapabilities: [...prev.teleopCapabilities, option]
@@ -609,8 +613,14 @@ export default function PitScouting() {
                                   }));
                                 }
                               }}
-                              className="cursor-pointer"
+                              className="h-6 w-6"
                             />
+                            <label 
+                              htmlFor={`teleop-${option}`}
+                              className="flex-1 text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
+                            >
+                              {option}
+                            </label>
                           </div>
                         ))}
                       </div>
@@ -665,12 +675,12 @@ export default function PitScouting() {
                       <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-white">Question 4: What can they do during endgame</h3>
                       <div className="space-y-3">
                         {['Climb', 'Balance', 'Park', 'None'].map((option) => (
-                          <label key={option} className="flex items-center space-x-3 cursor-pointer">
-                            <input
-                              type="checkbox"
+                          <div key={option} className="flex items-center space-x-3 p-3 rounded-lg bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <Checkbox
+                              id={`endgame-${option}`}
                               checked={formData.endgameCapabilities.includes(option)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
+                              onCheckedChange={(checked) => {
+                                if (checked) {
                                   setFormData(prev => ({
                                     ...prev,
                                     endgameCapabilities: [...prev.endgameCapabilities, option]
@@ -682,10 +692,15 @@ export default function PitScouting() {
                                   }));
                                 }
                               }}
-                              className="cursor-pointer"
+                              className="h-6 w-6"
                             />
-                            <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">{option}</span>
-                          </label>
+                            <label 
+                              htmlFor={`endgame-${option}`}
+                              className="flex-1 text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
+                            >
+                              {option}
+                            </label>
+                          </div>
                         ))}
                       </div>
                     </div>

@@ -13,7 +13,13 @@ export const getSupabaseClient = () => {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: true
+        detectSessionInUrl: true,
+        flowType: 'pkce'
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'avalanche-scouting'
+        }
       }
     });
   }

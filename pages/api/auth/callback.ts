@@ -127,7 +127,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (code) {
     console.log('✅ Authorization code received, exchanging for session...');
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce'
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'avalanche-scouting'
+        }
+      }
+    });
     
     try {
       console.log('🔧 Supabase client created for session exchange');
@@ -140,43 +152,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
       
       if (!error && data.session) {
-        console.log('✅ Authentication successful, verifying Discord server membership...');
+        console.log('✅ Authentication successful, redirecting to dashboard');
         
-        // Get the Discord server ID from environment variables
-        const discordServerId = process.env.DISCORD_SERVER_ID;
-        
-        console.log('🔍 Checking Discord server verification...');
-        console.log('🏠 Server ID from environment:', discordServerId);
-        
-        if (!discordServerId) {
-          console.error('❌ DISCORD_SERVER_ID not configured in environment variables');
-          const errorMessage = 'Server configuration error. Please contact support.';
-          await notifyDiscordError(errorMessage, 'server_config_error', data.user);
-          res.redirect(302, `/auth/error?message=${encodeURIComponent(errorMessage)}&error=server_config_error`);
-          return;
-        }
-
-        // Verify Discord server membership
-        const isServerMember = await verifyDiscordServerMembership(
-          data.session.access_token,
-          discordServerId
-        );
-
-        // Notify Discord about the verification result
-        await notifyDiscordServerVerification(isServerMember, data.user, discordServerId);
-
-        if (isServerMember) {
-          console.log('✅ User is a member of the Avalanche Discord server, redirecting to dashboard');
-          // Successful authentication and server verification - redirect to dashboard
-          res.redirect(302, '/');
-          return;
-        } else {
-          console.log('❌ User is NOT a member of the Avalanche Discord server, redirecting to homepage');
-          // User is not a member of the server - redirect to homepage with message
-          const errorMessage = 'You must be a member of the Avalanche Discord server to access this platform.';
-          res.redirect(302, `/?message=${encodeURIComponent(errorMessage)}&error=not_server_member`);
-          return;
-        }
+        // Successful authentication - redirect to dashboard
+        // Removed Discord server verification requirement to allow all users
+        res.redirect(302, '/');
+        return;
       } else {
         console.error('❌ Auth callback error:', error);
         

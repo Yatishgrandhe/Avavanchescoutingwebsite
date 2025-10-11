@@ -365,7 +365,7 @@ export default function PitScoutingMobile() {
                           </SelectTrigger>
                           <SelectContent>
                             {teams.length === 0 ? (
-                              <SelectItem value="" disabled>No teams found in database</SelectItem>
+                              <SelectItem value="no-teams" disabled>No teams found in database</SelectItem>
                             ) : (
                               teams.map((team) => (
                                 <SelectItem key={team.team_number} value={team.team_number.toString()}>

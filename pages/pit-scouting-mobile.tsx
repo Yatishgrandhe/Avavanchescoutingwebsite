@@ -707,35 +707,32 @@ export default function PitScoutingMobile() {
                   {/* Endgame Capabilities */}
                   <div className="bg-muted p-4 rounded-lg border">
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Question 4: What can they do during endgame</h3>
-                    <div className="space-y-3">
-                      {['Climb', 'Balance', 'Park', 'None'].map((option) => (
-                        <div key={option} className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
-                          <input
-                            type="checkbox"
-                            id={`endgame-${option}`}
-                            checked={formData.endgameCapabilities.includes(option)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  endgameCapabilities: [...prev.endgameCapabilities, option]
-                                }));
-                              } else {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  endgameCapabilities: prev.endgameCapabilities.filter(cap => cap !== option)
-                                }));
-                              }
-                            }}
-                          />
-                          <label 
-                            htmlFor={`endgame-${option}`}
-                            className="flex-1 text-sm font-medium text-foreground cursor-pointer"
-                          >
-                            {option}
-                          </label>
-                        </div>
-                      ))}
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-foreground">
+                        Select Endgame Capability
+                      </label>
+                      <Select
+                        value={formData.endgameCapabilities[0] || ''}
+                        onValueChange={(value) => setFormData(prev => ({
+                          ...prev,
+                          endgameCapabilities: value ? [value] : []
+                        }))}
+                      >
+                        <SelectTrigger className="w-full bg-background border-input text-foreground">
+                          <SelectValue placeholder="Select an endgame capability" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border-input">
+                          {['Climb', 'Balance', 'Park', 'None'].map((option) => (
+                            <SelectItem 
+                              key={option} 
+                              value={option}
+                              className="text-foreground hover:bg-muted"
+                            >
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 

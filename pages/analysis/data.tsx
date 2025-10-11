@@ -14,16 +14,21 @@ import {
   Calendar,
   FileSpreadsheet,
   Eye,
-  EyeOff
+  EyeOff,
+  Edit,
+  Trash2,
+  Shield
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ScoutingData, Team } from '@/lib/types';
+import { useAdmin } from '@/hooks/use-admin';
 
 interface DataAnalysisProps {}
 
 const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const { supabase, user } = useSupabase();
+  const { isAdmin } = useAdmin();
   const [scoutingData, setScoutingData] = useState<ScoutingData[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [teamStats, setTeamStats] = useState<Array<{
@@ -48,6 +53,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [viewMode, setViewMode] = useState<'teams' | 'individual'>('teams');
   const [selectedTeamDetails, setSelectedTeamDetails] = useState<number | null>(null);
   const [selectedFormDetails, setSelectedFormDetails] = useState<string | null>(null);
+  const [deletingItem, setDeletingItem] = useState<ScoutingData | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -207,6 +214,43 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const getUploaderName = (scoutId: string) => {
     // For now, return the scout ID. In a real implementation, you'd look up the user
     return scoutId || 'Unknown';
+  };
+
+  const handleDelete = (item: ScoutingData) => {
+    setDeletingItem(item);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingItem) return;
+
+    try {
+      const { error } = await supabase
+        .from('scouting_data')
+        .delete()
+        .eq('id', deletingItem.id);
+
+      if (error) {
+        throw new Error(`Failed to delete scouting data: ${error.message}`);
+      }
+
+      // Remove from local state
+      setScoutingData(prev => prev.filter(item => item.id !== deletingItem.id));
+      
+      setShowDeleteConfirm(false);
+      setDeletingItem(null);
+      
+      // Reload data to update team stats
+      loadData();
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete scouting data. Please try again.');
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setDeletingItem(null);
   };
 
   if (loading) {
@@ -595,6 +639,14 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               </>
                             )}
                             <th className="text-left p-2 md:p-3 text-xs md:text-sm">Comments</th>
+                            {isAdmin && (
+                              <th className="text-left p-2 md:p-3 text-xs md:text-sm">
+                                <div className="flex items-center space-x-2">
+                                  <span>Actions</span>
+                                  <Shield className="w-4 h-4 text-yellow-500" title="Admin Controls" />
+                                </div>
+                              </th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
@@ -672,6 +724,21 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                   {data.comments || '-'}
                                 </div>
                               </td>
+                              {isAdmin && (
+                                <td className="p-2 md:p-3">
+                                  <div className="flex items-center space-x-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="bg-red-600 border-red-600 text-white hover:bg-red-700 text-xs"
+                                      onClick={() => handleDelete(data)}
+                                    >
+                                      <Trash2 className="h-3 w-3 mr-1" />
+                                      Delete
+                                    </Button>
+                                  </div>
+                                </td>
+                              )}
                             </motion.tr>
                           ))}
                         </tbody>
@@ -694,6 +761,40 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
               </CardContent>
             </Card>
           </motion.div>
+
+          {/* Delete Confirmation Dialog */}
+          {showDeleteConfirm && deletingItem && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="bg-red-600 rounded-full p-2">
+                    <Trash2 className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white">Confirm Delete</h3>
+                </div>
+                <p className="text-gray-300 mb-6">
+                  Are you sure you want to delete the scouting data for Team {deletingItem.team_number} - Match {deletingItem.match_id}?
+                  This action cannot be undone.
+                </p>
+                <div className="flex space-x-3">
+                  <Button
+                    variant="outline"
+                    onClick={cancelDelete}
+                    className="flex-1 bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={confirmDelete}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </Layout>
     </ProtectedRoute>

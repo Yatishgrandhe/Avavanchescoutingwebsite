@@ -47,7 +47,11 @@ interface PitScoutingData {
 
 export default function PitScouting() {
   const { user, loading } = useSupabase();
+  const router = useRouter();
+  const { id, edit } = router.query;
   const [currentStep, setCurrentStep] = useState(1);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loadingTeams, setLoadingTeams] = useState(false);
@@ -66,7 +70,7 @@ export default function PitScouting() {
     weight: 0,
     programmingLanguage: '',
     notes: '',
-    overallRating: 0,
+    overallRating: 1,
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -104,6 +108,50 @@ export default function PitScouting() {
 
     loadTeams();
   }, []);
+
+  // Load existing data for editing
+  useEffect(() => {
+    const loadExistingData = async () => {
+      if (edit === 'true' && id && typeof id === 'string') {
+        setIsEditMode(true);
+        setEditingId(id);
+        
+        try {
+          const { data: existingData, error } = await supabase
+            .from('pit_scouting_data')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+          if (error) {
+            throw new Error('Failed to load existing data');
+          }
+
+          if (existingData) {
+            setFormData({
+              teamNumber: existingData.team_number,
+              robotName: existingData.robot_name || '',
+              driveType: existingData.drive_type || '',
+              driveTrainOther: existingData.drive_type === 'Other' ? existingData.drive_type : '',
+              autonomousCapabilities: existingData.autonomous_capabilities || [],
+              teleopCapabilities: existingData.teleop_capabilities || [],
+              endgameCapabilities: existingData.endgame_capabilities || [],
+              robotDimensions: existingData.robot_dimensions || { height: 0 },
+              weight: existingData.weight || 0,
+              programmingLanguage: existingData.programming_language || '',
+              notes: existingData.notes || '',
+              overallRating: existingData.overall_rating || 1,
+            });
+          }
+        } catch (err) {
+          console.error('Error loading existing data:', err);
+          setSubmitError('Failed to load existing data for editing');
+        }
+      }
+    };
+
+    loadExistingData();
+  }, [edit, id, supabase]);
 
   const validateStep = (step: number): ValidationResult => {
     return validatePitScoutingStep(step, formData);
@@ -181,7 +229,7 @@ export default function PitScouting() {
         notes: formData.notes,
         strengths: [],
         weaknesses: [],
-        overall_rating: null,
+        overall_rating: formData.overallRating || 0,
         submitted_by: user.id,
         submitted_by_email: user.email,
         submitted_by_name: user.user_metadata?.full_name || user.email,
@@ -191,11 +239,33 @@ export default function PitScouting() {
       console.log('User info:', { id: user.id, email: user.email });
       console.log('Pit scouting data:', submissionData);
       
-      // Submit to Supabase
-      const { data, error } = await supabase
-        .from('pit_scouting_data')
-        .insert([submissionData])
-        .select();
+      // Submit to Supabase (create or update)
+      let data, error;
+      
+      if (isEditMode && editingId) {
+        // Update existing record
+        const updateData = { ...submissionData };
+        // Don't update the original submitter information
+        const { submitted_by, submitted_by_email, submitted_by_name, submitted_at, ...updateFields } = updateData;
+        
+        const result = await supabase
+          .from('pit_scouting_data')
+          .update(updateFields)
+          .eq('id', editingId)
+          .select();
+        
+        data = result.data;
+        error = result.error;
+      } else {
+        // Create new record
+        const result = await supabase
+          .from('pit_scouting_data')
+          .insert([submissionData])
+          .select();
+        
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) {
         console.error('Supabase error:', error);
@@ -207,21 +277,27 @@ export default function PitScouting() {
       
       // Reset form after successful submission
       setTimeout(() => {
-        setFormData({
-          teamNumber: 0,
-          robotName: '',
-          driveType: '',
-          driveTrainOther: '',
-          autonomousCapabilities: [],
-          teleopCapabilities: [],
-          endgameCapabilities: [],
-          robotDimensions: { height: 0 },
-          weight: 0,
-          programmingLanguage: '',
-          notes: '',
-          overallRating: 0,
-        });
-        setCurrentStep(1);
+        if (isEditMode) {
+          // Redirect back to pit data viewer after editing
+          router.push('/pit-scouting-data');
+        } else {
+          // Reset form for new submission
+          setFormData({
+            teamNumber: 0,
+            robotName: '',
+            driveType: '',
+            driveTrainOther: '',
+            autonomousCapabilities: [],
+            teleopCapabilities: [],
+            endgameCapabilities: [],
+            robotDimensions: { height: 0 },
+            weight: 0,
+            programmingLanguage: '',
+            notes: '',
+            overallRating: 1,
+          });
+          setCurrentStep(1);
+        }
         setSubmitSuccess(false);
       }, 2000);
       
@@ -267,10 +343,10 @@ export default function PitScouting() {
               </motion.div>
               <div>
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
-                  Pit Scouting
+                  {isEditMode ? 'Edit Pit Scouting Data' : 'Pit Scouting'}
                 </h1>
                 <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">
-                  Comprehensive robot analysis and documentation
+                  {isEditMode ? 'Update existing robot analysis and documentation' : 'Comprehensive robot analysis and documentation'}
                 </p>
               </div>
             </div>
@@ -690,6 +766,29 @@ export default function PitScouting() {
                     </div>
 
 
+                    {/* Overall Rating */}
+                    <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
+                      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">Overall Rating</h3>
+                      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                        <label className="block text-sm font-medium text-gray-900 dark:text-white">
+                          Rate this robot (1-10): <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="10"
+                          placeholder="8"
+                          value={formData.overallRating.toString()}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
+                            ...prev, 
+                            overallRating: parseInt(e.target.value) || 0
+                          }))}
+                          className="w-20 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white"
+                        />
+                        <span className="text-sm text-gray-600 dark:text-gray-400">(1 = Poor, 10 = Excellent)</span>
+                      </div>
+                    </div>
+
                     {/* General Notes */}
                     <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
                       <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">General Notes</h3>
@@ -717,11 +816,11 @@ export default function PitScouting() {
           {submitting ? (
             <>
               <Loader2 className="mr-2 w-4 h-4 animate-spin" />
-              Submitting...
+              {isEditMode ? 'Updating...' : 'Submitting...'}
             </>
           ) : (
             <>
-              Submit <ArrowRight className="ml-2 w-4 h-4" />
+              {isEditMode ? 'Update' : 'Submit'} <ArrowRight className="ml-2 w-4 h-4" />
             </>
           )}
         </Button>
@@ -740,7 +839,7 @@ export default function PitScouting() {
             >
               <div className="flex items-center space-x-2">
                 <CheckCircle className="w-5 h-5" />
-                <span>Pit scouting data submitted successfully!</span>
+                <span>Pit scouting data {isEditMode ? 'updated' : 'submitted'} successfully!</span>
               </div>
             </motion.div>
           )}

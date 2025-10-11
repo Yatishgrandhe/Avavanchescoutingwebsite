@@ -73,7 +73,7 @@ export default function PitScoutingMobile() {
     photos: [],
     strengths: [],
     weaknesses: [],
-    overallRating: 0,
+    overallRating: 1,
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -183,7 +183,7 @@ export default function PitScoutingMobile() {
         photos: formData.photos,
         strengths: formData.strengths,
         weaknesses: formData.weaknesses,
-        overall_rating: formData.overallRating,
+        overall_rating: formData.overallRating || 0,
         submitted_by: user.id,
         submitted_by_email: user.email,
         submitted_by_name: user.user_metadata?.full_name || user.email,
@@ -224,7 +224,7 @@ export default function PitScoutingMobile() {
           photos: [],
           strengths: [],
           weaknesses: [],
-          overallRating: 0,
+          overallRating: 1,
         });
         setCurrentStep(1);
         setSubmitSuccess(false);

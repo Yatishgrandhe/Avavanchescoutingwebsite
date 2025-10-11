@@ -24,11 +24,15 @@ import {
   Calendar,
   Wrench,
   Target,
-  RefreshCw
+  RefreshCw,
+  Edit,
+  Trash2,
+  Shield
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { supabase } from '@/lib/supabase';
+import { useAdmin } from '@/hooks/use-admin';
 
 interface PitScoutingData {
   id: string;
@@ -65,6 +69,7 @@ interface PitScoutingData {
 
 export default function PitScoutingData() {
   const { user, loading } = useSupabase();
+  const { isAdmin } = useAdmin();
   const router = useRouter();
   const [pitData, setPitData] = useState<PitScoutingData[]>([]);
   const [filteredData, setFilteredData] = useState<PitScoutingData[]>([]);
@@ -73,6 +78,9 @@ export default function PitScoutingData() {
   const [selectedTeam, setSelectedTeam] = useState('all');
   const [selectedView, setSelectedView] = useState('table');
   const [refreshing, setRefreshing] = useState(false);
+  const [editingItem, setEditingItem] = useState<PitScoutingData | null>(null);
+  const [deletingItem, setDeletingItem] = useState<PitScoutingData | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Load pit scouting data
   useEffect(() => {
@@ -157,6 +165,46 @@ export default function PitScoutingData() {
 
   const handleViewDetails = (item: PitScoutingData) => {
     router.push(`/pit-scouting-details?id=${item.id}`);
+  };
+
+  const handleEdit = (item: PitScoutingData) => {
+    setEditingItem(item);
+    router.push(`/pit-scouting?id=${item.id}&edit=true`);
+  };
+
+  const handleDelete = (item: PitScoutingData) => {
+    setDeletingItem(item);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingItem) return;
+
+    try {
+      const { error } = await supabase
+        .from('pit_scouting_data')
+        .delete()
+        .eq('id', deletingItem.id);
+
+      if (error) {
+        throw new Error(`Failed to delete pit scouting data: ${error.message}`);
+      }
+
+      // Remove from local state
+      setPitData(prev => prev.filter(item => item.id !== deletingItem.id));
+      setFilteredData(prev => prev.filter(item => item.id !== deletingItem.id));
+      
+      setShowDeleteConfirm(false);
+      setDeletingItem(null);
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete pit scouting data. Please try again.');
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setDeletingItem(null);
   };
 
   const refreshData = async () => {
@@ -327,7 +375,14 @@ export default function PitScoutingData() {
                         <TableHead>Rating</TableHead>
                         <TableHead>Uploaded By</TableHead>
                         <TableHead>Date</TableHead>
-                        <TableHead>Actions</TableHead>
+                        <TableHead>
+                          <div className="flex items-center space-x-2">
+                            <span>Actions</span>
+                            {isAdmin && (
+                              <Shield className="w-4 h-4 text-yellow-500" title="Admin Controls" />
+                            )}
+                          </div>
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -361,15 +416,39 @@ export default function PitScoutingData() {
                             {new Date(item.created_at).toLocaleDateString()}
                           </TableCell>
                           <TableCell>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-                              onClick={() => handleViewDetails(item)}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              View
-                            </Button>
+                            <div className="flex items-center space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+                                onClick={() => handleViewDetails(item)}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
+                              </Button>
+                              {isAdmin && (
+                                <>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="bg-blue-800 border-blue-600 text-white hover:bg-blue-700"
+                                    onClick={() => handleEdit(item)}
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Edit
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="bg-red-800 border-red-600 text-white hover:bg-red-700"
+                                    onClick={() => handleDelete(item)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-1" />
+                                    Delete
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -423,7 +502,7 @@ export default function PitScoutingData() {
                           {new Date(item.created_at).toLocaleDateString()}
                         </div>
                       </div>
-                      <div className="pt-3">
+                      <div className="pt-3 space-y-2">
                         <Button 
                           variant="outline" 
                           size="sm" 
@@ -433,10 +512,66 @@ export default function PitScoutingData() {
                           <Eye className="h-4 w-4 mr-1" />
                           View Details
                         </Button>
+                        {isAdmin && (
+                          <div className="flex space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="flex-1 bg-blue-800 border-blue-600 text-white hover:bg-blue-700"
+                              onClick={() => handleEdit(item)}
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="flex-1 bg-red-800 border-red-600 text-white hover:bg-red-700"
+                              onClick={() => handleDelete(item)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Delete
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+            )}
+
+            {/* Delete Confirmation Dialog */}
+            {showDeleteConfirm && deletingItem && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="bg-red-600 rounded-full p-2">
+                      <Trash2 className="h-6 w-6 text-white" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white">Confirm Delete</h3>
+                  </div>
+                  <p className="text-gray-300 mb-6">
+                    Are you sure you want to delete the pit scouting data for Team {deletingItem.team_number} - {deletingItem.robot_name}?
+                    This action cannot be undone.
+                  </p>
+                  <div className="flex space-x-3">
+                    <Button
+                      variant="outline"
+                      onClick={cancelDelete}
+                      className="flex-1 bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={confirmDelete}
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
 

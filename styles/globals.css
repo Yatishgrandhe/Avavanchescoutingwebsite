@@ -90,42 +90,60 @@ button:active {
 
 /* === IMPROVED CHECKBOX FIX - Works on all mobile orientations === */
 
-/* Base checkbox styling */
+/* Base checkbox styling - Override global rules */
 input[type="checkbox"] {
-  width: 22px;
-  height: 22px;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-color: hsl(var(--background));
-  border: 2px solid hsl(var(--primary));
-  border-radius: 6px;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-  display: inline-block;
-  vertical-align: middle;
-  margin: 0;
+  width: 22px !important;
+  height: 22px !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-color: hsl(var(--background)) !important;
+  border: 2px solid hsl(var(--primary)) !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  position: relative !important;
+  transition: all 0.2s ease !important;
+  flex-shrink: 0 !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  /* Override global user-select */
+  -webkit-user-select: auto !important;
+  -moz-user-select: auto !important;
+  -ms-user-select: auto !important;
+  user-select: auto !important;
 }
 
 input[type="checkbox"]:checked {
-  background-color: hsl(var(--primary));
-  border-color: hsl(var(--primary));
+  background-color: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+}
+
+/* Override global :active rule for checkboxes */
+input[type="checkbox"]:active {
+  background-color: hsl(var(--background)) !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+input[type="checkbox"]:checked:active {
+  background-color: hsl(var(--primary)) !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 /* CRITICAL FIX: Use content instead of text for checkmark */
 input[type="checkbox"]:checked::after {
-  content: "";
-  position: absolute;
-  display: block;
-  left: 50%;
-  top: 50%;
-  width: 5px;
-  height: 10px;
-  border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: translate(-50%, -60%) rotate(45deg);
+  content: "" !important;
+  position: absolute !important;
+  display: block !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: 5px !important;
+  height: 10px !important;
+  border: solid white !important;
+  border-width: 0 2px 2px 0 !important;
+  transform: translate(-50%, -60%) rotate(45deg) !important;
+  pointer-events: none !important;
 }
 
 /* === MOBILE PORTRAIT ORIENTATION FIX === */
@@ -140,6 +158,29 @@ input[type="checkbox"]:checked::after {
     position: relative !important;
     margin: 0 !important;
     padding: 0 !important;
+    background-color: hsl(var(--background)) !important;
+    border: 2px solid hsl(var(--primary)) !important;
+    border-radius: 6px !important;
+    /* Override global rules */
+    -webkit-user-select: auto !important;
+    -moz-user-select: auto !important;
+    -ms-user-select: auto !important;
+    user-select: auto !important;
+  }
+  
+  input[type="checkbox"]:checked {
+    background-color: hsl(var(--primary)) !important;
+    border-color: hsl(var(--primary)) !important;
+  }
+  
+  input[type="checkbox"]:active {
+    background-color: hsl(var(--background)) !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  
+  input[type="checkbox"]:checked:active {
+    background-color: hsl(var(--primary)) !important;
+    -webkit-tap-highlight-color: transparent !important;
   }
   
   input[type="checkbox"]:checked::after {
@@ -153,6 +194,7 @@ input[type="checkbox"]:checked::after {
     border: solid white !important;
     border-width: 0 2.5px 2.5px 0 !important;
     transform: translate(-50%, -60%) rotate(45deg) !important;
+    pointer-events: none !important;
   }
   
   /* Ensure label doesn't interfere */
@@ -176,14 +218,43 @@ input[type="checkbox"]:checked::after {
     height: 20px !important;
     min-width: 20px !important;
     min-height: 20px !important;
+    background-color: hsl(var(--background)) !important;
+    border: 2px solid hsl(var(--primary)) !important;
+    border-radius: 6px !important;
+    /* Override global rules */
+    -webkit-user-select: auto !important;
+    -moz-user-select: auto !important;
+    -ms-user-select: auto !important;
+    user-select: auto !important;
+  }
+  
+  input[type="checkbox"]:checked {
+    background-color: hsl(var(--primary)) !important;
+    border-color: hsl(var(--primary)) !important;
+  }
+  
+  input[type="checkbox"]:active {
+    background-color: hsl(var(--background)) !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  
+  input[type="checkbox"]:checked:active {
+    background-color: hsl(var(--primary)) !important;
+    -webkit-tap-highlight-color: transparent !important;
   }
   
   input[type="checkbox"]:checked::after {
     content: "" !important;
+    position: absolute !important;
+    display: block !important;
+    left: 50% !important;
+    top: 50% !important;
     width: 5px !important;
     height: 9px !important;
+    border: solid white !important;
     border-width: 0 2px 2px 0 !important;
     transform: translate(-50%, -60%) rotate(45deg) !important;
+    pointer-events: none !important;
   }
 }
 
@@ -194,12 +265,43 @@ input[type="checkbox"]:checked::after {
     height: 26px !important;
     min-width: 26px !important;
     min-height: 26px !important;
+    background-color: hsl(var(--background)) !important;
+    border: 2px solid hsl(var(--primary)) !important;
+    border-radius: 6px !important;
+    /* Override global rules */
+    -webkit-user-select: auto !important;
+    -moz-user-select: auto !important;
+    -ms-user-select: auto !important;
+    user-select: auto !important;
+  }
+  
+  input[type="checkbox"]:checked {
+    background-color: hsl(var(--primary)) !important;
+    border-color: hsl(var(--primary)) !important;
+  }
+  
+  input[type="checkbox"]:active {
+    background-color: hsl(var(--background)) !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  
+  input[type="checkbox"]:checked:active {
+    background-color: hsl(var(--primary)) !important;
+    -webkit-tap-highlight-color: transparent !important;
   }
   
   input[type="checkbox"]:checked::after {
+    content: "" !important;
+    position: absolute !important;
+    display: block !important;
+    left: 50% !important;
+    top: 50% !important;
     width: 7px !important;
     height: 12px !important;
+    border: solid white !important;
     border-width: 0 3px 3px 0 !important;
+    transform: translate(-50%, -60%) rotate(45deg) !important;
+    pointer-events: none !important;
   }
   
   label {

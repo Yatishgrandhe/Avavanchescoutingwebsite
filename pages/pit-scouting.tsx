@@ -18,6 +18,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, ValidationResult } from '@/lib/form-validation';
 
 interface Team {
   team_number: number;
@@ -70,6 +71,7 @@ export default function PitScouting() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
 
   const totalSteps = 3;
 
@@ -101,57 +103,24 @@ export default function PitScouting() {
     loadTeams();
   }, []);
 
-  const validateStep = (step: number): boolean => {
-    switch (step) {
-      case 1:
-        // Required: Team Number, Robot Name, Drive Type
-        if (!formData.teamNumber) return false;
-        if (!formData.robotName.trim()) return false;
-        if (!formData.driveType) return false;
-        // If "Other" is selected, require driveTrainOther input
-        if (formData.driveType === 'Other' && !formData.driveTrainOther?.trim()) return false;
-        return true;
-      
-      case 2:
-        // Required: At least one autonomous capability and one teleop capability
-        if (formData.autonomousCapabilities.length === 0) return false;
-        if (formData.teleopCapabilities.length === 0) return false;
-        return true;
-      
-      case 3:
-        // Required: At least one endgame capability
-        if (formData.endgameCapabilities.length === 0) return false;
-        return true;
-      
-      default:
-        return true;
-    }
+  const validateStep = (step: number): ValidationResult => {
+    return validatePitScoutingStep(step, formData);
   };
 
   const handleNext = () => {
     setValidationError(null);
     setHasInteracted(true);
     
-    if (validateStep(currentStep)) {
+    const validation = validateStep(currentStep);
+    setValidationErrors(validation.errors);
+    
+    if (validation.isValid) {
       if (currentStep < totalSteps) {
         setCurrentStep(currentStep + 1);
       }
     } else {
       // Show validation error
-      let errorMessage = '';
-      switch (currentStep) {
-        case 1:
-          errorMessage = 'Please select a team, enter robot name, and choose drive type.';
-          break;
-        case 2:
-          errorMessage = 'Please select at least one autonomous capability and one teleop capability.';
-          break;
-        case 3:
-          errorMessage = 'Please select at least one endgame capability.';
-          break;
-        default:
-          errorMessage = 'Please complete all required fields before proceeding.';
-      }
+      const errorMessage = getStepErrorMessage(currentStep, validation.errors);
       setValidationError(errorMessage);
     }
   };
@@ -166,6 +135,7 @@ export default function PitScouting() {
     setSubmitting(true);
     setSubmitError(null);
     setSubmitSuccess(false);
+    setValidationError(null);
 
     try {
       // Validate user authentication
@@ -173,17 +143,13 @@ export default function PitScouting() {
         throw new Error('User not authenticated. Please sign in and try again.');
       }
 
-      // Validate required fields
-      if (!formData.teamNumber || !formData.robotName || !formData.driveType) {
-        throw new Error('Please fill in all required fields (Team Number, Robot Name, Drive Type)');
-      }
-
-      if (formData.autonomousCapabilities.length === 0 || formData.teleopCapabilities.length === 0) {
-        throw new Error('Please select at least one autonomous and one teleop capability');
-      }
-
-      if (formData.endgameCapabilities.length === 0) {
-        throw new Error('Please select at least one endgame capability');
+      // Validate entire form
+      const validation = validatePitScoutingForm(formData);
+      if (!validation.isValid) {
+        setValidationErrors(validation.errors);
+        const errorMessage = 'Please fix the following errors before submitting: ' + 
+          Object.values(validation.errors).join(', ');
+        throw new Error(errorMessage);
       }
 
       // Prepare the data with submitter information

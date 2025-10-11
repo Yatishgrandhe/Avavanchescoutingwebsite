@@ -579,7 +579,7 @@ export default function PitScouting() {
                                   }));
                                 }
                               }}
-                              className="mt-0.5 w-5 h-5 text-primary bg-background border-2 border-primary rounded cursor-pointer focus:ring-2 focus:ring-primary focus:ring-offset-2 flex-shrink-0 relative"
+                              className="cursor-pointer"
                             />
                           </div>
                         ))}
@@ -609,7 +609,7 @@ export default function PitScouting() {
                                   }));
                                 }
                               }}
-                              className="mt-0.5 w-5 h-5 text-primary bg-background border-2 border-primary rounded cursor-pointer focus:ring-2 focus:ring-primary focus:ring-offset-2 flex-shrink-0 relative"
+                              className="cursor-pointer"
                             />
                           </div>
                         ))}
@@ -682,7 +682,7 @@ export default function PitScouting() {
                                   }));
                                 }
                               }}
-                              className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 flex-shrink-0 relative"
+                              className="cursor-pointer"
                             />
                             <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">{option}</span>
                           </label>

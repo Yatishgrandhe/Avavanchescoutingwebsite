@@ -53,6 +53,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
   return (
     <>
       <style jsx>{`
+        /* Remove conflicting checkbox styles - let globals.css handle it */
         input[type="checkbox"] {
           -webkit-tap-highlight-color: transparent !important;
           -webkit-touch-callout: none !important;
@@ -62,18 +63,6 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
           user-select: none !important;
           touch-action: manipulation !important;
           outline: none !important;
-        }
-        
-        input[type="checkbox"]:checked::after {
-          content: '✓';
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          transform: translate(-50%, -50%);
-          font-size: 14px;
-          font-weight: bold;
-          color: white;
-          pointer-events: none;
         }
         
         input[type="checkbox"]:active {
@@ -88,64 +77,6 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
         
         input[type="checkbox"]:hover {
           -webkit-tap-highlight-color: transparent !important;
-        }
-        
-        @media (orientation: portrait) {
-          input[type="checkbox"] {
-            width: 28px !important;
-            height: 28px !important;
-            -webkit-tap-highlight-color: transparent !important;
-          }
-          
-          input[type="checkbox"]:checked::after {
-            font-size: 16px;
-          }
-        }
-        
-        @media (orientation: landscape) {
-          input[type="checkbox"] {
-            width: 24px !important;
-            height: 24px !important;
-            -webkit-tap-highlight-color: transparent !important;
-            -webkit-touch-callout: none !important;
-            -webkit-user-select: none !important;
-            touch-action: manipulation !important;
-          }
-          
-          input[type="checkbox"]:checked::after {
-            font-size: 14px;
-          }
-          
-          input[type="checkbox"]:active {
-            -webkit-tap-highlight-color: transparent !important;
-            background-color: transparent !important;
-            transform: none !important;
-          }
-          
-          input[type="checkbox"]:focus {
-            -webkit-tap-highlight-color: transparent !important;
-            outline: none !important;
-            box-shadow: none !important;
-          }
-        }
-        
-        /* Additional mobile browser fixes */
-        @media screen and (max-width: 768px) {
-          input[type="checkbox"] {
-            -webkit-tap-highlight-color: transparent !important;
-            -webkit-touch-callout: none !important;
-            -webkit-user-select: none !important;
-            touch-action: manipulation !important;
-            outline: none !important;
-          }
-          
-          input[type="checkbox"]:active,
-          input[type="checkbox"]:focus,
-          input[type="checkbox"]:hover {
-            -webkit-tap-highlight-color: transparent !important;
-            background-color: transparent !important;
-            outline: none !important;
-          }
         }
       `}</style>
       <motion.div
@@ -236,20 +167,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                   type="checkbox"
                   checked={formData.auto_leave}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_leave', e.target.checked)}
-                  className="w-6 h-6 cursor-pointer appearance-none bg-background border-2 border-primary rounded-md transition-all duration-200 hover:border-primary/80 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 checked:bg-primary checked:border-primary"
-                  style={{
-                    WebkitTapHighlightColor: 'transparent',
-                    WebkitTouchCallout: 'none',
-                    WebkitUserSelect: 'none',
-                    MozUserSelect: 'none',
-                    msUserSelect: 'none',
-                    userSelect: 'none',
-                    touchAction: 'manipulation',
-                    outline: 'none',
-                    WebkitAppearance: 'none',
-                    MozAppearance: 'none',
-                    appearance: 'none'
-                  }}
+                  className="cursor-pointer"
                 />
               </div>
             </div>

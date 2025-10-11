@@ -17,8 +17,7 @@ import {
   Eye,
   ArrowLeft,
   ArrowRight,
-  Home,
-  AlertCircle
+  Home
 } from 'lucide-react';
 import MatchDetailsForm from '@/components/scout/MatchDetailsForm';
 import AutonomousForm from '@/components/scout/AutonomousForm';
@@ -64,7 +63,6 @@ export default function MobileScout() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
     matchData: {
       match_id: '',
@@ -98,54 +96,10 @@ export default function MobileScout() {
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
 
-  const validateStep = (step: ScoutingStep): boolean => {
-    switch (step) {
-      case 'match-details':
-        return Boolean(formData.matchData.match_id && formData.teamNumber);
-      case 'autonomous':
-        return true; // No required fields
-      case 'teleop':
-        return true; // No required fields
-      case 'endgame':
-        // Check if endgame data has been set (any boolean value means user made a selection)
-        return Boolean(
-          formData.endgame.endgame_park !== undefined || 
-          formData.endgame.endgame_shallow_cage !== undefined || 
-          formData.endgame.endgame_deep_cage !== undefined
-        );
-      case 'miscellaneous':
-        return Boolean(
-          formData.miscellaneous.defense_rating >= 1 && 
-          formData.miscellaneous.defense_rating <= 10 && 
-          formData.miscellaneous.comments.trim()
-        );
-      case 'review':
-        return true;
-      default:
-        return true;
-    }
-  };
 
   const handleStepNext = (nextStep: ScoutingStep) => {
-    setValidationError(null);
-    
-    // Skip validation for forms that handle their own validation
-    if (currentStep === 'match-details' || currentStep === 'endgame' || currentStep === 'miscellaneous') {
-      setCurrentStep(nextStep);
-      return;
-    }
-    
-    // Validate the current step before proceeding
-    if (validateStep(currentStep)) {
-      setCurrentStep(nextStep);
-    } else {
-      let errorMessage = '';
-      switch (currentStep) {
-        default:
-          errorMessage = 'Please complete all required fields before proceeding.';
-      }
-      setValidationError(errorMessage);
-    }
+    // Forms handle their own validation, so we can proceed directly
+    setCurrentStep(nextStep);
   };
 
   const handleSubmit = async () => {
@@ -310,17 +264,6 @@ export default function MobileScout() {
 
       {/* Form Content */}
       <div className="p-4">
-        {/* Validation Error */}
-        {validationError && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center mb-4"
-          >
-            <AlertCircle className="h-5 w-5 mr-2" />
-            {validationError}
-          </motion.div>
-        )}
 
         <Card className="mb-6 min-h-[600px]">
           <CardContent className="p-4">
@@ -343,7 +286,6 @@ export default function MobileScout() {
                         allianceColor,
                         alliancePosition
                       }));
-                      setValidationError(null); // Clear any validation errors
                       handleStepNext('autonomous');
                     }}
                     currentStep={currentStepIndex}

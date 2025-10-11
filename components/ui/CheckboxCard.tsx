@@ -24,17 +24,19 @@ const CheckboxCard: React.FC<CheckboxCardProps> = ({
     <label
       htmlFor={id}
       className={cn(
-        'flex items-center p-4 rounded-lg border cursor-pointer transition-all duration-200',
-        'bg-card text-card-foreground',
-        'hover:bg-accent hover:text-accent-foreground',
-        checked ? 'border-primary bg-primary/10 shadow-sm' : 'border-border',
+        'flex items-start p-4 rounded-xl border-2 cursor-pointer transition-all duration-200',
+        'bg-card text-card-foreground shadow-sm',
+        'hover:border-primary/50',
+        checked 
+          ? 'border-primary bg-primary/10 ring-2 ring-primary/20' 
+          : 'border-border',
         className
       )}
     >
-      <div className="flex-1 min-w-0">
-        <span className="font-medium break-words">{label}</span>
+      <div className="flex-1 min-w-0 pr-4">
+        <span className="font-semibold text-base break-words">{label}</span>
       </div>
-      <div className="ml-4 flex-shrink-0">
+      <div className="flex-shrink-0">
         <input
           id={id}
           type="checkbox"
@@ -44,22 +46,22 @@ const CheckboxCard: React.FC<CheckboxCardProps> = ({
         />
         <motion.div
           className={cn(
-            'w-6 h-6 rounded-md border-2 flex items-center justify-center',
+            'w-7 h-7 rounded-lg border-2 flex items-center justify-center transition-colors duration-200',
             checked
               ? 'bg-primary border-primary'
-              : 'bg-transparent border-muted-foreground/50'
+              : 'bg-transparent border-muted-foreground/30'
           )}
           whileTap={{ scale: 0.9 }}
         >
           <AnimatePresence>
             {checked && (
               <motion.div
-                initial={{ scale: 0, opacity: 0 }}
+                initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                exit={{ scale: 0.5, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               >
-                <Check className="w-4 h-4 text-primary-foreground" />
+                <Check className="w-5 h-5 text-primary-foreground" />
               </motion.div>
             )}
           </AnimatePresence>

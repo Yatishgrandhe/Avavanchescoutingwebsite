@@ -42,6 +42,7 @@ interface PitScoutingData {
   weight?: number;
   programmingLanguage: string;
   notes: string;
+  overallRating: number;
 }
 
 export default function PitScouting() {
@@ -65,6 +66,7 @@ export default function PitScouting() {
     weight: 0,
     programmingLanguage: '',
     notes: '',
+    overallRating: 0,
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -132,6 +134,7 @@ export default function PitScouting() {
   };
 
   const handleSubmit = async () => {
+    console.log('Submit button clicked');
     setSubmitting(true);
     setSubmitError(null);
     setSubmitSuccess(false);
@@ -143,12 +146,17 @@ export default function PitScouting() {
         throw new Error('User not authenticated. Please sign in and try again.');
       }
 
+      console.log('Form data before validation:', formData);
+
       // Validate entire form
       const validation = validatePitScoutingForm(formData);
+      console.log('Validation result:', validation);
+      
       if (!validation.isValid) {
         setValidationErrors(validation.errors);
         const errorMessage = 'Please fix the following errors before submitting: ' + 
           Object.values(validation.errors).join(', ');
+        console.log('Validation errors:', validation.errors);
         throw new Error(errorMessage);
       }
 
@@ -173,7 +181,7 @@ export default function PitScouting() {
         notes: formData.notes,
         strengths: [],
         weaknesses: [],
-        overall_rating: 0,
+        overall_rating: null,
         submitted_by: user.id,
         submitted_by_email: user.email,
         submitted_by_name: user.user_metadata?.full_name || user.email,
@@ -211,6 +219,7 @@ export default function PitScouting() {
           weight: 0,
           programmingLanguage: '',
           notes: '',
+          overallRating: 0,
         });
         setCurrentStep(1);
         setSubmitSuccess(false);
@@ -700,14 +709,55 @@ export default function PitScouting() {
                       <ArrowLeft className="mr-2 w-4 h-4" />
                       Back
                     </Button>
-        <Button onClick={handleSubmit}>
-          Submit <ArrowRight className="ml-2 w-4 h-4" />
+        <Button 
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="bg-green-600 hover:bg-green-700 text-white"
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            <>
+              Submit <ArrowRight className="ml-2 w-4 h-4" />
+            </>
+          )}
         </Button>
                   </CardFooter>
                 </Card>
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Success Message */}
+          {submitSuccess && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50"
+            >
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="w-5 h-5" />
+                <span>Pit scouting data submitted successfully!</span>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Error Message */}
+          {submitError && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50"
+            >
+              <div className="flex items-center space-x-2">
+                <XCircle className="w-5 h-5" />
+                <span>{submitError}</span>
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
     </Layout>

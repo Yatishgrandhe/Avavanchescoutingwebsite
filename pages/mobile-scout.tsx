@@ -65,6 +65,7 @@ export default function MobileScout() {
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     matchData: {
       match_id: '',
@@ -163,6 +164,12 @@ export default function MobileScout() {
   };
 
   const handleSubmit = async () => {
+    // Prevent multiple submissions
+    if (isSubmitting) {
+      return;
+    }
+    
+    setIsSubmitting(true);
     try {
       // Calculate final score using the scoring values
       const autonomousPoints = calculateScore(formData.autonomous).final_score;
@@ -237,6 +244,8 @@ export default function MobileScout() {
     } catch (error) {
       console.error('Error submitting scouting data:', error);
       alert('Error submitting scouting data. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -508,9 +517,19 @@ export default function MobileScout() {
             <Button
               onClick={handleSubmit}
               className="flex-1"
+              disabled={isSubmitting}
             >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Submit
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Submit
+                </>
+              )}
             </Button>
           ) : (
             <Button

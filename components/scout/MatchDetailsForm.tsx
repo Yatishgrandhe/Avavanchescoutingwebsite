@@ -74,6 +74,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
       setSelectedTeam(null);
       setAllianceColor('');
       setAlliancePosition(null);
+      setError(''); // Clear any previous errors when match is selected
     }
   };
 
@@ -81,9 +82,13 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
     setSelectedTeam(teamNumber);
     setAllianceColor(color);
     setAlliancePosition(position);
+    setError(''); // Clear any previous errors when team is selected
   };
 
   const handleNext = () => {
+    // Clear any previous errors
+    setError('');
+    
     if (!selectedMatch) {
       setError('Please select a match');
       return;
@@ -99,7 +104,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
       return;
     }
 
-    setError('');
+    // All validations passed, proceed to next step
     onNext(selectedMatch, selectedTeam, allianceColor as 'red' | 'blue', alliancePosition);
   };
 

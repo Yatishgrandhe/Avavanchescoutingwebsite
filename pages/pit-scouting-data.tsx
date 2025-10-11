@@ -25,7 +25,8 @@ import {
   Target,
   X,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  FileText
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -399,129 +400,249 @@ export default function PitScoutingData() {
             {/* Detailed View Modal */}
             {showDetailModal && selectedItem && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                  <div className="flex items-center justify-between p-6 border-b border-gray-700">
-                    <h2 className="text-2xl font-bold text-white">Team {selectedItem.team_number} - {selectedItem.robot_name}</h2>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={closeDetailModal}
-                      className="text-gray-400 hover:text-white"
-                    >
-                      <X className="h-6 w-6" />
-                    </Button>
+                <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl max-w-5xl w-full max-h-[95vh] overflow-y-auto shadow-2xl border border-gray-700">
+                  <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-t-xl">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
+                          <Wrench className="h-8 w-8 text-white" />
+                        </div>
+                        <div>
+                          <h2 className="text-3xl font-bold text-white">Team {selectedItem.team_number}</h2>
+                          <p className="text-blue-100 text-lg">{selectedItem.robot_name}</p>
+                          <div className="flex items-center space-x-4 mt-2">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-20 bg-white/20 rounded-full h-2">
+                                <div 
+                                  className="bg-yellow-400 h-2 rounded-full" 
+                                  style={{ width: `${(selectedItem.overall_rating / 10) * 100}%` }}
+                                />
+                              </div>
+                              <span className="text-white font-semibold">{selectedItem.overall_rating}/10</span>
+                            </div>
+                            <Badge variant="outline" className="text-white border-white/30 bg-white/10">
+                              {selectedItem.drive_type}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={closeDetailModal}
+                        className="text-white hover:bg-white/20 rounded-full p-2"
+                      >
+                        <X className="h-6 w-6" />
+                      </Button>
+                    </div>
                   </div>
                   
-                  <div className="p-6 space-y-6">
+                  <div className="p-6 space-y-8">
                     {/* Basic Information */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-gray-700 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-white mb-3">Basic Information</h3>
-                        <div className="space-y-2">
-                          <p className="text-sm text-gray-300"><span className="font-medium">Team Number:</span> {selectedItem.team_number}</p>
-                          <p className="text-sm text-gray-300"><span className="font-medium">Robot Name:</span> {selectedItem.robot_name}</p>
-                          <p className="text-sm text-gray-300"><span className="font-medium">Drive Type:</span> {selectedItem.drive_type}</p>
-                          <p className="text-sm text-gray-300"><span className="font-medium">Programming Language:</span> {selectedItem.programming_language}</p>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <div className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 backdrop-blur-sm rounded-xl p-6 border border-blue-500/30">
+                        <div className="flex items-center space-x-3 mb-4">
+                          <div className="bg-blue-500 rounded-full p-2">
+                            <User className="h-5 w-5 text-white" />
+                          </div>
+                          <h3 className="text-xl font-bold text-white">Basic Information</h3>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center py-2 border-b border-blue-400/20">
+                            <span className="text-blue-200 font-medium">Team Number</span>
+                            <span className="text-white font-bold text-lg">{selectedItem.team_number}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 border-b border-blue-400/20">
+                            <span className="text-blue-200 font-medium">Robot Name</span>
+                            <span className="text-white font-semibold">{selectedItem.robot_name}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 border-b border-blue-400/20">
+                            <span className="text-blue-200 font-medium">Drive Type</span>
+                            <span className="text-white font-semibold">{selectedItem.drive_type}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2">
+                            <span className="text-blue-200 font-medium">Programming</span>
+                            <span className="text-white font-semibold">{selectedItem.programming_language || 'N/A'}</span>
+                          </div>
                         </div>
                       </div>
                       
-                      <div className="bg-gray-700 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-white mb-3">Robot Specifications</h3>
-                        <div className="space-y-2">
-                          <p className="text-sm text-gray-300">
-                            <span className="font-medium">Dimensions:</span> {
-                              selectedItem.robot_dimensions.length && selectedItem.robot_dimensions.width 
+                      <div className="bg-gradient-to-br from-green-600/20 to-green-800/20 backdrop-blur-sm rounded-xl p-6 border border-green-500/30">
+                        <div className="flex items-center space-x-3 mb-4">
+                          <div className="bg-green-500 rounded-full p-2">
+                            <Target className="h-5 w-5 text-white" />
+                          </div>
+                          <h3 className="text-xl font-bold text-white">Specifications</h3>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center py-2 border-b border-green-400/20">
+                            <span className="text-green-200 font-medium">Dimensions</span>
+                            <span className="text-white font-semibold text-sm">
+                              {selectedItem.robot_dimensions.length && selectedItem.robot_dimensions.width 
                                 ? `${selectedItem.robot_dimensions.length}" × ${selectedItem.robot_dimensions.width}" × ${selectedItem.robot_dimensions.height}"`
                                 : `${selectedItem.robot_dimensions.height}" (H only)`
-                            }
-                          </p>
-                          <p className="text-sm text-gray-300"><span className="font-medium">Weight:</span> {selectedItem.weight} lbs</p>
-                          <p className="text-sm text-gray-300"><span className="font-medium">Overall Rating:</span> {selectedItem.overall_rating}/10</p>
+                              }
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 border-b border-green-400/20">
+                            <span className="text-green-200 font-medium">Weight</span>
+                            <span className="text-white font-semibold">{selectedItem.weight} lbs</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2">
+                            <span className="text-green-200 font-medium">Rating</span>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-16 bg-green-400/20 rounded-full h-2">
+                                <div 
+                                  className="bg-yellow-400 h-2 rounded-full" 
+                                  style={{ width: `${(selectedItem.overall_rating / 10) * 100}%` }}
+                                />
+                              </div>
+                              <span className="text-white font-bold">{selectedItem.overall_rating}/10</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gradient-to-br from-purple-600/20 to-purple-800/20 backdrop-blur-sm rounded-xl p-6 border border-purple-500/30">
+                        <div className="flex items-center space-x-3 mb-4">
+                          <div className="bg-purple-500 rounded-full p-2">
+                            <Calendar className="h-5 w-5 text-white" />
+                          </div>
+                          <h3 className="text-xl font-bold text-white">Submission Info</h3>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center py-2 border-b border-purple-400/20">
+                            <span className="text-purple-200 font-medium">Submitted by</span>
+                            <span className="text-white font-semibold text-sm">{selectedItem.submitted_by_name}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 border-b border-purple-400/20">
+                            <span className="text-purple-200 font-medium">Email</span>
+                            <span className="text-white font-semibold text-xs">{selectedItem.submitted_by_email}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2">
+                            <span className="text-purple-200 font-medium">Date</span>
+                            <span className="text-white font-semibold text-sm">{new Date(selectedItem.created_at).toLocaleDateString()}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Capabilities */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="bg-gray-700 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-white mb-3">Autonomous Capabilities</h3>
-                        <div className="space-y-1">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <div className="bg-gradient-to-br from-orange-600/20 to-orange-800/20 backdrop-blur-sm rounded-xl p-6 border border-orange-500/30">
+                        <div className="flex items-center space-x-3 mb-4">
+                          <div className="bg-orange-500 rounded-full p-2">
+                            <CheckCircle className="h-5 w-5 text-white" />
+                          </div>
+                          <h3 className="text-xl font-bold text-white">Autonomous</h3>
+                        </div>
+                        <div className="space-y-3">
                           {selectedItem.autonomous_capabilities && selectedItem.autonomous_capabilities.length > 0 ? (
                             selectedItem.autonomous_capabilities.map((cap: string, index: number) => (
-                              <div key={index} className="flex items-center space-x-2">
-                                <CheckCircle className="h-4 w-4 text-green-400" />
-                                <span className="text-sm text-gray-300">{cap}</span>
+                              <div key={index} className="flex items-center space-x-3 p-3 bg-orange-500/10 rounded-lg border border-orange-400/20">
+                                <CheckCircle className="h-4 w-4 text-orange-400 flex-shrink-0" />
+                                <span className="text-white font-medium">{cap}</span>
                               </div>
                             ))
                           ) : (
-                            <p className="text-sm text-gray-400">No autonomous capabilities specified</p>
+                            <div className="p-4 bg-orange-500/10 rounded-lg border border-orange-400/20 text-center">
+                              <p className="text-orange-200">No autonomous capabilities specified</p>
+                            </div>
                           )}
                         </div>
                       </div>
                       
-                      <div className="bg-gray-700 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-white mb-3">Teleop Capabilities</h3>
-                        <div className="space-y-1">
+                      <div className="bg-gradient-to-br from-cyan-600/20 to-cyan-800/20 backdrop-blur-sm rounded-xl p-6 border border-cyan-500/30">
+                        <div className="flex items-center space-x-3 mb-4">
+                          <div className="bg-cyan-500 rounded-full p-2">
+                            <CheckCircle className="h-5 w-5 text-white" />
+                          </div>
+                          <h3 className="text-xl font-bold text-white">Teleop</h3>
+                        </div>
+                        <div className="space-y-3">
                           {selectedItem.teleop_capabilities && selectedItem.teleop_capabilities.length > 0 ? (
                             selectedItem.teleop_capabilities.map((cap: string, index: number) => (
-                              <div key={index} className="flex items-center space-x-2">
-                                <CheckCircle className="h-4 w-4 text-green-400" />
-                                <span className="text-sm text-gray-300">{cap}</span>
+                              <div key={index} className="flex items-center space-x-3 p-3 bg-cyan-500/10 rounded-lg border border-cyan-400/20">
+                                <CheckCircle className="h-4 w-4 text-cyan-400 flex-shrink-0" />
+                                <span className="text-white font-medium">{cap}</span>
                               </div>
                             ))
                           ) : (
-                            <p className="text-sm text-gray-400">No teleop capabilities specified</p>
+                            <div className="p-4 bg-cyan-500/10 rounded-lg border border-cyan-400/20 text-center">
+                              <p className="text-cyan-200">No teleop capabilities specified</p>
+                            </div>
                           )}
                         </div>
                       </div>
                       
-                      <div className="bg-gray-700 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-white mb-3">Endgame Capabilities</h3>
-                        <div className="space-y-1">
+                      <div className="bg-gradient-to-br from-pink-600/20 to-pink-800/20 backdrop-blur-sm rounded-xl p-6 border border-pink-500/30">
+                        <div className="flex items-center space-x-3 mb-4">
+                          <div className="bg-pink-500 rounded-full p-2">
+                            <CheckCircle className="h-5 w-5 text-white" />
+                          </div>
+                          <h3 className="text-xl font-bold text-white">Endgame</h3>
+                        </div>
+                        <div className="space-y-3">
                           {selectedItem.endgame_capabilities && selectedItem.endgame_capabilities.length > 0 ? (
                             selectedItem.endgame_capabilities.map((cap: string, index: number) => (
-                              <div key={index} className="flex items-center space-x-2">
-                                <CheckCircle className="h-4 w-4 text-green-400" />
-                                <span className="text-sm text-gray-300">{cap}</span>
+                              <div key={index} className="flex items-center space-x-3 p-3 bg-pink-500/10 rounded-lg border border-pink-400/20">
+                                <CheckCircle className="h-4 w-4 text-pink-400 flex-shrink-0" />
+                                <span className="text-white font-medium">{cap}</span>
                               </div>
                             ))
                           ) : (
-                            <p className="text-sm text-gray-400">No endgame capabilities specified</p>
+                            <div className="p-4 bg-pink-500/10 rounded-lg border border-pink-400/20 text-center">
+                              <p className="text-pink-200">No endgame capabilities specified</p>
+                            </div>
                           )}
                         </div>
                       </div>
                     </div>
 
                     {/* Strengths and Weaknesses */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-gray-700 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-white mb-3">Strengths</h3>
-                        <div className="space-y-1">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="bg-gradient-to-br from-emerald-600/20 to-emerald-800/20 backdrop-blur-sm rounded-xl p-6 border border-emerald-500/30">
+                        <div className="flex items-center space-x-3 mb-4">
+                          <div className="bg-emerald-500 rounded-full p-2">
+                            <CheckCircle className="h-5 w-5 text-white" />
+                          </div>
+                          <h3 className="text-xl font-bold text-white">Strengths</h3>
+                        </div>
+                        <div className="space-y-3">
                           {selectedItem.strengths && selectedItem.strengths.length > 0 ? (
                             selectedItem.strengths.map((strength: string, index: number) => (
-                              <div key={index} className="flex items-center space-x-2">
-                                <CheckCircle className="h-4 w-4 text-green-400" />
-                                <span className="text-sm text-gray-300">{strength}</span>
+                              <div key={index} className="flex items-center space-x-3 p-3 bg-emerald-500/10 rounded-lg border border-emerald-400/20">
+                                <CheckCircle className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                                <span className="text-white font-medium">{strength}</span>
                               </div>
                             ))
                           ) : (
-                            <p className="text-sm text-gray-400">No strengths specified</p>
+                            <div className="p-4 bg-emerald-500/10 rounded-lg border border-emerald-400/20 text-center">
+                              <p className="text-emerald-200">No strengths specified</p>
+                            </div>
                           )}
                         </div>
                       </div>
                       
-                      <div className="bg-gray-700 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-white mb-3">Weaknesses</h3>
-                        <div className="space-y-1">
+                      <div className="bg-gradient-to-br from-red-600/20 to-red-800/20 backdrop-blur-sm rounded-xl p-6 border border-red-500/30">
+                        <div className="flex items-center space-x-3 mb-4">
+                          <div className="bg-red-500 rounded-full p-2">
+                            <AlertCircle className="h-5 w-5 text-white" />
+                          </div>
+                          <h3 className="text-xl font-bold text-white">Weaknesses</h3>
+                        </div>
+                        <div className="space-y-3">
                           {selectedItem.weaknesses && selectedItem.weaknesses.length > 0 ? (
                             selectedItem.weaknesses.map((weakness: string, index: number) => (
-                              <div key={index} className="flex items-center space-x-2">
-                                <AlertCircle className="h-4 w-4 text-red-400" />
-                                <span className="text-sm text-gray-300">{weakness}</span>
+                              <div key={index} className="flex items-center space-x-3 p-3 bg-red-500/10 rounded-lg border border-red-400/20">
+                                <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
+                                <span className="text-white font-medium">{weakness}</span>
                               </div>
                             ))
                           ) : (
-                            <p className="text-sm text-gray-400">No weaknesses specified</p>
+                            <div className="p-4 bg-red-500/10 rounded-lg border border-red-400/20 text-center">
+                              <p className="text-red-200">No weaknesses specified</p>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -529,26 +650,18 @@ export default function PitScoutingData() {
 
                     {/* Notes */}
                     {selectedItem.notes && (
-                      <div className="bg-gray-700 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-white mb-3">Notes</h3>
-                        <p className="text-sm text-gray-300">{selectedItem.notes}</p>
+                      <div className="bg-gradient-to-br from-indigo-600/20 to-indigo-800/20 backdrop-blur-sm rounded-xl p-6 border border-indigo-500/30">
+                        <div className="flex items-center space-x-3 mb-4">
+                          <div className="bg-indigo-500 rounded-full p-2">
+                            <FileText className="h-5 w-5 text-white" />
+                          </div>
+                          <h3 className="text-xl font-bold text-white">Notes</h3>
+                        </div>
+                        <div className="p-4 bg-indigo-500/10 rounded-lg border border-indigo-400/20">
+                          <p className="text-white leading-relaxed">{selectedItem.notes}</p>
+                        </div>
                       </div>
                     )}
-
-                    {/* Submission Info */}
-                    <div className="bg-gray-700 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-white mb-3">Submission Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-gray-300"><span className="font-medium">Submitted by:</span> {selectedItem.submitted_by_name}</p>
-                          <p className="text-sm text-gray-300"><span className="font-medium">Email:</span> {selectedItem.submitted_by_email}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-300"><span className="font-medium">Submitted at:</span> {new Date(selectedItem.submitted_at).toLocaleString()}</p>
-                          <p className="text-sm text-gray-300"><span className="font-medium">Created:</span> {new Date(selectedItem.created_at).toLocaleString()}</p>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>

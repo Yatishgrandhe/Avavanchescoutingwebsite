@@ -41,6 +41,8 @@ interface PitScoutingData {
   weight?: number;
   programmingLanguage: string;
   notes: string;
+  strengths: string[];
+  weaknesses: string[];
   overallRating: number;
 }
 
@@ -65,6 +67,8 @@ export default function PitScouting() {
     weight: 0,
     programmingLanguage: '',
     notes: '',
+    strengths: [],
+    weaknesses: [],
     overallRating: 0,
   });
   const [submitting, setSubmitting] = useState(false);
@@ -197,8 +201,8 @@ export default function PitScouting() {
         weight: formData.weight,
         programming_language: formData.programmingLanguage,
         notes: formData.notes,
-        strengths: [], // Will be populated from notes or separate fields
-        weaknesses: [], // Will be populated from notes or separate fields
+        strengths: formData.strengths,
+        weaknesses: formData.weaknesses,
         overall_rating: formData.overallRating,
         submitted_by: user?.id,
         submitted_by_email: user?.email,
@@ -234,6 +238,8 @@ export default function PitScouting() {
           weight: 0,
           programmingLanguage: '',
           notes: '',
+          strengths: [],
+          weaknesses: [],
           overallRating: 0,
         });
         setCurrentStep(1);
@@ -727,6 +733,34 @@ export default function PitScouting() {
                       </div>
                     </div>
 
+                    {/* Strengths */}
+                    <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
+                      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">Strengths</h3>
+                      <textarea
+                        className="w-full h-24 sm:h-28 px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                        placeholder="List the robot's key strengths and advantages (separate with commas)..."
+                        value={formData.strengths.join(', ')}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
+                          ...prev, 
+                          strengths: e.target.value.split(',').map(s => s.trim()).filter(s => s)
+                        }))}
+                      />
+                    </div>
+
+                    {/* Weaknesses */}
+                    <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
+                      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">Weaknesses</h3>
+                      <textarea
+                        className="w-full h-24 sm:h-28 px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                        placeholder="List the robot's weaknesses and areas for improvement (separate with commas)..."
+                        value={formData.weaknesses.join(', ')}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
+                          ...prev, 
+                          weaknesses: e.target.value.split(',').map(s => s.trim()).filter(s => s)
+                        }))}
+                      />
+                    </div>
+
                     {/* General Notes */}
                     <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
                       <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">General Notes</h3>
@@ -859,6 +893,36 @@ export default function PitScouting() {
                             {formData.endgameCapabilities.length > 0 ? (
                               formData.endgameCapabilities.map((cap, index) => (
                                 <p key={index} className="text-sm text-muted-foreground">• {cap}</p>
+                              ))
+                            ) : (
+                              <p className="text-sm text-muted-foreground">N/A</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-muted rounded-lg p-4 border">
+                      <h3 className="font-semibold mb-3">Strengths & Weaknesses</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground font-medium mb-2">Strengths:</p>
+                          <div className="space-y-1">
+                            {formData.strengths.length > 0 ? (
+                              formData.strengths.map((strength, index) => (
+                                <p key={index} className="text-sm text-muted-foreground">• {strength}</p>
+                              ))
+                            ) : (
+                              <p className="text-sm text-muted-foreground">N/A</p>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground font-medium mb-2">Weaknesses:</p>
+                          <div className="space-y-1">
+                            {formData.weaknesses.length > 0 ? (
+                              formData.weaknesses.map((weakness, index) => (
+                                <p key={index} className="text-sm text-muted-foreground">• {weakness}</p>
                               ))
                             ) : (
                               <p className="text-sm text-muted-foreground">N/A</p>

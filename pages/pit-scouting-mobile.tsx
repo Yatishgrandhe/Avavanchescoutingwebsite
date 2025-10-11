@@ -30,13 +30,7 @@ interface PitScoutingData {
   teamNumber: number;
   robotName: string;
   driveType: string;
-  driveTrainDetails: {
-    type: string;
-    autoCapabilities: string;
-    teleopCapabilities: string;
-    driveCamps: number;
-    playoffDriver: string;
-  };
+  driveTrainOther?: string; // For "Other" drivetrain option
   autonomousCapabilities: string[];
   teleopCapabilities: string[];
   endgameCapabilities: string[];
@@ -65,13 +59,7 @@ export default function PitScoutingMobile() {
     teamNumber: 0,
     robotName: '',
     driveType: '',
-    driveTrainDetails: {
-      type: '',
-      autoCapabilities: '',
-      teleopCapabilities: '',
-      driveCamps: 0,
-      playoffDriver: '',
-    },
+    driveTrainOther: '',
     autonomousCapabilities: [],
     teleopCapabilities: [],
     endgameCapabilities: [],
@@ -128,7 +116,9 @@ export default function PitScoutingMobile() {
         // Required: Team Number, Robot Name, Drive Type
         if (!formData.teamNumber) return false;
         if (!formData.robotName.trim()) return false;
-        if (!formData.driveTrainDetails.type.trim()) return false;
+        if (!formData.driveType) return false;
+        // If "Other" is selected, require driveTrainOther input
+        if (formData.driveType === 'Other' && !formData.driveTrainOther?.trim()) return false;
         return true;
       
       case 2:
@@ -197,7 +187,27 @@ export default function PitScoutingMobile() {
     try {
       // Prepare the data with submitter information
       const submissionData = {
-        ...formData,
+        team_number: formData.teamNumber,
+        robot_name: formData.robotName,
+        drive_type: formData.driveType === 'Other' ? formData.driveTrainOther : formData.driveType,
+        drive_train_details: {
+          type: formData.driveType === 'Other' ? formData.driveTrainOther : formData.driveType,
+          auto_capabilities: formData.autonomousCapabilities.join(', '),
+          teleop_capabilities: formData.teleopCapabilities.join(', '),
+          drive_camps: 0, // Default value
+          playoff_driver: 'TBD' // Default value
+        },
+        autonomous_capabilities: formData.autonomousCapabilities,
+        teleop_capabilities: formData.teleopCapabilities,
+        endgame_capabilities: formData.endgameCapabilities,
+        robot_dimensions: formData.robotDimensions,
+        weight: formData.weight,
+        programming_language: formData.programmingLanguage,
+        notes: formData.notes,
+        photos: formData.photos,
+        strengths: formData.strengths,
+        weaknesses: formData.weaknesses,
+        overall_rating: formData.overallRating,
         submitted_by: user?.id,
         submitted_by_email: user?.email,
         submitted_by_name: user?.user_metadata?.full_name || user?.email,
@@ -206,15 +216,16 @@ export default function PitScoutingMobile() {
 
       console.log('Pit scouting data:', submissionData);
       
-      // TODO: Implement pit scouting data submission to Supabase
-      // This would be something like:
-      // const { data, error } = await supabase
-      //   .from('pit_scouting_data')
-      //   .insert([submissionData]);
+      // Submit to Supabase using MCP
+      const { data, error } = await supabase
+        .from('pit_scouting_data')
+        .insert([submissionData]);
+
+      if (error) {
+        throw new Error(`Failed to save pit scouting data: ${error.message}`);
+      }
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      console.log('Successfully saved pit scouting data:', data);
       setSubmitSuccess(true);
       
       // Reset form after successful submission
@@ -223,13 +234,7 @@ export default function PitScoutingMobile() {
           teamNumber: 0,
           robotName: '',
           driveType: '',
-          driveTrainDetails: {
-            type: '',
-            autoCapabilities: '',
-            teleopCapabilities: '',
-            driveCamps: 0,
-            playoffDriver: '',
-          },
+          driveTrainOther: '',
           autonomousCapabilities: [],
           teleopCapabilities: [],
           endgameCapabilities: [],
@@ -418,77 +423,51 @@ export default function PitScoutingMobile() {
                     </div>
                   </div>
 
-                  {/* Drive Train Details Section */}
-                  <div className="bg-muted p-4 rounded-lg border">
-                    <h3 className="text-lg font-semibold mb-4 text-foreground">Drive Train Details</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Drive Train Type <span className="text-destructive">*</span>
+                  {/* Drive Train Selection */}
+                  <div>
+                    <label className="block text-sm font-medium mb-3">
+                      Drive Train <span className="text-destructive">*</span>
+                    </label>
+                    <div className="space-y-3">
+                      {['8-wheel tan', 'Swerve'].map((option) => (
+                        <label key={option} className="flex items-center space-x-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="driveType"
+                            value={option}
+                            checked={formData.driveType === option}
+                            onChange={(e) => setFormData(prev => ({ 
+                              ...prev, 
+                              driveType: e.target.value,
+                              driveTrainOther: '' // Clear other when selecting predefined option
+                            }))}
+                            className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 flex-shrink-0"
+                          />
+                          <span className="text-sm font-medium flex-1">{option}</span>
                         </label>
+                      ))}
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="radio"
+                          name="driveType"
+                          value="Other"
+                          checked={formData.driveType === 'Other'}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            driveType: e.target.value 
+                          }))}
+                          className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 flex-shrink-0"
+                        />
+                        <span className="text-sm font-medium flex-shrink-0">Other:</span>
                         <Input
-                          placeholder="e.g., 6-wheel West Coast, 4-wheel Swerve"
-                          value={formData.driveTrainDetails.type}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
+                          placeholder="Specify drive train type"
+                          value={formData.driveTrainOther || ''}
+                          onChange={(e) => setFormData(prev => ({ 
                             ...prev, 
-                            driveTrainDetails: { ...prev.driveTrainDetails, type: e.target.value }
+                            driveTrainOther: e.target.value 
                           }))}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Number of Drive Camps
-                        </label>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          value={formData.driveTrainDetails.driveCamps?.toString() || ''}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            driveTrainDetails: { ...prev.driveTrainDetails, driveCamps: parseInt(e.target.value) || 0 }
-                          }))}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          What they do in Auto <span className="text-destructive">*</span>
-                        </label>
-                        <textarea
-                          className="w-full h-20 px-3 py-2 border border-input rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                          placeholder="Describe their autonomous capabilities and strategies..."
-                          value={formData.driveTrainDetails.autoCapabilities}
-                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            driveTrainDetails: { ...prev.driveTrainDetails, autoCapabilities: e.target.value }
-                          }))}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          What they do during Teleop <span className="text-destructive">*</span>
-                        </label>
-                        <textarea
-                          className="w-full h-20 px-3 py-2 border border-input rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                          placeholder="Describe their teleop capabilities and strategies..."
-                          value={formData.driveTrainDetails.teleopCapabilities}
-                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            driveTrainDetails: { ...prev.driveTrainDetails, teleopCapabilities: e.target.value }
-                          }))}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          How will they decide who will drive in playoffs?
-                        </label>
-                        <textarea
-                          className="w-full h-20 px-3 py-2 border border-input rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                          placeholder="Describe their playoff driver selection process..."
-                          value={formData.driveTrainDetails.playoffDriver}
-                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            driveTrainDetails: { ...prev.driveTrainDetails, playoffDriver: e.target.value }
-                          }))}
+                          disabled={formData.driveType !== 'Other'}
+                          className="flex-1 max-w-xs"
                         />
                       </div>
                     </div>
@@ -872,8 +851,8 @@ export default function PitScoutingMobile() {
                       <h3 className="font-semibold mb-3">Basic Information</h3>
                       <p className="text-sm text-muted-foreground">Team: {formData.teamNumber}</p>
                       <p className="text-sm text-muted-foreground">Robot: {formData.robotName || 'N/A'}</p>
-                      <p className="text-sm text-muted-foreground">Drive: {formData.driveTrainDetails.type || 'N/A'}</p>
-                      <p className="text-sm text-muted-foreground">Drive Camps: {formData.driveTrainDetails.driveCamps || 0}</p>
+                      <p className="text-sm text-muted-foreground">Drive: {formData.driveType === 'Other' ? formData.driveTrainOther : formData.driveType || 'N/A'}</p>
+                      <p className="text-sm text-muted-foreground">Language: {formData.programmingLanguage || 'N/A'}</p>
                     </div>
 
                     <div className="bg-muted rounded-lg p-4 border">

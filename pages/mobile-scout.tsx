@@ -115,8 +115,8 @@ export default function MobileScout() {
       
       case 'endgame':
         // Required: At least one endgame capability
-        if (!formData.endgame.endgame_park && !formData.endgame.endgame_shallow_cage && !formData.endgame.endgame_deep_cage) return false;
-        return true;
+        const hasEndgameSelection = formData.endgame.endgame_park || formData.endgame.endgame_shallow_cage || formData.endgame.endgame_deep_cage;
+        return hasEndgameSelection;
       
       case 'miscellaneous':
         // Required: Defense rating and comments
@@ -312,16 +312,18 @@ export default function MobileScout() {
 
       {/* Form Content */}
       <div className="p-4">
-        {validationError && hasInteracted && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center mb-4"
-          >
-            <AlertCircle className="h-5 w-5 mr-2" />
-            {validationError}
-          </motion.div>
-        )}
+        <div className="min-h-[60px] mb-4">
+          {validationError && hasInteracted && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center"
+            >
+              <AlertCircle className="h-5 w-5 mr-2" />
+              {validationError}
+            </motion.div>
+          )}
+        </div>
 
         <Card className="mb-6">
           <CardContent className="p-4">

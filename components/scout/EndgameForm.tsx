@@ -116,9 +116,9 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
             onClick={() => {
               // Convert dropdown selection to ScoringNotes format
               const scoringNotes: Partial<ScoringNotes> = {
-                endgame_park: formData.endgame_score === 'park',
-                endgame_shallow_cage: formData.endgame_score === 'shallow',
-                endgame_deep_cage: formData.endgame_score === 'deep',
+                endgame_park: formData.endgame_score === 'park' ? true : false,
+                endgame_shallow_cage: formData.endgame_score === 'shallow' ? true : false,
+                endgame_deep_cage: formData.endgame_score === 'deep' ? true : false,
               };
               onNext(scoringNotes);
             }}

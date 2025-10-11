@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 export default function TestCheckbox() {
   const [checked1, setChecked1] = useState(false);
   const [checked2, setChecked2] = useState(false);
-  const [checked3, setChecked3] = useState(false);
+  const [checkedOptions, setCheckedOptions] = useState<string[]>([]);
 
   return (
     <div className="min-h-screen bg-background text-foreground p-8">
@@ -67,8 +67,14 @@ export default function TestCheckbox() {
               <div key={option} className="flex items-center space-x-3">
                 <input
                   type="checkbox"
-                  checked={checked3}
-                  onChange={(e) => setChecked3(e.target.checked)}
+                  checked={checkedOptions.includes(option)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setCheckedOptions(prev => [...prev, option]);
+                    } else {
+                      setCheckedOptions(prev => prev.filter(opt => opt !== option));
+                    }
+                  }}
                   className="cursor-pointer"
                 />
                 <span className="text-lg">{option}</span>
@@ -76,7 +82,7 @@ export default function TestCheckbox() {
             ))}
           </div>
           <p className="text-sm text-muted-foreground mt-2">
-            Status: {checked3 ? 'Checked' : 'Unchecked'}
+            Selected: {checkedOptions.length > 0 ? checkedOptions.join(', ') : 'None'}
           </p>
         </motion.div>
 

@@ -278,7 +278,6 @@ export default function Scout() {
                           allianceColor,
                           alliancePosition
                         }));
-                        setValidationError(null); // Clear any validation errors
                         handleStepNext('autonomous');
                       }}
                       currentStep={currentStepIndex}

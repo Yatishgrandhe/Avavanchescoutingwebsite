@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/router';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui';
 import { Button } from '../components/ui';
 import { Badge } from '../components/ui/badge';
@@ -23,10 +24,6 @@ import {
   Calendar,
   Wrench,
   Target,
-  X,
-  CheckCircle,
-  AlertCircle,
-  FileText,
   RefreshCw
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
@@ -68,14 +65,13 @@ interface PitScoutingData {
 
 export default function PitScoutingData() {
   const { user, loading } = useSupabase();
+  const router = useRouter();
   const [pitData, setPitData] = useState<PitScoutingData[]>([]);
   const [filteredData, setFilteredData] = useState<PitScoutingData[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState('all');
   const [selectedView, setSelectedView] = useState('table');
-  const [selectedItem, setSelectedItem] = useState<PitScoutingData | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // Load pit scouting data
@@ -160,13 +156,7 @@ export default function PitScoutingData() {
   }, [pitData, searchTerm, selectedTeam]);
 
   const handleViewDetails = (item: PitScoutingData) => {
-    setSelectedItem(item);
-    setShowDetailModal(true);
-  };
-
-  const closeDetailModal = () => {
-    setShowDetailModal(false);
-    setSelectedItem(null);
+    router.push(`/pit-scouting-details?id=${item.id}`);
   };
 
   const refreshData = async () => {
@@ -465,278 +455,6 @@ export default function PitScoutingData() {
               </Card>
             )}
 
-            {/* Detailed View Modal */}
-            {showDetailModal && selectedItem && (
-              <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-                <div className="bg-gray-900 rounded-xl max-w-7xl w-full max-h-[95vh] overflow-hidden shadow-2xl border border-gray-700 animate-in fade-in-0 zoom-in-95 duration-300">
-                  <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-t-xl border-b border-gray-700">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
-                          <Wrench className="h-8 w-8 text-white" />
-                        </div>
-                        <div>
-                          <h2 className="text-3xl font-bold text-white">Team {selectedItem.team_number}</h2>
-                          <p className="text-white/80 text-lg">{selectedItem.robot_name}</p>
-                          <div className="flex items-center space-x-4 mt-2">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-20 bg-white/20 rounded-full h-2">
-                                <div 
-                                  className="bg-yellow-400 h-2 rounded-full" 
-                                  style={{ width: `${(selectedItem.overall_rating / 10) * 100}%` }}
-                                />
-                              </div>
-                              <span className="text-white font-semibold">{selectedItem.overall_rating}/10</span>
-                            </div>
-                            <Badge variant="outline" className="text-white border-white/30 bg-white/10">
-                              {selectedItem.drive_type}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={closeDetailModal}
-                        className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
-                      >
-                        <X className="h-6 w-6" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="overflow-y-auto max-h-[calc(95vh-120px)]">
-                  
-                    <div className="p-8 space-y-8">
-                      {/* Basic Information */}
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                          <div className="flex items-center space-x-3 mb-4">
-                            <div className="bg-blue-600 rounded-full p-2">
-                              <User className="h-5 w-5 text-white" />
-                            </div>
-                            <h3 className="text-xl font-bold text-white">Basic Information</h3>
-                          </div>
-                          <div className="space-y-3">
-                            <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                              <span className="text-gray-400 font-medium">Team Number</span>
-                              <span className="text-white font-bold text-lg">{selectedItem.team_number}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                              <span className="text-gray-400 font-medium">Robot Name</span>
-                              <span className="text-white font-semibold">{selectedItem.robot_name}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                              <span className="text-gray-400 font-medium">Drive Type</span>
-                              <span className="text-white font-semibold">{selectedItem.drive_type}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2">
-                              <span className="text-gray-400 font-medium">Programming</span>
-                              <span className="text-white font-semibold">{selectedItem.programming_language || 'N/A'}</span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                          <div className="flex items-center space-x-3 mb-4">
-                            <div className="bg-green-600 rounded-full p-2">
-                              <Target className="h-5 w-5 text-white" />
-                            </div>
-                            <h3 className="text-xl font-bold text-white">Specifications</h3>
-                          </div>
-                          <div className="space-y-3">
-                            <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                              <span className="text-gray-400 font-medium">Dimensions</span>
-                              <span className="text-white font-semibold text-sm">
-                                {selectedItem.robot_dimensions.length && selectedItem.robot_dimensions.width 
-                                  ? `${selectedItem.robot_dimensions.length}" × ${selectedItem.robot_dimensions.width}" × ${selectedItem.robot_dimensions.height}"`
-                                  : `${selectedItem.robot_dimensions.height}" (H only)`
-                                }
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                              <span className="text-gray-400 font-medium">Weight</span>
-                              <span className="text-white font-semibold">{selectedItem.weight} lbs</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2">
-                              <span className="text-gray-400 font-medium">Rating</span>
-                              <div className="flex items-center space-x-2">
-                                <div className="w-16 bg-gray-700 rounded-full h-2">
-                                  <div 
-                                    className="bg-yellow-400 h-2 rounded-full" 
-                                    style={{ width: `${(selectedItem.overall_rating / 10) * 100}%` }}
-                                  />
-                                </div>
-                                <span className="text-white font-bold">{selectedItem.overall_rating}/10</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                          <div className="flex items-center space-x-3 mb-4">
-                            <div className="bg-purple-600 rounded-full p-2">
-                              <Calendar className="h-5 w-5 text-white" />
-                            </div>
-                            <h3 className="text-xl font-bold text-white">Submission Info</h3>
-                          </div>
-                          <div className="space-y-3">
-                            <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                              <span className="text-gray-400 font-medium">Submitted by</span>
-                              <span className="text-white font-semibold text-sm">{selectedItem.submitted_by_name}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                              <span className="text-gray-400 font-medium">Email</span>
-                              <span className="text-white font-semibold text-xs">{selectedItem.submitted_by_email}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2">
-                              <span className="text-gray-400 font-medium">Date</span>
-                              <span className="text-white font-semibold text-sm">{new Date(selectedItem.created_at).toLocaleDateString()}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Capabilities */}
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                          <div className="flex items-center space-x-3 mb-4">
-                            <div className="bg-yellow-500 rounded-full p-2">
-                              <CheckCircle className="h-5 w-5 text-white" />
-                            </div>
-                            <h3 className="text-xl font-bold text-white">Autonomous</h3>
-                          </div>
-                          <div className="space-y-3">
-                            {selectedItem.autonomous_capabilities && selectedItem.autonomous_capabilities.length > 0 ? (
-                              selectedItem.autonomous_capabilities.map((cap: string, index: number) => (
-                                <div key={index} className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg border border-gray-600">
-                                  <CheckCircle className="h-4 w-4 text-yellow-400 flex-shrink-0" />
-                                  <span className="text-white font-medium">{cap}</span>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="p-4 bg-gray-700 rounded-lg border border-gray-600 text-center">
-                                <p className="text-gray-400">No autonomous capabilities specified</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                          <div className="flex items-center space-x-3 mb-4">
-                            <div className="bg-blue-600 rounded-full p-2">
-                              <CheckCircle className="h-5 w-5 text-white" />
-                            </div>
-                            <h3 className="text-xl font-bold text-white">Teleop</h3>
-                          </div>
-                          <div className="space-y-3">
-                            {selectedItem.teleop_capabilities && selectedItem.teleop_capabilities.length > 0 ? (
-                              selectedItem.teleop_capabilities.map((cap: string, index: number) => (
-                                <div key={index} className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg border border-gray-600">
-                                  <CheckCircle className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                                  <span className="text-white font-medium">{cap}</span>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="p-4 bg-gray-700 rounded-lg border border-gray-600 text-center">
-                                <p className="text-gray-400">No teleop capabilities specified</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                          <div className="flex items-center space-x-3 mb-4">
-                            <div className="bg-purple-600 rounded-full p-2">
-                              <CheckCircle className="h-5 w-5 text-white" />
-                            </div>
-                            <h3 className="text-xl font-bold text-white">Endgame</h3>
-                          </div>
-                          <div className="space-y-3">
-                            {selectedItem.endgame_capabilities && selectedItem.endgame_capabilities.length > 0 ? (
-                              selectedItem.endgame_capabilities.map((cap: string, index: number) => (
-                                <div key={index} className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg border border-gray-600">
-                                  <CheckCircle className="h-4 w-4 text-purple-400 flex-shrink-0" />
-                                  <span className="text-white font-medium">{cap}</span>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="p-4 bg-gray-700 rounded-lg border border-gray-600 text-center">
-                                <p className="text-gray-400">No endgame capabilities specified</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Strengths and Weaknesses */}
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                          <div className="flex items-center space-x-3 mb-4">
-                            <div className="bg-green-600 rounded-full p-2">
-                              <CheckCircle className="h-5 w-5 text-white" />
-                            </div>
-                            <h3 className="text-xl font-bold text-white">Strengths</h3>
-                          </div>
-                          <div className="space-y-3">
-                            {selectedItem.strengths && selectedItem.strengths.length > 0 ? (
-                              selectedItem.strengths.map((strength: string, index: number) => (
-                                <div key={index} className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg border border-gray-600">
-                                  <CheckCircle className="h-4 w-4 text-green-400 flex-shrink-0" />
-                                  <span className="text-white font-medium">{strength}</span>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="p-4 bg-gray-700 rounded-lg border border-gray-600 text-center">
-                                <p className="text-gray-400">No strengths specified</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                          <div className="flex items-center space-x-3 mb-4">
-                            <div className="bg-red-600 rounded-full p-2">
-                              <AlertCircle className="h-5 w-5 text-white" />
-                            </div>
-                            <h3 className="text-xl font-bold text-white">Weaknesses</h3>
-                          </div>
-                          <div className="space-y-3">
-                            {selectedItem.weaknesses && selectedItem.weaknesses.length > 0 ? (
-                              selectedItem.weaknesses.map((weakness: string, index: number) => (
-                                <div key={index} className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg border border-gray-600">
-                                  <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
-                                  <span className="text-white font-medium">{weakness}</span>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="p-4 bg-gray-700 rounded-lg border border-gray-600 text-center">
-                                <p className="text-gray-400">No weaknesses specified</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Notes */}
-                      {selectedItem.notes && (
-                        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                          <div className="flex items-center space-x-3 mb-4">
-                            <div className="bg-blue-600 rounded-full p-2">
-                              <FileText className="h-5 w-5 text-white" />
-                            </div>
-                            <h3 className="text-xl font-bold text-white">Notes</h3>
-                          </div>
-                          <div className="p-4 bg-gray-700 rounded-lg border border-gray-600">
-                            <p className="text-white leading-relaxed">{selectedItem.notes}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </Layout>

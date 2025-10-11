@@ -16,7 +16,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
   totalSteps,
 }) => {
   const [formData, setFormData] = useState({
-    defense_rating: 1,
+    defense_rating: 1 as number | string,
     comments: '',
   });
 
@@ -66,8 +66,18 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
               type="number"
               min="1"
               max="10"
-              value={formData.defense_rating.toString()}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('defense_rating', parseInt(e.target.value) || 1)}
+              value={formData.defense_rating === '' ? '' : formData.defense_rating.toString()}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const value = e.target.value;
+                if (value === '') {
+                  setFormData(prev => ({ ...prev, defense_rating: '' }));
+                } else {
+                  const numValue = parseInt(value);
+                  if (!isNaN(numValue) && numValue >= 1 && numValue <= 10) {
+                    setFormData(prev => ({ ...prev, defense_rating: numValue }));
+                  }
+                }
+              }}
               className="bg-black border-dark-600 text-white"
               placeholder="Rate the team's defensive play from 1-10"
             />
@@ -98,7 +108,10 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
           </Button>
           
           <Button
-            onClick={() => onNext(formData)}
+            onClick={() => onNext({
+              defense_rating: formData.defense_rating === '' ? 0 : Number(formData.defense_rating),
+              comments: formData.comments
+            })}
             className="bg-reef-600 hover:bg-reef-700 text-white"
           >
             Next

@@ -143,7 +143,6 @@ export default function MobileScout() {
 
   const handleStepNext = (nextStep: ScoutingStep) => {
     setValidationError(null);
-    setHasInteracted(true);
     
     // Skip validation for match-details as MatchDetailsForm handles its own validation
     if (currentStep === 'match-details') {
@@ -155,7 +154,8 @@ export default function MobileScout() {
     if (validateStep(currentStep)) {
       setCurrentStep(nextStep);
     } else {
-      // Show validation error
+      // Only show validation error and mark as interacted when validation fails
+      setHasInteracted(true);
       let errorMessage = '';
       switch (currentStep) {
         case 'endgame':

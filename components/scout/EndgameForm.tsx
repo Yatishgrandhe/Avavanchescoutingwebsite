@@ -52,7 +52,7 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className="max-w-6xl mx-auto"
+      className="max-w-6xl mx-auto min-h-[500px]"
     >
       <Card className="bg-dark-800 border-dark-700">
         {/* Progress Bar */}

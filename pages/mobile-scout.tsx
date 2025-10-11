@@ -63,9 +63,8 @@ export default function MobileScout() {
   const { user, loading } = useSupabase();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const [hasInteracted, setHasInteracted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
     matchData: {
       match_id: '',
@@ -98,45 +97,30 @@ export default function MobileScout() {
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
+
   const validateStep = (step: ScoutingStep): boolean => {
     switch (step) {
       case 'match-details':
-        // Required: Match selection and team selection
-        if (!formData.matchData.match_id) return false;
-        if (!formData.teamNumber) return false;
-        return true;
-      
+        return Boolean(formData.matchData.match_id && formData.teamNumber);
       case 'autonomous':
-        // Autonomous form doesn't have required fields marked with *
-        return true;
-      
+        return true; // No required fields
       case 'teleop':
-        // Teleop form doesn't have required fields marked with *
-        return true;
-      
+        return true; // No required fields
       case 'endgame':
-        // Required: Endgame selection (including "none" as a valid selection)
-        // Check if any endgame option is selected (true) or explicitly set to false (none selected)
-        const hasEndgameSelection = Boolean(
-          formData.endgame.endgame_park || 
-          formData.endgame.endgame_shallow_cage || 
-          formData.endgame.endgame_deep_cage ||
-          // Check if all are explicitly false (which means "none" was selected)
-          (formData.endgame.endgame_park === false && 
-           formData.endgame.endgame_shallow_cage === false && 
-           formData.endgame.endgame_deep_cage === false)
+        // Check if any endgame option is selected or explicitly set to false
+        return Boolean(
+          formData.endgame.endgame_park !== undefined || 
+          formData.endgame.endgame_shallow_cage !== undefined || 
+          formData.endgame.endgame_deep_cage !== undefined
         );
-        return hasEndgameSelection;
-      
       case 'miscellaneous':
-        // Required: Defense rating and comments
-        if (!formData.miscellaneous.defense_rating || formData.miscellaneous.defense_rating < 1 || formData.miscellaneous.defense_rating > 10) return false;
-        if (!formData.miscellaneous.comments.trim()) return false;
-        return true;
-      
+        return Boolean(
+          formData.miscellaneous.defense_rating >= 1 && 
+          formData.miscellaneous.defense_rating <= 10 && 
+          formData.miscellaneous.comments.trim()
+        );
       case 'review':
         return true;
-      
       default:
         return true;
     }
@@ -151,19 +135,17 @@ export default function MobileScout() {
       return;
     }
     
-    // Validate the current step before proceeding to next step
+    // Validate the current step before proceeding
     if (validateStep(currentStep)) {
       setCurrentStep(nextStep);
     } else {
-      // Only show validation error and mark as interacted when validation fails
-      setHasInteracted(true);
       let errorMessage = '';
       switch (currentStep) {
         case 'endgame':
-          errorMessage = 'Please select an endgame score (including "No Endgame Score") before proceeding.';
+          errorMessage = 'Please select an endgame score before proceeding.';
           break;
         case 'miscellaneous':
-          errorMessage = 'Please provide a defense rating and comments before proceeding.';
+          errorMessage = 'Please provide a defense rating (1-10) and comments before proceeding.';
           break;
         default:
           errorMessage = 'Please complete all required fields before proceeding.';
@@ -334,20 +316,19 @@ export default function MobileScout() {
 
       {/* Form Content */}
       <div className="p-4">
-        <div className="min-h-[60px] mb-4">
-          {validationError && hasInteracted && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center"
-            >
-              <AlertCircle className="h-5 w-5 mr-2" />
-              {validationError}
-            </motion.div>
-          )}
-        </div>
+        {/* Validation Error */}
+        {validationError && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center mb-4"
+          >
+            <AlertCircle className="h-5 w-5 mr-2" />
+            {validationError}
+          </motion.div>
+        )}
 
-        <Card className="mb-6">
+        <Card className="mb-6 min-h-[600px]">
           <CardContent className="p-4">
             <motion.div
               key={currentStep}
@@ -355,6 +336,7 @@ export default function MobileScout() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
+              className="min-h-[500px]"
             >
               {currentStep === 'match-details' && (
                 <MatchDetailsForm

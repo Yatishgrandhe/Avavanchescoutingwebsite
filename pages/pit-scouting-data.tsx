@@ -26,7 +26,8 @@ import {
   X,
   CheckCircle,
   AlertCircle,
-  FileText
+  FileText,
+  RefreshCw
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -75,6 +76,7 @@ export default function PitScoutingData() {
   const [selectedView, setSelectedView] = useState('table');
   const [selectedItem, setSelectedItem] = useState<PitScoutingData | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Load pit scouting data
   useEffect(() => {
@@ -104,6 +106,9 @@ export default function PitScoutingData() {
             drive_camps: 0,
             playoff_driver: 'TBD'
           },
+          autonomous_capabilities: item.autonomous_capabilities || [],
+          teleop_capabilities: item.teleop_capabilities || [],
+          endgame_capabilities: item.endgame_capabilities || [],
           robot_dimensions: item.robot_dimensions || { height: 0 },
           weight: item.weight || 0,
           programming_language: item.programming_language || 'Unknown',
@@ -164,6 +169,57 @@ export default function PitScoutingData() {
     setSelectedItem(null);
   };
 
+  const refreshData = async () => {
+    setRefreshing(true);
+    try {
+      const { data: pitScoutingData, error } = await supabase
+        .from('pit_scouting_data')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(`Failed to load pit scouting data: ${error.message}`);
+      }
+
+      // Transform the data to match our interface
+      const transformedData: PitScoutingData[] = (pitScoutingData || []).map((item: any) => ({
+        id: item.id,
+        team_number: item.team_number,
+        robot_name: item.robot_name || 'Unknown Robot',
+        drive_type: item.drive_type || 'Unknown',
+        drive_train_details: item.drive_train_details || {
+          type: item.drive_type || 'Unknown',
+          auto_capabilities: '',
+          teleop_capabilities: '',
+          drive_camps: 0,
+          playoff_driver: 'TBD'
+        },
+        autonomous_capabilities: item.autonomous_capabilities || [],
+        teleop_capabilities: item.teleop_capabilities || [],
+        endgame_capabilities: item.endgame_capabilities || [],
+        robot_dimensions: item.robot_dimensions || { height: 0 },
+        weight: item.weight || 0,
+        programming_language: item.programming_language || 'Unknown',
+        notes: item.notes || '',
+        strengths: item.strengths || [],
+        weaknesses: item.weaknesses || [],
+        overall_rating: item.overall_rating || 0,
+        submitted_by: item.submitted_by,
+        submitted_by_email: item.submitted_by_email,
+        submitted_by_name: item.submitted_by_name,
+        submitted_at: item.submitted_at,
+        created_at: item.created_at
+      }));
+      
+      setPitData(transformedData);
+      setFilteredData(transformedData);
+    } catch (error) {
+      console.error('Error refreshing pit scouting data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -207,7 +263,7 @@ export default function PitScoutingData() {
             </motion.div>
 
             {/* Filters */}
-            <Card className="mb-6">
+            <Card className="mb-8 bg-gray-800/30 backdrop-blur-sm border-gray-700">
               <CardContent className="p-6">
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="flex-1 min-w-64">
@@ -243,6 +299,16 @@ export default function PitScoutingData() {
                       <SelectItem value="cards" className="text-white hover:bg-gray-700">Cards</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={refreshData}
+                    disabled={refreshing}
+                    className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -254,12 +320,13 @@ export default function PitScoutingData() {
                 <span className="ml-2 text-gray-400">Loading pit scouting data...</span>
               </div>
             ) : selectedView === 'table' ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-white">Pit Scouting Data ({filteredData.length} entries)</CardTitle>
+              <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-white text-xl">Pit Scouting Data ({filteredData.length} entries)</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <Table>
+                <CardContent className="px-6 pb-6">
+                  <div className="overflow-x-auto">
+                    <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Team</TableHead>
@@ -318,12 +385,13 @@ export default function PitScoutingData() {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredData.map((item) => (
-                  <Card key={item.id} className="bg-gray-800 border-gray-700">
+                  <Card key={item.id} className="bg-gray-800/50 backdrop-blur-sm border-gray-700 hover:bg-gray-800/70 transition-all duration-200 hover:scale-105 hover:shadow-lg">
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-white">Team {item.team_number}</CardTitle>
@@ -399,8 +467,8 @@ export default function PitScoutingData() {
 
             {/* Detailed View Modal */}
             {showDetailModal && selectedItem && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl max-w-5xl w-full max-h-[95vh] overflow-y-auto shadow-2xl border border-gray-700">
+              <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 pt-16">
+                <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl max-w-6xl w-full max-h-[85vh] overflow-y-auto shadow-2xl border border-gray-700 animate-in fade-in-0 zoom-in-95 duration-300">
                   <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-t-xl">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
@@ -437,7 +505,7 @@ export default function PitScoutingData() {
                     </div>
                   </div>
                   
-                  <div className="p-6 space-y-8">
+                  <div className="p-8 space-y-8">
                     {/* Basic Information */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                       <div className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 backdrop-blur-sm rounded-xl p-6 border border-blue-500/30">

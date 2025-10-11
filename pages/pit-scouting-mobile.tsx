@@ -185,6 +185,28 @@ export default function PitScoutingMobile() {
     setSubmitSuccess(false);
 
     try {
+      // Validate user authentication
+      if (!user) {
+        throw new Error('User not authenticated. Please sign in and try again.');
+      }
+
+      // Validate required fields
+      if (!formData.teamNumber || !formData.robotName || !formData.driveType) {
+        throw new Error('Please fill in all required fields (Team Number, Robot Name, Drive Type)');
+      }
+
+      if (formData.autonomousCapabilities.length === 0 || formData.teleopCapabilities.length === 0) {
+        throw new Error('Please select at least one autonomous and one teleop capability');
+      }
+
+      if (formData.endgameCapabilities.length === 0) {
+        throw new Error('Please select at least one endgame capability');
+      }
+
+      if (formData.overallRating === 0) {
+        throw new Error('Please provide an overall rating');
+      }
+
       // Prepare the data with submitter information
       const submissionData = {
         team_number: formData.teamNumber,
@@ -208,20 +230,23 @@ export default function PitScoutingMobile() {
         strengths: formData.strengths,
         weaknesses: formData.weaknesses,
         overall_rating: formData.overallRating,
-        submitted_by: user?.id,
-        submitted_by_email: user?.email,
-        submitted_by_name: user?.user_metadata?.full_name || user?.email,
+        submitted_by: user.id,
+        submitted_by_email: user.email,
+        submitted_by_name: user.user_metadata?.full_name || user.email,
         submitted_at: new Date().toISOString(),
       };
 
+      console.log('User info:', { id: user.id, email: user.email });
       console.log('Pit scouting data:', submissionData);
       
-      // Submit to Supabase using MCP
+      // Submit to Supabase
       const { data, error } = await supabase
         .from('pit_scouting_data')
-        .insert([submissionData]);
+        .insert([submissionData])
+        .select();
 
       if (error) {
+        console.error('Supabase error:', error);
         throw new Error(`Failed to save pit scouting data: ${error.message}`);
       }
       
@@ -822,6 +847,23 @@ export default function PitScoutingMobile() {
                       <XCircle className="h-5 w-5 mr-2" />
                       {submitError}
                     </motion.div>
+                  )}
+
+                  {/* Debug Information */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-600 text-xs text-gray-300">
+                      <h4 className="font-semibold mb-2">Debug Info:</h4>
+                      <p>User: {user ? `${user.email} (${user.id})` : 'Not authenticated'}</p>
+                      <p>Form Data: {JSON.stringify({
+                        teamNumber: formData.teamNumber,
+                        robotName: formData.robotName,
+                        driveType: formData.driveType,
+                        autonomousCapabilities: formData.autonomousCapabilities,
+                        teleopCapabilities: formData.teleopCapabilities,
+                        endgameCapabilities: formData.endgameCapabilities,
+                        overallRating: formData.overallRating
+                      }, null, 2)}</p>
+                    </div>
                   )}
 
                   {validationError && hasInteracted && (

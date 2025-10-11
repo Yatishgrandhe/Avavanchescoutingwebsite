@@ -63,6 +63,7 @@ export default function Scout() {
   const { user, loading } = useSupabase();
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     matchData: {
       match_id: '',
@@ -132,6 +133,7 @@ export default function Scout() {
 
   const handleStepNext = (nextStep: ScoutingStep) => {
     setValidationError(null);
+    setHasInteracted(true);
     
     if (validateStep(currentStep)) {
       setCurrentStep(nextStep);
@@ -305,7 +307,7 @@ export default function Scout() {
           {/* Form Content */}
           <Card className="w-full mx-auto px-4">
             <CardContent className="p-6">
-              {validationError && (
+              {validationError && hasInteracted && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}

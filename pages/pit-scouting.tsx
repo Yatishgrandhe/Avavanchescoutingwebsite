@@ -71,6 +71,7 @@ export default function PitScouting() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   const totalSteps = 4;
 
@@ -136,6 +137,7 @@ export default function PitScouting() {
 
   const handleNext = () => {
     setValidationError(null);
+    setHasInteracted(true);
     
     if (validateStep(currentStep)) {
       if (currentStep < totalSteps) {
@@ -342,7 +344,7 @@ export default function PitScouting() {
                       </motion.div>
                     )}
 
-                    {validationError && (
+                    {validationError && hasInteracted && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -545,7 +547,7 @@ export default function PitScouting() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6 sm:space-y-8">
-                    {validationError && (
+                    {validationError && hasInteracted && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -659,7 +661,7 @@ export default function PitScouting() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4 sm:space-y-6">
-                    {validationError && (
+                    {validationError && hasInteracted && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -786,7 +788,7 @@ export default function PitScouting() {
                       </motion.div>
                     )}
 
-                    {validationError && (
+                    {validationError && hasInteracted && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}

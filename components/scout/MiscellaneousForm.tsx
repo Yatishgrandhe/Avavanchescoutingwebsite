@@ -39,11 +39,11 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className="max-w-6xl mx-auto min-h-[500px]"
+      className="w-full max-w-4xl mx-auto min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]"
     >
       <Card className="bg-card border-border">
         {/* Progress Bar */}
-        <div className="px-6 pt-6">
+        <div className="px-3 sm:px-6 pt-3 sm:pt-6">
           <div className="w-full bg-muted rounded-full h-2">
             <motion.div
               initial={{ width: 0 }}
@@ -54,26 +54,26 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
           </div>
         </div>
 
-        <CardHeader className="text-center">
-          <CardTitle className="text-foreground text-2xl font-bold">
+        <CardHeader className="text-center px-3 sm:px-6">
+          <CardTitle className="text-foreground text-lg sm:text-xl lg:text-2xl font-bold">
             Additional Notes
           </CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription className="text-muted-foreground text-sm sm:text-base">
             Add any additional observations and comments
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4 sm:space-y-6">
+        <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-6">
           {/* Validation Error */}
           {validationError && (
-            <div className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center">
+            <div className="bg-orange-500/20 text-orange-400 p-2 sm:p-3 rounded-md text-xs sm:text-sm text-center flex items-center justify-center">
               <span>{validationError}</span>
             </div>
           )}
 
           {/* Defense Rating */}
-          <div className="space-y-4">
-            <h3 className="text-foreground font-semibold text-lg">Defense Rating <span className="text-destructive">*</span></h3>
+          <div className="space-y-2 sm:space-y-4">
+            <h3 className="text-foreground font-semibold text-base sm:text-lg">Defense Rating <span className="text-destructive">*</span></h3>
             <Input
               type="number"
               min="1"
@@ -93,24 +93,24 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
               className="bg-background border-border text-foreground"
               placeholder="Rate the team's defensive play from 1-10"
             />
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-xs sm:text-sm">
               1 = No defense, 10 = Exceptional defensive play
             </p>
           </div>
 
           {/* Comments */}
-          <div className="space-y-4">
-            <h3 className="text-foreground font-semibold text-lg">Comments <span className="text-destructive">*</span></h3>
+          <div className="space-y-2 sm:space-y-4">
+            <h3 className="text-foreground font-semibold text-base sm:text-lg">Comments <span className="text-destructive">*</span></h3>
             <textarea
               value={formData.comments}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('comments', e.target.value)}
-              className="w-full h-24 sm:h-32 lg:h-36 xl:h-40 bg-background border border-border text-foreground rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary text-sm sm:text-base"
+              className="w-full h-20 sm:h-24 md:h-32 lg:h-36 bg-background border border-border text-foreground rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary text-sm sm:text-base"
               placeholder="Add any additional observations, strategies observed, or notable robot capabilities..."
             />
           </div>
         </CardContent>
 
-        <CardFooter className="flex justify-between">
+        <CardFooter className="flex justify-between px-3 sm:px-6 pb-3 sm:pb-6">
           <Button
             variant="outline"
             onClick={onBack}

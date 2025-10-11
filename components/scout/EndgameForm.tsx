@@ -52,11 +52,11 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className="max-w-6xl mx-auto min-h-[500px]"
+      className="w-full max-w-4xl mx-auto min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]"
     >
       <Card className="bg-card border-border">
         {/* Progress Bar */}
-        <div className="px-6 pt-6">
+        <div className="px-3 sm:px-6 pt-3 sm:pt-6">
           <div className="w-full bg-muted rounded-full h-2">
             <motion.div
               initial={{ width: 0 }}
@@ -67,29 +67,29 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
           </div>
         </div>
 
-        <CardHeader className="text-center">
-          <CardTitle className="text-foreground text-2xl font-bold">
+        <CardHeader className="text-center px-3 sm:px-6">
+          <CardTitle className="text-foreground text-lg sm:text-xl lg:text-2xl font-bold">
             Endgame
           </CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription className="text-muted-foreground text-sm sm:text-base">
             Score the endgame actions (during teleop period)
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-6">
           {/* Validation Error */}
           {validationError && (
-            <div className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center">
+            <div className="bg-orange-500/20 text-orange-400 p-2 sm:p-3 rounded-md text-xs sm:text-sm text-center flex items-center justify-center">
               <span>{validationError}</span>
             </div>
           )}
 
           {/* Endgame Score Dropdown */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-foreground">
+          <div className="space-y-2 sm:space-y-3">
+            <label className="block text-sm sm:text-base font-medium text-foreground">
               Endgame Score <span className="text-destructive">*</span>
             </label>
-            <p className="text-muted-foreground text-sm">Select the endgame score achieved during teleop period</p>
+            <p className="text-muted-foreground text-xs sm:text-sm">Select the endgame score achieved during teleop period</p>
             <Select 
               value={formData.endgame_score} 
               onValueChange={(value) => handleSelectChange('endgame_score', value)}
@@ -107,15 +107,15 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
           </div>
 
           {/* Total Points Display */}
-          <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+          <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg">
             <div className="flex justify-between items-center">
-              <span className="text-foreground font-semibold">Total Endgame Points:</span>
-              <span className="text-primary text-2xl font-bold">{calculateTotal()}</span>
+              <span className="text-foreground font-semibold text-sm sm:text-base">Total Endgame Points:</span>
+              <span className="text-primary text-xl sm:text-2xl font-bold">{calculateTotal()}</span>
             </div>
           </div>
         </CardContent>
 
-        <CardFooter className="flex justify-between">
+        <CardFooter className="flex justify-between px-3 sm:px-6 pb-3 sm:pb-6">
           <Button
             variant="outline"
             onClick={onBack}

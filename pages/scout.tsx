@@ -224,8 +224,8 @@ export default function Scout() {
               <Progress value={progress} className="h-2" />
             </div>
 
-            {/* Step Indicators - Mobile Optimized */}
-            <div className="flex items-center justify-between overflow-x-auto pb-2">
+            {/* Step Indicators - Responsive */}
+            <div className="flex items-center justify-between overflow-x-auto pb-2 gap-1 sm:gap-2">
               {steps.map((step, index) => {
                 const Icon = step.icon;
                 const isCompleted = index < currentStepIndex;
@@ -234,20 +234,21 @@ export default function Scout() {
                 return (
                   <div key={step.id} className="flex flex-col items-center min-w-0 flex-1">
                     <div className={`
-                      flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors mb-2
+                      flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 transition-colors mb-1 sm:mb-2
                       ${isCompleted ? 'bg-primary border-primary text-primary-foreground' : 
                         isCurrent ? 'border-primary text-primary bg-primary/10' : 'border-muted text-muted-foreground'}
                     `}>
                       {isCompleted ? (
-                        <CheckCircle className="w-5 h-5" />
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                       ) : (
-                        <Icon className="w-5 h-5" />
+                        <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                       )}
                     </div>
-                    <span className={`text-xs font-medium text-center ${
+                    <span className={`text-xs sm:text-sm font-medium text-center leading-tight ${
                       isCurrent ? 'text-primary' : 'text-muted-foreground'
                     }`}>
-                      {step.title}
+                      <span className="hidden sm:inline">{step.title}</span>
+                      <span className="sm:hidden">{step.title.split(' ')[0]}</span>
                     </span>
                   </div>
                 );
@@ -256,10 +257,9 @@ export default function Scout() {
           </div>
 
           {/* Form Content */}
-          <Card className="w-full mx-auto px-4">
-            <CardContent className="p-6">
-
-              <div className="min-h-[600px]">
+          <Card className="w-full max-w-4xl mx-auto">
+            <CardContent className="p-4 sm:p-6 lg:p-8">
+              <div className="min-h-[400px] sm:min-h-[500px] lg:min-h-[600px]">
                 <AnimatePresence mode="wait">
                 {currentStep === 'match-details' && (
                   <motion.div

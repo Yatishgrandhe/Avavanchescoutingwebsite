@@ -231,8 +231,8 @@ export default function MobileScout() {
           <Progress value={progress} className="h-2 sm:h-3" />
         </div>
 
-        {/* Mobile Step Indicators */}
-        <div className="flex items-center justify-between overflow-x-auto pb-2">
+        {/* Responsive Step Indicators */}
+        <div className="flex items-center justify-between overflow-x-auto pb-2 gap-1 sm:gap-2">
           {steps.map((step, index) => {
             const Icon = step.icon;
             const isCompleted = index < currentStepIndex;
@@ -241,17 +241,17 @@ export default function MobileScout() {
             return (
               <div key={step.id} className="flex flex-col items-center min-w-0 flex-1">
                 <div className={`
-                  flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors mb-2
+                  flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 transition-colors mb-1 sm:mb-2
                   ${isCompleted ? 'bg-primary border-primary text-primary-foreground' : 
                     isCurrent ? 'border-primary text-primary bg-primary/10' : 'border-muted text-muted-foreground'}
                 `}>
                   {isCompleted ? (
-                    <CheckCircle className="w-5 h-5" />
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                   ) : (
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                   )}
                 </div>
-                <span className={`text-xs font-medium text-center ${
+                <span className={`text-xs sm:text-sm font-medium text-center leading-tight ${
                   isCurrent ? 'text-primary' : 'text-muted-foreground'
                 }`}>
                   {step.shortTitle}
@@ -265,9 +265,9 @@ export default function MobileScout() {
       {/* Form Content */}
       <div className="p-4">
 
-        <Card className="mb-6 min-h-[600px]">
-          <CardContent className="p-4">
-            <div className="min-h-[500px]">
+        <Card className="mb-6 min-h-[400px] sm:min-h-[500px] lg:min-h-[600px] max-w-4xl mx-auto">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
+            <div className="min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]">
               <motion.div
                 key={currentStep}
                 initial={{ opacity: 0, x: 20 }}

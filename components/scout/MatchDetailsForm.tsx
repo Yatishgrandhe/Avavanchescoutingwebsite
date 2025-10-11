@@ -115,16 +115,16 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className="max-w-6xl mx-auto min-h-[500px]"
+      className="w-full max-w-4xl mx-auto min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]"
     >
       <Card className="bg-card border-border">
         {/* Progress Bar */}
-        <div className="px-6 pt-6">
+        <div className="px-3 sm:px-6 pt-3 sm:pt-6">
           <div className="flex items-center justify-between mb-2">
-            <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            <span className={`text-xs sm:text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
               Step {currentStep} of {totalSteps}
             </span>
-            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <span className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               {Math.round(progressPercentage)}%
             </span>
           </div>
@@ -138,12 +138,12 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
           </div>
         </div>
 
-        <CardHeader className="text-center">
-          <CardTitle className={`text-2xl font-bold font-display flex items-center justify-center space-x-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-            <Target className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+        <CardHeader className="text-center px-3 sm:px-6">
+          <CardTitle className={`text-lg sm:text-xl lg:text-2xl font-bold font-display flex items-center justify-center space-x-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+            <Target className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
             <span>Match & Team Selection</span>
           </CardTitle>
-          <CardDescription className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+          <CardDescription className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             Select the match and team you want to scout
           </CardDescription>
         </CardHeader>

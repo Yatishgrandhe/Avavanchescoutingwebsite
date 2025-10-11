@@ -300,7 +300,7 @@ export default function PitScoutingMobile() {
       </div>
 
       {/* Content */}
-      <div className="p-4">
+      <div className="p-3 sm:p-4">
         {/* Form Steps */}
         <AnimatePresence mode="wait">
           {currentStep === 1 && (
@@ -310,19 +310,19 @@ export default function PitScoutingMobile() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
-              className="w-full max-w-sm mx-auto sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl"
+              className="w-full max-w-4xl mx-auto"
             >
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-3">
-                    <Settings className="w-6 h-6 text-muted-foreground" />
+                <CardHeader className="px-3 sm:px-6">
+                  <CardTitle className="flex items-center space-x-2 sm:space-x-3 text-lg sm:text-xl">
+                    <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
                     <span>Basic Information</span>
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-sm sm:text-base">
                     Enter basic team and robot information
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6">
                   {teamsError && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}

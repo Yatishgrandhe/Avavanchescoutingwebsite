@@ -379,7 +379,7 @@ export default function PitScoutingData() {
                           <div className="flex items-center space-x-2">
                             <span>Actions</span>
                             {isAdmin && (
-                              <Shield className="w-4 h-4 text-yellow-500" title="Admin Controls" />
+                              <Shield className="w-4 h-4 text-yellow-500" />
                             )}
                           </div>
                         </TableHead>

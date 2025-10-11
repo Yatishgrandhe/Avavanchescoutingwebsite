@@ -643,7 +643,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               <th className="text-left p-2 md:p-3 text-xs md:text-sm">
                                 <div className="flex items-center space-x-2">
                                   <span>Actions</span>
-                                  <Shield className="w-4 h-4 text-yellow-500" title="Admin Controls" />
+                                  <Shield className="w-4 h-4 text-yellow-500" />
                                 </div>
                               </th>
                             )}

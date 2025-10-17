@@ -282,6 +282,12 @@ export default function Scout() {
                       }}
                       currentStep={currentStepIndex}
                       totalSteps={steps.length}
+                      initialData={{
+                        matchData: formData.matchData.match_id ? formData.matchData : undefined,
+                        teamNumber: formData.teamNumber || undefined,
+                        allianceColor: formData.allianceColor,
+                        alliancePosition: formData.alliancePosition,
+                      }}
                     />
                   </motion.div>
                 )}
@@ -302,6 +308,7 @@ export default function Scout() {
                       onBack={() => setCurrentStep('match-details')}
                       currentStep={currentStepIndex}
                       totalSteps={steps.length}
+                      initialData={formData.autonomous}
                     />
                   </motion.div>
                 )}
@@ -323,6 +330,7 @@ export default function Scout() {
                       currentStep={currentStepIndex}
                       totalSteps={steps.length}
                       isDarkMode={true}
+                      initialData={formData.teleop}
                     />
                   </motion.div>
                 )}
@@ -343,6 +351,7 @@ export default function Scout() {
                       onBack={() => setCurrentStep('teleop')}
                       currentStep={currentStepIndex}
                       totalSteps={steps.length}
+                      initialData={formData.endgame}
                     />
                   </motion.div>
                 )}
@@ -363,6 +372,7 @@ export default function Scout() {
                       onBack={() => setCurrentStep('endgame')}
                       currentStep={currentStepIndex}
                       totalSteps={steps.length}
+                      initialData={formData.miscellaneous}
                     />
                   </motion.div>
                 )}

@@ -55,6 +55,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [selectedFormDetails, setSelectedFormDetails] = useState<string | null>(null);
   const [deletingItem, setDeletingItem] = useState<ScoutingData | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadData();
@@ -251,6 +252,29 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const cancelDelete = () => {
     setShowDeleteConfirm(false);
     setDeletingItem(null);
+  };
+
+  const toggleRowExpansion = (rowId: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(rowId)) {
+      newExpanded.delete(rowId);
+    } else {
+      newExpanded.add(rowId);
+    }
+    setExpandedRows(newExpanded);
+  };
+
+  const parseFormNotes = (notes: any) => {
+    try {
+      const parsed = typeof notes === 'string' ? JSON.parse(notes) : notes;
+      return {
+        autonomous: parsed.autonomous || {},
+        teleop: parsed.teleop || {},
+        endgame: parsed.endgame || {}
+      };
+    } catch (error) {
+      return { autonomous: {}, teleop: {}, endgame: {} };
+    }
   };
 
   if (loading) {
@@ -639,6 +663,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               </>
                             )}
                             <th className="text-left p-2 md:p-3 text-xs md:text-sm">Comments</th>
+                            <th className="text-left p-2 md:p-3 text-xs md:text-sm">Details</th>
                             {isAdmin && (
                               <th className="text-left p-2 md:p-3 text-xs md:text-sm">
                                 <div className="flex items-center space-x-2">
@@ -724,6 +749,17 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                   {data.comments || '-'}
                                 </div>
                               </td>
+                              <td className="p-2 md:p-3">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => toggleRowExpansion(data.id)}
+                                  className="text-xs"
+                                >
+                                  <Eye className="h-3 w-3 mr-1" />
+                                  {expandedRows.has(data.id) ? 'Hide' : 'Show'} Details
+                                </Button>
+                              </td>
                               {isAdmin && (
                                 <td className="p-2 md:p-3">
                                   <div className="flex items-center space-x-2">
@@ -740,6 +776,126 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 </td>
                               )}
                             </motion.tr>
+                            {/* Expanded Details Row */}
+                            {expandedRows.has(data.id) && (
+                              <motion.tr
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="bg-muted/20"
+                              >
+                                <td colSpan={isAdmin ? 11 : 10} className="p-4">
+                                  <div className="space-y-4">
+                                    <h4 className="font-semibold text-sm mb-3">Detailed Form Data</h4>
+                                    {(() => {
+                                      const formNotes = parseFormNotes(data.notes);
+                                      return (
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                          {/* Autonomous Details */}
+                                          <div className="bg-background p-3 rounded-lg border">
+                                            <h5 className="font-medium text-sm mb-2 text-blue-600">Autonomous Period</h5>
+                                            <div className="space-y-1 text-xs">
+                                              <div className="flex justify-between">
+                                                <span>Left Starting Zone:</span>
+                                                <span className="font-medium">{formNotes.autonomous.auto_leave ? 'Yes' : 'No'}</span>
+                                              </div>
+                                              <div className="flex justify-between">
+                                                <span>Coral Trough (L1):</span>
+                                                <span className="font-medium">{formNotes.autonomous.auto_coral_trough || 0} pieces</span>
+                                              </div>
+                                              <div className="flex justify-between">
+                                                <span>Coral L2:</span>
+                                                <span className="font-medium">{formNotes.autonomous.auto_coral_l2 || 0} pieces</span>
+                                              </div>
+                                              <div className="flex justify-between">
+                                                <span>Coral L3:</span>
+                                                <span className="font-medium">{formNotes.autonomous.auto_coral_l3 || 0} pieces</span>
+                                              </div>
+                                              <div className="flex justify-between">
+                                                <span>Coral L4:</span>
+                                                <span className="font-medium">{formNotes.autonomous.auto_coral_l4 || 0} pieces</span>
+                                              </div>
+                                              <div className="flex justify-between">
+                                                <span>Algae Processor:</span>
+                                                <span className="font-medium">{formNotes.autonomous.auto_algae_processor || 0} pieces</span>
+                                              </div>
+                                              <div className="flex justify-between">
+                                                <span>Algae Net:</span>
+                                                <span className="font-medium">{formNotes.autonomous.auto_algae_net || 0} pieces</span>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          {/* Teleop Details */}
+                                          <div className="bg-background p-3 rounded-lg border">
+                                            <h5 className="font-medium text-sm mb-2 text-green-600">Teleop Period</h5>
+                                            <div className="space-y-1 text-xs">
+                                              <div className="flex justify-between">
+                                                <span>Coral Trough (L1):</span>
+                                                <span className="font-medium">{formNotes.teleop.teleop_coral_trough || 0} pieces</span>
+                                              </div>
+                                              <div className="flex justify-between">
+                                                <span>Coral L2:</span>
+                                                <span className="font-medium">{formNotes.teleop.teleop_coral_l2 || 0} pieces</span>
+                                              </div>
+                                              <div className="flex justify-between">
+                                                <span>Coral L3:</span>
+                                                <span className="font-medium">{formNotes.teleop.teleop_coral_l3 || 0} pieces</span>
+                                              </div>
+                                              <div className="flex justify-between">
+                                                <span>Coral L4:</span>
+                                                <span className="font-medium">{formNotes.teleop.teleop_coral_l4 || 0} pieces</span>
+                                              </div>
+                                              <div className="flex justify-between">
+                                                <span>Algae Processor:</span>
+                                                <span className="font-medium">{formNotes.teleop.teleop_algae_processor || 0} pieces</span>
+                                              </div>
+                                              <div className="flex justify-between">
+                                                <span>Algae Net:</span>
+                                                <span className="font-medium">{formNotes.teleop.teleop_algae_net || 0} pieces</span>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          {/* Endgame & Additional Details */}
+                                          <div className="bg-background p-3 rounded-lg border">
+                                            <h5 className="font-medium text-sm mb-2 text-orange-600">Endgame & Additional</h5>
+                                            <div className="space-y-1 text-xs">
+                                              <div className="flex justify-between">
+                                                <span>Park in Barge:</span>
+                                                <span className="font-medium">{formNotes.endgame.endgame_park ? 'Yes' : 'No'}</span>
+                                              </div>
+                                              <div className="flex justify-between">
+                                                <span>Shallow Cage:</span>
+                                                <span className="font-medium">{formNotes.endgame.endgame_shallow_cage ? 'Yes' : 'No'}</span>
+                                              </div>
+                                              <div className="flex justify-between">
+                                                <span>Deep Cage:</span>
+                                                <span className="font-medium">{formNotes.endgame.endgame_deep_cage ? 'Yes' : 'No'}</span>
+                                              </div>
+                                              <div className="mt-2 pt-2 border-t">
+                                                <div className="flex justify-between">
+                                                  <span>Defense Rating:</span>
+                                                  <span className="font-medium">{data.defense_rating}/10</span>
+                                                </div>
+                                              </div>
+                                              {data.comments && (
+                                                <div className="mt-2 pt-2 border-t">
+                                                  <div className="text-xs">
+                                                    <span className="font-medium">Comments:</span>
+                                                    <p className="mt-1 text-muted-foreground">{data.comments}</p>
+                                                  </div>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                </td>
+                              </motion.tr>
+                            )}
                           ))}
                         </tbody>
                       </table>

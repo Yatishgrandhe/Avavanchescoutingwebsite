@@ -78,6 +78,7 @@ export default function PitScouting() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+  const [scoutedTeamNumbers, setScoutedTeamNumbers] = useState<Set<number>>(new Set());
 
   const totalSteps = 3;
 
@@ -88,16 +89,25 @@ export default function PitScouting() {
       setTeamsError(null);
       
       try {
-        const { data: teamsData, error } = await supabase
-          .from('teams')
-          .select('team_number, team_name, team_color')
-          .order('team_number');
+        // Load teams and pit scouting data in parallel
+        const [teamsResult, scoutedResult] = await Promise.all([
+          supabase.from('teams').select('team_number, team_name, team_color').order('team_number'),
+          supabase.from('pit_scouting_data').select('team_number')
+        ]);
 
-        if (error) {
+        if (teamsResult.error) {
           throw new Error('Failed to load teams');
         }
 
-        setTeams(teamsData || []);
+        if (scoutedResult.error) {
+          console.warn('Failed to load scouted teams:', scoutedResult.error);
+        }
+
+        setTeams(teamsResult.data || []);
+        
+        // Set scouted team numbers
+        const scoutedNumbers = new Set(scoutedResult.data?.map(item => item.team_number) || []);
+        setScoutedTeamNumbers(scoutedNumbers);
       } catch (err) {
         console.error('Error loading teams:', err);
         setTeamsError(err instanceof Error ? err.message : 'Failed to load teams');
@@ -442,7 +452,7 @@ export default function PitScouting() {
                               ) : (
                                 teams.map((team) => (
                                   <SelectItem key={team.team_number} value={team.team_number.toString()}>
-                                    {team.team_number} - {team.team_name || 'Unknown Team'}
+                                    {scoutedTeamNumbers.has(team.team_number) ? '✓ ' : ''}{team.team_number} - {team.team_name || 'Unknown Team'}
                                   </SelectItem>
                                 ))
                               )}

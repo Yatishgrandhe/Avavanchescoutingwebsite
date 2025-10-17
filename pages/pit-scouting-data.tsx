@@ -81,21 +81,33 @@ export default function PitScoutingData() {
   const [editingItem, setEditingItem] = useState<PitScoutingData | null>(null);
   const [deletingItem, setDeletingItem] = useState<PitScoutingData | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [allTeams, setAllTeams] = useState<Array<{team_number: number, team_name: string}>>([]);
+  const [scoutedTeamNumbers, setScoutedTeamNumbers] = useState<Set<number>>(new Set());
+  const [showUnscoutedTeams, setShowUnscoutedTeams] = useState(false);
+  const [selectedDetailItem, setSelectedDetailItem] = useState<PitScoutingData | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   // Load pit scouting data
   useEffect(() => {
     const loadPitData = async () => {
       setLoadingData(true);
       try {
-        // Load real data from Supabase
-        const { data: pitScoutingData, error } = await supabase
-          .from('pit_scouting_data')
-          .select('*')
-          .order('created_at', { ascending: false });
+        // Load all teams and pit scouting data in parallel
+        const [teamsResult, pitScoutingResult] = await Promise.all([
+          supabase.from('teams').select('team_number, team_name').order('team_number'),
+          supabase.from('pit_scouting_data').select('*').order('created_at', { ascending: false })
+        ]);
 
-        if (error) {
-          throw new Error(`Failed to load pit scouting data: ${error.message}`);
+        if (teamsResult.error) {
+          throw new Error(`Failed to load teams: ${teamsResult.error.message}`);
         }
+
+        if (pitScoutingResult.error) {
+          throw new Error(`Failed to load pit scouting data: ${pitScoutingResult.error.message}`);
+        }
+
+        const pitScoutingData = pitScoutingResult.data;
+        const teamsData = teamsResult.data || [];
 
         // Transform the data to match our interface
         const transformedData: PitScoutingData[] = (pitScoutingData || []).map((item: any) => ({
@@ -129,11 +141,18 @@ export default function PitScoutingData() {
         
         setPitData(transformedData);
         setFilteredData(transformedData);
+        
+        // Set teams and scouted team numbers
+        setAllTeams(teamsData);
+        const scoutedNumbers = new Set(pitScoutingData?.map((item: any) => item.team_number) || []);
+        setScoutedTeamNumbers(scoutedNumbers);
       } catch (error) {
         console.error('Error loading pit scouting data:', error);
         // Fallback to empty array on error
         setPitData([]);
         setFilteredData([]);
+        setAllTeams([]);
+        setScoutedTeamNumbers(new Set());
       } finally {
         setLoadingData(false);
       }
@@ -164,7 +183,8 @@ export default function PitScoutingData() {
   }, [pitData, searchTerm, selectedTeam]);
 
   const handleViewDetails = (item: PitScoutingData) => {
-    router.push(`/pit-scouting-details?id=${item.id}`);
+    setSelectedDetailItem(item);
+    setShowDetailModal(true);
   };
 
   const handleEdit = (item: PitScoutingData) => {
@@ -298,6 +318,77 @@ export default function PitScoutingData() {
                   </p>
                 </div>
               </div>
+            </motion.div>
+
+            {/* Pit Scouting Status Summary */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="mb-8"
+            >
+              <Card className="bg-gray-800/30 backdrop-blur-sm border-gray-700">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-white">
+                    <Target className="w-5 h-5 text-blue-400" />
+                    <span>Pit Scouting Progress</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <Badge variant="outline" className="bg-blue-500/20 text-blue-300 border-blue-500">
+                        {scoutedTeamNumbers.size}/{allTeams.length} Teams Scouted
+                      </Badge>
+                      <span className="text-gray-300 text-sm">
+                        {allTeams.length - scoutedTeamNumbers.size} teams remaining
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowUnscoutedTeams(!showUnscoutedTeams)}
+                      className="text-gray-300 hover:text-white"
+                    >
+                      {showUnscoutedTeams ? 'Hide' : 'Show'} Unscouted Teams
+                    </Button>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <motion.div
+                      className="bg-blue-500 h-2 rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${allTeams.length > 0 ? (scoutedTeamNumbers.size / allTeams.length) * 100 : 0}%` }}
+                      transition={{ duration: 0.8, delay: 0.3 }}
+                    />
+                  </div>
+                  
+                  {/* Unscouted Teams List */}
+                  {showUnscoutedTeams && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mt-4 p-4 bg-gray-900/50 rounded-lg border border-gray-600"
+                    >
+                      <h4 className="text-sm font-medium text-gray-300 mb-3">Teams Not Yet Scouted:</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                        {allTeams
+                          .filter(team => !scoutedTeamNumbers.has(team.team_number))
+                          .map(team => (
+                            <div
+                              key={team.team_number}
+                              className="text-xs text-gray-400 bg-gray-800/50 px-2 py-1 rounded border border-gray-600"
+                            >
+                              {team.team_number} - {team.team_name}
+                            </div>
+                          ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </CardContent>
+              </Card>
             </motion.div>
 
             {/* Filters */}
@@ -588,6 +679,188 @@ export default function PitScoutingData() {
                   </p>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Detailed View Modal */}
+            {showDetailModal && selectedDetailItem && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                >
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-2xl font-bold text-white">
+                        Team {selectedDetailItem.team_number} - {selectedDetailItem.robot_name}
+                      </h2>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowDetailModal(false)}
+                        className="text-gray-400 hover:text-white"
+                      >
+                        <XCircle className="h-5 w-5" />
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {/* Basic Information */}
+                      <div className="bg-gray-700/50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-white mb-3">Basic Information</h3>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Team Number:</span>
+                            <span className="text-white font-medium">{selectedDetailItem.team_number}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Robot Name:</span>
+                            <span className="text-white font-medium">{selectedDetailItem.robot_name}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Drive Type:</span>
+                            <span className="text-white font-medium">{selectedDetailItem.drive_type}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Programming Language:</span>
+                            <span className="text-white font-medium">{selectedDetailItem.programming_language || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Overall Rating:</span>
+                            <span className="text-white font-medium">{selectedDetailItem.overall_rating}/10</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Robot Dimensions */}
+                      <div className="bg-gray-700/50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-white mb-3">Robot Specifications</h3>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Length:</span>
+                            <span className="text-white font-medium">{selectedDetailItem.robot_dimensions.length ? `${selectedDetailItem.robot_dimensions.length}"` : 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Width:</span>
+                            <span className="text-white font-medium">{selectedDetailItem.robot_dimensions.width ? `${selectedDetailItem.robot_dimensions.width}"` : 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Height:</span>
+                            <span className="text-white font-medium">{selectedDetailItem.robot_dimensions.height ? `${selectedDetailItem.robot_dimensions.height}"` : 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Weight:</span>
+                            <span className="text-white font-medium">{selectedDetailItem.weight ? `${selectedDetailItem.weight} lbs` : 'N/A'}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Capabilities */}
+                      <div className="bg-gray-700/50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-white mb-3">Capabilities</h3>
+                        <div className="space-y-3 text-sm">
+                          <div>
+                            <span className="text-gray-300 font-medium">Autonomous:</span>
+                            <div className="mt-1">
+                              {selectedDetailItem.autonomous_capabilities.length > 0 ? (
+                                selectedDetailItem.autonomous_capabilities.map((cap, index) => (
+                                  <div key={index} className="text-white">• {cap}</div>
+                                ))
+                              ) : (
+                                <div className="text-gray-400">None specified</div>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-300 font-medium">Teleop:</span>
+                            <div className="mt-1">
+                              {selectedDetailItem.teleop_capabilities.length > 0 ? (
+                                selectedDetailItem.teleop_capabilities.map((cap, index) => (
+                                  <div key={index} className="text-white">• {cap}</div>
+                                ))
+                              ) : (
+                                <div className="text-gray-400">None specified</div>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-300 font-medium">Endgame:</span>
+                            <div className="mt-1">
+                              {selectedDetailItem.endgame_capabilities.length > 0 ? (
+                                selectedDetailItem.endgame_capabilities.map((cap, index) => (
+                                  <div key={index} className="text-white">• {cap}</div>
+                                ))
+                              ) : (
+                                <div className="text-gray-400">None specified</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Strengths & Weaknesses */}
+                      <div className="bg-gray-700/50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-white mb-3">Strengths</h3>
+                        <div className="text-sm">
+                          {selectedDetailItem.strengths.length > 0 ? (
+                            selectedDetailItem.strengths.map((strength, index) => (
+                              <div key={index} className="text-green-300 mb-1">• {strength}</div>
+                            ))
+                          ) : (
+                            <div className="text-gray-400">None specified</div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-700/50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-white mb-3">Weaknesses</h3>
+                        <div className="text-sm">
+                          {selectedDetailItem.weaknesses.length > 0 ? (
+                            selectedDetailItem.weaknesses.map((weakness, index) => (
+                              <div key={index} className="text-red-300 mb-1">• {weakness}</div>
+                            ))
+                          ) : (
+                            <div className="text-gray-400">None specified</div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Notes & Metadata */}
+                      <div className="bg-gray-700/50 p-4 rounded-lg md:col-span-2 lg:col-span-1">
+                        <h3 className="font-semibold text-white mb-3">Notes & Metadata</h3>
+                        <div className="space-y-3 text-sm">
+                          <div>
+                            <span className="text-gray-300 font-medium">Notes:</span>
+                            <p className="text-white mt-1 text-xs">{selectedDetailItem.notes || 'No notes provided'}</p>
+                          </div>
+                          <div className="pt-2 border-t border-gray-600">
+                            <div className="flex justify-between">
+                              <span className="text-gray-300">Submitted by:</span>
+                              <span className="text-white font-medium">{selectedDetailItem.submitted_by_name}</span>
+                            </div>
+                            <div className="flex justify-between mt-1">
+                              <span className="text-gray-300">Date:</span>
+                              <span className="text-white font-medium">
+                                {new Date(selectedDetailItem.submitted_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end mt-6">
+                      <Button
+                        onClick={() => setShowDetailModal(false)}
+                        className="bg-gray-600 hover:bg-gray-500 text-white"
+                      >
+                        Close
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
             )}
 
           </div>

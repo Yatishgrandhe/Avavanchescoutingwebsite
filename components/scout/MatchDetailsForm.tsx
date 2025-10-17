@@ -25,6 +25,12 @@ interface MatchDetailsFormProps {
   currentStep: number;
   totalSteps: number;
   isDarkMode?: boolean;
+  initialData?: {
+    matchData?: Match;
+    teamNumber?: number;
+    allianceColor?: 'red' | 'blue';
+    alliancePosition?: 1 | 2 | 3;
+  };
 }
 
 const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
@@ -33,12 +39,13 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   currentStep,
   totalSteps,
   isDarkMode = true,
+  initialData,
 }) => {
   const [matches, setMatches] = useState<Match[]>([]);
-  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-  const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
-  const [allianceColor, setAllianceColor] = useState<'red' | 'blue' | ''>('');
-  const [alliancePosition, setAlliancePosition] = useState<1 | 2 | 3 | null>(null);
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(initialData?.matchData || null);
+  const [selectedTeam, setSelectedTeam] = useState<number | null>(initialData?.teamNumber || null);
+  const [allianceColor, setAllianceColor] = useState<'red' | 'blue' | ''>(initialData?.allianceColor || '');
+  const [alliancePosition, setAlliancePosition] = useState<1 | 2 | 3 | null>(initialData?.alliancePosition || null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -46,6 +53,16 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   useEffect(() => {
     fetchMatches();
   }, []);
+
+  // Sync initialData with state when it changes
+  useEffect(() => {
+    if (initialData) {
+      if (initialData.matchData) setSelectedMatch(initialData.matchData);
+      if (initialData.teamNumber) setSelectedTeam(initialData.teamNumber);
+      if (initialData.allianceColor) setAllianceColor(initialData.allianceColor);
+      if (initialData.alliancePosition) setAlliancePosition(initialData.alliancePosition);
+    }
+  }, [initialData]);
 
   const fetchMatches = async () => {
     setLoading(true);

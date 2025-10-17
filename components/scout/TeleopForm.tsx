@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Counter } from '../ui';
 import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
@@ -9,6 +9,7 @@ interface TeleopFormProps {
   currentStep: number;
   totalSteps: number;
   isDarkMode?: boolean;
+  initialData?: Partial<ScoringNotes>;
 }
 
 const TeleopForm: React.FC<TeleopFormProps> = ({
@@ -17,15 +18,30 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   currentStep,
   totalSteps,
   isDarkMode = true,
+  initialData,
 }) => {
   const [formData, setFormData] = useState({
-    teleop_coral_trough: 0,
-    teleop_coral_l2: 0,
-    teleop_coral_l3: 0,
-    teleop_coral_l4: 0,
-    teleop_algae_processor: 0,
-    teleop_algae_net: 0,
+    teleop_coral_trough: (initialData?.teleop_coral_trough as number) || 0,
+    teleop_coral_l2: (initialData?.teleop_coral_l2 as number) || 0,
+    teleop_coral_l3: (initialData?.teleop_coral_l3 as number) || 0,
+    teleop_coral_l4: (initialData?.teleop_coral_l4 as number) || 0,
+    teleop_algae_processor: (initialData?.teleop_algae_processor as number) || 0,
+    teleop_algae_net: (initialData?.teleop_algae_net as number) || 0,
   });
+
+  // Sync initialData with state when it changes
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        teleop_coral_trough: (initialData.teleop_coral_trough as number) || 0,
+        teleop_coral_l2: (initialData.teleop_coral_l2 as number) || 0,
+        teleop_coral_l3: (initialData.teleop_coral_l3 as number) || 0,
+        teleop_coral_l4: (initialData.teleop_coral_l4 as number) || 0,
+        teleop_algae_processor: (initialData.teleop_algae_processor as number) || 0,
+        teleop_algae_net: (initialData.teleop_algae_net as number) || 0,
+      });
+    }
+  }, [initialData]);
 
   const handleInputChange = (field: keyof typeof formData, value: number) => {
     setFormData(prev => ({

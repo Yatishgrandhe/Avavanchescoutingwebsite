@@ -89,10 +89,10 @@ export const pitScoutingRules = {
   teamNumber: {
     required: true,
     min: 1,
-    max: 9999,
+    max: 99999,
     custom: (value: number) => {
-      if (!value || value < 1 || value > 9999) {
-        return 'Team number must be between 1 and 9999';
+      if (!value || value < 1 || value > 99999) {
+        return 'Team number must be between 1 and 99999';
       }
       return null;
     }

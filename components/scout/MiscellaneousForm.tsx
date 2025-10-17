@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../ui';
 
@@ -7,6 +7,7 @@ interface MiscellaneousFormProps {
   onBack: () => void;
   currentStep: number;
   totalSteps: number;
+  initialData?: { defense_rating: number; comments: string };
 }
 
 const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
@@ -14,12 +15,23 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
   onBack,
   currentStep,
   totalSteps,
+  initialData,
 }) => {
   const [formData, setFormData] = useState({
-    defense_rating: 1 as number | string,
-    comments: '',
+    defense_rating: (initialData?.defense_rating as number | string) || 1,
+    comments: initialData?.comments || '',
   });
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Sync initialData with state when it changes
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        defense_rating: initialData.defense_rating || 1,
+        comments: initialData.comments || '',
+      });
+    }
+  }, [initialData]);
 
   const handleInputChange = (field: keyof typeof formData, value: string | number) => {
     setFormData(prev => ({

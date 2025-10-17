@@ -290,6 +290,12 @@ export default function MobileScout() {
                     }}
                     currentStep={currentStepIndex}
                     totalSteps={steps.length}
+                    initialData={{
+                      matchData: formData.matchData.match_id ? formData.matchData : undefined,
+                      teamNumber: formData.teamNumber || undefined,
+                      allianceColor: formData.allianceColor,
+                      alliancePosition: formData.alliancePosition,
+                    }}
                   />
                 )}
 
@@ -302,6 +308,7 @@ export default function MobileScout() {
                     onBack={() => setCurrentStep('match-details')}
                     currentStep={currentStepIndex}
                     totalSteps={steps.length}
+                    initialData={formData.autonomous}
                   />
                 )}
 
@@ -309,12 +316,13 @@ export default function MobileScout() {
                   <TeleopForm
                     onNext={(data) => {
                       setFormData(prev => ({ ...prev, teleop: data }));
-                      setCurrentStep('endgame');
+                    setCurrentStep('endgame');
                     }}
                     onBack={() => setCurrentStep('autonomous')}
                     currentStep={currentStepIndex}
                     totalSteps={steps.length}
                     isDarkMode={true}
+                    initialData={formData.teleop}
                   />
                 )}
 
@@ -327,6 +335,7 @@ export default function MobileScout() {
                     onBack={() => setCurrentStep('teleop')}
                     currentStep={currentStepIndex}
                     totalSteps={steps.length}
+                    initialData={formData.endgame}
                   />
                 )}
 
@@ -339,6 +348,7 @@ export default function MobileScout() {
                     onBack={() => setCurrentStep('endgame')}
                     currentStep={currentStepIndex}
                     totalSteps={steps.length}
+                    initialData={formData.miscellaneous}
                   />
                 )}
 

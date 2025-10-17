@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Counter } from '../ui';
 import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
@@ -10,6 +10,7 @@ interface AutonomousFormProps {
   currentStep: number;
   totalSteps: number;
   isDarkMode?: boolean;
+  initialData?: Partial<ScoringNotes>;
 }
 
 const AutonomousForm: React.FC<AutonomousFormProps> = ({
@@ -18,16 +19,32 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
   currentStep,
   totalSteps,
   isDarkMode = true,
+  initialData,
 }) => {
   const [formData, setFormData] = useState({
-    auto_leave: false,
-    auto_coral_trough: 0,
-    auto_coral_l2: 0,
-    auto_coral_l3: 0,
-    auto_coral_l4: 0,
-    auto_algae_processor: 0,
-    auto_algae_net: 0,
+    auto_leave: (initialData?.auto_leave as boolean) || false,
+    auto_coral_trough: (initialData?.auto_coral_trough as number) || 0,
+    auto_coral_l2: (initialData?.auto_coral_l2 as number) || 0,
+    auto_coral_l3: (initialData?.auto_coral_l3 as number) || 0,
+    auto_coral_l4: (initialData?.auto_coral_l4 as number) || 0,
+    auto_algae_processor: (initialData?.auto_algae_processor as number) || 0,
+    auto_algae_net: (initialData?.auto_algae_net as number) || 0,
   });
+
+  // Sync initialData with state when it changes
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        auto_leave: (initialData.auto_leave as boolean) || false,
+        auto_coral_trough: (initialData.auto_coral_trough as number) || 0,
+        auto_coral_l2: (initialData.auto_coral_l2 as number) || 0,
+        auto_coral_l3: (initialData.auto_coral_l3 as number) || 0,
+        auto_coral_l4: (initialData.auto_coral_l4 as number) || 0,
+        auto_algae_processor: (initialData.auto_algae_processor as number) || 0,
+        auto_algae_net: (initialData.auto_algae_net as number) || 0,
+      });
+    }
+  }, [initialData]);
 
   const handleInputChange = (field: keyof typeof formData, value: number | boolean) => {
     setFormData(prev => ({

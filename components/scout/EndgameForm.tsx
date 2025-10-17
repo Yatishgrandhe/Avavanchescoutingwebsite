@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui';
 import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
@@ -8,6 +8,7 @@ interface EndgameFormProps {
   onBack: () => void;
   currentStep: number;
   totalSteps: number;
+  initialData?: Partial<ScoringNotes>;
 }
 
 const EndgameForm: React.FC<EndgameFormProps> = ({
@@ -15,11 +16,29 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
   onBack,
   currentStep,
   totalSteps,
+  initialData,
 }) => {
+  // Determine initial endgame_score from initialData
+  const getInitialEndgameScore = () => {
+    if (!initialData) return '';
+    if (initialData.endgame_deep_cage) return 'deep';
+    if (initialData.endgame_shallow_cage) return 'shallow';
+    if (initialData.endgame_park) return 'park';
+    return '';
+  };
+
   const [formData, setFormData] = useState({
-    endgame_score: '',
+    endgame_score: getInitialEndgameScore(),
   });
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Sync initialData with state when it changes
+  useEffect(() => {
+    if (initialData) {
+      const score = getInitialEndgameScore();
+      setFormData({ endgame_score: score });
+    }
+  }, [initialData]);
 
   const handleSelectChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({

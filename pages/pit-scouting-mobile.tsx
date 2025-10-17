@@ -109,7 +109,7 @@ export default function PitScoutingMobile() {
         setTeams(teamsResult.data || []);
         
         // Set scouted team numbers
-        const scoutedNumbers = new Set(scoutedResult.data?.map(item => item.team_number) || []);
+        const scoutedNumbers = new Set<number>(scoutedResult.data?.map((item: { team_number: number }) => item.team_number) || []);
         setScoutedTeamNumbers(scoutedNumbers);
       } catch (err) {
         console.error('Error loading teams:', err);

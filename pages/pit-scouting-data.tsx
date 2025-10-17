@@ -27,7 +27,8 @@ import {
   RefreshCw,
   Edit,
   Trash2,
-  Shield
+  Shield,
+  XCircle
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -144,7 +145,7 @@ export default function PitScoutingData() {
         
         // Set teams and scouted team numbers
         setAllTeams(teamsData);
-        const scoutedNumbers = new Set(pitScoutingData?.map((item: any) => item.team_number) || []);
+        const scoutedNumbers = new Set<number>(pitScoutingData?.map((item: any) => item.team_number) || []);
         setScoutedTeamNumbers(scoutedNumbers);
       } catch (error) {
         console.error('Error loading pit scouting data:', error);

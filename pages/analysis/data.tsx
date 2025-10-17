@@ -676,6 +676,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                         </thead>
                         <tbody>
                           {sortedData.map((data, index) => (
+                            <>
                             <motion.tr
                               key={data.id}
                               initial={{ opacity: 0, y: 20 }}
@@ -896,6 +897,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 </td>
                               </motion.tr>
                             )}
+                          </>
                           ))}
                         </tbody>
                       </table>

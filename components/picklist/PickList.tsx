@@ -284,32 +284,27 @@ export function PickList({ pickListId, eventKey = '2025test', onSave, session }:
     
     setIsLoading(true);
     try {
-      // Load available teams with stats
-      const teamsResponse = await fetch('/api/teams');
-      const teamsData = await teamsResponse.json();
+      // Load all team stats in one API call instead of individual calls
+      const statsResponse = await fetch('/api/team-stats');
       
-      // Get team stats for all teams, excluding Team Avalanche
-      const teamsWithStats = await Promise.all(
-        teamsData.teams
-          .filter((team: any) => !team.team_name.toLowerCase().includes('avalanche'))
-          .map(async (team: any) => {
-            try {
-              const statsResponse = await fetch(`/api/team-stats?team_number=${team.team_number}`);
-              const statsData = await statsResponse.json();
-              return {
-                team_number: team.team_number,
-                team_name: team.team_name,
-                stats: statsData,
-              };
-            } catch (error) {
-              return {
-                team_number: team.team_number,
-                team_name: team.team_name,
-              };
-            }
-          })
-      );
+      if (!statsResponse.ok) {
+        throw new Error(`Failed to fetch team stats: ${statsResponse.status}`);
+      }
+      
+      const statsData = await statsResponse.json();
+      console.log('Raw stats data:', statsData);
+      
+      // Filter out Team Avalanche and map the data
+      const teamsWithStats = (statsData.stats || [])
+        .filter((team: any) => !team.team_name.toLowerCase().includes('avalanche'))
+        .map((team: any) => ({
+          team_number: team.team_number,
+          team_name: team.team_name,
+          stats: team,
+        }));
 
+      console.log('Loaded teams with stats:', teamsWithStats.length);
+      console.log('Sample team data:', teamsWithStats[0]);
       setAvailableTeams(teamsWithStats);
 
       // Load existing pick list if ID provided

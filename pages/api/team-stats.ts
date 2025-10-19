@@ -42,12 +42,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data: stats, error } = await supabase
           .from('team_statistics')
           .select('*')
-          .order('avg_total_score', { ascending: false });
+          .order('avg_final_score', { ascending: false });
 
         if (error) {
           console.error('Error fetching team stats:', error);
           return res.status(500).json({ error: 'Failed to fetch team stats' });
         }
+
+        console.log('Raw stats from database:', stats?.length || 0, 'teams');
 
         // Enrich with additional metrics and map column names
         const enrichedStats = (stats || []).map((stat: any) => ({

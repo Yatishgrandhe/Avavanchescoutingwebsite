@@ -336,9 +336,9 @@ export default function PitScoutingData() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <Badge variant="outline" className="bg-blue-500/20 text-blue-300 border-blue-500">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                      <Badge variant="outline" className="bg-blue-500/20 text-blue-300 border-blue-500 w-fit">
                         {scoutedTeamNumbers.size}/{allTeams.length} Teams Scouted
                       </Badge>
                       <span className="text-gray-300 text-sm">
@@ -346,10 +346,10 @@ export default function PitScoutingData() {
                       </span>
                     </div>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       onClick={() => setShowUnscoutedTeams(!showUnscoutedTeams)}
-                      className="text-gray-300 hover:text-white"
+                      className="text-gray-300 hover:text-white border-gray-600 hover:border-gray-500 w-full sm:w-auto h-8 sm:h-7 text-xs px-3 sm:px-2"
                     >
                       {showUnscoutedTeams ? 'Hide' : 'Show'} Unscouted Teams
                     </Button>
@@ -374,15 +374,17 @@ export default function PitScoutingData() {
                       className="mt-4 p-4 bg-gray-900/50 rounded-lg border border-gray-600"
                     >
                       <h4 className="text-sm font-medium text-gray-300 mb-3">Teams Not Yet Scouted:</h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                         {allTeams
                           .filter(team => !scoutedTeamNumbers.has(team.team_number))
                           .map(team => (
                             <div
                               key={team.team_number}
-                              className="text-xs text-gray-400 bg-gray-800/50 px-2 py-1 rounded border border-gray-600"
+                              className="text-xs sm:text-xs text-gray-400 bg-gray-800/50 px-2 py-2 sm:py-1 rounded border border-gray-600 min-h-[44px] sm:min-h-[32px] flex items-center justify-center text-center"
                             >
-                              {team.team_number} - {team.team_name}
+                              <span className="truncate">
+                                {team.team_number} - {team.team_name}
+                              </span>
                             </div>
                           ))}
                       </div>

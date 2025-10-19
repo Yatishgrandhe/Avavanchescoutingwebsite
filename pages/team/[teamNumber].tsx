@@ -86,6 +86,8 @@ const TeamDetail: React.FC<TeamDetailProps> = () => {
     const avgEndgame = scoutingData.reduce((sum, data) => sum + (data.endgame_points || 0), 0) / totalMatches;
     const avgTotal = scoutingData.reduce((sum, data) => sum + (data.final_score || 0), 0) / totalMatches;
     const avgDefense = scoutingData.reduce((sum, data) => sum + (data.defense_rating || 0), 0) / totalMatches;
+    const avgAutonomousCleansing = scoutingData.reduce((sum, data) => sum + (data.autonomous_cleansing || 0), 0) / totalMatches;
+    const avgTeleopCleansing = scoutingData.reduce((sum, data) => sum + (data.teleop_cleansing || 0), 0) / totalMatches;
     
     const bestScore = Math.max(...scoutingData.map(data => data.final_score || 0));
     const worstScore = Math.min(...scoutingData.map(data => data.final_score || 0));
@@ -103,6 +105,8 @@ const TeamDetail: React.FC<TeamDetailProps> = () => {
       avgEndgame: Math.round(avgEndgame * 100) / 100,
       avgTotal: Math.round(avgTotal * 100) / 100,
       avgDefense: Math.round(avgDefense * 100) / 100,
+      avgAutonomousCleansing: Math.round(avgAutonomousCleansing * 100) / 100,
+      avgTeleopCleansing: Math.round(avgTeleopCleansing * 100) / 100,
       bestScore,
       worstScore,
       consistencyScore: Math.round(consistencyScore * 100) / 100
@@ -119,6 +123,7 @@ const TeamDetail: React.FC<TeamDetailProps> = () => {
       { label: 'Auto Coral L4', value: notes.auto_coral_l4, points: 7, period: 'Autonomous' },
       { label: 'Auto Algae Processor', value: notes.auto_algae_processor, points: 6, period: 'Autonomous' },
       { label: 'Auto Algae Net', value: notes.auto_algae_net, points: 4, period: 'Autonomous' },
+      { label: 'Auto Cleansing', value: notes.auto_cleansing, points: 0, period: 'Autonomous', isCleansing: true },
       
       // Teleop
       { label: 'Teleop Coral Trough', value: notes.teleop_coral_trough, points: 2, period: 'Teleop' },
@@ -127,6 +132,7 @@ const TeamDetail: React.FC<TeamDetailProps> = () => {
       { label: 'Teleop Coral L4', value: notes.teleop_coral_l4, points: 5, period: 'Teleop' },
       { label: 'Teleop Algae Processor', value: notes.teleop_algae_processor, points: 6, period: 'Teleop' },
       { label: 'Teleop Algae Net', value: notes.teleop_algae_net, points: 4, period: 'Teleop' },
+      { label: 'Teleop Cleansing', value: notes.teleop_cleansing, points: 0, period: 'Teleop', isCleansing: true },
       
       // Endgame
       { label: 'Park', value: notes.endgame_park, points: 2, period: 'Endgame' },
@@ -148,8 +154,12 @@ const TeamDetail: React.FC<TeamDetailProps> = () => {
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {autonomousElements.map((element, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm font-medium">{element.label}</span>
+              <div key={index} className={`flex items-center justify-between p-3 rounded-lg ${
+                element.isCleansing ? 'bg-purple-100 dark:bg-purple-900/20' : 'bg-muted/50'
+              }`}>
+                <span className={`text-sm font-medium ${
+                  element.isCleansing ? 'text-purple-700 dark:text-purple-300' : ''
+                }`}>{element.label}</span>
                 <div className="flex items-center gap-2">
                   {typeof element.value === 'boolean' ? (
                     element.value ? (
@@ -158,11 +168,20 @@ const TeamDetail: React.FC<TeamDetailProps> = () => {
                       <XCircle className="w-4 h-4 text-red-600" />
                     )
                   ) : (
-                    <span className="text-sm font-semibold">{element.value || 0}</span>
+                    <span className={`text-sm font-semibold ${
+                      element.isCleansing ? 'text-purple-600 dark:text-purple-400' : ''
+                    }`}>{element.value || 0}</span>
                   )}
-                  <Badge variant="outline" className="text-xs">
-                    {element.points}pts
-                  </Badge>
+                  {!element.isCleansing && (
+                    <Badge variant="outline" className="text-xs">
+                      {element.points}pts
+                    </Badge>
+                  )}
+                  {element.isCleansing && (
+                    <Badge variant="outline" className="text-xs text-purple-600 border-purple-300">
+                      No Points
+                    </Badge>
+                  )}
                 </div>
               </div>
             ))}
@@ -177,13 +196,26 @@ const TeamDetail: React.FC<TeamDetailProps> = () => {
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {teleopElements.map((element, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm font-medium">{element.label}</span>
+              <div key={index} className={`flex items-center justify-between p-3 rounded-lg ${
+                element.isCleansing ? 'bg-purple-100 dark:bg-purple-900/20' : 'bg-muted/50'
+              }`}>
+                <span className={`text-sm font-medium ${
+                  element.isCleansing ? 'text-purple-700 dark:text-purple-300' : ''
+                }`}>{element.label}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold">{element.value || 0}</span>
-                  <Badge variant="outline" className="text-xs">
-                    {element.points}pts
-                  </Badge>
+                  <span className={`text-sm font-semibold ${
+                    element.isCleansing ? 'text-purple-600 dark:text-purple-400' : ''
+                  }`}>{element.value || 0}</span>
+                  {!element.isCleansing && (
+                    <Badge variant="outline" className="text-xs">
+                      {element.points}pts
+                    </Badge>
+                  )}
+                  {element.isCleansing && (
+                    <Badge variant="outline" className="text-xs text-purple-600 border-purple-300">
+                      No Points
+                    </Badge>
+                  )}
                 </div>
               </div>
             ))}

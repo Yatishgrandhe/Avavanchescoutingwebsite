@@ -29,6 +29,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
     auto_coral_l4: (initialData?.auto_coral_l4 as number) || 0,
     auto_algae_processor: (initialData?.auto_algae_processor as number) || 0,
     auto_algae_net: (initialData?.auto_algae_net as number) || 0,
+    auto_cleansing: (initialData?.auto_cleansing as number) || 0,
   });
 
   // Sync initialData with state when it changes
@@ -42,6 +43,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
         auto_coral_l4: (initialData.auto_coral_l4 as number) || 0,
         auto_algae_processor: (initialData.auto_algae_processor as number) || 0,
         auto_algae_net: (initialData.auto_algae_net as number) || 0,
+        auto_cleansing: (initialData.auto_cleansing as number) || 0,
       });
     }
   }, [initialData]);
@@ -285,6 +287,38 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                 points={SCORING_VALUES.auto_algae_net}
                 isDarkMode={isDarkMode}
               />
+            </div>
+          </motion.div>
+
+          {/* Cleansing Metric */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55 }}
+            className="space-y-6"
+          >
+            <div className="flex items-center space-x-3">
+              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-purple-900/30' : 'bg-purple-100'}`}>
+                <CheckCircle className={`w-6 h-6 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+              </div>
+              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                CLEANSING METRIC
+              </h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <Counter
+                value={formData.auto_cleansing}
+                onChange={(value: number) => handleInputChange('auto_cleansing', value)}
+                min={0}
+                max={10}
+                label="Cleansing Count"
+                points={0}
+                isDarkMode={isDarkMode}
+              />
+            </div>
+            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Note: Cleansing metric does not contribute to points
             </div>
           </motion.div>
 

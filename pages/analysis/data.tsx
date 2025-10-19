@@ -40,6 +40,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     avg_endgame_points: number;
     avg_total_score: number;
     avg_defense_rating: number;
+    avg_autonomous_cleansing: number;
+    avg_teleop_cleansing: number;
     best_score: number;
     worst_score: number;
     consistency_score: number;
@@ -108,6 +110,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       endgame_points: number[];
       total_scores: number[];
       defense_ratings: number[];
+      autonomous_cleansing: number[];
+      teleop_cleansing: number[];
     }>();
 
     // Initialize team stats
@@ -120,7 +124,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         teleop_points: [],
         endgame_points: [],
         total_scores: [],
-        defense_ratings: []
+        defense_ratings: [],
+        autonomous_cleansing: [],
+        teleop_cleansing: []
       });
     });
 
@@ -134,6 +140,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         teamStat.endgame_points.push(data.endgame_points || 0);
         teamStat.total_scores.push(data.final_score || 0);
         teamStat.defense_ratings.push(data.defense_rating || 0);
+        teamStat.autonomous_cleansing.push(data.autonomous_cleansing || 0);
+        teamStat.teleop_cleansing.push(data.teleop_cleansing || 0);
       }
     });
 
@@ -144,6 +152,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       const avgEndgame = stat.endgame_points.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
       const avgTotal = stat.total_scores.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
       const avgDefense = stat.defense_ratings.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
+      const avgAutonomousCleansing = stat.autonomous_cleansing.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
+      const avgTeleopCleansing = stat.teleop_cleansing.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
       
       const bestScore = Math.max(...stat.total_scores);
       const worstScore = Math.min(...stat.total_scores);
@@ -162,6 +172,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         avg_endgame_points: Math.round(avgEndgame * 100) / 100,
         avg_total_score: Math.round(avgTotal * 100) / 100,
         avg_defense_rating: Math.round(avgDefense * 100) / 100,
+        avg_autonomous_cleansing: Math.round(avgAutonomousCleansing * 100) / 100,
+        avg_teleop_cleansing: Math.round(avgTeleopCleansing * 100) / 100,
         best_score: bestScore,
         worst_score: worstScore,
         consistency_score: Math.round(consistencyScore * 100) / 100
@@ -473,6 +485,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                           <th className="text-left p-2 md:p-3 text-xs md:text-sm">Auto</th>
                           <th className="text-left p-2 md:p-3 text-xs md:text-sm">Teleop</th>
                           <th className="text-left p-2 md:p-3 text-xs md:text-sm">Endgame</th>
+                          <th className="text-left p-2 md:p-3 text-xs md:text-sm">Auto Cleansing</th>
+                          <th className="text-left p-2 md:p-3 text-xs md:text-sm">Teleop Cleansing</th>
                           <th className="text-left p-2 md:p-3 text-xs md:text-sm">Defense (/10)</th>
                           <th className="text-left p-2 md:p-3 text-xs md:text-sm">Best</th>
                           <th className="text-left p-2 md:p-3 text-xs md:text-sm">Consistency</th>
@@ -510,6 +524,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               <td className="p-2 md:p-3 text-foreground">{team.avg_autonomous_points}</td>
                               <td className="p-2 md:p-3 text-foreground">{team.avg_teleop_points}</td>
                               <td className="p-2 md:p-3 text-foreground">{team.avg_endgame_points}</td>
+                              <td className="p-2 md:p-3 text-foreground">{team.avg_autonomous_cleansing}</td>
+                              <td className="p-2 md:p-3 text-foreground">{team.avg_teleop_cleansing}</td>
                               <td className="p-2 md:p-3">
                                 <span className={`font-semibold ${
                                   team.avg_defense_rating >= 7 ? 'text-green-600' :

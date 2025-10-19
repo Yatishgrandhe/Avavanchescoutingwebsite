@@ -58,6 +58,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         teleop_points,
         endgame_points,
         final_score,
+        autonomous_cleansing,
+        teleop_cleansing,
         defense_rating,
         comments,
         scout_id,
@@ -90,7 +92,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // Handle scoring data - frontend might send pre-calculated scores or raw data
-      let finalAutonomousPoints, finalTeleopPoints, finalEndgamePoints, finalScore, finalNotes;
+      let finalAutonomousPoints, finalTeleopPoints, finalEndgamePoints, finalScore, finalNotes, finalAutonomousCleansing, finalTeleopCleansing;
 
       if (autonomous_points !== undefined && teleop_points !== undefined && endgame_points !== undefined) {
         // Frontend sent pre-calculated scores
@@ -99,6 +101,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         finalEndgamePoints = endgame_points;
         finalScore = final_score || (autonomous_points + teleop_points + endgame_points);
         finalNotes = notes || {};
+        finalAutonomousCleansing = autonomous_cleansing || 0;
+        finalTeleopCleansing = teleop_cleansing || 0;
       } else {
         // Frontend sent raw scoring data, calculate scores
         const scoringNotes = {
@@ -118,6 +122,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         finalEndgamePoints = endgameScore.final_score;
         finalScore = autonomousScore.final_score + teleopScore.final_score + endgameScore.final_score;
         finalNotes = scoringNotes;
+        finalAutonomousCleansing = autonomous?.auto_cleansing || 0;
+        finalTeleopCleansing = teleop?.teleop_cleansing || 0;
       }
 
       // Create scouting data
@@ -130,6 +136,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         teleop_points: finalTeleopPoints,
         endgame_points: finalEndgamePoints,
         final_score: finalScore,
+        autonomous_cleansing: finalAutonomousCleansing,
+        teleop_cleansing: finalTeleopCleansing,
         notes: finalNotes,
         defense_rating: defense_rating || miscellaneous?.defense_rating || 0,
         comments: comments || miscellaneous?.comments || '',

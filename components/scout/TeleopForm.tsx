@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Counter } from '../ui';
 import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
+import { CheckCircle } from 'lucide-react';
 
 interface TeleopFormProps {
   onNext: (teleopData: Partial<ScoringNotes>) => void;
@@ -27,6 +28,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
     teleop_coral_l4: (initialData?.teleop_coral_l4 as number) || 0,
     teleop_algae_processor: (initialData?.teleop_algae_processor as number) || 0,
     teleop_algae_net: (initialData?.teleop_algae_net as number) || 0,
+    teleop_cleansing: (initialData?.teleop_cleansing as number) || 0,
   });
 
   // Sync initialData with state when it changes
@@ -39,6 +41,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
         teleop_coral_l4: (initialData.teleop_coral_l4 as number) || 0,
         teleop_algae_processor: (initialData.teleop_algae_processor as number) || 0,
         teleop_algae_net: (initialData.teleop_algae_net as number) || 0,
+        teleop_cleansing: (initialData.teleop_cleansing as number) || 0,
       });
     }
   }, [initialData]);
@@ -164,6 +167,33 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                 points={SCORING_VALUES.teleop_algae_net}
                 isDarkMode={isDarkMode}
               />
+            </div>
+          </div>
+
+          {/* Cleansing Metric */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-purple-900/30' : 'bg-purple-100'}`}>
+                <CheckCircle className={`w-6 h-6 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+              </div>
+              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                CLEANSING METRIC
+              </h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <Counter
+                value={formData.teleop_cleansing}
+                onChange={(value: number) => handleInputChange('teleop_cleansing', value)}
+                min={0}
+                max={20}
+                label="Cleansing Count"
+                points={0}
+                isDarkMode={isDarkMode}
+              />
+            </div>
+            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Note: Cleansing metric does not contribute to points
             </div>
           </div>
 

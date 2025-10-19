@@ -25,6 +25,8 @@ export interface ScoutingData {
   teleop_points: number;
   endgame_points: number;
   final_score: number;
+  autonomous_cleansing: number;
+  teleop_cleansing: number;
   notes: ScoringNotes;
   defense_rating: number;
   comments: string;
@@ -43,6 +45,7 @@ export interface ScoringNotes {
   auto_coral_l4: number;
   auto_algae_processor: number;
   auto_algae_net: number;
+  auto_cleansing: number;
   
   // Teleop Period
   teleop_coral_trough: number;
@@ -51,6 +54,7 @@ export interface ScoringNotes {
   teleop_coral_l4: number;
   teleop_algae_processor: number;
   teleop_algae_net: number;
+  teleop_cleansing: number;
   
   // Endgame
   endgame_park: boolean;

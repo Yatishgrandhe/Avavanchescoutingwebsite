@@ -227,31 +227,48 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
     }
   };
 
-  const renderScoringBreakdown = (notes: ScoringNotes) => {
+  const renderScoringBreakdown = (notes: any) => {
+    // Handle both flat and nested note structures
+    const getValue = (path: string) => {
+      if (notes.autonomous && notes.teleop && notes.endgame) {
+        // Nested structure
+        const parts = path.split('_');
+        if (parts[0] === 'auto') {
+          return notes.autonomous[path];
+        } else if (parts[0] === 'teleop') {
+          return notes.teleop[path];
+        } else if (parts[0] === 'endgame') {
+          return notes.endgame[path];
+        }
+      }
+      // Flat structure fallback
+      return notes[path];
+    };
+
     const scoringElements = [
       // Autonomous
-      { label: 'Auto Leave', value: notes.auto_leave, points: 3, period: 'Autonomous' },
-      { label: 'Auto Coral Trough', value: notes.auto_coral_trough, points: 3, period: 'Autonomous' },
-      { label: 'Auto Coral L2', value: notes.auto_coral_l2, points: 4, period: 'Autonomous' },
-      { label: 'Auto Coral L3', value: notes.auto_coral_l3, points: 6, period: 'Autonomous' },
-      { label: 'Auto Coral L4', value: notes.auto_coral_l4, points: 7, period: 'Autonomous' },
-      { label: 'Auto Algae Processor', value: notes.auto_algae_processor, points: 6, period: 'Autonomous' },
-      { label: 'Auto Algae Net', value: notes.auto_algae_net, points: 4, period: 'Autonomous' },
-      { label: 'Auto Cleansing', value: notes.auto_cleansing, points: 0, period: 'Autonomous', isCleansing: true },
+      { label: 'Auto Leave', value: getValue('auto_leave'), points: 3, period: 'Autonomous' },
+      { label: 'Auto Coral Trough', value: getValue('auto_coral_trough'), points: 3, period: 'Autonomous' },
+      { label: 'Auto Coral L2', value: getValue('auto_coral_l2'), points: 4, period: 'Autonomous' },
+      { label: 'Auto Coral L3', value: getValue('auto_coral_l3'), points: 6, period: 'Autonomous' },
+      { label: 'Auto Coral L4', value: getValue('auto_coral_l4'), points: 7, period: 'Autonomous' },
+      { label: 'Auto Algae Processor', value: getValue('auto_algae_processor'), points: 6, period: 'Autonomous' },
+      { label: 'Auto Algae Net', value: getValue('auto_algae_net'), points: 4, period: 'Autonomous' },
+      { label: 'Auto Cleansing', value: getValue('auto_cleansing'), points: 0, period: 'Autonomous', isCleansing: true },
       
       // Teleop
-      { label: 'Teleop Coral Trough', value: notes.teleop_coral_trough, points: 2, period: 'Teleop' },
-      { label: 'Teleop Coral L2', value: notes.teleop_coral_l2, points: 3, period: 'Teleop' },
-      { label: 'Teleop Coral L3', value: notes.teleop_coral_l3, points: 4, period: 'Teleop' },
-      { label: 'Teleop Coral L4', value: notes.teleop_coral_l4, points: 5, period: 'Teleop' },
-      { label: 'Teleop Algae Processor', value: notes.teleop_algae_processor, points: 6, period: 'Teleop' },
-      { label: 'Teleop Algae Net', value: notes.teleop_algae_net, points: 4, period: 'Teleop' },
-      { label: 'Teleop Cleansing', value: notes.teleop_cleansing, points: 0, period: 'Teleop', isCleansing: true },
+      { label: 'Teleop Coral Trough', value: getValue('teleop_coral_trough'), points: 2, period: 'Teleop' },
+      { label: 'Teleop Coral L2', value: getValue('teleop_coral_l2'), points: 3, period: 'Teleop' },
+      { label: 'Teleop Coral L3', value: getValue('teleop_coral_l3'), points: 4, period: 'Teleop' },
+      { label: 'Teleop Coral L4', value: getValue('teleop_coral_l4'), points: 5, period: 'Teleop' },
+      { label: 'Teleop Algae Processor', value: getValue('teleop_algae_processor'), points: 6, period: 'Teleop' },
+      { label: 'Teleop Algae Net', value: getValue('teleop_algae_net'), points: 4, period: 'Teleop' },
+      { label: 'Teleop Cleansing', value: getValue('teleop_cleansing'), points: 0, period: 'Teleop', isCleansing: true },
       
       // Endgame
-      { label: 'Park', value: notes.endgame_park, points: 2, period: 'Endgame' },
-      { label: 'Shallow Cage', value: notes.endgame_shallow_cage, points: 6, period: 'Endgame' },
-      { label: 'Deep Cage', value: notes.endgame_deep_cage, points: 12, period: 'Endgame' },
+      { label: 'Park', value: getValue('endgame_park'), points: 2, period: 'Endgame' },
+      { label: 'Shallow Cage', value: getValue('endgame_shallow_cage'), points: 6, period: 'Endgame' },
+      { label: 'Deep Cage', value: getValue('endgame_deep_cage'), points: 12, period: 'Endgame' },
     ];
 
     const autonomousElements = scoringElements.filter(el => el.period === 'Autonomous');
@@ -666,7 +683,7 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
                                         <Activity className="w-4 h-4" />
                                         Detailed Scoring Breakdown
                                       </h5>
-                                      {renderScoringBreakdown(data.notes as ScoringNotes)}
+                                      {renderScoringBreakdown(data.notes)}
                                     </div>
                                   )}
                                 </div>

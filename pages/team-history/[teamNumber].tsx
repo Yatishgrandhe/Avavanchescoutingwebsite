@@ -228,32 +228,21 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
   };
 
   const renderScoringBreakdown = (notes: any) => {
-    // Debug: Log the notes structure
-    console.log('Notes structure:', JSON.stringify(notes, null, 2));
-    
     // Handle both flat and nested note structures
     const getValue = (path: string) => {
       if (notes && typeof notes === 'object') {
         if (notes.autonomous && notes.teleop && notes.endgame) {
           // Nested structure
           if (path.startsWith('auto_')) {
-            const value = notes.autonomous[path];
-            console.log(`Getting ${path} from autonomous:`, value);
-            return value;
+            return notes.autonomous[path];
           } else if (path.startsWith('teleop_')) {
-            const value = notes.teleop[path];
-            console.log(`Getting ${path} from teleop:`, value);
-            return value;
+            return notes.teleop[path];
           } else if (path.startsWith('endgame_')) {
-            const value = notes.endgame[path];
-            console.log(`Getting ${path} from endgame:`, value);
-            return value;
+            return notes.endgame[path];
           }
         }
         // Flat structure fallback
-        const value = notes[path];
-        console.log(`Getting ${path} from flat:`, value);
-        return value;
+        return notes[path];
       }
       return undefined;
     };
@@ -314,7 +303,7 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
                   ) : (
                     <span className={`text-sm font-semibold ${
                       element.isCleansing ? 'text-purple-600 dark:text-purple-400' : ''
-                    }`}>{element.value || 0}</span>
+                    }`}>{element.value !== undefined && element.value !== null ? element.value : 0}</span>
                   )}
                   {!element.isCleansing && (
                     <Badge variant="outline" className="text-xs">
@@ -347,9 +336,17 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
                   element.isCleansing ? 'text-purple-700 dark:text-purple-300' : ''
                 }`}>{element.label}</span>
                 <div className="flex items-center gap-2">
-                  <span className={`text-sm font-semibold ${
-                    element.isCleansing ? 'text-purple-600 dark:text-purple-400' : ''
-                  }`}>{element.value || 0}</span>
+                  {typeof element.value === 'boolean' ? (
+                    element.value ? (
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-red-600" />
+                    )
+                  ) : (
+                    <span className={`text-sm font-semibold ${
+                      element.isCleansing ? 'text-purple-600 dark:text-purple-400' : ''
+                    }`}>{element.value !== undefined && element.value !== null ? element.value : 0}</span>
+                  )}
                   {!element.isCleansing && (
                     <Badge variant="outline" className="text-xs">
                       {element.points}pts
@@ -384,7 +381,7 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
                       <XCircle className="w-4 h-4 text-red-600" />
                     )
                   ) : (
-                    <span className="text-sm font-semibold">{element.value || 0}</span>
+                    <span className="text-sm font-semibold">{element.value !== undefined && element.value !== null ? element.value : 0}</span>
                   )}
                   <Badge variant="outline" className="text-xs">
                     {element.points}pts
@@ -696,9 +693,6 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
                                         <Activity className="w-4 h-4" />
                                         Detailed Scoring Breakdown
                                       </h5>
-                                      <div className="text-xs text-muted-foreground mb-2">
-                                        Debug: {JSON.stringify(data.notes, null, 2)}
-                                      </div>
                                       {renderScoringBreakdown(data.notes)}
                                     </div>
                                   )}

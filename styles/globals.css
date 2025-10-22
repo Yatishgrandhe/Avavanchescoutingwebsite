@@ -308,7 +308,7 @@ button:active {
 
 *:active {
   -webkit-tap-highlight-color: transparent !important;
-  background-color: transparent !important;
+  background-color: inherit !important;
 }
 
 *:hover {
@@ -320,6 +320,30 @@ button:active {
 }
 
 *:link {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Fix button active states to prevent white backgrounds */
+button:active,
+.btn:active,
+[role="button"]:active {
+  background-color: inherit !important;
+  -webkit-tap-highlight-color: transparent !important;
+  transform: scale(0.98) !important;
+}
+
+/* Fix card active states */
+.card:active,
+.card-modern:active {
+  background-color: hsl(var(--card)) !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Fix input active states */
+input:active,
+select:active,
+textarea:active {
+  background-color: hsl(var(--background)) !important;
   -webkit-tap-highlight-color: transparent !important;
 }
 

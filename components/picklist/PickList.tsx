@@ -65,13 +65,13 @@ function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemPro
 
   return (
     <div ref={setNodeRef} style={style} className="relative">
-      <Card className="p-6 mb-3 bg-neutral-100 dark:bg-neutral-800 border-l-4 border-l-primary rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
+      <Card className="p-6 mb-3 bg-card border-l-4 border-l-primary rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-4 flex-1">
             <div
               {...attributes}
               {...listeners}
-              className="cursor-grab hover:cursor-grabbing p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-300"
+              className="cursor-grab hover:cursor-grabbing p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors duration-300"
             >
               <GripVertical className="h-5 w-5" />
             </div>
@@ -82,12 +82,12 @@ function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemPro
                   onClick={handleTeamClick}
                   className="flex items-center space-x-2 hover:text-primary transition-colors duration-300 group"
                 >
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 group-hover:text-primary">
+                  <h3 className="text-lg font-semibold text-card-foreground group-hover:text-primary">
                     #{team.pick_order} - Team {team.team_number}
                   </h3>
-                  <ExternalLink className="h-4 w-4 text-neutral-400 group-hover:text-primary transition-colors duration-300" />
+                  <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
                 </button>
-                <span className="text-sm text-neutral-500 dark:text-neutral-400">{team.team_name}</span>
+                <span className="text-sm text-muted-foreground">{team.team_name}</span>
               </div>
               
               {team.stats && (
@@ -117,21 +117,21 @@ function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemPro
                         setNotes(team.notes || '');
                         setIsEditingNotes(false);
                       }}
-                      className="px-4 py-2 rounded-full border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors duration-300"
+                      className="px-4 py-2 rounded-full border-border text-muted-foreground hover:bg-muted transition-colors duration-300"
                     >
                       Cancel
                     </Button>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-3 flex-1">
-                    <span className="text-sm text-neutral-600 dark:text-neutral-300 italic">
+                    <span className="text-sm text-muted-foreground italic">
                       {team.notes || 'No notes added'}
                     </span>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => setIsEditingNotes(true)}
-                      className="p-2 h-8 w-8 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-300"
+                      className="p-2 h-8 w-8 rounded-full hover:bg-muted transition-colors duration-300"
                     >
                       <Edit3 className="h-3 w-3" />
                     </Button>
@@ -196,8 +196,8 @@ function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSe
   };
 
   return (
-    <Card className="p-3 rounded-xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 w-full">
-      <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-3">Available Teams</h3>
+    <Card className="p-3 rounded-xl shadow-card dark:shadow-card-dark bg-card border border-border w-full">
+      <h3 className="text-sm font-semibold text-card-foreground mb-3">Available Teams</h3>
       
       <div className="flex flex-col space-y-2 mb-3">
         <select
@@ -236,13 +236,13 @@ function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSe
 
       <div className="space-y-1 max-h-40 overflow-y-auto">
         {filteredTeams.length === 0 ? (
-          <div className="text-center py-4 text-neutral-500 dark:text-neutral-400">
-            <Brain className="h-6 w-6 mx-auto mb-2 text-neutral-400" />
+          <div className="text-center py-4 text-muted-foreground">
+            <Brain className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
             <p className="text-xs">No teams available</p>
-            <p className="text-xs text-neutral-400 mt-1">All teams have been added</p>
+            <p className="text-xs text-muted-foreground mt-1">All teams have been added</p>
           </div>
         ) : (
-          <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
+          <div className="text-xs text-muted-foreground mb-2">
             {filteredTeams.length} teams available
           </div>
         )}
@@ -447,9 +447,9 @@ export function PickList({ pickListId, eventKey = '2025test', onSave, session }:
           <Input
             value={pickListName}
             onChange={(e) => setPickListName(e.target.value)}
-            className="text-xl font-semibold border-none bg-transparent p-0 text-neutral-900 dark:text-neutral-100"
+            className="text-xl font-semibold border-none bg-transparent p-0 text-card-foreground"
           />
-          <span className="text-sm text-neutral-500 dark:text-neutral-400">
+          <span className="text-sm text-muted-foreground">
             {teams.length} teams selected
           </span>
         </div>
@@ -466,7 +466,7 @@ export function PickList({ pickListId, eventKey = '2025test', onSave, session }:
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
         <div className="xl:col-span-3 order-2 xl:order-1">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 space-y-2 sm:space-y-0">
-            <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Pick Order</h2>
+            <h2 className="text-lg font-semibold text-card-foreground">Pick Order</h2>
             {teams.length > 0 && (
               <QuickComparison
                 teams={teams}
@@ -486,9 +486,9 @@ export function PickList({ pickListId, eventKey = '2025test', onSave, session }:
             >
               <div className="space-y-3">
                 {teams.length === 0 ? (
-                  <Card className="p-8 text-center rounded-xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
-                    <Target className="h-12 w-12 mx-auto mb-4 text-neutral-400" />
-                    <p className="text-neutral-500 dark:text-neutral-400">No teams selected yet. Add teams from the available list.</p>
+                  <Card className="p-8 text-center rounded-xl bg-card border border-border">
+                    <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">No teams selected yet. Add teams from the available list.</p>
                   </Card>
                 ) : (
                   teams.map((team) => (

@@ -353,13 +353,13 @@ export default function PastCompetitionsPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {selectedCompetition.matches.slice(0, 10).map((match) => (
+                            {selectedCompetition.matches.map((match) => (
                               <tr key={match.match_id} className="border-b">
                                 <td className="py-2 font-medium">{match.match_number}</td>
                                 <td className="py-2">
                                   <div className="flex space-x-1">
                                     {match.red_teams.map((team: number) => (
-                                      <span key={team} className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">
+                                      <span key={team} className="px-2 py-1 rounded text-xs team-tag-red">
                                         {team}
                                       </span>
                                     ))}
@@ -368,7 +368,7 @@ export default function PastCompetitionsPage() {
                                 <td className="py-2">
                                   <div className="flex space-x-1">
                                     {match.blue_teams.map((team: number) => (
-                                      <span key={team} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                                      <span key={team} className="px-2 py-1 rounded text-xs team-tag-blue">
                                         {team}
                                       </span>
                                     ))}
@@ -378,25 +378,32 @@ export default function PastCompetitionsPage() {
                             ))}
                           </tbody>
                         </table>
-                        {selectedCompetition.matches.length > 10 && (
-                          <p className="text-sm text-muted-foreground mt-2">
-                            Showing first 10 matches of {selectedCompetition.matches.length} total
-                          </p>
-                        )}
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Showing all {selectedCompetition.matches.length} matches
+                        </p>
                       </div>
                     </Card>
 
                     {/* Teams List */}
                     <Card className="p-6">
-                      <h3 className="text-lg font-semibold text-foreground mb-4">Teams</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      <h3 className="text-lg font-semibold text-foreground mb-4">All Teams ({selectedCompetition.teams.length})</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                         {selectedCompetition.teams.map((team) => (
-                          <div key={team.team_number} className="p-3 border rounded-lg">
-                            <p className="font-medium text-foreground">Team {team.team_number}</p>
-                            <p className="text-sm text-muted-foreground">{team.team_name}</p>
+                          <div key={team.team_number} className="p-3 border rounded-lg bg-card hover:bg-accent transition-colors">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="px-2 py-1 rounded text-xs team-number-tag">
+                                {team.team_number}
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground truncate" title={team.team_name}>
+                              {team.team_name || 'No Name'}
+                            </p>
                           </div>
                         ))}
                       </div>
+                      <p className="text-sm text-muted-foreground mt-4 text-center">
+                        Showing all {selectedCompetition.teams.length} teams from this competition
+                      </p>
                     </Card>
                   </div>
                 </div>

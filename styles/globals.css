@@ -2806,6 +2806,51 @@ body::-webkit-scrollbar-thumb:hover,
   background: transparent !important;
 }
 
+/* Team Alliance Color Styling */
+.team-tag-red {
+  background-color: #dc2626 !important; /* red-600 */
+  color: white !important;
+  font-weight: 600 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid #b91c1c !important; /* red-700 for better contrast */
+}
+
+.team-tag-blue {
+  background-color: #2563eb !important; /* blue-600 */
+  color: white !important;
+  font-weight: 600 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid #1d4ed8 !important; /* blue-700 for better contrast */
+}
+
+.team-tag-red:hover {
+  background-color: #b91c1c !important; /* red-700 */
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+.team-tag-blue:hover {
+  background-color: #1d4ed8 !important; /* blue-700 */
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Enhanced team number styling for better visibility */
+.team-number-tag {
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  font-weight: 600 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid hsl(var(--primary) / 0.3) !important;
+  transition: all 0.2s ease !important;
+}
+
+.team-number-tag:hover {
+  background-color: hsl(var(--primary) / 0.9) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
 /* Mobile navigation specific styles */
 @media screen and (max-width: 768px) {
   /* Enhanced mobile navigation scrolling */

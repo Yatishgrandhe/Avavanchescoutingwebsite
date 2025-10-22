@@ -32,12 +32,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { id, event_key } = req.query;
 
       if (id) {
-        // Get specific pick list
+        // Get specific pick list (allow all authenticated users to see all pick lists)
         const { data: pickList, error } = await supabaseAdmin
           .from('pick_lists')
           .select('*')
           .eq('id', id as string)
-          .eq('user_id', user.id)
           .single();
 
         if (error) {
@@ -49,11 +48,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const enrichedPickList = await enrichPickListWithStats(pickList);
         res.status(200).json(enrichedPickList);
       } else {
-        // Get all pick lists for user
+        // Get all pick lists (allow all authenticated users to see all pick lists)
         let query = supabaseAdmin
           .from('pick_lists')
           .select('*')
-          .eq('user_id', user.id)
           .order('updated_at', { ascending: false });
 
         if (event_key) {
@@ -148,7 +146,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .from('pick_lists')
         .update(updateData)
         .eq('id', id)
-        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -175,8 +172,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { error } = await supabaseAdmin
         .from('pick_lists')
         .delete()
-        .eq('id', id as string)
-        .eq('user_id', user.id);
+        .eq('id', id as string);
 
       if (error) {
         console.error('Error deleting pick list:', error);

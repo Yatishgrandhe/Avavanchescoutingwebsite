@@ -69,14 +69,26 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
       setLoading(true);
       const teamNum = parseInt(teamNumber as string);
 
-      // Load team information
+      // Load team information from past teams
       const { data: teamData, error: teamError } = await supabase
-        .from('teams')
+        .from('past_teams')
         .select('*')
         .eq('team_number', teamNum)
         .single();
 
-      if (teamError) throw teamError;
+      if (teamError) {
+        // If not found in past_teams, try current teams table as fallback
+        const { data: currentTeamData, error: currentTeamError } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('team_number', teamNum)
+          .single();
+        
+        if (currentTeamError) throw teamError; // Use original error
+        setTeam(currentTeamData);
+      } else {
+        setTeam(teamData);
+      }
 
       // Load all past competitions
       const { data: pastCompetitions, error: compError } = await supabase
@@ -125,6 +137,44 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
             scoutingData: scoutingData || [],
             pitScoutingData: pitScoutingData || [],
             totalMatches: scoutingData.length,
+            avgScore: Math.round(avgScore * 100) / 100,
+            bestScore,
+            worstScore,
+            consistency: Math.round(consistency * 100) / 100
+          });
+        }
+      }
+
+      // If team was found in current teams table, also load current scouting data
+      if (teamData && teamData.competition_id) {
+        // This is a past team, data already loaded above
+      } else {
+        // This is a current team, load current scouting data
+        const { data: currentScoutingData, error: currentScoutingError } = await supabase
+          .from('scouting_data')
+          .select('*')
+          .eq('team_number', teamNum)
+          .order('created_at', { ascending: false });
+
+        if (!currentScoutingError && currentScoutingData && currentScoutingData.length > 0) {
+          const scores = currentScoutingData.map((d: ScoutingData) => d.final_score || 0);
+          const avgScore = scores.reduce((sum: number, val: number) => sum + val, 0) / scores.length;
+          const bestScore = Math.max(...scores);
+          const worstScore = Math.min(...scores);
+          
+          // Calculate consistency
+          const variance = scores.reduce((sum: number, score: number) => sum + Math.pow(score - avgScore, 2), 0) / scores.length;
+          const standardDeviation = Math.sqrt(variance);
+          const consistency = Math.max(0, 100 - (standardDeviation / avgScore) * 100);
+
+          competitionsData.push({
+            competition_id: 'current',
+            competition_name: 'Current Competition',
+            competition_year: new Date().getFullYear(),
+            competition_key: 'current',
+            scoutingData: currentScoutingData,
+            pitScoutingData: [],
+            totalMatches: currentScoutingData.length,
             avgScore: Math.round(avgScore * 100) / 100,
             bestScore,
             worstScore,

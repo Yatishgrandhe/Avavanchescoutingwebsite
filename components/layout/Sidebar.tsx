@@ -19,7 +19,8 @@ import {
   FileText,
   List,
   Eye,
-  BookOpen
+  BookOpen,
+  Archive
 } from 'lucide-react';
 import { Button, Badge, Logo } from '../ui';
 import { cn } from '@/lib/utils';
@@ -85,6 +86,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           label: 'Pick Lists',
           href: '/pick-list',
           icon: List,
+        },
+        {
+          label: 'Past Competitions',
+          href: '/past-competitions',
+          icon: Archive,
         },
       ],
     }] : []),
@@ -292,6 +298,11 @@ const Sidebar: React.FC<SidebarProps> = ({
               label: 'Pick Lists',
               href: '/pick-list',
               icon: List,
+            },
+            {
+              label: 'Past Competitions',
+              href: '/past-competitions',
+              icon: Archive,
             },
             {
               label: 'Data Analysis',

@@ -384,12 +384,142 @@ export default function PastCompetitionsPage() {
                       </div>
                     </Card>
 
+                    {/* Team Statistics Analysis */}
+                    <Card className="p-6 mb-6">
+                      <h3 className="text-lg font-semibold text-foreground mb-4">Team Performance Analysis</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-2">Team</th>
+                              <th className="text-left py-2">Matches</th>
+                              <th className="text-left py-2">Avg Score</th>
+                              <th className="text-left py-2">Auto</th>
+                              <th className="text-left py-2">Teleop</th>
+                              <th className="text-left py-2">Endgame</th>
+                              <th className="text-left py-2">Defense</th>
+                              <th className="text-left py-2">Best</th>
+                              <th className="text-left py-2">Consistency</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              // Calculate team statistics from scouting data
+                              const teamStatsMap = new Map();
+                              
+                              // Initialize team stats
+                              selectedCompetition.teams.forEach(team => {
+                                teamStatsMap.set(team.team_number, {
+                                  team_number: team.team_number,
+                                  team_name: team.team_name,
+                                  total_matches: 0,
+                                  scores: [],
+                                  autonomous_points: [],
+                                  teleop_points: [],
+                                  endgame_points: [],
+                                  defense_ratings: []
+                                });
+                              });
+
+                              // Aggregate scouting data
+                              selectedCompetition.scoutingData.forEach(data => {
+                                const teamStat = teamStatsMap.get(data.team_number);
+                                if (teamStat) {
+                                  teamStat.total_matches++;
+                                  teamStat.scores.push(data.final_score || 0);
+                                  teamStat.autonomous_points.push(data.autonomous_points || 0);
+                                  teamStat.teleop_points.push(data.teleop_points || 0);
+                                  teamStat.endgame_points.push(data.endgame_points || 0);
+                                  teamStat.defense_ratings.push(data.defense_rating || 0);
+                                }
+                              });
+
+                              // Calculate averages and return sorted by average score
+                              return Array.from(teamStatsMap.values())
+                                .filter(stat => stat.total_matches > 0)
+                                .map(stat => {
+                                  const avgScore = stat.scores.reduce((sum: number, val: number) => sum + val, 0) / stat.total_matches;
+                                  const avgAuto = stat.autonomous_points.reduce((sum: number, val: number) => sum + val, 0) / stat.total_matches;
+                                  const avgTeleop = stat.teleop_points.reduce((sum: number, val: number) => sum + val, 0) / stat.total_matches;
+                                  const avgEndgame = stat.endgame_points.reduce((sum: number, val: number) => sum + val, 0) / stat.total_matches;
+                                  const avgDefense = stat.defense_ratings.reduce((sum: number, val: number) => sum + val, 0) / stat.total_matches;
+                                  const bestScore = Math.max(...stat.scores);
+                                  
+                                  // Calculate consistency
+                                  const variance = stat.scores.reduce((sum: number, score: number) => sum + Math.pow(score - avgScore, 2), 0) / stat.total_matches;
+                                  const standardDeviation = Math.sqrt(variance);
+                                  const consistencyScore = Math.max(0, 100 - (standardDeviation / avgScore) * 100);
+
+                                  return {
+                                    ...stat,
+                                    avg_score: Math.round(avgScore * 100) / 100,
+                                    avg_auto: Math.round(avgAuto * 100) / 100,
+                                    avg_teleop: Math.round(avgTeleop * 100) / 100,
+                                    avg_endgame: Math.round(avgEndgame * 100) / 100,
+                                    avg_defense: Math.round(avgDefense * 100) / 100,
+                                    best_score: bestScore,
+                                    consistency: Math.round(consistencyScore * 100) / 100
+                                  };
+                                })
+                                .sort((a, b) => b.avg_score - a.avg_score)
+                                .map((team, index) => (
+                                  <tr key={team.team_number} className="border-b hover:bg-muted/50 cursor-pointer" onClick={() => window.open(`/team-history/${team.team_number}`, '_blank')}>
+                                    <td className="py-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="px-2 py-1 rounded text-xs team-number-tag">
+                                          {team.team_number}
+                                        </span>
+                                        <span className="font-medium text-foreground">{team.team_name || 'No Name'}</span>
+                                      </div>
+                                    </td>
+                                    <td className="py-2 text-foreground">{team.total_matches}</td>
+                                    <td className="py-2">
+                                      <span className="font-semibold text-primary">{team.avg_score}</span>
+                                    </td>
+                                    <td className="py-2 text-foreground">{team.avg_auto}</td>
+                                    <td className="py-2 text-foreground">{team.avg_teleop}</td>
+                                    <td className="py-2 text-foreground">{team.avg_endgame}</td>
+                                    <td className="py-2">
+                                      <span className={`font-semibold ${
+                                        team.avg_defense >= 7 ? 'text-green-600' :
+                                        team.avg_defense >= 5 ? 'text-yellow-600' : 'text-red-600'
+                                      }`}>
+                                        {team.avg_defense}/10
+                                      </span>
+                                    </td>
+                                    <td className="py-2">
+                                      <span className="font-semibold text-green-600">{team.best_score}</span>
+                                    </td>
+                                    <td className="py-2">
+                                      <span className={`font-semibold ${
+                                        team.consistency >= 80 ? 'text-green-600' :
+                                        team.consistency >= 60 ? 'text-yellow-600' : 'text-red-600'
+                                      }`}>
+                                        {team.consistency}%
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ));
+                            })()}
+                          </tbody>
+                        </table>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Click any team to view detailed analysis. Teams sorted by average score.
+                        </p>
+                      </div>
+                    </Card>
+
                     {/* Teams List */}
                     <Card className="p-6">
                       <h3 className="text-lg font-semibold text-foreground mb-4">All Teams ({selectedCompetition.teams.length})</h3>
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                         {selectedCompetition.teams.map((team) => (
-                          <div key={team.team_number} className="p-3 border rounded-lg bg-card hover:bg-accent transition-colors">
+                          <div 
+                            key={team.team_number} 
+                            className="p-3 border rounded-lg bg-card hover:bg-accent transition-colors cursor-pointer"
+                            onClick={() => window.open(`/team-history/${team.team_number}`, '_blank')}
+                            title={`Click to view detailed analysis for Team ${team.team_number}`}
+                          >
                             <div className="flex items-center justify-between mb-1">
                               <span className="px-2 py-1 rounded text-xs team-number-tag">
                                 {team.team_number}
@@ -402,7 +532,7 @@ export default function PastCompetitionsPage() {
                         ))}
                       </div>
                       <p className="text-sm text-muted-foreground mt-4 text-center">
-                        Showing all {selectedCompetition.teams.length} teams from this competition
+                        Showing all {selectedCompetition.teams.length} teams from this competition. Click any team for detailed analysis.
                       </p>
                     </Card>
                   </div>

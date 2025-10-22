@@ -228,21 +228,34 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
   };
 
   const renderScoringBreakdown = (notes: any) => {
+    // Debug: Log the notes structure
+    console.log('Notes structure:', JSON.stringify(notes, null, 2));
+    
     // Handle both flat and nested note structures
     const getValue = (path: string) => {
-      if (notes.autonomous && notes.teleop && notes.endgame) {
-        // Nested structure
-        const parts = path.split('_');
-        if (parts[0] === 'auto') {
-          return notes.autonomous[path];
-        } else if (parts[0] === 'teleop') {
-          return notes.teleop[path];
-        } else if (parts[0] === 'endgame') {
-          return notes.endgame[path];
+      if (notes && typeof notes === 'object') {
+        if (notes.autonomous && notes.teleop && notes.endgame) {
+          // Nested structure
+          if (path.startsWith('auto_')) {
+            const value = notes.autonomous[path];
+            console.log(`Getting ${path} from autonomous:`, value);
+            return value;
+          } else if (path.startsWith('teleop_')) {
+            const value = notes.teleop[path];
+            console.log(`Getting ${path} from teleop:`, value);
+            return value;
+          } else if (path.startsWith('endgame_')) {
+            const value = notes.endgame[path];
+            console.log(`Getting ${path} from endgame:`, value);
+            return value;
+          }
         }
+        // Flat structure fallback
+        const value = notes[path];
+        console.log(`Getting ${path} from flat:`, value);
+        return value;
       }
-      // Flat structure fallback
-      return notes[path];
+      return undefined;
     };
 
     const scoringElements = [
@@ -683,6 +696,9 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
                                         <Activity className="w-4 h-4" />
                                         Detailed Scoring Breakdown
                                       </h5>
+                                      <div className="text-xs text-muted-foreground mb-2">
+                                        Debug: {JSON.stringify(data.notes, null, 2)}
+                                      </div>
                                       {renderScoringBreakdown(data.notes)}
                                     </div>
                                   )}

@@ -8,6 +8,7 @@ import {
   TrendingUp,
   ArrowLeftRight,
   ChevronRight,
+  ChevronLeft,
   Settings,
   Menu,
   X,
@@ -21,7 +22,9 @@ import {
   Eye,
   BookOpen,
   Archive,
-  LogOut
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 import { Button, Badge, Logo } from '../ui';
 import { cn } from '@/lib/utils';
@@ -173,16 +176,16 @@ const Sidebar: React.FC<SidebarProps> = ({
   // Desktop sidebar - Glass container
   return (
     <motion.div
-      initial={{ width: isCollapsed ? 70 : 260 }}
-      animate={{ width: isCollapsed ? 70 : 260 }}
-      transition={{ duration: 0.4, type: "spring", stiffness: 100, damping: 20 }}
+      initial={{ width: isCollapsed ? 80 : 260 }}
+      animate={{ width: isCollapsed ? 80 : 260 }}
+      transition={{ duration: 0.3, type: "spring", stiffness: 120, damping: 20 }}
       className="h-full flex flex-col bg-background/60 backdrop-blur-xl border-r border-white/10 shadow-2xl z-50 relative overflow-hidden"
     >
       {/* Decorative gradient blob */}
       <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
 
       {/* Header */}
-      <div className="flex items-center justify-between p-5 mb-2 relative z-10">
+      <div className={cn("flex items-center p-4 mb-2 relative z-10", isCollapsed ? "justify-center flex-col gap-4" : "justify-between")}>
         <div className="flex items-center space-x-3 overflow-hidden">
           <div className="flex-shrink-0">
             <Logo size="sm" />
@@ -198,15 +201,25 @@ const Sidebar: React.FC<SidebarProps> = ({
                 className="whitespace-nowrap"
               >
                 <h2 className="font-heading font-bold text-lg tracking-tight text-white">
-                  Avalanche Scouting
+                  Avalanche
                 </h2>
-                <p className="text-muted-foreground text-xs font-medium">
-                  FRC 2025 Reefscape
+                <p className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
+                  Scouting 2025
                 </p>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
+
+        {/* Toggle Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onToggle}
+          className={cn("text-muted-foreground hover:text-white rounded-lg hover:bg-white/10 transition-all", isCollapsed ? "w-8 h-8" : "")}
+        >
+          {isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+        </Button>
       </div>
 
       {/* Navigation */}
@@ -299,26 +312,27 @@ const Sidebar: React.FC<SidebarProps> = ({
         ))}
       </nav>
 
-      {/* Footer / Toggle */}
+      {/* User Profile */}
       <div className="p-3 border-t border-white/5 relative z-10 bg-black/10">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onToggle}
-          className="w-full h-10 flex items-center justify-center hover:bg-white/5 text-muted-foreground hover:text-white rounded-xl transition-colors"
-        >
-          {isCollapsed ? <ChevronRight size={18} /> : (
-            <div className="flex items-center space-x-2 w-full px-2">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-[10px] text-white font-bold">
-                {user?.name?.[0] || 'U'}
-              </div>
-              <div className="flex-1 text-left min-w-0">
-                <p className="text-xs font-medium truncate text-white">{user?.name || 'User'}</p>
-              </div>
-              <X size={14} className="opacity-50" />
-            </div>
-          )}
-        </Button>
+        <div className={cn("flex items-center rounded-xl p-2", isCollapsed ? "justify-center" : "space-x-3")}>
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-xs text-white font-bold flex-shrink-0 shadow-lg shadow-primary/20">
+            {user?.name?.[0]?.toUpperCase() || 'U'}
+          </div>
+
+          <AnimatePresence>
+            {!isCollapsed && (
+              <motion.div
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                className="flex-1 min-w-0"
+              >
+                <p className="text-sm font-medium truncate text-white">{user?.name || 'User'}</p>
+                <p className="text-[10px] text-muted-foreground truncate">Team Member</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </motion.div>
   );

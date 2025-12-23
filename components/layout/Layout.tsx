@@ -201,7 +201,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {/* Sidebar */}
           <div className={cn(
             "relative z-50 h-full transition-all duration-300 ease-in-out",
-            isSidebarCollapsed ? "w-[70px]" : "w-[260px]"
+            isSidebarCollapsed ? "w-[80px]" : "w-[260px]"
           )}>
             <Sidebar
               isCollapsed={isSidebarCollapsed}

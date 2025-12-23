@@ -125,27 +125,80 @@ const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
+  // Mobile navigation - Glass morphism sideways scrollable bar
+  if (isMobile) {
+    return (
+      <div className="w-full bg-transparent overflow-hidden">
+        <style jsx>{`
+          .mobile-nav-scroll {
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+          }
+          .mobile-nav-scroll::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
+
+        <nav className="mobile-nav-scroll flex items-center space-x-2 overflow-x-auto py-2 px-1 w-full flex-nowrap">
+          {/* Dashboard Button */}
+          <Link href="/" passHref>
+            <div className={cn(
+              "flex flex-col items-center justify-center min-w-[70px] h-[64px] p-2 rounded-xl transition-all flex-shrink-0 cursor-pointer border border-transparent",
+              router.pathname === "/"
+                ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary/20"
+                : "text-muted-foreground hover:bg-white/5 bg-card/30 border-white/5"
+            )}>
+              <Home size={20} />
+              <span className="text-[10px] font-medium mt-1">Home</span>
+            </div>
+          </Link>
+
+          {/* All Menu Items Flattened */}
+          {menuItems.flatMap(section => section.items).map((item) => {
+            const isActive = router.pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link key={item.href} href={item.href} passHref>
+                <div className={cn(
+                  "flex flex-col items-center justify-center min-w-[70px] h-[64px] p-2 rounded-xl transition-all flex-shrink-0 cursor-pointer border border-transparent",
+                  isActive
+                    ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary/20"
+                    : "text-muted-foreground hover:bg-white/5 bg-card/30 border-white/5"
+                )}>
+                  <Icon size={20} />
+                  <span className="text-[10px] font-medium mt-1 truncate max-w-[80px] text-center">
+                    {item.label === 'Match Scouting' ? 'Match' :
+                      item.label === 'Pit Scouting' ? 'Pit' :
+                        item.label === 'Pit Data' ? 'Pit Data' :
+                          item.label === 'Game Rules' ? 'Rules' :
+                            item.label.split(' ')[0]}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+    );
+  }
+
   // Desktop sidebar - Glass container
   return (
     <motion.div
-      initial={{ width: isMobile ? "100%" : (isCollapsed ? 80 : 260) }}
-      animate={{ width: isMobile ? "100%" : (isCollapsed ? 80 : 260) }}
+      initial={{ width: isCollapsed ? 80 : 260 }}
+      animate={{ width: isCollapsed ? 80 : 260 }}
       transition={{ duration: 0.3, type: "spring", stiffness: 120, damping: 20 }}
-      className={cn(
-        "h-full flex flex-col bg-background/60 backdrop-blur-xl border-r border-white/10 shadow-2xl z-50 relative overflow-hidden",
-        isMobile ? "w-full border-none bg-transparent shadow-none h-auto" : ""
-      )}
+      className="h-full flex flex-col bg-background/60 backdrop-blur-xl border-r border-white/10 shadow-2xl z-50 relative overflow-hidden"
     >
       {/* Decorative gradient blob */}
-      {!isMobile && (
-        <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
-      )}
+      <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
 
       {/* Header */}
       <div className={cn(
         "flex items-center p-4 mb-2 relative z-10",
-        isCollapsed ? "justify-center flex-col gap-4" : "justify-between",
-        isMobile ? "hidden" : "" // Hide header on mobile since Layout has its own header
+        isCollapsed ? "justify-center flex-col gap-4" : "justify-between"
       )}>
         <div className="flex items-center space-x-3 overflow-hidden">
           <div className="flex-shrink-0">

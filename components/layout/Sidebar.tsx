@@ -125,67 +125,28 @@ const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
-  // Mobile navigation - Glass morphism bottom bar or scrollable top bar
-  if (isMobile) {
-    return (
-      <>
-        <style jsx>{`
-          .mobile-nav-scroll {
-            -webkit-overflow-scrolling: touch;
-            scroll-behavior: smooth;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-          }
-          .mobile-nav-scroll::-webkit-scrollbar {
-            display: none;
-          }
-        `}</style>
-        <div className="w-full bg-background/80 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
-          <nav className="mobile-nav-scroll overflow-x-auto py-2 px-4 flex items-center space-x-2">
-            <Link href="/" passHref>
-              <div className={cn(
-                "flex flex-col items-center justify-center min-w-[70px] p-2 rounded-xl transition-all",
-                router.pathname === "/" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:bg-white/5"
-              )}>
-                <Home size={20} />
-                <span className="text-[10px] font-medium mt-1">Home</span>
-              </div>
-            </Link>
-
-            {menuItems.flatMap(section => section.items).map((item) => {
-              const isActive = router.pathname === item.href;
-              const Icon = item.icon;
-              return (
-                <Link key={item.href} href={item.href} passHref>
-                  <div className={cn(
-                    "flex flex-col items-center justify-center min-w-[70px] p-2 rounded-xl transition-all",
-                    isActive ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:bg-white/5"
-                  )}>
-                    <Icon size={20} />
-                    <span className="text-[10px] font-medium mt-1 truncate max-w-[80px] text-center">{item.label.split(' ')[0]}</span>
-                  </div>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      </>
-    );
-  }
-
   // Desktop sidebar - Glass container
   return (
     <motion.div
-      initial={{ width: isCollapsed ? 80 : 260 }}
-      animate={{ width: isCollapsed ? 80 : 260 }}
+      initial={{ width: isMobile ? "100%" : (isCollapsed ? 80 : 260) }}
+      animate={{ width: isMobile ? "100%" : (isCollapsed ? 80 : 260) }}
       transition={{ duration: 0.3, type: "spring", stiffness: 120, damping: 20 }}
-      className="h-full flex flex-col bg-background/60 backdrop-blur-xl border-r border-white/10 shadow-2xl z-50 relative overflow-hidden"
+      className={cn(
+        "h-full flex flex-col bg-background/60 backdrop-blur-xl border-r border-white/10 shadow-2xl z-50 relative overflow-hidden",
+        isMobile ? "w-full border-none bg-transparent shadow-none h-auto" : ""
+      )}
     >
       {/* Decorative gradient blob */}
-      <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
+      {!isMobile && (
+        <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
+      )}
 
       {/* Header */}
-      <div className={cn("flex items-center p-4 mb-2 relative z-10", isCollapsed ? "justify-center flex-col gap-4" : "justify-between")}>
+      <div className={cn(
+        "flex items-center p-4 mb-2 relative z-10",
+        isCollapsed ? "justify-center flex-col gap-4" : "justify-between",
+        isMobile ? "hidden" : "" // Hide header on mobile since Layout has its own header
+      )}>
         <div className="flex items-center space-x-3 overflow-hidden">
           <div className="flex-shrink-0">
             <Logo size="sm" />

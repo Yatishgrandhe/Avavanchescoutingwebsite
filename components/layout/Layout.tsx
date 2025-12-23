@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, User, LogOut, Menu, X } from 'lucide-react';
 import {
@@ -29,6 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, supabase } = useSupabase();
   const screenInfo = useResponsive();
   const { isAdmin } = useAdmin();
+  const router = useRouter();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true); // Always dark mode
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -43,13 +45,23 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   }, [screenInfo.isMobile, screenInfo.isTablet]);
 
-  // Close mobile nav when clicking outside or on navigation links
+  // Close mobile nav when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: Event) => {
       if (isMobileNavOpen && screenInfo.isMobile) {
         const target = event.target as Element;
-        // Close if clicking outside the mobile nav container
-        if (!target.closest('.mobile-nav-container') && !target.closest('.mobile-nav-trigger')) {
+        // Close if clicking outside the mobile nav container (Sidebar w/ mobile class) or trigger
+        // Note: The Sidebar container doesn't strictly have a class 'mobile-nav-container' unless we add it
+        // But clicking main content (outside the drawer) should close it.
+        // We can check if the click target is within the specialized Sidebar drawer.
+        // However, standard drawer behavior is often overlay + click outside.
+
+        // Simpler check: if we are open, and click is NOT in the header menu button...
+        // We need to be careful not to close it immediately if we click inside the menu.
+        // For now, let's rely on the route change for link clicks, and this for background clicks.
+
+        const sidebarEl = document.getElementById('mobile-sidebar-container');
+        if (sidebarEl && !sidebarEl.contains(target) && !target.closest('.mobile-nav-trigger')) {
           setIsMobileNavOpen(false);
         }
       }
@@ -63,6 +75,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [isMobileNavOpen, screenInfo.isMobile]);
+
+  // Close mobile nav on route change
+  useEffect(() => {
+    setIsMobileNavOpen(false);
+  }, [router.asPath]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -164,6 +181,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <AnimatePresence>
             {isMobileNavOpen && (
               <motion.div
+                id="mobile-sidebar-container"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}

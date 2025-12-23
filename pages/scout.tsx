@@ -7,16 +7,17 @@ import { Button } from '../components/ui';
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
 import { Separator } from '../components/ui/separator';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  CheckCircle, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle,
   Circle,
   Target,
   Zap,
   Trophy,
   FileText,
-  Eye
+  Eye,
+  AlertCircle
 } from 'lucide-react';
 import MatchDetailsForm from '@/components/scout/MatchDetailsForm';
 import AutonomousForm from '@/components/scout/AutonomousForm';
@@ -27,6 +28,7 @@ import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ScoringNotes } from '@/lib/types';
 import { calculateScore } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'endgame' | 'miscellaneous' | 'review';
 
@@ -83,32 +85,27 @@ export default function Scout() {
   });
 
   const steps = [
-    { id: 'match-details', title: 'Match Details', icon: Target },
-    { id: 'autonomous', title: 'Autonomous', icon: Zap },
-    { id: 'teleop', title: 'Teleop', icon: Target },
-    { id: 'endgame', title: 'Endgame', icon: Trophy },
-    { id: 'miscellaneous', title: 'Miscellaneous', icon: FileText },
-    { id: 'review', title: 'Review', icon: Eye },
+    { id: 'match-details', title: 'Match', icon: Target, description: "Setup" },
+    { id: 'autonomous', title: 'Auto', icon: Zap, description: "Phase 1" },
+    { id: 'teleop', title: 'Teleop', icon: Target, description: "Phase 2" },
+    { id: 'endgame', title: 'Endgame', icon: Trophy, description: "Phase 3" },
+    { id: 'miscellaneous', title: 'Notes', icon: FileText, description: "Extra" },
+    { id: 'review', title: 'Review', icon: Eye, description: "Finalize" },
   ];
 
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
-  const progress = ((currentStepIndex + 1) / steps.length) * 100;
-
+  const progress = ((currentStepIndex) / (steps.length - 1)) * 100;
 
   const handleStepNext = (nextStep: ScoutingStep) => {
-    // Forms handle their own validation, so we can proceed directly
     setCurrentStep(nextStep);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async () => {
-    // Prevent multiple submissions
-    if (isSubmitting) {
-      return;
-    }
-    
+    if (isSubmitting) return;
+
     setIsSubmitting(true);
     try {
-      // Calculate final score using the scoring values
       const autonomousPoints = calculateScore(formData.autonomous).final_score;
       const teleopPoints = calculateScore(formData.teleop).final_score;
       const endgamePoints = calculateScore(formData.endgame).final_score;
@@ -125,7 +122,7 @@ export default function Scout() {
         final_score: finalScore,
         defense_rating: formData.miscellaneous.defense_rating,
         comments: formData.miscellaneous.comments,
-        scout_id: user?.id, // Automatically save who submitted
+        scout_id: user?.id,
         submitted_by_email: user?.email,
         submitted_by_name: user?.user_metadata?.full_name || user?.email,
         submitted_at: new Date().toISOString(),
@@ -136,11 +133,8 @@ export default function Scout() {
         },
       };
 
-      // Get the current session token
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('No active session');
-      }
+      if (!session) throw new Error('No active session');
 
       const response = await fetch('/api/scouting_data', {
         method: 'POST',
@@ -152,8 +146,7 @@ export default function Scout() {
       });
 
       if (response.ok) {
-        alert('Scouting data submitted successfully!');
-        // Reset form or redirect
+        // Success animation or toast ideally
         setCurrentStep('match-details');
         setFormData({
           matchData: {
@@ -174,6 +167,8 @@ export default function Scout() {
             comments: '',
           },
         });
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         throw new Error('Failed to submit scouting data');
       }
@@ -187,80 +182,108 @@ export default function Scout() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  if (!user) {
-    return null; // ProtectedRoute will handle the redirect
-  }
+  if (!user) return null;
 
   return (
     <ProtectedRoute>
-    <Layout>
-        <div className="space-y-4 md:space-y-6">
-          {/* Header */}
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold">Scouting Session</h1>
-                <p className="text-muted-foreground text-sm sm:text-base">
-                  Collect comprehensive match data for FRC 2025
-                </p>
-              </div>
-              <Badge variant="outline" className="text-sm w-fit">
-                Step {currentStepIndex + 1} of {steps.length}
-              </Badge>
-            </div>
-            
-            {/* Progress Bar */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Progress</span>
-                <span>{Math.round(progress)}%</span>
-              </div>
-              <Progress value={progress} className="h-2" />
-            </div>
+      <Layout>
+        <div className="max-w-5xl mx-auto space-y-6">
 
-            {/* Step Indicators - Responsive */}
-            <div className="flex items-center justify-between overflow-x-auto pb-2 gap-1 sm:gap-2">
-              {steps.map((step, index) => {
-                const Icon = step.icon;
-                const isCompleted = index < currentStepIndex;
-                const isCurrent = index === currentStepIndex;
-                
-                return (
-                  <div key={step.id} className="flex flex-col items-center min-w-0 flex-1">
-                    <div className={`
-                      flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 transition-colors mb-1 sm:mb-2
-                      ${isCompleted ? 'bg-primary border-primary text-primary-foreground' : 
-                        isCurrent ? 'border-primary text-primary bg-primary/10' : 'border-muted text-muted-foreground'}
-                    `}>
-                      {isCompleted ? (
-                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                      ) : (
-                        <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+          {/* Header & Progress */}
+          <div className="relative z-10 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70">
+                  Match Scouting
+                </h1>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="outline" className="glass border-white/10 text-xs">
+                    Match {formData.matchData.match_number || '-'}
+                  </Badge>
+                  <span className="text-muted-foreground text-sm flex items-center gap-1">
+                    <ChevronRight size={14} />
+                    Step {currentStepIndex + 1} of {steps.length}
+                  </span>
+                </div>
+              </div>
+
+              {/* Desktop Progress Steps */}
+              <div className="hidden lg:flex items-center bg-black/20 backdrop-blur-xl p-1.5 rounded-full border border-white/5">
+                {steps.map((step, index) => {
+                  const isCompleted = index < currentStepIndex;
+                  const isCurrent = index === currentStepIndex;
+
+                  return (
+                    <div key={step.id} className="flex items-center">
+                      <motion.div
+                        className={cn(
+                          "relative flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium transition-all duration-300",
+                          isCompleted ? "bg-primary text-primary-foreground" :
+                            isCurrent ? "bg-white text-black scale-110" : "text-muted-foreground hover:bg-white/5"
+                        )}
+                        onClick={() => {
+                          // Only allow clicking provided specific conditions if needed, 
+                          // typically in linear flows we might restriction jumping forward
+                          if (index < currentStepIndex) {
+                            // Can go back
+                            setCurrentStep(step.id as ScoutingStep);
+                          }
+                        }}
+                      >
+                        {isCompleted ? <CheckCircle size={14} /> : <span>{index + 1}</span>}
+
+                        {isCurrent && (
+                          <motion.span
+                            layoutId="step-glow"
+                            className="absolute inset-0 rounded-full bg-white/50 blur-md -z-10"
+                            transition={{ duration: 0.2 }}
+                          />
+                        )}
+                      </motion.div>
+
+                      {index < steps.length - 1 && (
+                        <div className={cn(
+                          "w-6 h-0.5 mx-1 transition-colors duration-300",
+                          index < currentStepIndex ? "bg-primary/50" : "bg-white/5"
+                        )} />
                       )}
                     </div>
-                    <span className={`text-xs sm:text-sm font-medium text-center leading-tight ${
-                      isCurrent ? 'text-primary' : 'text-muted-foreground'
-                    }`}>
-                      <span className="hidden sm:inline">{step.title}</span>
-                      <span className="sm:hidden">{step.title.split(' ')[0]}</span>
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Mobile Progress Bar */}
+            <div className="lg:hidden">
+              <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-primary"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+              <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+                <span>{steps[currentStepIndex].title}</span>
+                <span>{Math.round(progress)}%</span>
+              </div>
             </div>
           </div>
 
-          {/* Form Content */}
-          <Card className="w-full max-w-4xl mx-auto">
-            <CardContent className="p-4 sm:p-6 lg:p-8">
-              <div className="min-h-[400px] sm:min-h-[500px] lg:min-h-[600px]">
-                <AnimatePresence mode="wait">
+          {/* Main Form Area */}
+          <div className="glass-card rounded-2xl border border-white/5 overflow-hidden relative min-h-[500px] flex flex-col">
+            {/* Background styling element */}
+            <div className="absolute top-0 right-0 p-32 bg-primary/5 blur-[100px] rounded-full pointer-events-none" />
+            <div className="absolute bottom-0 left-0 p-32 bg-secondary/5 blur-[100px] rounded-full pointer-events-none" />
+
+            <div className="p-6 md:p-8 flex-1 relative z-10">
+              <AnimatePresence mode="wait">
                 {currentStep === 'match-details' && (
                   <motion.div
                     key="match-details"
@@ -268,13 +291,14 @@ export default function Scout() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3 }}
+                    className="h-full"
                   >
                     <MatchDetailsForm
                       onNext={(matchData, teamNumber, allianceColor, alliancePosition) => {
-                        setFormData(prev => ({ 
-                          ...prev, 
-                          matchData, 
-                          teamNumber, 
+                        setFormData(prev => ({
+                          ...prev,
+                          matchData,
+                          teamNumber,
                           allianceColor,
                           alliancePosition
                         }));
@@ -385,113 +409,95 @@ export default function Scout() {
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <div className="space-y-6">
-                      <div>
-                        <h2 className="text-2xl font-bold mb-2">Review Scouting Data</h2>
-                        <p className="text-muted-foreground">
-                          Please review your data before submitting
-                        </p>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="text-lg flex items-center space-x-2">
-                              <Target className="w-5 h-5 text-primary" />
-                              <span>Match Details</span>
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Match ID:</span>
-                              <span className="font-medium">{formData.matchData.match_id}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Event:</span>
-                              <span className="font-medium">{formData.matchData.event_key}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Match Number:</span>
-                              <span className="font-medium">{formData.matchData.match_number}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Team:</span>
-                              <span className="font-medium">{formData.teamNumber}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Alliance:</span>
-                              <Badge variant={formData.allianceColor === 'red' ? 'destructive' : 'default'}>
-                                {formData.allianceColor}
-                              </Badge>
-                            </div>
-                          </CardContent>
-                        </Card>
-                        
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="text-lg">Scoring Summary</CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Autonomous:</span>
-                              <span className="font-medium">{calculateScore(formData.autonomous).final_score} pts</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Teleop:</span>
-                              <span className="font-medium">{calculateScore(formData.teleop).final_score} pts</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Endgame:</span>
-                              <span className="font-medium">{calculateScore(formData.endgame).final_score} pts</span>
-                            </div>
-                            <Separator />
-                            <div className="flex justify-between text-lg font-bold">
-                              <span>Total Score:</span>
-                              <span className="text-primary">{calculateScore(formData.autonomous).final_score + calculateScore(formData.teleop).final_score + calculateScore(formData.endgame).final_score} pts</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Defense Rating:</span>
-                              <span className="font-medium">{formData.miscellaneous.defense_rating}/10</span>
-                            </div>
-                          </CardContent>
-                        </Card>
+                    <div className="space-y-8">
+                      <div className="text-center">
+                        <h2 className="text-2xl font-bold text-foreground">Review & Submit</h2>
+                        <p className="text-muted-foreground">Double check your data before finalizing</p>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row justify-between pt-4 space-y-3 sm:space-y-0">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="glass bg-white/5 p-4 rounded-xl border border-white/10 space-y-3">
+                          <h3 className="font-semibold text-foreground flex items-center gap-2">
+                            <Target size={16} className="text-primary" /> Match Info
+                          </h3>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between p-2 bg-white/5 rounded-lg">
+                              <span className="text-muted-foreground">Match</span>
+                              <span className="font-mono">{formData.matchData.match_number}</span>
+                            </div>
+                            <div className="flex justify-between p-2 bg-white/5 rounded-lg">
+                              <span className="text-muted-foreground">Team</span>
+                              <span className="font-mono text-primary font-bold">{formData.teamNumber}</span>
+                            </div>
+                            <div className="flex justify-between p-2 bg-white/5 rounded-lg">
+                              <span className="text-muted-foreground">Alliance</span>
+                              <Badge variant={formData.allianceColor === 'red' ? 'destructive' : 'default'}>
+                                {formData.allianceColor.toUpperCase()}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="glass bg-white/5 p-4 rounded-xl border border-white/10 space-y-3">
+                          <h3 className="font-semibold text-foreground flex items-center gap-2">
+                            <Trophy size={16} className="text-yellow-500" /> Score Preview
+                          </h3>
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-center py-1">
+                              <span className="text-sm text-muted-foreground">Autonomous</span>
+                              <span className="font-mono">{calculateScore(formData.autonomous).final_score}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1">
+                              <span className="text-sm text-muted-foreground">Teleop</span>
+                              <span className="font-mono">{calculateScore(formData.teleop).final_score}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1">
+                              <span className="text-sm text-muted-foreground">Endgame</span>
+                              <span className="font-mono">{calculateScore(formData.endgame).final_score}</span>
+                            </div>
+                            <div className="border-t border-white/10 my-2 pt-2 flex justify-between items-center font-bold text-lg">
+                              <span>Total</span>
+                              <span className="text-primary">{
+                                calculateScore(formData.autonomous).final_score +
+                                calculateScore(formData.teleop).final_score +
+                                calculateScore(formData.endgame).final_score
+                              }</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-4 pt-4">
                         <Button
                           variant="outline"
                           onClick={() => setCurrentStep('miscellaneous')}
-                          className="w-full sm:w-auto"
+                          className="flex-1 h-12 border-white/10 hover:bg-white/5"
                         >
-                          <ChevronLeft className="w-4 h-4 mr-2" />
                           Back
                         </Button>
                         <Button
                           onClick={handleSubmit}
-                          size="lg"
-                          className="w-full sm:w-auto"
                           disabled={isSubmitting}
+                          className="flex-[2] h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/25"
                         >
                           {isSubmitting ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                               Submitting...
-                            </>
+                            </div>
                           ) : (
-                            <>
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Submit Scouting Data
-                            </>
+                            <div className="flex items-center gap-2">
+                              <CheckCircle size={18} /> Confirm & Submit
+                            </div>
                           )}
                         </Button>
                       </div>
                     </div>
                   </motion.div>
                 )}
-                </AnimatePresence>
-              </div>
-            </CardContent>
-          </Card>
+              </AnimatePresence>
+            </div>
+          </div>
         </div>
       </Layout>
     </ProtectedRoute>

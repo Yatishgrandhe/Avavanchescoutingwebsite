@@ -4,10 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
 import Layout from '@/components/layout/Layout';
 import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui';
-import { 
-  Wrench, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Wrench,
+  CheckCircle,
+  XCircle,
   Loader2,
   ArrowRight,
   ArrowLeft,
@@ -15,10 +15,14 @@ import {
   Camera,
   FileText,
   Settings,
-  AlertCircle
+  AlertCircle,
+  Cpu,
+  Ruler
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, ValidationResult } from '@/lib/form-validation';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface Team {
   team_number: number;
@@ -30,7 +34,7 @@ interface PitScoutingData {
   teamNumber: number;
   robotName: string;
   driveType: string;
-  driveTrainOther?: string; // For "Other" drivetrain option
+  driveTrainOther?: string;
   autonomousCapabilities: string[];
   teleopCapabilities: string[];
   endgameCapabilities: string[];
@@ -52,7 +56,6 @@ export default function PitScouting() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState(true);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loadingTeams, setLoadingTeams] = useState(false);
   const [teamsError, setTeamsError] = useState<string | null>(null);
@@ -64,9 +67,7 @@ export default function PitScouting() {
     autonomousCapabilities: [],
     teleopCapabilities: [],
     endgameCapabilities: [],
-    robotDimensions: {
-      height: 0,
-    },
+    robotDimensions: { height: 0 },
     weight: 0,
     programmingLanguage: '',
     notes: '',
@@ -77,35 +78,27 @@ export default function PitScouting() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+  const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const [scoutedTeamNumbers, setScoutedTeamNumbers] = useState<Set<number>>(new Set());
 
   const totalSteps = 3;
 
-  // Load teams from database
   useEffect(() => {
     const loadTeams = async () => {
       setLoadingTeams(true);
       setTeamsError(null);
-      
+
       try {
-        // Load teams and pit scouting data in parallel
         const [teamsResult, scoutedResult] = await Promise.all([
           supabase.from('teams').select('team_number, team_name, team_color').order('team_number'),
           supabase.from('pit_scouting_data').select('team_number')
         ]);
 
-        if (teamsResult.error) {
-          throw new Error('Failed to load teams');
-        }
-
-        if (scoutedResult.error) {
-          console.warn('Failed to load scouted teams:', scoutedResult.error);
-        }
+        if (teamsResult.error) throw new Error('Failed to load teams');
+        if (scoutedResult.error) console.warn('Failed to load scouted teams:', scoutedResult.error);
 
         setTeams(teamsResult.data || []);
-        
-        // Set scouted team numbers
+
         const scoutedNumbers = new Set<number>(scoutedResult.data?.map((item: { team_number: number }) => item.team_number) || []);
         setScoutedTeamNumbers(scoutedNumbers);
       } catch (err) {
@@ -119,13 +112,12 @@ export default function PitScouting() {
     loadTeams();
   }, []);
 
-  // Load existing data for editing
   useEffect(() => {
     const loadExistingData = async () => {
       if (edit === 'true' && id && typeof id === 'string') {
         setIsEditMode(true);
         setEditingId(id);
-        
+
         try {
           const { data: existingData, error } = await supabase
             .from('pit_scouting_data')
@@ -133,9 +125,7 @@ export default function PitScouting() {
             .eq('id', id)
             .single();
 
-          if (error) {
-            throw new Error('Failed to load existing data');
-          }
+          if (error) throw new Error('Failed to load existing data');
 
           if (existingData) {
             setFormData({
@@ -161,7 +151,7 @@ export default function PitScouting() {
     };
 
     loadExistingData();
-  }, [edit, id, supabase]);
+  }, [edit, id]);
 
   const validateStep = (step: number): ValidationResult => {
     return validatePitScoutingStep(step, formData);
@@ -170,19 +160,20 @@ export default function PitScouting() {
   const handleNext = () => {
     setValidationError(null);
     setHasInteracted(true);
-    
+
     const validation = validateStep(currentStep);
     setValidationErrors(validation.errors);
-    
+
     if (validation.isValid) {
       if (currentStep < totalSteps) {
         setCurrentStep(currentStep + 1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } else {
-      // Show validation error only if there are actual errors
       if (Object.keys(validation.errors).length > 0) {
         const errorMessage = getStepErrorMessage(currentStep, validation.errors);
         setValidationError(errorMessage);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
   };
@@ -190,37 +181,27 @@ export default function PitScouting() {
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleSubmit = async () => {
-    console.log('Submit button clicked');
     setSubmitting(true);
     setSubmitError(null);
     setSubmitSuccess(false);
     setValidationError(null);
 
     try {
-      // Validate user authentication
-      if (!user) {
-        throw new Error('User not authenticated. Please sign in and try again.');
-      }
+      if (!user) throw new Error('User not authenticated. Please sign in and try again.');
 
-      console.log('Form data before validation:', formData);
-
-      // Validate entire form
       const validation = validatePitScoutingForm(formData);
-      console.log('Validation result:', validation);
-      
+
       if (!validation.isValid) {
         setValidationErrors(validation.errors);
-        const errorMessage = 'Please fix the following errors before submitting: ' + 
-          Object.values(validation.errors).join(', ');
-        console.log('Validation errors:', validation.errors);
+        const errorMessage = 'Please fix the errors before submitting: ' + Object.values(validation.errors).join(', ');
         throw new Error(errorMessage);
       }
 
-      // Prepare the data with submitter information
       const submissionData = {
         team_number: formData.teamNumber,
         robot_name: formData.robotName,
@@ -229,8 +210,8 @@ export default function PitScouting() {
           type: formData.driveType === 'Other' ? formData.driveTrainOther : formData.driveType,
           auto_capabilities: formData.autonomousCapabilities.join(', '),
           teleop_capabilities: formData.teleopCapabilities.join(', '),
-          drive_camps: 0, // Default value
-          playoff_driver: 'TBD' // Default value
+          drive_camps: 0,
+          playoff_driver: 'TBD'
         },
         autonomous_capabilities: formData.autonomousCapabilities,
         teleop_capabilities: formData.teleopCapabilities,
@@ -244,56 +225,34 @@ export default function PitScouting() {
         overall_rating: formData.overallRating || 0,
         submitted_by: user.id,
         submitted_by_email: user.email,
-        submitted_by_name: user.user_metadata?.full_name || user.email,
+        submitted_by_name: user?.user_metadata?.full_name || user?.email,
         submitted_at: new Date().toISOString(),
       };
 
-      console.log('User info:', { id: user.id, email: user.email });
-      console.log('Pit scouting data:', submissionData);
-      
-      // Submit to Supabase (create or update)
-      let data, error;
-      
+      let error;
+
       if (isEditMode && editingId) {
-        // Update existing record
-        const updateData = { ...submissionData };
-        // Don't update the original submitter information
-        const { submitted_by, submitted_by_email, submitted_by_name, submitted_at, ...updateFields } = updateData;
-        
+        const { submitted_by, submitted_by_email, submitted_by_name, submitted_at, ...updateFields } = submissionData;
         const result = await supabase
           .from('pit_scouting_data')
           .update(updateFields)
-          .eq('id', editingId)
-          .select();
-        
-        data = result.data;
+          .eq('id', editingId);
         error = result.error;
       } else {
-        // Create new record
         const result = await supabase
           .from('pit_scouting_data')
-          .insert([submissionData])
-          .select();
-        
-        data = result.data;
+          .insert([submissionData]);
         error = result.error;
       }
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw new Error(`Failed to save pit scouting data: ${error.message}`);
-      }
-      
-      console.log('Successfully saved pit scouting data:', data);
+      if (error) throw new Error(`Failed to save pit scouting data: ${error.message}`);
+
       setSubmitSuccess(true);
-      
-      // Reset form after successful submission
+
       setTimeout(() => {
         if (isEditMode) {
-          // Redirect back to pit data viewer after editing
           router.push('/pit-scouting-data');
         } else {
-          // Reset form for new submission
           setFormData({
             teamNumber: 0,
             robotName: '',
@@ -311,8 +270,9 @@ export default function PitScouting() {
           setCurrentStep(1);
         }
         setSubmitSuccess(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 2000);
-      
+
     } catch (error) {
       console.error('Submission error:', error);
       setSubmitError(error instanceof Error ? error.message : 'An unknown error occurred.');
@@ -323,136 +283,129 @@ export default function PitScouting() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   if (!user) {
-    const router = useRouter();
     router.push('/');
     return null;
   }
 
   return (
     <Layout>
-      <div className="min-h-full p-3 sm:p-4 md:p-6 lg:p-8">
-        <div className="w-full max-w-6xl mx-auto">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-4 sm:mb-6 md:mb-8"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-3 sm:mb-4">
-              <motion.div
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <Wrench className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
-              </motion.div>
-              <div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
-                  {isEditMode ? 'Edit Pit Scouting Data' : 'Pit Scouting'}
-                </h1>
-                <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">
-                  {isEditMode ? 'Update existing robot analysis and documentation' : 'Comprehensive robot analysis and documentation'}
-                </p>
-              </div>
-            </div>
-          </motion.div>
+      <div className="max-w-5xl mx-auto space-y-6">
 
-          {/* Progress Indicator */}
-          <div className="mb-4 sm:mb-6 md:mb-8">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <span className="text-xs sm:text-sm font-medium text-foreground">
-                Step {currentStep} of {totalSteps}
-              </span>
-              <span className="text-xs sm:text-sm text-muted-foreground">
-                {Math.round((currentStep / totalSteps) * 100)}% Complete
-              </span>
-            </div>
-            <div className="w-full rounded-full h-2 bg-muted">
-              <motion.div
-                className="bg-primary h-2 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${(currentStep / totalSteps) * 100}%` }}
-                transition={{ duration: 0.5 }}
-              />
+        {/* Header Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col md:flex-row md:items-center justify-between gap-4"
+        >
+          <div>
+            <h1 className="text-3xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70">
+              {isEditMode ? 'Edit Robot Profile' : 'Pit Scouting'}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {isEditMode ? 'Updating technical specifications' : 'Document robot capabilities and specs'}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center space-x-1 text-sm bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+              <span className={cn("w-2 h-2 rounded-full mr-2", currentStep === 1 ? "bg-primary" : "bg-primary/50")} />
+              Step {currentStep} of {totalSteps}
             </div>
           </div>
+        </motion.div>
 
-          {/* Form Steps */}
-          <AnimatePresence mode="wait">
-            {currentStep === 1 && (
-              <motion.div
-                key="step-1"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="w-full max-w-4xl mx-auto"
-              >
-                <Card>
-                  <CardHeader className="px-3 sm:px-6">
-        <CardTitle className="flex items-center space-x-2 sm:space-x-3 text-lg sm:text-xl">
-          <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
-          <span>Basic Information</span>
-        </CardTitle>
-        <CardDescription className="text-sm sm:text-base">
-          Enter basic team and robot information
-        </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6">
-                    {teamsError && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-red-500/20 text-red-400 p-3 rounded-md text-sm text-center flex items-center justify-center"
-                      >
-                        <AlertCircle className="h-5 w-5 mr-2" />
-                        {teamsError}
-                      </motion.div>
-                    )}
+        {/* Validation/Status Messages */}
+        <AnimatePresence>
+          {validationError && hasInteracted && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="bg-red-500/10 border border-red-500/20 text-red-200 p-4 rounded-xl flex items-center gap-3 text-sm"
+            >
+              <AlertCircle size={18} />
+              {validationError}
+            </motion.div>
+          )}
+          {teamsError && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-xl flex items-center gap-3 text-sm"
+            >
+              <AlertCircle size={18} />
+              {teamsError}
+            </motion.div>
+          )}
+          {submitSuccess && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="bg-green-500/10 border border-green-500/20 text-green-200 p-4 rounded-xl flex items-center gap-3 text-sm"
+            >
+              <CheckCircle size={18} />
+              Data saved successfully! Redirecting...
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-                    {validationError && hasInteracted && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center"
-                      >
-                        <AlertCircle className="h-5 w-5 mr-2" />
-                        {validationError}
-                      </motion.div>
-                    )}
+        {/* Main Content Card */}
+        <div className="glass-card rounded-2xl border border-white/5 relative min-h-[600px] flex flex-col">
+          <div className="p-6 md:p-8 flex-1">
+            <AnimatePresence mode="wait">
+              {currentStep === 1 && (
+                <motion.div
+                  key="step-1"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-6"
+                >
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/5">
+                    <div className="p-3 bg-primary/10 rounded-xl text-primary">
+                      <Wrench size={24} />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold">Robot Specifications</h2>
+                      <p className="text-sm text-muted-foreground">Basic team info & physical attributes</p>
+                    </div>
+                  </div>
 
+                  <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Team Number <span className="text-destructive">*</span>
-                        </label>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Team Number <span className="text-red-400">*</span></label>
                         {loadingTeams ? (
-                          <div className="flex items-center justify-center h-10 px-3 py-2 rounded-md border border-input bg-background">
-                            <Loader2 className="h-4 w-4 animate-spin mr-2 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">Loading teams...</span>
+                          <div className="glass-input h-10 flex items-center px-3 text-muted-foreground text-sm gap-2">
+                            <Loader2 size={14} className="animate-spin" /> Loading...
                           </div>
                         ) : (
-                          <Select 
-                            value={formData.teamNumber ? formData.teamNumber.toString() : ''} 
+                          <Select
+                            value={formData.teamNumber ? formData.teamNumber.toString() : ''}
                             onValueChange={(value) => setFormData(prev => ({ ...prev, teamNumber: parseInt(value) || 0 }))}
                           >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select a team" />
+                            <SelectTrigger className="glass-input w-full border-white/10">
+                              <SelectValue placeholder="Select Team" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="glass border-white/10 max-h-[300px]">
                               {teams.length === 0 ? (
-                                <SelectItem value="no-teams" disabled>No teams found in database</SelectItem>
+                                <SelectItem value="no-teams" disabled>No teams found</SelectItem>
                               ) : (
                                 teams.map((team) => (
-                                  <SelectItem key={team.team_number} value={team.team_number.toString()}>
-                                    {scoutedTeamNumbers.has(team.team_number) ? '✓ ' : ''}{team.team_number} - {team.team_name || 'Unknown Team'}
+                                  <SelectItem key={team.team_number} value={team.team_number.toString()} className="focus:bg-white/10">
+                                    <span className={scoutedTeamNumbers.has(team.team_number) ? "text-green-400" : ""}>
+                                      {team.team_number}
+                                    </span>
+                                    <span className="text-muted-foreground ml-2">
+                                      - {team.team_name}
+                                    </span>
                                   </SelectItem>
                                 ))
                               )}
@@ -460,415 +413,315 @@ export default function PitScouting() {
                           </Select>
                         )}
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Robot Name <span className="text-destructive">*</span>
-                        </label>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Robot Name <span className="text-red-400">*</span></label>
                         <Input
-                          placeholder="Enter robot name"
                           value={formData.robotName}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, robotName: e.target.value }))}
+                          placeholder="e.g. Avalanche"
+                          className="glass-input border-white/10 placeholder:text-muted-foreground/30"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Programming Language</label>
+                        <Input
+                          value={formData.programmingLanguage}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, programmingLanguage: e.target.value }))}
+                          placeholder="Java, Python, C++"
+                          className="glass-input border-white/10"
                         />
                       </div>
                     </div>
-                    
-                    <div className="space-y-6">
-                      {/* Drive Train Selection */}
-                      <div>
-                        <label className="block text-sm font-medium mb-3">
-                          Drive Train <span className="text-destructive">*</span>
-                        </label>
-                        <div className="space-y-3">
-                          {['8-wheel tan', 'Swerve'].map((option) => (
-                            <label key={option} className="flex items-center space-x-3 cursor-pointer">
-                              <input
-                                type="radio"
-                                name="driveType"
-                                value={option}
-                                checked={formData.driveType === option}
-                                onChange={(e) => setFormData(prev => ({ 
-                                  ...prev, 
-                                  driveType: e.target.value,
-                                  driveTrainOther: '' // Clear other when selecting predefined option
-                                }))}
-                                className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 flex-shrink-0"
-                              />
-                              <span className="text-sm font-medium flex-1">{option}</span>
-                            </label>
+
+                    <div className="space-y-4">
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium">Drive Train <span className="text-red-400">*</span></label>
+                        <div className="grid grid-cols-2 gap-3">
+                          {['8-wheel tan', 'Swerve'].map((type) => (
+                            <div
+                              key={type}
+                              onClick={() => setFormData(prev => ({ ...prev, driveType: type, driveTrainOther: '' }))}
+                              className={cn(
+                                "cursor-pointer p-3 rounded-xl border transition-all text-sm font-medium text-center",
+                                formData.driveType === type
+                                  ? "bg-primary/20 border-primary/50 text-white"
+                                  : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                              )}
+                            >
+                              {type}
+                            </div>
                           ))}
-                          <div className="flex items-center space-x-3">
-                            <input
-                              type="radio"
-                              name="driveType"
-                              value="Other"
-                              checked={formData.driveType === 'Other'}
-                              onChange={(e) => setFormData(prev => ({ 
-                                ...prev, 
-                                driveType: e.target.value 
-                              }))}
-                              className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 flex-shrink-0"
-                            />
-                            <span className="text-sm font-medium flex-shrink-0">Other:</span>
-                            <Input
-                              placeholder="Specify drive train type"
-                              value={formData.driveTrainOther || ''}
-                              onChange={(e) => setFormData(prev => ({ 
-                                ...prev, 
-                                driveTrainOther: e.target.value 
-                              }))}
-                              disabled={formData.driveType !== 'Other'}
-                              className="flex-1 max-w-xs"
-                            />
+                          <div
+                            onClick={() => setFormData(prev => ({ ...prev, driveType: 'Other' }))}
+                            className={cn(
+                              "col-span-2 cursor-pointer p-3 rounded-xl border transition-all text-sm font-medium flex items-center gap-2",
+                              formData.driveType === 'Other'
+                                ? "bg-primary/20 border-primary/50 text-white"
+                                : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                            )}
+                          >
+                            <span>Other</span>
+                            {formData.driveType === 'Other' && (
+                              <input
+                                type="text"
+                                autoFocus
+                                placeholder="Specify..."
+                                value={formData.driveTrainOther}
+                                onChange={(e) => setFormData(prev => ({ ...prev, driveTrainOther: e.target.value }))}
+                                className="bg-transparent border-none outline-none text-white placeholder:text-white/30 w-full ml-2"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Programming Language
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium flex items-center gap-2">
+                          <Ruler size={14} /> Dimensions (in) & Weight (lbs)
                         </label>
-                        <Input
-                          placeholder="e.g., Java, Python, C++"
-                          value={formData.programmingLanguage}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, programmingLanguage: e.target.value }))}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Length (in) <span className="text-muted-foreground text-xs">(Optional)</span>
-                        </label>
-                        <Input
-                          type="number"
-                          placeholder="Optional"
-                          value={formData.robotDimensions.length?.toString() || ''}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            robotDimensions: { ...prev.robotDimensions, length: e.target.value ? parseFloat(e.target.value) : undefined }
-                          }))}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Width (in) <span className="text-muted-foreground text-xs">(Optional)</span>
-                        </label>
-                        <Input
-                          type="number"
-                          placeholder="Optional"
-                          value={formData.robotDimensions.width?.toString() || ''}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            robotDimensions: { ...prev.robotDimensions, width: e.target.value ? parseFloat(e.target.value) : undefined }
-                          }))}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Height (in) <span className="text-muted-foreground text-xs">(Optional)</span>
-                        </label>
-                        <Input
-                          type="number"
-                          placeholder="Optional"
-                          value={formData.robotDimensions.height?.toString() || ''}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            robotDimensions: { ...prev.robotDimensions, height: e.target.value ? parseFloat(e.target.value) : undefined }
-                          }))}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Weight (lbs) <span className="text-muted-foreground text-xs">(Optional)</span>
-                        </label>
-                        <Input
-                          type="number"
-                          placeholder="Optional"
-                          value={formData.weight?.toString() || ''}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, weight: e.target.value ? parseFloat(e.target.value) : undefined }))}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-end">
-        <Button onClick={handleNext}>
-          Next <ArrowRight className="ml-2 w-4 h-4" />
-        </Button>
-                  </CardFooter>
-                </Card>
-              </motion.div>
-            )}
-
-            {currentStep === 2 && (
-              <motion.div
-                key="step-2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="w-full mx-auto px-4"
-              >
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-3 text-white">
-                      <CheckCircle className="w-6 h-6 text-green-400" />
-                      <span>Capabilities Assessment</span>
-                    </CardTitle>
-                    <CardDescription className="text-white/80">
-                      Assess robot capabilities for each game period
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6 sm:space-y-8">
-                    {validationError && hasInteracted && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center"
-                      >
-                        <AlertCircle className="h-5 w-5 mr-2" />
-                        {validationError}
-                      </motion.div>
-                    )}
-
-                    {/* Autonomous Capabilities */}
-                    <div className="bg-gray-50 dark:bg-gray-800 p-4 sm:p-6 rounded-lg border">
-                      <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-white">Question 2: What can they do in auto</h3>
-                      <div className="space-y-3">
-                        {['L1', 'L2', 'L3', 'L4', 'Move off of the starting line ONLY', 'Clean the reef (LOW algae)', 'Clean the reef (HIGH algae)'].map((option) => (
-                          <div key={option} className="flex items-center space-x-3 p-3 rounded-lg bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            <input
-                              type="checkbox"
-                              id={`auto-${option}`}
-                              checked={formData.autonomousCapabilities.includes(option)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    autonomousCapabilities: [...prev.autonomousCapabilities, option]
-                                  }));
-                                } else {
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    autonomousCapabilities: prev.autonomousCapabilities.filter(cap => cap !== option)
-                                  }));
+                        <div className="grid grid-cols-4 gap-2">
+                          {['Length', 'Width', 'Height', 'Weight'].map((metric) => (
+                            <div key={metric} className="space-y-1">
+                              <span className="text-[10px] text-muted-foreground uppercase pl-1">{metric}</span>
+                              <Input
+                                type="number"
+                                placeholder="0"
+                                className="glass-input text-center h-9 border-white/10 px-1"
+                                value={
+                                  metric === 'Weight'
+                                    ? formData.weight || ''
+                                    : formData.robotDimensions[metric.toLowerCase() as keyof typeof formData.robotDimensions] || ''
                                 }
-                              }}
-                            />
-                            <label 
-                              htmlFor={`auto-${option}`}
-                              className="flex-1 text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
-                            >
-                              {option}
-                            </label>
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value);
+                                  if (metric === 'Weight') {
+                                    setFormData(prev => ({ ...prev, weight: val || undefined }));
+                                  } else {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      robotDimensions: {
+                                        ...prev.robotDimensions,
+                                        [metric.toLowerCase()]: val || undefined
+                                      }
+                                    }));
+                                  }
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {currentStep === 2 && (
+                <motion.div
+                  key="step-2"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-8"
+                >
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/5">
+                    <div className="p-3 bg-secondary/10 rounded-xl text-secondary">
+                      <Cpu size={24} />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold">Robot Capabilities</h2>
+                      <p className="text-sm text-muted-foreground">Autonomous and Teleop features</p>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-8">
+                    {/* Autonomous */}
+                    <div className="space-y-4">
+                      <h3 className="font-heading font-semibold text-lg flex items-center gap-2">
+                        <Badge className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20">Auto</Badge> Capabilities
+                      </h3>
+                      <div className="grid grid-cols-1 gap-2">
+                        {['L1', 'L2', 'L3', 'L4', 'Move off line', 'Clean reef (LOW)', 'Clean reef (HIGH)'].map((opt) => (
+                          <div
+                            key={opt}
+                            onClick={() => {
+                              const active = formData.autonomousCapabilities.includes(opt);
+                              setFormData(prev => ({
+                                ...prev,
+                                autonomousCapabilities: active
+                                  ? prev.autonomousCapabilities.filter(c => c !== opt)
+                                  : [...prev.autonomousCapabilities, opt]
+                              }));
+                            }}
+                            className={cn(
+                              "p-3 rounded-lg border cursor-pointer flex items-center gap-3 transition-all",
+                              formData.autonomousCapabilities.includes(opt)
+                                ? "bg-blue-500/10 border-blue-500/40 text-blue-100"
+                                : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                            )}
+                          >
+                            <div className={cn("w-4 h-4 rounded border flex items-center justify-center transition-colors",
+                              formData.autonomousCapabilities.includes(opt) ? "bg-blue-500 border-blue-500" : "border-muted-foreground/50")}>
+                              {formData.autonomousCapabilities.includes(opt) && <CheckCircle size={12} className="text-white" />}
+                            </div>
+                            <span className="text-sm font-medium">{opt}</span>
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    {/* Teleop Capabilities */}
-                    <div className="bg-gray-50 dark:bg-gray-800 p-4 sm:p-6 rounded-lg border">
-                      <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-white">Question 3: What can they do during teleop</h3>
-                      <div className="space-y-3">
-                        {['L1', 'L2', 'L3', 'L4', 'Processor', 'Barge', 'Defense'].map((option) => (
-                          <div key={option} className="flex items-center space-x-3 p-3 rounded-lg bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            <input
-                              type="checkbox"
-                              id={`teleop-${option}`}
-                              checked={formData.teleopCapabilities.includes(option)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    teleopCapabilities: [...prev.teleopCapabilities, option]
-                                  }));
-                                } else {
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    teleopCapabilities: prev.teleopCapabilities.filter(cap => cap !== option)
-                                  }));
-                                }
-                              }}
-                            />
-                            <label 
-                              htmlFor={`teleop-${option}`}
-                              className="flex-1 text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
-                            >
-                              {option}
-                            </label>
+                    {/* Teleop */}
+                    <div className="space-y-4">
+                      <h3 className="font-heading font-semibold text-lg flex items-center gap-2">
+                        <Badge className="bg-green-500/10 text-green-400 hover:bg-green-500/20">Teleop</Badge> Capabilities
+                      </h3>
+                      <div className="grid grid-cols-1 gap-2">
+                        {['L1', 'L2', 'L3', 'L4', 'Processor', 'Barge', 'Defense'].map((opt) => (
+                          <div
+                            key={opt}
+                            onClick={() => {
+                              const active = formData.teleopCapabilities.includes(opt);
+                              setFormData(prev => ({
+                                ...prev,
+                                teleopCapabilities: active
+                                  ? prev.teleopCapabilities.filter(c => c !== opt)
+                                  : [...prev.teleopCapabilities, opt]
+                              }));
+                            }}
+                            className={cn(
+                              "p-3 rounded-lg border cursor-pointer flex items-center gap-3 transition-all",
+                              formData.teleopCapabilities.includes(opt)
+                                ? "bg-green-500/10 border-green-500/40 text-green-100"
+                                : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                            )}
+                          >
+                            <div className={cn("w-4 h-4 rounded border flex items-center justify-center transition-colors",
+                              formData.teleopCapabilities.includes(opt) ? "bg-green-500 border-green-500" : "border-muted-foreground/50")}>
+                              {formData.teleopCapabilities.includes(opt) && <CheckCircle size={12} className="text-white" />}
+                            </div>
+                            <span className="text-sm font-medium">{opt}</span>
                           </div>
                         ))}
                       </div>
                     </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={handleBack} className="bg-card/10 border-border/30 text-foreground hover:bg-card/20">
-                      <ArrowLeft className="mr-2 w-4 h-4" />
-                      Back
-                    </Button>
-        <Button onClick={handleNext}>
-          Next <ArrowRight className="ml-2 w-4 h-4" />
-        </Button>
-                  </CardFooter>
-                </Card>
-              </motion.div>
-            )}
+                  </div>
+                </motion.div>
+              )}
 
-            {currentStep === 3 && (
-              <motion.div
-                key="step-3"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="w-full mx-auto px-4"
-              >
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-3 text-white">
-                      <FileText className="w-6 h-6 text-yellow-400" />
-                      <span>Analysis & Notes</span>
-                    </CardTitle>
-                    <CardDescription className="text-white/80">
-                      Document strengths, weaknesses, and observations
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4 sm:space-y-6">
-                    {validationError && hasInteracted && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-orange-500/20 text-orange-400 p-3 rounded-md text-sm text-center flex items-center justify-center"
-                      >
-                        <AlertCircle className="h-5 w-5 mr-2" />
-                        {validationError}
-                      </motion.div>
-                    )}
+              {currentStep === 3 && (
+                <motion.div
+                  key="step-3"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-8"
+                >
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/5">
+                    <div className="p-3 bg-white/5 rounded-xl">
+                      <FileText size={24} />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold">Final Observations</h2>
+                      <p className="text-sm text-muted-foreground">Endgame & overall rating</p>
+                    </div>
+                  </div>
 
-                    {/* Endgame Capabilities */}
-                    <div className="bg-gray-50 dark:bg-gray-800 p-4 sm:p-6 rounded-lg border">
-                      <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-white">Question 4: What can they do during endgame</h3>
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
-                          Select Endgame Capability
-                        </label>
+                  <div className="grid md:grid-cols-2 gap-8">
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Endgame Capability</label>
                         <Select
                           value={formData.endgameCapabilities[0] || ''}
-                          onValueChange={(value) => setFormData(prev => ({
-                            ...prev,
-                            endgameCapabilities: value ? [value] : []
-                          }))}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, endgameCapabilities: value ? [value] : [] }))}
                         >
-                          <SelectTrigger className="w-full bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white">
-                            <SelectValue placeholder="Select an endgame capability" />
+                          <SelectTrigger className="glass-input h-12 w-full border-white/10">
+                            <SelectValue placeholder="Select outcome" />
                           </SelectTrigger>
-                          <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
-                            {['Shallow Climb', 'Deep Climb', 'Park', 'None'].map((option) => (
-                              <SelectItem 
-                                key={option} 
-                                value={option}
-                                className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
-                              >
-                                {option}
-                              </SelectItem>
+                          <SelectContent className="glass border-white/10">
+                            {['Shallow Climb', 'Deep Climb', 'Park', 'None'].map(opt => (
+                              <SelectItem key={opt} value={opt} className="focus:bg-white/10">{opt}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
-                    </div>
 
-
-                    {/* Overall Rating */}
-                    <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
-                      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">Overall Rating</h3>
-                      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                        <label className="block text-sm font-medium text-gray-900 dark:text-white">
-                          Rate this robot (1-10): <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="10"
-                          placeholder="8"
-                          value={formData.overallRating.toString()}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
-                            ...prev, 
-                            overallRating: parseInt(e.target.value) || 0
-                          }))}
-                          className="w-20 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white"
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium">Additional Notes</label>
+                        <textarea
+                          className="w-full h-32 rounded-xl bg-background/50 border border-white/10 p-4 text-sm focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none resize-none transition-all"
+                          placeholder="Observations about driver skill, cycle times, reliability..."
+                          value={formData.notes}
+                          onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                         />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">(1 = Poor, 10 = Excellent)</span>
                       </div>
                     </div>
 
-                    {/* General Notes */}
-                    <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border">
-                      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-900 dark:text-white">General Notes</h3>
-                      <textarea
-                        className="w-full h-32 sm:h-40 lg:h-44 xl:h-48 px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                        placeholder="Add any additional observations, strategies, or notable capabilities..."
-                        value={formData.notes}
-                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                          ...prev, 
-                          notes: e.target.value
-                        }))}
-                      />
+                    <div className="glass bg-white/5 p-6 rounded-xl border border-white/10 flex flex-col items-center justify-center text-center space-y-6">
+                      <div>
+                        <h3 className="text-lg font-bold mb-1">Overall Rating</h3>
+                        <p className="text-xs text-muted-foreground">How competitive is this team?</p>
+                      </div>
+
+                      <div className="relative">
+                        <div className="text-6xl font-heading font-bold text-primary">{formData.overallRating}</div>
+                        <div className="text-xs text-muted-foreground uppercase tracking-widest mt-2">{formData.overallRating >= 8 ? 'Excellent' : formData.overallRating >= 5 ? 'Average' : 'Below Avg'}</div>
+                      </div>
+
+                      <div className="w-full px-4">
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          step="1"
+                          value={formData.overallRating}
+                          onChange={(e) => setFormData(prev => ({ ...prev, overallRating: parseInt(e.target.value) }))}
+                          className="w-full accent-primary h-2 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                        />
+                        <div className="flex justify-between text-[10px] text-muted-foreground mt-2 px-1">
+                          <span>1</span>
+                          <span>5</span>
+                          <span>10</span>
+                        </div>
+                      </div>
                     </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={handleBack} className="bg-card/10 border-border/30 text-foreground hover:bg-card/20">
-                      <ArrowLeft className="mr-2 w-4 h-4" />
-                      Back
-                    </Button>
-        <Button 
-          onClick={handleSubmit}
-          disabled={submitting}
-          className="bg-green-600 hover:bg-green-700 text-white"
-        >
-          {submitting ? (
-            <>
-              <Loader2 className="mr-2 w-4 h-4 animate-spin" />
-              {isEditMode ? 'Updating...' : 'Submitting...'}
-            </>
-          ) : (
-            <>
-              {isEditMode ? 'Update' : 'Submit'} <ArrowRight className="ml-2 w-4 h-4" />
-            </>
-          )}
-        </Button>
-                  </CardFooter>
-                </Card>
-              </motion.div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Footer Navigation */}
+          <div className="p-6 border-t border-white/5 flex items-center justify-between bg-black/20 backdrop-blur-sm rounded-b-2xl">
+            <Button
+              variant="ghost"
+              onClick={handleBack}
+              disabled={currentStep === 1}
+              className="text-muted-foreground hover:text-white"
+            >
+              <ArrowLeft size={16} className="mr-2" /> Back
+            </Button>
+
+            {currentStep < totalSteps ? (
+              <Button onClick={handleNext} className="bg-primary hover:bg-primary/90 text-white min-w-[120px]">
+                Next <ArrowRight size={16} className="ml-2" />
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className={cn("min-w-[140px]", submitting ? "opacity-80" : "hover:scale-105 active:scale-95 transition-transform bg-primary hover:bg-primary/90 text-white")}
+              >
+                {submitting ? (
+                  <><Loader2 size={16} className="animate-spin mr-2" /> Saving...</>
+                ) : (
+                  <><Save size={16} className="mr-2" /> Submit Data</>
+                )}
+              </Button>
             )}
-          </AnimatePresence>
-
-          {/* Success Message */}
-          {submitSuccess && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50"
-            >
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="w-5 h-5" />
-                <span>Pit scouting data {isEditMode ? 'updated' : 'submitted'} successfully!</span>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Error Message */}
-          {submitError && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50"
-            >
-              <div className="flex items-center space-x-2">
-                <XCircle className="w-5 h-5" />
-                <span>{submitError}</span>
-              </div>
-            </motion.div>
-          )}
+          </div>
         </div>
       </div>
     </Layout>

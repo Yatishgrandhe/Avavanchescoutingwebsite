@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useSupabase } from '@/pages/_app';
-import { motion } from 'framer-motion';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../../components/ui';
 import { Badge } from '../../components/ui/badge';
-import { 
+import {
   ArrowLeft,
-  Database, 
+  Database,
   Calendar,
   User,
-  Target,
-  TrendingUp,
-  BarChart3,
   Activity,
   Shield,
   MessageSquare,
@@ -25,13 +21,17 @@ import {
   Trophy,
   MapPin,
   Users,
-  FileText
+  FileText,
+  BarChart3,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { ScoutingData, Team, ScoringNotes } from '@/lib/types';
+import { ScoutingData, Team } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
-interface TeamHistoryProps {}
+interface TeamHistoryProps { }
 
 interface CompetitionData {
   competition_id: string;
@@ -47,11 +47,50 @@ interface CompetitionData {
   consistency: number;
 }
 
+// Helper Components
+const StatCard = ({ label, value, color, icon: Icon, subLabel }: any) => (
+  <div className="glass-card p-4 rounded-xl flex flex-col items-center justify-center text-center hover:bg-white/5 transition-colors border border-white/5">
+    <div className={`p-3 rounded-full mb-3 bg-${color}-500/10`}>
+      <Icon className={`w-5 h-5 text-${color}-500`} />
+    </div>
+    <div className="text-2xl font-bold text-foreground tracking-tight">{value}</div>
+    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">{label}</div>
+    {subLabel && <div className="text-[10px] text-muted-foreground/60 mt-1">{subLabel}</div>}
+  </div>
+);
+
+const BreakdownItem = ({ label, value, points, isCleansing }: any) => (
+  <div className={cn(
+    "flex items-center justify-between p-2 rounded-lg border transition-all text-xs",
+    isCleansing
+      ? "bg-purple-500/5 border-purple-500/20"
+      : "bg-card/30 border-white/5"
+  )}>
+    <span className={cn(
+      "font-medium truncate mr-2",
+      isCleansing ? "text-purple-400" : "text-muted-foreground"
+    )}>{label}</span>
+    <div className="flex items-center gap-2 flex-shrink-0">
+      {typeof value === 'boolean' ? (
+        value ? <CheckCircle className="w-3 h-3 text-green-500" /> : <XCircle className="w-3 h-3 text-destructive" />
+      ) : (
+        <span className="font-bold text-foreground">{value ?? 0}</span>
+      )}
+
+      {!isCleansing && (
+        <Badge variant="outline" className="text-[10px] bg-background/50 border-white/10 px-1 py-0 h-5">
+          {points}pts
+        </Badge>
+      )}
+    </div>
+  </div>
+);
+
 const TeamHistory: React.FC<TeamHistoryProps> = () => {
   const router = useRouter();
   const { teamNumber } = router.query;
   const { supabase, user } = useSupabase();
-  
+
   const [team, setTeam] = useState<Team | null>(null);
   const [competitions, setCompetitions] = useState<CompetitionData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +108,7 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
       setLoading(true);
       const teamNum = parseInt(teamNumber as string);
 
-      // Load team information from past teams
+      // Load team information
       const { data: teamData, error: teamError } = await supabase
         .from('past_teams')
         .select('*')
@@ -77,20 +116,20 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
         .single();
 
       if (teamError) {
-        // If not found in past_teams, try current teams table as fallback
+        // Fallback to current teams table
         const { data: currentTeamData, error: currentTeamError } = await supabase
           .from('teams')
           .select('*')
           .eq('team_number', teamNum)
           .single();
-        
-        if (currentTeamError) throw teamError; // Use original error
+
+        if (currentTeamError) throw teamError;
         setTeam(currentTeamData);
       } else {
         setTeam(teamData);
       }
 
-      // Load all past competitions
+      // Load past competitions
       const { data: pastCompetitions, error: compError } = await supabase
         .from('past_competitions')
         .select('*')
@@ -98,9 +137,8 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
 
       if (compError) throw compError;
 
-      // Load scouting data for each competition
       const competitionsData: CompetitionData[] = [];
-      
+
       for (const comp of pastCompetitions || []) {
         const { data: scoutingData, error: scoutingError } = await supabase
           .from('past_scouting_data')
@@ -121,9 +159,7 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
         if (scoutingData && scoutingData.length > 0) {
           const scores = scoutingData.map((d: ScoutingData) => d.final_score || 0);
           const avgScore = scores.reduce((sum: number, val: number) => sum + val, 0) / scores.length;
-          const bestScore = Math.max(...scores);
-          const worstScore = Math.min(...scores);
-          
+
           // Calculate consistency
           const variance = scores.reduce((sum: number, score: number) => sum + Math.pow(score - avgScore, 2), 0) / scores.length;
           const standardDeviation = Math.sqrt(variance);
@@ -137,89 +173,74 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
             scoutingData: scoutingData || [],
             pitScoutingData: pitScoutingData || [],
             totalMatches: scoutingData.length,
-            avgScore: Math.round(avgScore * 100) / 100,
-            bestScore,
-            worstScore,
-            consistency: Math.round(consistency * 100) / 100
+            avgScore: Math.round(avgScore * 10) / 10,
+            bestScore: Math.max(...scores),
+            worstScore: Math.min(...scores),
+            consistency: Math.round(consistency)
           });
         }
       }
 
-      // If team was found in current teams table, also load current scouting data
-      if (teamData && teamData.competition_id) {
-        // This is a past team, data already loaded above
-      } else {
-        // This is a current team, load current scouting data
-        const { data: currentScoutingData, error: currentScoutingError } = await supabase
-          .from('scouting_data')
-          .select('*')
-          .eq('team_number', teamNum)
-          .order('created_at', { ascending: false });
+      // Check current scouting data
+      const { data: currentScoutingData, error: currentScoutingError } = await supabase
+        .from('scouting_data')
+        .select('*')
+        .eq('team_number', teamNum)
+        .order('created_at', { ascending: false });
 
-        if (!currentScoutingError && currentScoutingData && currentScoutingData.length > 0) {
-          const scores = currentScoutingData.map((d: ScoutingData) => d.final_score || 0);
-          const avgScore = scores.reduce((sum: number, val: number) => sum + val, 0) / scores.length;
-          const bestScore = Math.max(...scores);
-          const worstScore = Math.min(...scores);
-          
-          // Calculate consistency
-          const variance = scores.reduce((sum: number, score: number) => sum + Math.pow(score - avgScore, 2), 0) / scores.length;
-          const standardDeviation = Math.sqrt(variance);
-          const consistency = Math.max(0, 100 - (standardDeviation / avgScore) * 100);
+      if (!currentScoutingError && currentScoutingData && currentScoutingData.length > 0) {
+        const scores = currentScoutingData.map((d: ScoutingData) => d.final_score || 0);
+        const avgScore = scores.reduce((sum: number, val: number) => sum + val, 0) / scores.length;
+        const variance = scores.reduce((sum: number, score: number) => sum + Math.pow(score - avgScore, 2), 0) / scores.length;
+        const standardDeviation = Math.sqrt(variance);
+        const consistency = Math.max(0, 100 - (standardDeviation / avgScore) * 100);
 
-          competitionsData.push({
-            competition_id: 'current',
-            competition_name: 'Current Competition',
-            competition_year: new Date().getFullYear(),
-            competition_key: 'current',
-            scoutingData: currentScoutingData,
-            pitScoutingData: [],
-            totalMatches: currentScoutingData.length,
-            avgScore: Math.round(avgScore * 100) / 100,
-            bestScore,
-            worstScore,
-            consistency: Math.round(consistency * 100) / 100
-          });
-        }
+        competitionsData.push({
+          competition_id: 'current',
+          competition_name: 'Current Season (2025)',
+          competition_year: 2025,
+          competition_key: 'current',
+          scoutingData: currentScoutingData,
+          pitScoutingData: [],
+          totalMatches: currentScoutingData.length,
+          avgScore: Math.round(avgScore * 10) / 10,
+          bestScore: Math.max(...scores),
+          worstScore: Math.min(...scores),
+          consistency: Math.round(consistency)
+        });
       }
 
-      // Calculate overall statistics
+      // Calculate Overall Stats
       const allScoutingData = competitionsData.flatMap(comp => comp.scoutingData);
-      const allScores = allScoutingData.map((d: ScoutingData) => d.final_score || 0);
       const totalMatches = allScoutingData.length;
-      
-      if (totalMatches > 0) {
-        const overallAvgScore = allScores.reduce((sum: number, val: number) => sum + val, 0) / totalMatches;
-        const overallBestScore = Math.max(...allScores);
-        const overallWorstScore = Math.min(...allScores);
-        
-        // Calculate overall consistency
-        const overallVariance = allScores.reduce((sum: number, score: number) => sum + Math.pow(score - overallAvgScore, 2), 0) / totalMatches;
-        const overallStandardDeviation = Math.sqrt(overallVariance);
-        const overallConsistency = Math.max(0, 100 - (overallStandardDeviation / overallAvgScore) * 100);
 
-        // Calculate averages by period
-        const avgAutonomous = allScoutingData.reduce((sum: number, data: ScoutingData) => sum + (data.autonomous_points || 0), 0) / totalMatches;
-        const avgTeleop = allScoutingData.reduce((sum: number, data: ScoutingData) => sum + (data.teleop_points || 0), 0) / totalMatches;
-        const avgEndgame = allScoutingData.reduce((sum: number, data: ScoutingData) => sum + (data.endgame_points || 0), 0) / totalMatches;
-        const avgDefense = allScoutingData.reduce((sum: number, data: ScoutingData) => sum + (data.defense_rating || 0), 0) / totalMatches;
+      if (totalMatches > 0) {
+        const allScores = allScoutingData.map((d: ScoutingData) => d.final_score || 0);
+        const overallAvgScore = allScores.reduce((sum, val) => sum + val, 0) / totalMatches;
+
+        const avgAutonomous = allScoutingData.reduce((sum, data) => sum + (data.autonomous_points || 0), 0) / totalMatches;
+        const avgTeleop = allScoutingData.reduce((sum, data) => sum + (data.teleop_points || 0), 0) / totalMatches;
+        const avgEndgame = allScoutingData.reduce((sum, data) => sum + (data.endgame_points || 0), 0) / totalMatches;
+        const avgDefense = allScoutingData.reduce((sum, data) => sum + (data.defense_rating || 0), 0) / totalMatches;
+
+        const variance = allScores.reduce((sum, score) => sum + Math.pow(score - overallAvgScore, 2), 0) / totalMatches;
+        const consistency = Math.max(0, 100 - (Math.sqrt(variance) / overallAvgScore) * 100);
 
         setOverallStats({
           totalMatches,
-          avgScore: Math.round(overallAvgScore * 100) / 100,
-          avgAutonomous: Math.round(avgAutonomous * 100) / 100,
-          avgTeleop: Math.round(avgTeleop * 100) / 100,
-          avgEndgame: Math.round(avgEndgame * 100) / 100,
-          avgDefense: Math.round(avgDefense * 100) / 100,
-          bestScore: overallBestScore,
-          worstScore: overallWorstScore,
-          consistency: Math.round(overallConsistency * 100) / 100,
+          avgScore: Math.round(overallAvgScore * 10) / 10,
+          avgAutonomous: Math.round(avgAutonomous * 10) / 10,
+          avgTeleop: Math.round(avgTeleop * 10) / 10,
+          avgEndgame: Math.round(avgEndgame * 10) / 10,
+          avgDefense: Math.round(avgDefense * 10) / 10,
+          bestScore: Math.max(...allScores),
+          worstScore: Math.min(...allScores),
+          consistency: Math.round(consistency),
           competitionsPlayed: competitionsData.length
         });
       }
 
-      setTeam(teamData);
-      setCompetitions(competitionsData);
+      setCompetitions(competitionsData.sort((a, b) => b.competition_year - a.competition_year));
     } catch (error) {
       console.error('Error loading team history:', error);
     } finally {
@@ -232,16 +253,10 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
     const getValue = (path: string) => {
       if (notes && typeof notes === 'object') {
         if (notes.autonomous && notes.teleop && notes.endgame) {
-          // Nested structure
-          if (path.startsWith('auto_')) {
-            return notes.autonomous[path];
-          } else if (path.startsWith('teleop_')) {
-            return notes.teleop[path];
-          } else if (path.startsWith('endgame_')) {
-            return notes.endgame[path];
-          }
+          if (path.startsWith('auto_')) return notes.autonomous[path];
+          if (path.startsWith('teleop_')) return notes.teleop[path];
+          if (path.startsWith('endgame_')) return notes.endgame[path];
         }
-        // Flat structure fallback
         return notes[path];
       }
       return undefined;
@@ -249,24 +264,22 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
 
     const scoringElements = [
       // Autonomous
-      { label: 'Auto Leave', value: getValue('auto_leave'), points: 3, period: 'Autonomous' },
-      { label: 'Auto Coral Trough', value: getValue('auto_coral_trough'), points: 3, period: 'Autonomous' },
-      { label: 'Auto Coral L2', value: getValue('auto_coral_l2'), points: 4, period: 'Autonomous' },
-      { label: 'Auto Coral L3', value: getValue('auto_coral_l3'), points: 6, period: 'Autonomous' },
-      { label: 'Auto Coral L4', value: getValue('auto_coral_l4'), points: 7, period: 'Autonomous' },
-      { label: 'Auto Algae Processor', value: getValue('auto_algae_processor'), points: 6, period: 'Autonomous' },
-      { label: 'Auto Algae Net', value: getValue('auto_algae_net'), points: 4, period: 'Autonomous' },
-      { label: 'Auto Cleansing', value: getValue('auto_cleansing'), points: 0, period: 'Autonomous', isCleansing: true },
-      
+      { label: 'Leave', value: getValue('auto_leave'), points: 3, period: 'Autonomous' },
+      { label: 'Coral Trough', value: getValue('auto_coral_trough'), points: 3, period: 'Autonomous' },
+      { label: 'Coral L2', value: getValue('auto_coral_l2'), points: 4, period: 'Autonomous' },
+      { label: 'Coral L3', value: getValue('auto_coral_l3'), points: 6, period: 'Autonomous' },
+      { label: 'Coral L4', value: getValue('auto_coral_l4'), points: 7, period: 'Autonomous' },
+      { label: 'Algae Proc', value: getValue('auto_algae_processor'), points: 6, period: 'Autonomous' },
+      { label: 'Algae Net', value: getValue('auto_algae_net'), points: 4, period: 'Autonomous' },
+
       // Teleop
-      { label: 'Teleop Coral Trough', value: getValue('teleop_coral_trough'), points: 2, period: 'Teleop' },
-      { label: 'Teleop Coral L2', value: getValue('teleop_coral_l2'), points: 3, period: 'Teleop' },
-      { label: 'Teleop Coral L3', value: getValue('teleop_coral_l3'), points: 4, period: 'Teleop' },
-      { label: 'Teleop Coral L4', value: getValue('teleop_coral_l4'), points: 5, period: 'Teleop' },
-      { label: 'Teleop Algae Processor', value: getValue('teleop_algae_processor'), points: 6, period: 'Teleop' },
-      { label: 'Teleop Algae Net', value: getValue('teleop_algae_net'), points: 4, period: 'Teleop' },
-      { label: 'Teleop Cleansing', value: getValue('teleop_cleansing'), points: 0, period: 'Teleop', isCleansing: true },
-      
+      { label: 'Coral Trough', value: getValue('teleop_coral_trough'), points: 2, period: 'Teleop' },
+      { label: 'Coral L2', value: getValue('teleop_coral_l2'), points: 3, period: 'Teleop' },
+      { label: 'Coral L3', value: getValue('teleop_coral_l3'), points: 4, period: 'Teleop' },
+      { label: 'Coral L4', value: getValue('teleop_coral_l4'), points: 5, period: 'Teleop' },
+      { label: 'Algae Proc', value: getValue('teleop_algae_processor'), points: 6, period: 'Teleop' },
+      { label: 'Algae Net', value: getValue('teleop_algae_net'), points: 4, period: 'Teleop' },
+
       // Endgame
       { label: 'Park', value: getValue('endgame_park'), points: 2, period: 'Endgame' },
       { label: 'Shallow Cage', value: getValue('endgame_shallow_cage'), points: 6, period: 'Endgame' },
@@ -278,118 +291,18 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
     const endgameElements = scoringElements.filter(el => el.period === 'Endgame');
 
     return (
-      <div className="space-y-6">
-        {/* Autonomous Period */}
-        <div>
-          <h4 className="text-lg font-semibold text-primary mb-3 flex items-center gap-2">
-            <Clock className="w-5 h-5" />
-            Autonomous Period
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {autonomousElements.map((element, index) => (
-              <div key={index} className={`flex items-center justify-between p-3 rounded-lg ${
-                element.isCleansing ? 'bg-purple-100 dark:bg-purple-900/20' : 'bg-muted/50'
-              }`}>
-                <span className={`text-sm font-medium ${
-                  element.isCleansing ? 'text-purple-700 dark:text-purple-300' : ''
-                }`}>{element.label}</span>
-                <div className="flex items-center gap-2">
-                  {typeof element.value === 'boolean' ? (
-                    element.value ? (
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-red-600" />
-                    )
-                  ) : (
-                    <span className={`text-sm font-semibold ${
-                      element.isCleansing ? 'text-purple-600 dark:text-purple-400' : ''
-                    }`}>{element.value !== undefined && element.value !== null ? element.value : 0}</span>
-                  )}
-                  {!element.isCleansing && (
-                    <Badge variant="outline" className="text-xs">
-                      {element.points}pts
-                    </Badge>
-                  )}
-                  {element.isCleansing && (
-                    <Badge variant="outline" className="text-xs text-purple-600 border-purple-300">
-                      No Points
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+        <div className="space-y-2">
+          <h5 className="text-xs font-semibold text-blue-400 uppercase tracking-widest pl-1">Auto</h5>
+          {autonomousElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
         </div>
-
-        {/* Teleop Period */}
-        <div>
-          <h4 className="text-lg font-semibold text-secondary mb-3 flex items-center gap-2">
-            <Zap className="w-5 h-5" />
-            Teleop Period
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {teleopElements.map((element, index) => (
-              <div key={index} className={`flex items-center justify-between p-3 rounded-lg ${
-                element.isCleansing ? 'bg-purple-100 dark:bg-purple-900/20' : 'bg-muted/50'
-              }`}>
-                <span className={`text-sm font-medium ${
-                  element.isCleansing ? 'text-purple-700 dark:text-purple-300' : ''
-                }`}>{element.label}</span>
-                <div className="flex items-center gap-2">
-                  {typeof element.value === 'boolean' ? (
-                    element.value ? (
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-red-600" />
-                    )
-                  ) : (
-                    <span className={`text-sm font-semibold ${
-                      element.isCleansing ? 'text-purple-600 dark:text-purple-400' : ''
-                    }`}>{element.value !== undefined && element.value !== null ? element.value : 0}</span>
-                  )}
-                  {!element.isCleansing && (
-                    <Badge variant="outline" className="text-xs">
-                      {element.points}pts
-                    </Badge>
-                  )}
-                  {element.isCleansing && (
-                    <Badge variant="outline" className="text-xs text-purple-600 border-purple-300">
-                      No Points
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="space-y-2">
+          <h5 className="text-xs font-semibold text-orange-400 uppercase tracking-widest pl-1">Teleop</h5>
+          {teleopElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
         </div>
-
-        {/* Endgame Period */}
-        <div>
-          <h4 className="text-lg font-semibold text-warning mb-3 flex items-center gap-2">
-            <Award className="w-5 h-5" />
-            Endgame Period
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {endgameElements.map((element, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm font-medium">{element.label}</span>
-                <div className="flex items-center gap-2">
-                  {typeof element.value === 'boolean' ? (
-                    element.value ? (
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-red-600" />
-                    )
-                  ) : (
-                    <span className="text-sm font-semibold">{element.value !== undefined && element.value !== null ? element.value : 0}</span>
-                  )}
-                  <Badge variant="outline" className="text-xs">
-                    {element.points}pts
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="space-y-2">
+          <h5 className="text-xs font-semibold text-green-400 uppercase tracking-widest pl-1">Endgame</h5>
+          {endgameElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
         </div>
       </div>
     );
@@ -399,8 +312,8 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
     return (
       <ProtectedRoute>
         <Layout>
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <div className="min-h-[50vh] flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         </Layout>
       </ProtectedRoute>
@@ -411,13 +324,13 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
     return (
       <ProtectedRoute>
         <Layout>
-          <div className="text-center py-12">
-            <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">Team Not Found</h3>
-            <p className="text-muted-foreground mb-4">The requested team could not be found.</p>
-            <Button onClick={() => router.push('/past-competitions')} variant="outline">
+          <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6 glass-card rounded-2xl mx-4">
+            <AlertCircle className="w-16 h-16 text-muted-foreground mb-4" />
+            <h3 className="text-xl font-bold text-foreground mb-2">Team Not Found</h3>
+            <p className="text-muted-foreground mb-6 max-w-md">Historical data for this team is not available.</p>
+            <Button onClick={() => router.push('/past-competitions')} variant="outline" className="border-white/10 hover:bg-white/5">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Past Competitions
+              Return to Past Competitions
             </Button>
           </div>
         </Layout>
@@ -428,34 +341,30 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
   return (
     <ProtectedRoute>
       <Layout>
-        <div className="space-y-6">
+        <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 pb-10">
           {/* Header */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="flex items-center justify-between"
+            className="flex flex-col md:flex-row md:items-center justify-between gap-4"
           >
-            <div className="flex items-center gap-4">
-              <Button 
-                onClick={() => router.push('/past-competitions')} 
-                variant="outline" 
+            <div>
+              <Button
+                onClick={() => router.push('/past-competitions')}
+                variant="ghost"
                 size="sm"
+                className="mb-4 text-muted-foreground hover:text-foreground pl-0 hover:bg-transparent"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Past Competitions
+                <ArrowLeft className="w-4 h-4 mr-2" /> Back
               </Button>
-              <div>
-                <h1 className="text-3xl font-bold text-foreground font-display flex items-center gap-3">
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-lg px-3 py-1">
-                    {team.team_number}
-                  </Badge>
-                  {team.team_name}
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                  Complete historical analysis across all tournaments
-                </p>
-              </div>
+              <h1 className="text-4xl md:text-5xl font-heading font-bold text-foreground flex items-center gap-3">
+                <span className="text-primary">{team.team_number}</span>
+                <span className="text-muted-foreground/50 hidden md:inline">|</span>
+                <span className="text-2xl md:text-4xl">{team.team_name}</span>
+              </h1>
+              <p className="text-muted-foreground mt-2 max-w-2xl">
+                Historical performance analysis across {overallStats?.competitionsPlayed || 0} competitions.
+              </p>
             </div>
           </motion.div>
 
@@ -464,249 +373,181 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
+              transition={{ delay: 0.1 }}
             >
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Trophy className="w-5 h-5" />
-                    All-Time Statistics
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">{overallStats.totalMatches}</div>
-                      <div className="text-sm text-muted-foreground">Total Matches</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">{overallStats.avgScore}</div>
-                      <div className="text-sm text-muted-foreground">Avg Score</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-secondary">{overallStats.avgAutonomous}</div>
-                      <div className="text-sm text-muted-foreground">Avg Auto</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-warning">{overallStats.avgTeleop}</div>
-                      <div className="text-sm text-muted-foreground">Avg Teleop</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-success">{overallStats.avgEndgame}</div>
-                      <div className="text-sm text-muted-foreground">Avg Endgame</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-orange-600">{overallStats.avgDefense}/10</div>
-                      <div className="text-sm text-muted-foreground">Avg Defense</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600">{overallStats.consistency}%</div>
-                      <div className="text-sm text-muted-foreground">Consistency</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{overallStats.competitionsPlayed}</div>
-                      <div className="text-sm text-muted-foreground">Competitions</div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
-                    <div className="text-center">
-                      <div className="text-xl font-bold text-green-600">{overallStats.bestScore}</div>
-                      <div className="text-sm text-muted-foreground">Best Score</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xl font-bold text-red-600">{overallStats.worstScore}</div>
-                      <div className="text-sm text-muted-foreground">Worst Score</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="flex items-center gap-2 mb-4">
+                <Trophy className="w-5 h-5 text-primary" />
+                <h2 className="text-xl font-semibold text-foreground">All-Time Statistics</h2>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4">
+                <StatCard label="Total Matches" value={overallStats.totalMatches} color="blue" icon={Database} />
+                <StatCard label="Avg Score" value={overallStats.avgScore} color="primary" icon={BarChart3} />
+                <StatCard label="Auto Avg" value={overallStats.avgAutonomous} color="blue" icon={Clock} />
+                <StatCard label="Teleop Avg" value={overallStats.avgTeleop} color="orange" icon={Zap} />
+                <StatCard label="Endgame Avg" value={overallStats.avgEndgame} color="green" icon={Award} />
+                <StatCard label="Defense" value={overallStats.avgDefense} color="red" icon={Shield} subLabel="OUT OF 10" />
+                <StatCard label="Consistency" value={`${overallStats.consistency}%`} color="purple" icon={Activity} />
+                <div className="glass-card p-4 rounded-xl flex flex-col justify-center items-center text-center border border-white/5 space-y-2">
+                  <div className="text-xs text-green-400 font-mono">BEST: {overallStats.bestScore}</div>
+                  <div className="w-full h-px bg-white/10" />
+                  <div className="text-xs text-red-400 font-mono">WORST: {overallStats.worstScore}</div>
+                </div>
+              </div>
             </motion.div>
           )}
 
-          {/* Competition Breakdown */}
+          {/* Competition Timeline */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-6"
           >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  Competition Performance ({competitions.length} tournaments)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {competitions.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-foreground mb-2">No Competition Data</h3>
-                    <p className="text-muted-foreground">
-                      No historical competition data found for this team.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {competitions.map((comp, index) => (
-                      <motion.div
-                        key={comp.competition_id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-4">
-                            <Badge variant="outline" className="font-mono">
+            <div className="flex items-center gap-2 border-b border-white/10 pb-4">
+              <MapPin className="w-5 h-5 text-primary" />
+              <h2 className="text-xl font-semibold text-foreground">Competition History</h2>
+            </div>
+
+            {competitions.length === 0 ? (
+              <div className="glass-card p-12 rounded-2xl text-center border-dashed border-2 border-white/10">
+                <div className="bg-white/5 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Trophy className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium text-foreground">No Historical Data</h3>
+                <p className="text-muted-foreground mt-1">No competition records found for this team.</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {competitions.map((comp, index) => (
+                  <motion.div
+                    key={comp.competition_id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 + (index * 0.05) }}
+                    className="relative pl-6 sm:pl-8 border-l-2 border-white/10 last:border-0 pb-8 last:pb-0"
+                  >
+                    {/* Timeline Dot */}
+                    <div className="absolute top-0 left-[-9px] w-4 h-4 rounded-full bg-background border-2 border-primary" />
+
+                    <div className="glass-card rounded-xl overflow-hidden border border-white/5 hover:border-primary/20 transition-all">
+                      {/* Competition Header */}
+                      <div className="p-4 sm:p-5 bg-gradient-to-r from-white/5 to-transparent">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <Badge variant="outline" className="bg-background/50 border-white/10 text-lg font-mono px-3 py-1">
                               {comp.competition_year}
                             </Badge>
                             <div>
-                              <h4 className="font-semibold text-foreground">{comp.competition_name}</h4>
-                              <p className="text-sm text-muted-foreground">{comp.competition_key}</p>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Users className="w-4 h-4" />
-                              {comp.totalMatches} matches
+                              <h3 className="text-lg font-bold text-foreground leading-tight">{comp.competition_name}</h3>
+                              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                                <span className="font-mono">{comp.competition_key}</span>
+                                <span>•</span>
+                                <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {comp.totalMatches} Matches</span>
+                              </div>
                             </div>
                           </div>
+
                           <div className="flex items-center gap-4">
                             <div className="text-right">
                               <div className="text-2xl font-bold text-primary">{comp.avgScore}</div>
-                              <div className="text-sm text-muted-foreground">Avg Score</div>
+                              <div className="text-xs text-muted-foreground uppercase tracking-wider">Avg Score</div>
                             </div>
                             <Button
                               size="sm"
-                              variant={selectedCompetition === comp.competition_id ? "default" : "outline"}
+                              variant={selectedCompetition === comp.competition_id ? "default" : "secondary"}
+                              className="w-10 h-10 p-0 rounded-full"
                               onClick={() => setSelectedCompetition(selectedCompetition === comp.competition_id ? null : comp.competition_id)}
                             >
-                              {selectedCompetition === comp.competition_id ? 'Hide Details' : 'Show Details'}
+                              {selectedCompetition === comp.competition_id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                             </Button>
                           </div>
                         </div>
 
-                        {/* Competition Stats */}
-                        <div className="grid grid-cols-4 gap-4 mb-4">
-                          <div className="text-center p-3 bg-blue-50 rounded-lg">
-                            <div className="text-lg font-semibold text-blue-600">{comp.bestScore}</div>
-                            <div className="text-sm text-muted-foreground">Best Score</div>
+                        {/* Mini Stats Bar */}
+                        <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-white/5">
+                          <div className="bg-background/20 rounded p-2 text-center">
+                            <span className="text-[10px] text-muted-foreground uppercase block">Best</span>
+                            <span className="font-bold text-green-400">{comp.bestScore}</span>
                           </div>
-                          <div className="text-center p-3 bg-red-50 rounded-lg">
-                            <div className="text-lg font-semibold text-red-600">{comp.worstScore}</div>
-                            <div className="text-sm text-muted-foreground">Worst Score</div>
+                          <div className="bg-background/20 rounded p-2 text-center">
+                            <span className="text-[10px] text-muted-foreground uppercase block">Worst</span>
+                            <span className="font-bold text-red-400">{comp.worstScore}</span>
                           </div>
-                          <div className="text-center p-3 bg-green-50 rounded-lg">
-                            <div className="text-lg font-semibold text-green-600">{comp.consistency}%</div>
-                            <div className="text-sm text-muted-foreground">Consistency</div>
-                          </div>
-                          <div className="text-center p-3 bg-purple-50 rounded-lg">
-                            <div className="text-lg font-semibold text-purple-600">{comp.totalMatches}</div>
-                            <div className="text-sm text-muted-foreground">Matches</div>
+                          <div className="bg-background/20 rounded p-2 text-center">
+                            <span className="text-[10px] text-muted-foreground uppercase block">Consistency</span>
+                            <span className="font-bold text-purple-400">{comp.consistency}%</span>
                           </div>
                         </div>
+                      </div>
 
-                        {/* Individual Match Data */}
+                      {/* Expandable Match Details */}
+                      <AnimatePresence>
                         {selectedCompetition === comp.competition_id && (
                           <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="mt-4 pt-4 border-t"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="border-t border-white/5 bg-black/20"
                           >
-                            <h4 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                              <FileText className="w-5 h-5" />
-                              Individual Match Data
-                            </h4>
-                            <div className="space-y-3">
-                              {comp.scoutingData.map((data, dataIndex) => (
-                                <div key={data.id} className="p-3 bg-muted/30 rounded-lg">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-3">
-                                      <Badge variant="outline" className="font-mono">
-                                        {data.match_id}
-                                      </Badge>
-                                      <Badge 
-                                        variant={data.alliance_color === 'red' ? 'destructive' : 'default'}
-                                      >
-                                        {data.alliance_color.toUpperCase()} Alliance
-                                      </Badge>
-                                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <Calendar className="w-4 h-4" />
-                                        {new Date(data.created_at).toLocaleDateString()}
+                            <div className="p-4 sm:p-6 space-y-4">
+                              <h4 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+                                <FileText className="w-4 h-4" /> Individual Matches
+                              </h4>
+
+                              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                {comp.scoutingData.map((data) => (
+                                  <div key={data.id} className="bg-card/40 border border-white/5 rounded-lg p-3 hover:bg-white/5 transition-colors">
+                                    <div className="flex justify-between items-start mb-2">
+                                      <div className="flex flex-col">
+                                        <span className="text-xs text-muted-foreground uppercase">Match</span>
+                                        <span className="font-mono font-bold text-foreground">#{data.match_id}</span>
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="text-lg font-bold text-primary">{data.final_score}</div>
+                                        <Badge
+                                          className={cn(
+                                            "text-[10px] px-1 py-0 h-4",
+                                            data.alliance_color === 'red' ? "bg-red-500/20 text-red-500" : "bg-blue-500/20 text-blue-500"
+                                          )}
+                                        >
+                                          {data.alliance_color}
+                                        </Badge>
                                       </div>
                                     </div>
-                                    <div className="text-right">
-                                      <div className="text-xl font-bold text-primary">{data.final_score}</div>
-                                      <div className="text-sm text-muted-foreground">Total Score</div>
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Score Breakdown */}
-                                  <div className="grid grid-cols-3 gap-3 mb-2">
-                                    <div className="text-center p-2 bg-blue-50 rounded">
-                                      <div className="text-sm font-semibold text-blue-600">{data.autonomous_points}</div>
-                                      <div className="text-xs text-muted-foreground">Autonomous</div>
-                                    </div>
-                                    <div className="text-center p-2 bg-green-50 rounded">
-                                      <div className="text-sm font-semibold text-green-600">{data.teleop_points}</div>
-                                      <div className="text-xs text-muted-foreground">Teleop</div>
-                                    </div>
-                                    <div className="text-center p-2 bg-yellow-50 rounded">
-                                      <div className="text-sm font-semibold text-yellow-600">{data.endgame_points}</div>
-                                      <div className="text-xs text-muted-foreground">Endgame</div>
-                                    </div>
-                                  </div>
 
-                                  {/* Defense Rating */}
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <Shield className="w-4 h-4 text-muted-foreground" />
-                                    <span className="text-sm font-medium">Defense Rating:</span>
-                                    <div className="flex items-center gap-1">
-                                      {[...Array(10)].map((_, i) => (
-                                        <div
-                                          key={i}
-                                          className={`w-1.5 h-1.5 rounded-full ${
-                                            i < (data.defense_rating || 0) ? 'bg-yellow-500' : 'bg-gray-200'
-                                          }`}
-                                        />
-                                      ))}
-                                      <span className="ml-2 text-sm font-semibold">{data.defense_rating || 0}/10</span>
+                                    {/* Quick Stats */}
+                                    <div className="flex justify-between text-xs text-muted-foreground mb-3 bg-black/20 rounded p-1.5">
+                                      <span>A: <strong className="text-blue-400">{data.autonomous_points}</strong></span>
+                                      <span>T: <strong className="text-orange-400">{data.teleop_points}</strong></span>
+                                      <span>E: <strong className="text-green-400">{data.endgame_points}</strong></span>
                                     </div>
-                                  </div>
 
-                                  {/* Comments */}
-                                  {data.comments && (
-                                    <div className="mb-2">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                                        <span className="text-sm font-medium">Comments:</span>
+                                    {/* Expanded details trigger (could be nested inside this small card) */}
+                                    {data.notes && (
+                                      <div className="mt-2 pt-2 border-t border-white/5">
+                                        <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Breakdown</div>
+                                        {renderScoringBreakdown(data.notes)}
                                       </div>
-                                      <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
-                                        {data.comments}
-                                      </p>
-                                    </div>
-                                  )}
+                                    )}
 
-                                  {/* Detailed Scoring Breakdown */}
-                                  {data.notes && (
-                                    <div className="mt-3 pt-3 border-t">
-                                      <h5 className="text-md font-semibold mb-2 flex items-center gap-2">
-                                        <Activity className="w-4 h-4" />
-                                        Detailed Scoring Breakdown
-                                      </h5>
-                                      {renderScoringBreakdown(data.notes)}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
+                                    {data.comments && (
+                                      <div className="mt-2 pt-2 border-t border-white/5">
+                                        <p className="text-xs italic text-muted-foreground">"{data.comments}"</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </motion.div>
                         )}
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      </AnimatePresence>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </motion.div>
         </div>
       </Layout>

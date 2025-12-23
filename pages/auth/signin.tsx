@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@supabase/supabase-js';
 import { Button } from '../../components/ui';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui';
 import { useToast } from '../../hooks/use-toast';
-import { 
-  ArrowRight, 
-  Shield, 
-  Zap, 
+import {
+  ArrowRight,
+  Shield,
+  Zap,
   Users,
   BarChart3,
   Sparkles,
@@ -15,22 +15,23 @@ import {
   Snowflake,
   AlertTriangle,
   CheckCircle,
-  XCircle
+  XCircle,
+  Play
 } from 'lucide-react';
 import Logo from '../../components/ui/Logo';
 
 // Avalanche animation background
 const AvalancheBackground = () => {
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none bg-background">
       {/* Gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900"></div>
-      
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/30 via-background to-background" />
+
       {/* Floating geometric shapes */}
-      {[...Array(20)].map((_, i) => (
+      {[...Array(30)].map((_, i) => (
         <motion.div
           key={i}
-          className="absolute w-2 h-2 bg-foreground/20 rounded-full"
+          className="absolute w-1 h-1 bg-primary/40 rounded-full"
           style={{
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
@@ -41,31 +42,34 @@ const AvalancheBackground = () => {
             scale: [1, 1.5, 1],
           }}
           transition={{
-            duration: 4 + Math.random() * 2,
+            duration: 4 + Math.random() * 3,
             repeat: Infinity,
-            delay: Math.random() * 3,
+            delay: Math.random() * 2,
           }}
         />
       ))}
 
-      {/* Large floating triangles */}
-      {[...Array(6)].map((_, i) => (
+      {/* Large floating elements */}
+      {[...Array(4)].map((_, i) => (
         <motion.div
-          key={`triangle-${i}`}
-          className="absolute w-8 h-8 border-l-4 border-r-4 border-b-4 border-transparent border-b-white/10"
+          key={`orb-${i}`}
+          className="absolute rounded-full blur-3xl opacity-10"
           style={{
-            left: `${20 + i * 15}%`,
-            top: `${30 + (i % 2) * 40}%`,
+            width: `${300 + Math.random() * 200}px`,
+            height: `${300 + Math.random() * 200}px`,
+            background: i % 2 === 0 ? 'var(--primary)' : 'var(--secondary)',
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
           }}
           animate={{
-            y: [0, -40, 0],
-            opacity: [0.1, 0.3, 0.1],
-            rotate: [0, 180, 360],
+            x: [0, 50, 0],
+            y: [0, -50, 0],
           }}
           transition={{
-            duration: 6 + i * 0.5,
+            duration: 15 + i * 2,
             repeat: Infinity,
             delay: i * 0.8,
+            ease: "easeInOut"
           }}
         />
       ))}
@@ -101,11 +105,7 @@ export default function SignIn() {
     setIsLoading(true);
     setError(null);
     setSuccess(null);
-    
-    console.log('🚀 Starting Discord OAuth flow...');
-    console.log('📍 Current URL:', window.location.href);
-    console.log('🎯 Redirect URL:', `${window.location.origin}/`);
-    
+
     try {
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -125,9 +125,6 @@ export default function SignIn() {
         }
       );
 
-      console.log('🔧 Supabase client created');
-      console.log('🌐 Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
@@ -135,250 +132,159 @@ export default function SignIn() {
         },
       });
 
-      console.log('📡 OAuth response:', { data, error });
-
       if (error) {
-        console.error('❌ Discord sign in error:', error);
         const errorMessage = `Failed to initiate Discord sign in: ${error.message}`;
         setError(errorMessage);
-        
-        // Show error toast
         toast({
           title: "Discord Sign In Failed",
           description: error.message,
           variant: "destructive",
         });
-
-        // Notify Discord channel
         await notifyDiscordError(errorMessage);
-        
-        // Show error for a few seconds, then redirect to error page
-        setTimeout(() => {
-          console.log('🔄 Redirecting to error page...');
-          window.location.href = `/auth/error?message=${encodeURIComponent(error.message)}&error=initiation_error`;
-        }, 5000);
       } else if (data.url) {
-        console.log('✅ OAuth URL received, redirecting to Discord...');
-        console.log('🔗 Discord URL:', data.url);
-        
-        // Show success message
         setSuccess('Redirecting to Discord...');
         toast({
           title: "Redirecting to Discord",
           description: "Please complete authentication in the new window",
           variant: "default",
         });
-        
-        // Redirect to Discord OAuth
         window.location.href = data.url;
       } else {
-        console.error('❌ No authentication URL received from Discord');
         const errorMessage = 'No authentication URL received from Discord';
         setError(errorMessage);
-        
         toast({
           title: "Authentication Error",
           description: errorMessage,
           variant: "destructive",
         });
-
-        // Notify Discord channel
         await notifyDiscordError(errorMessage);
       }
     } catch (error) {
-      console.error('💥 Sign in error:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       setError(errorMessage);
-      
-      // Show error toast
       toast({
         title: "Sign In Error",
         description: errorMessage,
         variant: "destructive",
       });
-
-      // Notify Discord channel
       await notifyDiscordError(errorMessage);
-      
-      // Show error for a few seconds, then redirect to error page
-      setTimeout(() => {
-        console.log('🔄 Redirecting to error page...');
-        window.location.href = `/auth/error?message=${encodeURIComponent(errorMessage)}&error=unexpected_error`;
-      }, 5000);
     } finally {
       setIsLoading(false);
     }
   };
+
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Avalanche Background */}
+    <div className="min-h-screen relative overflow-hidden flex flex-col justify-center items-center">
       <AvalancheBackground />
-      
+
       {/* Header */}
-      <header className="relative z-10 flex justify-between items-center px-6 py-4">
-        <div className="flex items-center space-x-4">
-          <Logo size="lg" />
-          <div className="text-white font-bold text-2xl tracking-wide">
+      <header className="absolute top-0 left-0 right-0 z-20 flex justify-between items-center px-6 py-6 border-b border-white/5 bg-background/20 backdrop-blur-sm">
+        <div className="flex items-center space-x-3">
+          <Logo size="md" />
+          <div className="text-foreground font-heading font-bold text-xl tracking-tight">
             Avalanche Scouting
           </div>
         </div>
-        <div className="text-white/80 text-sm">
-          FRC 2025 Data Platform
+        <div className="text-muted-foreground text-xs uppercase tracking-widest font-semibold hidden sm:block">
+          FRC 2025 Reefscape
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="relative z-10 flex items-center justify-center min-h-screen px-4">
+      <div className="relative z-10 w-full max-w-md px-6">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="w-full max-w-md"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, type: "spring" }}
+          className="glass-card rounded-3xl overflow-hidden border border-white/10 shadow-2xl shadow-primary/10"
         >
-          {/* Welcome Card */}
-          <Card className="bg-card/90 backdrop-blur-lg border-border shadow-2xl">
-            <CardHeader className="text-center pb-8">
+          <div className="p-8 pb-6 text-center space-y-4">
+            <div className="flex justify-center mb-4">
               <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="flex justify-center mb-6"
+                animate={{
+                  boxShadow: ["0 0 0 0px rgba(59, 130, 246, 0)", "0 0 0 10px rgba(59, 130, 246, 0.1)", "0 0 0 20px rgba(59, 130, 246, 0)"]
+                }}
+                transition={{ duration: 3, repeat: Infinity }}
+                className="rounded-full"
               >
-                <div className="relative">
-                  <Logo size="xl" />
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="absolute inset-0 border-2 border-white/20 rounded-full"
-                  />
-                </div>
+                <Logo size="xl" />
               </motion.div>
-              
-              <CardTitle className="text-3xl font-bold text-white mb-2 font-display">
-                Welcome to Avalanche
-              </CardTitle>
-              <CardDescription className="text-white/80 text-lg">
-                Advanced FRC scouting data platform
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="space-y-6">
-              {/* Success Display */}
-              {success && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-green-500/20 border border-green-500/30 rounded-lg p-4"
-                >
-                  <div className="flex items-center space-x-2 text-green-400">
-                    <CheckCircle className="w-5 h-5" />
-                    <span className="text-sm font-medium">Success</span>
-                  </div>
-                  <p className="text-green-300 text-sm mt-1">{success}</p>
-                </motion.div>
-              )}
-
-              {/* Error Display */}
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-red-500/20 border border-red-500/30 rounded-lg p-4"
-                >
-                  <div className="flex items-center space-x-2 text-red-400">
-                    <XCircle className="w-5 h-5" />
-                    <span className="text-sm font-medium">Sign In Error</span>
-                  </div>
-                  <p className="text-red-300 text-sm mt-1">{error}</p>
-                  <p className="text-red-400/80 text-xs mt-2">
-                    Redirecting to error page in a few seconds...
-                  </p>
-                </motion.div>
-              )}
-
-              {/* Features Preview */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-                className="grid grid-cols-2 gap-4 mb-8"
-              >
-                <div className="flex items-center space-x-2 text-white/70">
-                  <BarChart3 className="w-4 h-4" />
-                  <span className="text-sm">Analytics</span>
-                </div>
-                <div className="flex items-center space-x-2 text-white/70">
-                  <Users className="w-4 h-4" />
-                  <span className="text-sm">Team Data</span>
-                </div>
-                <div className="flex items-center space-x-2 text-white/70">
-                  <Zap className="w-4 h-4" />
-                  <span className="text-sm">Real-time</span>
-                </div>
-                <div className="flex items-center space-x-2 text-white/70">
-                  <Shield className="w-4 h-4" />
-                  <span className="text-sm">Secure</span>
-                </div>
-              </motion.div>
-
-              {/* Discord Sign In Button */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.6 }}
-              >
-                <Button
-                  onClick={handleDiscordSignIn}
-                  disabled={isLoading}
-                  variant="avalanche"
-                  size="lg"
-                  className="w-full py-4 px-6 group disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div className="flex items-center justify-center space-x-3">
-                    <motion.div
-                      animate={{ rotate: [0, 10, -10, 0] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <Snowflake className="w-6 h-6" />
-                    </motion.div>
-                    <span className="text-lg">
-                      {isLoading ? 'Signing in...' : 'Sign in with Discord'}
-                    </span>
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </Button>
-              </motion.div>
-
-              {/* Additional Info */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.8 }}
-                className="text-center text-white/60 text-sm"
-              >
-                <p>Join the Avalanche scouting team</p>
-                <p className="mt-1">Secure • Fast • Professional</p>
-              </motion.div>
-            </CardContent>
-          </Card>
-
-          {/* Bottom Branding */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 1 }}
-            className="text-center mt-8"
-          >
-            <div className="flex items-center justify-center space-x-2 text-white/40">
-              <Mountain className="w-4 h-4" />
-              <span className="text-sm">Powered by Avalanche Robotics</span>
-              <Sparkles className="w-4 h-4" />
             </div>
-          </motion.div>
+
+            <h1 className="text-3xl font-heading font-bold text-foreground">
+              Welcome Back
+            </h1>
+            <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+              Sign in to access the Avalanche Scouting platform and real-time data analysis.
+            </p>
+          </div>
+
+          <div className="px-8 pb-8 space-y-6">
+            <Button
+              onClick={handleDiscordSignIn}
+              disabled={isLoading}
+              className="w-full h-14 text-base font-semibold bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl shadow-lg shadow-[#5865F2]/20 hover:shadow-[#5865F2]/40 transition-all flex items-center justify-center gap-3 relative overflow-hidden group"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Users size={20} />
+              )}
+              <span>{isLoading ? 'Connecting...' : 'Continue with Discord'}</span>
+              <ArrowRight size={18} className="opacity-0 group-hover:opacity-100 -ml-2 group-hover:ml-0 transition-all" />
+            </Button>
+
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { icon: BarChart3, label: "Analytics" },
+                { icon: Shield, label: "Secure" },
+                { icon: Zap, label: "Real-time" },
+                { icon: Snowflake, label: "Reefscape" }
+              ].map((item, i) => (
+                <div key={i} className="bg-white/5 border border-white/5 rounded-lg p-2 flex flex-col items-center justify-center text-center gap-1 group hover:bg-white/10 transition-colors cursor-default">
+                  <item.icon size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Status Messages */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="bg-red-500/10 border-t border-red-500/20 p-4"
+              >
+                <div className="flex items-center gap-2 text-red-400 text-sm">
+                  <AlertTriangle size={16} />
+                  <span>{error}</span>
+                </div>
+              </motion.div>
+            )}
+            {success && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="bg-green-500/10 border-t border-green-500/20 p-4"
+              >
+                <div className="flex items-center gap-2 text-green-400 text-sm">
+                  <CheckCircle size={16} />
+                  <span>{success}</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
+
+        <p className="text-center text-xs text-muted-foreground mt-8">
+          Authorized personnel only. Contact admin for access.
+        </p>
       </div>
     </div>
   );
 }
-
-// No server-side props needed for Supabase auth

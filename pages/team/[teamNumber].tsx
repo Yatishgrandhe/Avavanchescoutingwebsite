@@ -272,7 +272,17 @@ const TeamDetail: React.FC = () => {
           >
             <div>
               <Button
-                onClick={() => router.back()}
+                onClick={() => {
+                  // Try to close the window/tab
+                  if (typeof window !== 'undefined') {
+                    window.close();
+                    // If window.close() doesn't work (e.g., page wasn't opened by script),
+                    // navigate to home after a short delay
+                    setTimeout(() => {
+                      router.push('/');
+                    }, 100);
+                  }
+                }}
                 variant="ghost"
                 size="sm"
                 className="mb-4 text-muted-foreground hover:text-foreground pl-0 hover:bg-transparent"

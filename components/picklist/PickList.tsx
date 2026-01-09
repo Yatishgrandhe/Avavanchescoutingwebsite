@@ -19,7 +19,6 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { TeamStatsCard, QuickStats } from './TeamStatsCard';
@@ -65,73 +64,77 @@ function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemPro
 
   return (
     <div ref={setNodeRef} style={style} className="relative">
-      <Card className="p-6 mb-3 bg-card border-l-4 border-l-primary rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start space-x-4 flex-1">
+      <div className="glass-card p-4 sm:p-6 mb-3 border-l-4 border-l-primary rounded-xl hover:bg-white/5 transition-all duration-300">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+          <div className="flex items-start gap-3 sm:gap-4 flex-1 w-full min-w-0">
             <div
               {...attributes}
               {...listeners}
-              className="cursor-grab hover:cursor-grabbing p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors duration-300"
+              className="cursor-grab hover:cursor-grabbing p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-white/10 transition-colors duration-300 flex-shrink-0"
             >
               <GripVertical className="h-5 w-5" />
             </div>
             
-            <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
                 <button
                   onClick={handleTeamClick}
-                  className="flex items-center space-x-2 hover:text-primary transition-colors duration-300 group"
+                  className="flex items-center gap-2 hover:text-primary transition-colors duration-300 group w-fit"
                 >
-                  <h3 className="text-lg font-semibold text-card-foreground group-hover:text-primary">
+                  <h3 className="text-base sm:text-lg font-semibold text-foreground group-hover:text-primary">
                     #{team.pick_order} - Team {team.team_number}
                   </h3>
-                  <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+                  <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300 flex-shrink-0" />
                 </button>
-                <span className="text-sm text-muted-foreground">{team.team_name}</span>
+                <span className="text-xs sm:text-sm text-muted-foreground truncate">{team.team_name}</span>
               </div>
               
               {team.stats && (
-                <QuickStats stats={team.stats} className="mb-2" />
+                <div className="mb-3">
+                  <QuickStats stats={team.stats} className="mb-2" />
+                </div>
               )}
               
-              <div className="flex items-center space-x-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
                 {isEditingNotes ? (
-                  <div className="flex items-center space-x-3 flex-1">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full">
                     <Input
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="Add notes..."
-                      className="flex-1 bg-background border-border text-foreground"
+                      className="flex-1 bg-background/50 border-white/10 text-foreground min-w-0"
                     />
-                    <Button 
-                      size="sm" 
-                      onClick={handleSaveNotes}
-                      className="px-4 py-2 rounded-full bg-primary text-white hover:opacity-90 transition-opacity duration-300"
-                    >
-                      Save
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => {
-                        setNotes(team.notes || '');
-                        setIsEditingNotes(false);
-                      }}
-                      className="px-4 py-2 rounded-full border-border text-muted-foreground hover:bg-muted transition-colors duration-300"
-                    >
-                      Cancel
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        onClick={handleSaveNotes}
+                        className="px-3 sm:px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors text-xs sm:text-sm"
+                      >
+                        Save
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => {
+                          setNotes(team.notes || '');
+                          setIsEditingNotes(false);
+                        }}
+                        className="px-3 sm:px-4 py-2 rounded-lg border-white/10 text-muted-foreground hover:bg-white/5 transition-colors text-xs sm:text-sm"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="flex items-center space-x-3 flex-1">
-                    <span className="text-sm text-muted-foreground italic">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 w-full">
+                    <span className="text-xs sm:text-sm text-muted-foreground italic truncate flex-1">
                       {team.notes || 'No notes added'}
                     </span>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => setIsEditingNotes(true)}
-                      className="p-2 h-8 w-8 rounded-full hover:bg-muted transition-colors duration-300"
+                      className="p-2 h-8 w-8 rounded-lg hover:bg-white/10 transition-colors duration-300 flex-shrink-0"
                     >
                       <Edit3 className="h-3 w-3" />
                     </Button>
@@ -145,12 +148,12 @@ function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemPro
             size="sm"
             variant="ghost"
             onClick={() => onRemove(team.team_number)}
-            className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-2 h-8 w-8 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300"
+            className="text-red-500 hover:text-red-700 p-2 h-8 w-8 rounded-lg hover:bg-red-500/20 transition-colors duration-300 flex-shrink-0 self-start sm:self-center"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
@@ -501,10 +504,10 @@ export function PickList({ pickListId, eventKey = '2025test', onSave, session }:
             >
               <div className="space-y-3">
                 {teams.length === 0 ? (
-                  <Card className="p-8 text-center rounded-xl bg-card border border-border">
+                  <div className="glass-card p-8 text-center rounded-xl border border-white/5">
                     <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <p className="text-muted-foreground">No teams selected yet. Add teams from the available list.</p>
-                  </Card>
+                  </div>
                 ) : (
                   teams.map((team) => (
                     <SortableTeamItem

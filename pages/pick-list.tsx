@@ -23,7 +23,9 @@ import {
   LayoutGrid,
   ChevronRight,
   Trash2,
-  Search
+  Search,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 export default function PickListPage() {
@@ -36,6 +38,7 @@ export default function PickListPage() {
   const [newPickListName, setNewPickListName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [showEducation, setShowEducation] = useState(false);
+  const [isListsCollapsed, setIsListsCollapsed] = useState(false);
 
   useEffect(() => {
     if (session && isAdmin) {
@@ -212,23 +215,35 @@ export default function PickListPage() {
             {/* Sidebar List */}
             <div className="lg:col-span-1 space-y-4">
               <div className="glass-card rounded-xl overflow-hidden border border-white/5 flex flex-col h-[600px]">
-                <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
+                <button
+                  onClick={() => setIsListsCollapsed(!isListsCollapsed)}
+                  className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5 hover:bg-white/10 transition-colors"
+                >
                   <span className="font-semibold flex items-center gap-2">
                     <List size={16} className="text-primary" /> My Lists
                   </span>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setIsCreatingNew(true);
-                      setSelectedPickList(null);
-                    }}
-                    className="h-8 w-8 p-0 rounded-full bg-primary/20 text-primary hover:bg-primary/30"
-                  >
-                    <Plus size={16} />
-                  </Button>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsCreatingNew(true);
+                        setSelectedPickList(null);
+                      }}
+                      className="h-8 w-8 p-0 rounded-full bg-primary/20 text-primary hover:bg-primary/30"
+                    >
+                      <Plus size={16} />
+                    </Button>
+                    {isListsCollapsed ? (
+                      <ChevronDown size={16} className="text-muted-foreground" />
+                    ) : (
+                      <ChevronUp size={16} className="text-muted-foreground" />
+                    )}
+                  </div>
+                </button>
 
-                <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+                {!isListsCollapsed && (
+                  <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
                   <AnimatePresence>
                     {isCreatingNew && (
                       <motion.div
@@ -290,7 +305,8 @@ export default function PickListPage() {
                       ))
                     )}
                   </AnimatePresence>
-                </div>
+                  </div>
+                )}
               </div>
 
               {/* Tips Card */}

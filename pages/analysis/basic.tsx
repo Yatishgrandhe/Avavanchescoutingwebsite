@@ -75,6 +75,7 @@ export default function BasicAnalysis() {
   const { user, loading: authLoading } = useSupabase();
   const [teams, setTeams] = useState<TeamData[]>([]);
   const [matches, setMatches] = useState<MatchData[]>([]);
+  const [uniqueMatchesCount, setUniqueMatchesCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string>('all');
@@ -195,10 +196,15 @@ export default function BasicAnalysis() {
           submitted_at: sd.submitted_at,
         }));
         setMatches(matchData);
+        
+        // Count unique matches (distinct match_id values)
+        const uniqueMatchIds = new Set(dataArray.map((sd: any) => sd.match_id));
+        setUniqueMatchesCount(uniqueMatchIds.size);
       } else {
         // If fetch fails, ensure matches is at least an empty array
         console.error('Failed to fetch scouting data:', scoutingResponse.statusText);
         setMatches([]);
+        setUniqueMatchesCount(0);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -326,13 +332,13 @@ export default function BasicAnalysis() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                 <CardTitle className="text-sm font-medium text-white">Total Matches</CardTitle>
+                 <CardTitle className="text-sm font-medium text-white">Scouting Records</CardTitle>
                  <Target className="h-4 w-4 text-slate-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-white">{matches.length}</div>
                 <p className="text-xs text-slate-400">
-                  Matches recorded
+                  {uniqueMatchesCount > 0 ? `${uniqueMatchesCount} unique match${uniqueMatchesCount !== 1 ? 'es' : ''} scouted` : 'No matches scouted yet'}
                 </p>
               </CardContent>
             </Card>

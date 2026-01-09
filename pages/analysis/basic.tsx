@@ -195,6 +195,10 @@ export default function BasicAnalysis() {
           submitted_at: sd.submitted_at,
         }));
         setMatches(matchData);
+      } else {
+        // If fetch fails, ensure matches is at least an empty array
+        console.error('Failed to fetch scouting data:', scoutingResponse.statusText);
+        setMatches([]);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -209,15 +213,18 @@ export default function BasicAnalysis() {
   );
 
   const topTeams = [...(teams || [])]
+    .filter(team => team.avg_total_score > 0) // Only show teams with actual data
     .sort((a, b) => b.avg_total_score - a.avg_total_score)
     .slice(0, 10);
 
   const chartData = topTeams.map(team => ({
-    name: `Team ${team.team_number}`,
-    autonomous: team.avg_autonomous_points,
-    teleop: team.avg_teleop_points,
-    endgame: team.avg_endgame_points,
-    total: team.avg_total_score
+    name: team.team_name ? `${team.team_name}` : `Team ${team.team_number}`,
+    nameShort: `#${team.team_number}`, // Short version for charts
+    teamNumber: team.team_number,
+    autonomous: team.avg_autonomous_points || 0,
+    teleop: team.avg_teleop_points || 0,
+    endgame: team.avg_endgame_points || 0,
+    total: team.avg_total_score || 0
   }));
 
   const pieData = [
@@ -352,10 +359,10 @@ export default function BasicAnalysis() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-white">
-                  {topTeams.length > 0 ? `Team ${topTeams[0].team_number}` : 'N/A'}
+                  {topTeams.length > 0 ? (topTeams[0].team_name || `Team ${topTeams[0].team_number}`) : 'N/A'}
                 </div>
                  <p className="text-xs text-slate-400">
-                   {topTeams.length > 0 && topTeams[0].avg_total_score ? `${topTeams[0].avg_total_score.toFixed(1)} avg` : 'No data'}
+                   {topTeams.length > 0 && topTeams[0].avg_total_score ? `Team ${topTeams[0].team_number} - ${topTeams[0].avg_total_score.toFixed(1)} avg` : 'No data'}
                  </p>
               </CardContent>
             </Card>
@@ -380,9 +387,21 @@ export default function BasicAnalysis() {
                     <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
+                        <XAxis 
+                          dataKey="nameShort" 
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
+                          interval={0}
+                        />
                         <YAxis />
-                        <Tooltip />
+                        <Tooltip 
+                          formatter={(value: any) => value}
+                          labelFormatter={(label: any, payload: any) => {
+                            const data = payload?.[0]?.payload;
+                            return data ? `${data.name} (${data.teamNumber})` : label;
+                          }}
+                        />
                         <Bar dataKey="total" fill="#8884d8" />
                       </BarChart>
                     </ResponsiveContainer>
@@ -490,10 +509,17 @@ export default function BasicAnalysis() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(matches || []).slice(0, 20).map((match) => (
-                        <TableRow key={match.match_id}>
-                          <TableCell className="font-medium">{match.match_id}</TableCell>
-                          <TableCell>Team {match.team_number}</TableCell>
+                      {(matches || []).length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={9} className="text-center text-muted-foreground">
+                            No matches recorded yet
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        (matches || []).slice(0, 20).map((match, index) => (
+                          <TableRow key={match.match_id || `match-${index}`}>
+                            <TableCell className="font-medium">{match.match_id || 'N/A'}</TableCell>
+                            <TableCell>Team {match.team_number}</TableCell>
                           <TableCell>
                             <Badge variant={match.alliance_color === 'red' ? 'destructive' : 'default'}>
                               {match.alliance_color}
@@ -507,10 +533,11 @@ export default function BasicAnalysis() {
                             {match.submitted_by_name || 'Unknown'}
                           </TableCell>
                           <TableCell className="text-muted-foreground">
-                            {new Date(match.created_at).toLocaleDateString()}
+                            {match.created_at ? new Date(match.created_at).toLocaleDateString() : 'N/A'}
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ))
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
@@ -527,9 +554,21 @@ export default function BasicAnalysis() {
                     <ResponsiveContainer width="100%" height={300}>
                       <LineChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
+                        <XAxis 
+                          dataKey="nameShort" 
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
+                          interval={0}
+                        />
                         <YAxis />
-                        <Tooltip />
+                        <Tooltip 
+                          formatter={(value: any) => value}
+                          labelFormatter={(label: any, payload: any) => {
+                            const data = payload?.[0]?.payload;
+                            return data ? `${data.name} (${data.teamNumber})` : label;
+                          }}
+                        />
                         <Line type="monotone" dataKey="autonomous" stroke="#8884d8" strokeWidth={2} />
                         <Line type="monotone" dataKey="teleop" stroke="#82ca9d" strokeWidth={2} />
                         <Line type="monotone" dataKey="endgame" stroke="#ffc658" strokeWidth={2} />
@@ -546,9 +585,21 @@ export default function BasicAnalysis() {
                     <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
+                        <XAxis 
+                          dataKey="nameShort" 
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
+                          interval={0}
+                        />
                         <YAxis />
-                        <Tooltip />
+                        <Tooltip 
+                          formatter={(value: any) => value}
+                          labelFormatter={(label: any, payload: any) => {
+                            const data = payload?.[0]?.payload;
+                            return data ? `${data.name} (${data.teamNumber})` : label;
+                          }}
+                        />
                         <Bar dataKey="autonomous" stackId="a" fill="#8884d8" />
                         <Bar dataKey="teleop" stackId="a" fill="#82ca9d" />
                         <Bar dataKey="endgame" stackId="a" fill="#ffc658" />

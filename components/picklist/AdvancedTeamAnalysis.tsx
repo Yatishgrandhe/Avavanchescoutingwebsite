@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/badge';
 import { TeamStats, PickListTeam } from '@/lib/types';
@@ -222,41 +221,41 @@ export function AdvancedTeamAnalysis({
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'primary': return <Star className="h-4 w-4 text-yellow-500" />;
-      case 'defensive': return <Shield className="h-4 w-4 text-blue-500" />;
-      case 'specialist': return <Zap className="h-4 w-4 text-purple-500" />;
-      default: return <Users className="h-4 w-4 text-gray-500" />;
+      case 'primary': return <Star className="h-4 w-4 text-primary" />;
+      case 'defensive': return <Shield className="h-4 w-4 text-primary" />;
+      case 'specialist': return <Zap className="h-4 w-4 text-primary" />;
+      default: return <Users className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'primary': return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
-      case 'defensive': return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200';
-      case 'specialist': return 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200';
-      default: return 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200';
+      case 'primary': return 'bg-primary/20 text-primary border-primary/20';
+      case 'defensive': return 'bg-primary/20 text-primary border-primary/20';
+      case 'specialist': return 'bg-primary/20 text-primary border-primary/20';
+      default: return 'bg-white/10 text-muted-foreground border-white/10';
     }
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    if (score >= 40) return 'text-orange-600';
-    return 'text-red-600';
+    if (score >= 80) return 'text-primary';
+    if (score >= 60) return 'text-primary';
+    if (score >= 40) return 'text-muted-foreground';
+    return 'text-muted-foreground';
   };
 
   return (
-    <Card className="p-3 sm:p-4 rounded-xl shadow-card dark:shadow-card-dark bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 w-full min-w-[250px]">
-      <div className="flex flex-col space-y-3 mb-3">
+    <div className="glass-card p-4 rounded-xl border border-white/5 w-full h-full flex flex-col overflow-hidden">
+      <div className="flex flex-col space-y-3 mb-3 flex-shrink-0">
         <div className="flex items-center space-x-2">
-          <Brain className="h-4 w-4 text-purple-600" />
-          <h3 className="text-sm sm:text-base font-semibold text-neutral-900 dark:text-neutral-100">AI Team Suggestions</h3>
+          <Brain className="h-4 w-4 text-primary" />
+          <h3 className="text-sm sm:text-base font-semibold text-foreground">AI Team Suggestions</h3>
         </div>
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           <select
             value={analysisMode}
             onChange={(e) => setAnalysisMode(e.target.value as any)}
-            className="flex-1 px-2 py-2 sm:py-1 border border-border rounded text-xs sm:text-sm bg-background text-foreground"
+            className="flex-1 px-3 py-2 border border-white/10 rounded-lg text-xs sm:text-sm bg-background/50 text-foreground hover:bg-white/5 transition-colors"
           >
             <option value="balanced">Balanced Strategy</option>
             <option value="aggressive">Aggressive Scoring</option>
@@ -267,27 +266,27 @@ export function AdvancedTeamAnalysis({
             size="sm"
             variant="outline"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="px-2 py-2 sm:py-1 rounded border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors duration-300 text-xs sm:text-sm"
+            className="px-3 py-2 rounded-lg border-white/10 text-foreground hover:bg-white/5 transition-colors text-xs sm:text-sm"
           >
             <BarChart3 className="h-3 w-3 mr-1" />
-            <span className="hidden sm:inline">{showAdvanced ? 'Hide' : 'Show'} Analysis Details</span>
+            <span className="hidden sm:inline">{showAdvanced ? 'Hide' : 'Show'} Details</span>
             <span className="sm:hidden">{showAdvanced ? 'Hide' : 'Details'}</span>
           </Button>
         </div>
       </div>
 
       {/* Analysis Mode Description */}
-      <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+      <div className="mb-3 p-3 bg-primary/10 rounded-lg border border-primary/20 flex-shrink-0">
         <div className="flex items-center space-x-2 mb-1">
-          <Lightbulb className="h-3 w-3 text-yellow-500" />
-          <span className="text-xs font-medium text-blue-900 dark:text-blue-100">
+          <Lightbulb className="h-3 w-3 text-primary" />
+          <span className="text-xs font-medium text-foreground">
             {analysisMode === 'balanced' && 'Balanced Strategy'}
             {analysisMode === 'aggressive' && 'Aggressive Scoring'}
             {analysisMode === 'defensive' && 'Defensive Focus'}
             {analysisMode === 'specialist' && 'Specialist Roles'}
           </span>
         </div>
-        <p className="text-xs text-blue-800 dark:text-blue-200">
+        <p className="text-xs text-muted-foreground">
           {analysisMode === 'balanced' && 'Prioritizes well-rounded teams with good scoring and defense capabilities'}
           {analysisMode === 'aggressive' && 'Focuses on high-scoring teams for offensive strategies'}
           {analysisMode === 'defensive' && 'Emphasizes defensive capabilities and endgame performance'}
@@ -296,12 +295,12 @@ export function AdvancedTeamAnalysis({
       </div>
 
       {/* AI Analysis Toggle */}
-      <div className="mb-3">
+      <div className="mb-3 flex-shrink-0">
         <Button
           size="sm"
           variant="outline"
           onClick={() => setShowAI(!showAI)}
-          className="w-full px-2 py-1 rounded border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors duration-300 text-xs"
+          className="w-full px-3 py-2 rounded-lg border-white/10 text-foreground hover:bg-white/5 transition-colors text-xs"
         >
           <Sparkles className="h-3 w-3 mr-1" />
           {showAI ? 'Hide' : 'Show'} AI Analysis
@@ -310,20 +309,20 @@ export function AdvancedTeamAnalysis({
 
       {/* AI Alliance Analysis */}
       {showAI && aiAnalysis && (
-        <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="mb-3 p-3 bg-primary/10 rounded-lg border border-primary/20 flex-shrink-0">
           <div className="flex items-center space-x-2 mb-2">
-            <Sparkles className="h-3 w-3 text-blue-600" />
-            <span className="text-xs font-medium text-blue-900 dark:text-blue-100">AI Alliance Analysis</span>
+            <Sparkles className="h-3 w-3 text-primary" />
+            <span className="text-xs font-medium text-foreground">AI Alliance Analysis</span>
           </div>
-          <div className="space-y-1 text-xs text-blue-800 dark:text-blue-200">
-            <div>Potential Score: <span className="font-semibold">{aiAnalysis.alliance_analysis.total_potential_score.toFixed(1)}</span></div>
-            <div>Balanced Score: <span className="font-semibold">{aiAnalysis.alliance_analysis.balanced_score.toFixed(1)}</span></div>
+          <div className="space-y-1 text-xs text-muted-foreground">
+            <div>Potential Score: <span className="font-semibold text-foreground">{aiAnalysis.alliance_analysis.total_potential_score.toFixed(1)}</span></div>
+            <div>Balanced Score: <span className="font-semibold text-foreground">{aiAnalysis.alliance_analysis.balanced_score.toFixed(1)}</span></div>
             {aiAnalysis.alliance_analysis.strategic_recommendations.length > 0 && (
               <div className="mt-2">
-                <div className="font-medium mb-1">Recommendations:</div>
+                <div className="font-medium mb-1 text-foreground">Recommendations:</div>
                 {aiAnalysis.alliance_analysis.strategic_recommendations.slice(0, 2).map((rec, idx) => (
                   <div key={idx} className="flex items-start space-x-1">
-                    <CheckCircle className="h-3 w-3 mt-0.5 text-green-600 flex-shrink-0" />
+                    <CheckCircle className="h-3 w-3 mt-0.5 text-primary flex-shrink-0" />
                     <span>{rec}</span>
                   </div>
                 ))}
@@ -335,31 +334,31 @@ export function AdvancedTeamAnalysis({
 
       {/* Coral Scoring Analysis */}
       {showAI && coralStats.length > 0 && (
-        <div className="mb-3 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+        <div className="mb-3 p-3 bg-primary/5 rounded-lg border border-primary/10 flex-shrink-0">
           <div className="flex items-center space-x-2 mb-2">
-            <Target className="h-3 w-3 text-green-600" />
-            <span className="text-xs font-medium text-green-900 dark:text-green-100">Top Coral Scorers</span>
+            <Target className="h-3 w-3 text-primary" />
+            <span className="text-xs font-medium text-foreground">Top Coral Scorers</span>
           </div>
-          <div className="space-y-1 text-xs text-green-800 dark:text-green-200">
+          <div className="space-y-2 text-xs text-muted-foreground">
             {coralStats.slice(0, 3).map((coral, index) => {
               const team = availableTeams.find(t => t.team_number === coral.team_number);
               const isAlreadySelected = selectedTeamNumbers.includes(coral.team_number);
               
               return (
-                <div key={coral.team_number} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Badge variant="secondary" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs px-1 py-0.5">
+                <div key={coral.team_number} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center space-x-2 min-w-0 flex-1">
+                    <Badge variant="secondary" className="bg-primary/20 text-primary text-xs px-1.5 py-0.5 flex-shrink-0">
                       #{index + 1}
                     </Badge>
                     <button
                       onClick={() => handleTeamClick(coral.team_number)}
-                      className="flex items-center space-x-1 hover:text-green-600 dark:hover:text-green-400 transition-colors duration-300 group"
+                      className="flex items-center space-x-1 hover:text-primary transition-colors group min-w-0"
                     >
-                      <span className="font-medium group-hover:text-green-600 dark:group-hover:text-green-400">Team {coral.team_number}</span>
-                      <ExternalLink className="h-3 w-3 text-green-500 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors duration-300" />
+                      <span className="font-medium text-foreground group-hover:text-primary truncate">Team {coral.team_number}</span>
+                      <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
                     </button>
-                    <span className="text-green-700 dark:text-green-300">
-                      {coral.avg_coral_points.toFixed(1)} avg coral pts
+                    <span className="text-muted-foreground text-[10px] whitespace-nowrap">
+                      {coral.avg_coral_points.toFixed(1)} pts
                     </span>
                   </div>
                   {!isAlreadySelected && (
@@ -371,107 +370,107 @@ export function AdvancedTeamAnalysis({
                         pick_order: 0,
                         stats: undefined,
                       })}
-                      className="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700 transition-colors duration-300 text-xs"
+                      className="px-2 py-1 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors text-xs flex-shrink-0"
                     >
                       <Award className="h-3 w-3 mr-1" />
                       Add
                     </Button>
                   )}
                   {isAlreadySelected && (
-                    <Badge variant="outline" className="text-xs border-green-200 dark:border-green-600 text-green-700 dark:text-green-300 px-1 py-0.5">
+                    <Badge variant="outline" className="text-xs border-primary/20 text-primary px-1.5 py-0.5 flex-shrink-0">
                       Selected
                     </Badge>
                   )}
                 </div>
               );
             })}
-            <div className="mt-2 text-green-700 dark:text-green-300">
-              <div className="font-medium mb-1">Coral Scoring Breakdown:</div>
-              <div>• Trough: 2-3 pts each</div>
-              <div>• Level 2: 3-4 pts each</div>
-              <div>• Level 3: 4-6 pts each</div>
-              <div>• Level 4: 5-7 pts each</div>
+            <div className="mt-2 pt-2 border-t border-white/5 text-muted-foreground">
+              <div className="font-medium mb-1 text-foreground">Coral Scoring:</div>
+              <div>• Trough: 2-3 pts</div>
+              <div>• Level 2: 3-4 pts</div>
+              <div>• Level 3: 4-6 pts</div>
+              <div>• Level 4: 5-7 pts</div>
             </div>
           </div>
         </div>
       )}
 
       {/* Suggestions List */}
-      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+      <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar min-h-0">
         {aiSuggestions.length === 0 ? (
-          <div className="text-center py-4 text-neutral-500 dark:text-neutral-400">
-            <Brain className="h-8 w-8 mx-auto mb-2 text-neutral-400" />
+          <div className="text-center py-8 text-muted-foreground">
+            <Brain className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
             <p className="text-xs sm:text-sm">No AI suggestions available</p>
-            <p className="text-xs text-neutral-400 mt-1">Add some scouting data to get AI recommendations</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Add some scouting data to get AI recommendations</p>
           </div>
         ) : (
           aiSuggestions.map((suggestion, index) => (
             <div
               key={suggestion.team_number}
-              className="flex flex-col sm:flex-row sm:items-start justify-between p-2 sm:p-3 border border-neutral-200 dark:border-neutral-600 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-300"
+              className="flex flex-col sm:flex-row sm:items-start justify-between p-3 border border-white/5 rounded-lg hover:bg-white/5 transition-colors gap-2"
             >
-              <div className="flex-1 min-w-0 mb-2 sm:mb-0">
-                <div className="flex flex-wrap items-center space-x-1 mb-2">
-                  <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-1 py-0.5">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <Badge variant="secondary" className="bg-primary/20 text-primary text-xs px-1.5 py-0.5">
                     #{index + 1}
                   </Badge>
                   {getCategoryIcon(suggestion.category)}
                   <button
                     onClick={() => handleTeamClick(suggestion.team_number)}
-                    className="flex items-center space-x-1 hover:text-primary transition-colors duration-300 group"
+                    className="flex items-center space-x-1 hover:text-primary transition-colors group"
                   >
-                    <h4 className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm sm:text-base group-hover:text-primary">
+                    <h4 className="font-semibold text-foreground text-sm group-hover:text-primary">
                       Team {suggestion.team_number}
                     </h4>
-                    <ExternalLink className="h-3 w-3 text-neutral-400 group-hover:text-primary transition-colors duration-300" />
+                    <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
                   </button>
-                  <Badge className={`${getCategoryColor(suggestion.category)} text-xs px-1 py-0.5`}>
+                  <Badge className={`${getCategoryColor(suggestion.category)} text-xs px-1.5 py-0.5`}>
                     {suggestion.category}
                   </Badge>
                 </div>
                 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-neutral-600 dark:text-neutral-300 mb-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-muted-foreground mb-2">
                   <div className="flex items-center space-x-1">
                     <Target className="h-3 w-3 text-primary" />
-                    <span className="font-medium text-neutral-900 dark:text-neutral-100 text-xs">Conf: {suggestion.confidence_score.toFixed(1)}</span>
+                    <span className="font-medium text-foreground text-xs">Conf: {suggestion.confidence_score.toFixed(1)}</span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <BarChart3 className="h-3 w-3 text-green-500" />
+                    <BarChart3 className="h-3 w-3 text-primary" />
                     <span className="text-xs">Strategic: {suggestion.strategic_value.toFixed(1)}</span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <Shield className="h-3 w-3 text-purple-500" />
+                    <Shield className="h-3 w-3 text-primary" />
                     <span className="text-xs">Compat: {suggestion.compatibility_score.toFixed(1)}</span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <Sparkles className="h-3 w-3 text-blue-500" />
+                    <Sparkles className="h-3 w-3 text-primary" />
                     <span className="text-xs">AI Powered</span>
                   </div>
                 </div>
                 
                 {showAdvanced && (
-                  <div className="space-y-1">
+                  <div className="space-y-1.5 pt-2 border-t border-white/5">
                     <div className="flex items-center space-x-2 text-xs">
-                      <span className="text-neutral-500 dark:text-neutral-400">Confidence:</span>
+                      <span className="text-muted-foreground">Confidence:</span>
                       <span className={`font-semibold ${getScoreColor(suggestion.confidence_score * 100)}`}>
                         {(suggestion.confidence_score * 100).toFixed(1)}%
                       </span>
-                      <span className="text-neutral-500 dark:text-neutral-400">Strategic:</span>
-                      <span className="text-neutral-600 dark:text-neutral-300">
+                      <span className="text-muted-foreground">Strategic:</span>
+                      <span className="text-foreground">
                         {(suggestion.strategic_value * 100).toFixed(1)}%
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {suggestion.reasoning.slice(0, 2).map((reason, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs border-neutral-200 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 px-1 py-0.5">
+                        <Badge key={idx} variant="outline" className="text-xs border-white/10 text-muted-foreground px-1.5 py-0.5">
                           {reason}
                         </Badge>
                       ))}
                     </div>
                     {suggestion.strengths.length > 0 && (
                       <div className="text-xs">
-                        <span className="text-green-600 font-medium">Strengths: </span>
-                        <span className="text-neutral-600 dark:text-neutral-300">{suggestion.strengths.slice(0, 2).join(', ')}</span>
+                        <span className="text-primary font-medium">Strengths: </span>
+                        <span className="text-muted-foreground">{suggestion.strengths.slice(0, 2).join(', ')}</span>
                       </div>
                     )}
                   </div>
@@ -486,7 +485,7 @@ export function AdvancedTeamAnalysis({
                   pick_order: 0,
                   stats: undefined, // Will be loaded when added
                 })}
-                className="ml-2 px-2 py-1 rounded bg-primary text-white hover:opacity-90 transition-opacity duration-300 text-xs flex-shrink-0"
+                className="sm:ml-2 px-3 py-1.5 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors text-xs flex-shrink-0 w-full sm:w-auto"
               >
                 <Award className="h-3 w-3 mr-1" />
                 Add
@@ -498,35 +497,35 @@ export function AdvancedTeamAnalysis({
 
       {/* Quick Stats */}
       {aiSuggestions.length > 0 && (
-        <div className="mt-3 pt-2 border-t border-neutral-200 dark:border-neutral-600">
+        <div className="mt-3 pt-3 border-t border-white/5 flex-shrink-0">
           <div className="grid grid-cols-4 gap-2 text-xs">
             <div className="text-center">
-              <div className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
+              <div className="font-semibold text-foreground text-sm">
                 {aiSuggestions.filter(s => s.category === 'primary').length}
               </div>
-              <div className="text-neutral-500 dark:text-neutral-400 text-xs">Primary</div>
+              <div className="text-muted-foreground text-xs">Primary</div>
             </div>
             <div className="text-center">
-              <div className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
+              <div className="font-semibold text-foreground text-sm">
                 {aiSuggestions.filter(s => s.category === 'defensive').length}
               </div>
-              <div className="text-neutral-500 dark:text-neutral-400 text-xs">Defense</div>
+              <div className="text-muted-foreground text-xs">Defense</div>
             </div>
             <div className="text-center">
-              <div className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
+              <div className="font-semibold text-foreground text-sm">
                 {aiSuggestions.filter(s => s.category === 'specialist').length}
               </div>
-              <div className="text-neutral-500 dark:text-neutral-400 text-xs">Special</div>
+              <div className="text-muted-foreground text-xs">Special</div>
             </div>
             <div className="text-center">
-              <div className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
+              <div className="font-semibold text-foreground text-sm">
                 {aiSuggestions.filter(s => s.confidence_score >= 0.7).length}
               </div>
-              <div className="text-neutral-500 dark:text-neutral-400 text-xs">High</div>
+              <div className="text-muted-foreground text-xs">High</div>
             </div>
           </div>
         </div>
       )}
-    </Card>
+    </div>
   );
 }

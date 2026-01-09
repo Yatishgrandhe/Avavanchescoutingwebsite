@@ -18,7 +18,9 @@ import {
   AlertTriangle,
   CheckCircle,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 interface TeamSuggestion {
@@ -68,6 +70,7 @@ export function AdvancedTeamAnalysis({
   const [analysisMode, setAnalysisMode] = useState<'balanced' | 'aggressive' | 'defensive' | 'specialist'>('balanced');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAI, setShowAI] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleTeamClick = (teamNumber: number) => {
     router.push(`/team/${teamNumber}`);
@@ -245,13 +248,26 @@ export function AdvancedTeamAnalysis({
   };
 
   return (
-    <div className="glass-card p-4 rounded-xl border border-white/5 w-full h-full flex flex-col overflow-hidden">
-      <div className="flex flex-col space-y-3 mb-3 flex-shrink-0">
+    <div className="glass-card rounded-xl border border-white/5 w-full flex flex-col overflow-hidden">
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="p-4 border-b border-white/5 flex items-center justify-between hover:bg-white/5 transition-colors"
+      >
         <div className="flex items-center space-x-2">
           <Brain className="h-4 w-4 text-primary" />
           <h3 className="text-sm sm:text-base font-semibold text-foreground">AI Team Suggestions</h3>
         </div>
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+        {isCollapsed ? (
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        ) : (
+          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+        )}
+      </button>
+      
+      {!isCollapsed && (
+        <div className="p-4 flex flex-col overflow-hidden flex-1 min-h-0">
+          <div className="flex flex-col space-y-3 mb-3 flex-shrink-0">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           <select
             value={analysisMode}
             onChange={(e) => setAnalysisMode(e.target.value as any)}
@@ -272,8 +288,8 @@ export function AdvancedTeamAnalysis({
             <span className="hidden sm:inline">{showAdvanced ? 'Hide' : 'Show'} Details</span>
             <span className="sm:hidden">{showAdvanced ? 'Hide' : 'Details'}</span>
           </Button>
-        </div>
-      </div>
+            </div>
+          </div>
 
       {/* Analysis Mode Description */}
       <div className="mb-3 p-3 bg-primary/10 rounded-lg border border-primary/20 flex-shrink-0">
@@ -526,6 +542,9 @@ export function AdvancedTeamAnalysis({
           </div>
         </div>
       )}
+        </div>
+      )}
     </div>
   );
 }
+

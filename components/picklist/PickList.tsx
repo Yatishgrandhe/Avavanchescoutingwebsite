@@ -26,7 +26,7 @@ import { TeamStatsCard, QuickStats } from './TeamStatsCard';
 import { TeamComparisonModal, QuickComparison } from './TeamComparisonModal';
 import { AdvancedTeamAnalysis } from './AdvancedTeamAnalysis';
 import { TeamStats, PickListTeam } from '@/lib/types';
-import { GripVertical, Plus, Save, Trash2, Edit3, Brain, Target, BarChart3, Shield, ExternalLink } from 'lucide-react';
+import { GripVertical, Plus, Save, Trash2, Edit3, Brain, Target, BarChart3, Shield, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface SortableTeamItemProps {
   team: PickListTeam;
@@ -164,6 +164,7 @@ interface TeamSelectorProps {
 function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSelectorProps) {
   const [selectedTeam, setSelectedTeam] = useState<string>('');
   const [sortBy, setSortBy] = useState<'score' | 'name' | 'number'>('score');
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const filteredTeams = availableTeams
     .filter(team => !selectedTeamNumbers.includes(team.team_number))
@@ -196,58 +197,72 @@ function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSe
   };
 
   return (
-    <Card className="p-3 rounded-xl shadow-card dark:shadow-card-dark bg-card border border-border w-full">
-      <h3 className="text-sm font-semibold text-card-foreground mb-3">Available Teams</h3>
-      
-      <div className="flex flex-col space-y-2 mb-3">
-        <select
-          value={selectedTeam}
-          onChange={(e) => setSelectedTeam(e.target.value)}
-          className="px-2 py-2 sm:py-1 border border-border rounded text-xs sm:text-sm bg-background text-foreground min-h-[40px]"
-        >
-          <option value="">Select a team to add...</option>
-          {filteredTeams.map((team) => (
-            <option key={team.team_number} value={team.team_number.toString()}>
-              Team {team.team_number} - {team.team_name}
-              {team.stats ? ` (${team.stats.avg_total_score.toFixed(1)} pts)` : ' (No stats)'}
-            </option>
-          ))}
-        </select>
-        
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as 'score' | 'name' | 'number')}
-          className="px-2 py-2 sm:py-1 border border-border rounded text-xs sm:text-sm bg-background text-foreground min-h-[40px]"
-        >
-          <option value="score">Sort by Score</option>
-          <option value="name">Sort by Name</option>
-          <option value="number">Sort by Number</option>
-        </select>
-      </div>
-
-      <Button
-        onClick={handleAddSelectedTeam}
-        disabled={!selectedTeam}
-        className="w-full px-2 py-2 sm:py-1 rounded bg-primary text-white hover:opacity-90 transition-opacity duration-300 text-xs sm:text-sm mb-3 min-h-[40px]"
+    <div className="glass-card rounded-xl border border-white/5 w-full flex flex-col overflow-hidden">
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="p-4 border-b border-white/5 flex items-center justify-between hover:bg-white/5 transition-colors"
       >
-        <Plus className="h-3 w-3 mr-1" />
-        Add Selected Team
-      </Button>
-
-      <div className="space-y-1 max-h-40 overflow-y-auto">
-        {filteredTeams.length === 0 ? (
-          <div className="text-center py-4 text-muted-foreground">
-            <Brain className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-xs">No teams available</p>
-            <p className="text-xs text-muted-foreground mt-1">All teams have been added</p>
-          </div>
+        <h3 className="text-sm font-semibold text-foreground">Available Teams</h3>
+        {isCollapsed ? (
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
         ) : (
-          <div className="text-xs text-muted-foreground mb-2">
-            {filteredTeams.length} teams available
-          </div>
+          <ChevronUp className="h-4 w-4 text-muted-foreground" />
         )}
-      </div>
-    </Card>
+      </button>
+      
+      {!isCollapsed && (
+        <div className="p-4">
+          <div className="flex flex-col space-y-2 mb-3">
+            <select
+              value={selectedTeam}
+              onChange={(e) => setSelectedTeam(e.target.value)}
+              className="px-3 py-2 border border-white/10 rounded-lg text-xs sm:text-sm bg-background/50 text-foreground hover:bg-white/5 transition-colors min-h-[40px]"
+            >
+              <option value="">Select a team to add...</option>
+              {filteredTeams.map((team) => (
+                <option key={team.team_number} value={team.team_number.toString()}>
+                  Team {team.team_number} - {team.team_name}
+                  {team.stats ? ` (${team.stats.avg_total_score.toFixed(1)} pts)` : ' (No stats)'}
+                </option>
+              ))}
+            </select>
+            
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'score' | 'name' | 'number')}
+              className="px-3 py-2 border border-white/10 rounded-lg text-xs sm:text-sm bg-background/50 text-foreground hover:bg-white/5 transition-colors min-h-[40px]"
+            >
+              <option value="score">Sort by Score</option>
+              <option value="name">Sort by Name</option>
+              <option value="number">Sort by Number</option>
+            </select>
+          </div>
+
+          <Button
+            onClick={handleAddSelectedTeam}
+            disabled={!selectedTeam}
+            className="w-full px-3 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors text-xs sm:text-sm mb-3 min-h-[40px]"
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Add Selected Team
+          </Button>
+
+          <div className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
+            {filteredTeams.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">
+                <Brain className="h-6 w-6 mx-auto mb-2 text-muted-foreground/50" />
+                <p className="text-xs">No teams available</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">All teams have been added</p>
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground mb-2">
+                {filteredTeams.length} teams available
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -464,7 +479,7 @@ export function PickList({ pickListId, eventKey = '2025test', onSave, session }:
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
-        <div className="xl:col-span-3 order-2 xl:order-1">
+        <div className="xl:col-span-3 order-1">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 space-y-2 sm:space-y-0">
             <h2 className="text-lg font-semibold text-card-foreground">Pick Order</h2>
             {teams.length > 0 && (
@@ -505,7 +520,7 @@ export function PickList({ pickListId, eventKey = '2025test', onSave, session }:
           </DndContext>
         </div>
 
-        <div className="xl:col-span-2 space-y-4 min-w-[300px] order-1 xl:order-2">
+        <div className="xl:col-span-2 space-y-4 min-w-[300px] order-2">
           <AdvancedTeamAnalysis
             availableTeams={availableTeams}
             currentPickList={teams}

@@ -55,14 +55,17 @@ interface TeamData {
 }
 
 interface MatchData {
+  id?: string;
   match_id: string;
   team_number: number;
+  team_name?: string;
   alliance_color: 'red' | 'blue';
   autonomous_points: number;
   teleop_points: number;
   endgame_points: number;
   final_score: number;
   defense_rating: number;
+  comments?: string;
   created_at: string;
   submitted_by_name?: string;
   submitted_by_email?: string;
@@ -180,16 +183,27 @@ export default function BasicAnalysis() {
         const scoutingData = await scoutingResponse.json();
         // Handle both array and object responses
         const dataArray = Array.isArray(scoutingData) ? scoutingData : (scoutingData.data || []);
+        // Fetch teams to get team names
+        const teamsResponse = await fetch('/api/teams');
+        const teamsData = teamsResponse.ok ? await teamsResponse.json() : { teams: [] };
+        const teamsMap = new Map();
+        (teamsData.teams || []).forEach((team: any) => {
+          teamsMap.set(team.team_number, team.team_name);
+        });
+        
         // Transform scouting data to match MatchData interface
         const matchData = dataArray.map((sd: any) => ({
+          id: sd.id,
           match_id: sd.match_id,
           team_number: sd.team_number,
+          team_name: teamsMap.get(sd.team_number) || `Team ${sd.team_number}`,
           alliance_color: sd.alliance_color,
           autonomous_points: sd.autonomous_points || 0,
           teleop_points: sd.teleop_points || 0,
           endgame_points: sd.endgame_points || 0,
           final_score: sd.final_score || 0,
           defense_rating: sd.defense_rating || 0,
+          comments: sd.comments || '',
           created_at: sd.created_at,
           submitted_by_name: sd.submitted_by_name,
           submitted_by_email: sd.submitted_by_email,
@@ -503,13 +517,15 @@ export default function BasicAnalysis() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Match ID</TableHead>
                         <TableHead>Team</TableHead>
+                        <TableHead>Match ID</TableHead>
                         <TableHead>Alliance</TableHead>
                         <TableHead>Autonomous</TableHead>
                         <TableHead>Teleop</TableHead>
                         <TableHead>Endgame</TableHead>
                         <TableHead>Total</TableHead>
+                        <TableHead>Defense</TableHead>
+                        <TableHead>Comments</TableHead>
                         <TableHead>Uploaded By</TableHead>
                         <TableHead>Date</TableHead>
                       </TableRow>
@@ -517,32 +533,51 @@ export default function BasicAnalysis() {
                     <TableBody>
                       {(matches || []).length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={9} className="text-center text-muted-foreground">
+                          <TableCell colSpan={11} className="text-center text-muted-foreground">
                             No matches recorded yet
                           </TableCell>
                         </TableRow>
                       ) : (
-                        (matches || []).slice(0, 20).map((match, index) => (
-                          <TableRow key={match.match_id || `match-${index}`}>
+                        (matches || []).map((match, index) => (
+                          <TableRow key={match.id || match.match_id || `match-${index}`}>
+                            <TableCell className="font-medium">
+                              <div className="flex flex-col">
+                                <span className="font-semibold">{match.team_name || `Team ${match.team_number}`}</span>
+                                <span className="text-xs text-muted-foreground">#{match.team_number}</span>
+                              </div>
+                            </TableCell>
                             <TableCell className="font-medium">{match.match_id || 'N/A'}</TableCell>
-                            <TableCell>Team {match.team_number}</TableCell>
-                          <TableCell>
-                            <Badge variant={match.alliance_color === 'red' ? 'destructive' : 'default'}>
-                              {match.alliance_color}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{match.autonomous_points}</TableCell>
-                          <TableCell>{match.teleop_points}</TableCell>
-                          <TableCell>{match.endgame_points}</TableCell>
-                          <TableCell className="font-medium">{match.final_score}</TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {match.submitted_by_name || 'Unknown'}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {match.created_at ? new Date(match.created_at).toLocaleDateString() : 'N/A'}
-                          </TableCell>
-                        </TableRow>
-                      ))
+                            <TableCell>
+                              <Badge variant={match.alliance_color === 'red' ? 'destructive' : 'default'}>
+                                {match.alliance_color}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{match.autonomous_points}</TableCell>
+                            <TableCell>{match.teleop_points}</TableCell>
+                            <TableCell>{match.endgame_points}</TableCell>
+                            <TableCell className="font-medium">{match.final_score}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <div className="w-12 bg-muted rounded-full h-2">
+                                  <div 
+                                    className="bg-primary h-2 rounded-full" 
+                                    style={{ width: `${((match.defense_rating || 0) / 10) * 100}%` }}
+                                  />
+                                </div>
+                                <span className="text-sm">{match.defense_rating || 0}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate text-muted-foreground">
+                              {match.comments || '-'}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {match.submitted_by_name || 'Unknown'}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {match.created_at ? new Date(match.created_at).toLocaleDateString() : 'N/A'}
+                            </TableCell>
+                          </TableRow>
+                        ))
                       )}
                     </TableBody>
                   </Table>

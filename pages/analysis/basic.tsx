@@ -88,18 +88,113 @@ export default function BasicAnalysis() {
     try {
       setLoading(true);
       
-      // Fetch teams data
-      const teamsResponse = await fetch('/api/teams');
-      if (teamsResponse.ok) {
-        const teamsData = await teamsResponse.json();
-        setTeams(teamsData.teams || []);
+      // Fetch team stats with calculated averages
+      const teamStatsResponse = await fetch('/api/team-stats');
+      if (teamStatsResponse.ok) {
+        const teamStatsData = await teamStatsResponse.json();
+        const stats = teamStatsData.stats || [];
+        // Transform to match TeamData interface
+        const teamsWithStats = stats.map((stat: any) => ({
+          team_number: stat.team_number,
+          team_name: stat.team_name,
+          total_matches: stat.total_matches || 0,
+          avg_autonomous_points: stat.avg_autonomous_points || 0,
+          avg_teleop_points: stat.avg_teleop_points || 0,
+          avg_endgame_points: stat.avg_endgame_points || 0,
+          avg_total_score: stat.avg_total_score || 0,
+          avg_defense_rating: stat.avg_defense_rating || 0,
+        }));
+        setTeams(teamsWithStats);
+      } else {
+        // Fallback: fetch teams and calculate stats manually
+        const teamsResponse = await fetch('/api/teams');
+        if (teamsResponse.ok) {
+          const teamsData = await teamsResponse.json();
+          const basicTeams = teamsData.teams || [];
+          
+          // Fetch scouting data to calculate stats
+          const scoutingResponse = await fetch('/api/scouting_data');
+          if (scoutingResponse.ok) {
+            const scoutingDataRaw = await scoutingResponse.json();
+            // Handle both array and object responses
+            const scoutingData = Array.isArray(scoutingDataRaw) ? scoutingDataRaw : (scoutingDataRaw.data || []);
+            
+            // Calculate stats for each team
+            const teamsWithStats = basicTeams.map((team: any) => {
+              const teamScoutingData = scoutingData.filter((sd: any) => sd.team_number === team.team_number);
+              const totalMatches = teamScoutingData.length;
+              
+              if (totalMatches === 0) {
+                return {
+                  team_number: team.team_number,
+                  team_name: team.team_name,
+                  total_matches: 0,
+                  avg_autonomous_points: 0,
+                  avg_teleop_points: 0,
+                  avg_endgame_points: 0,
+                  avg_total_score: 0,
+                  avg_defense_rating: 0,
+                };
+              }
+              
+              const avgAutonomous = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.autonomous_points || 0), 0) / totalMatches;
+              const avgTeleop = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.teleop_points || 0), 0) / totalMatches;
+              const avgEndgame = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.endgame_points || 0), 0) / totalMatches;
+              const avgTotal = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.final_score || 0), 0) / totalMatches;
+              const avgDefense = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.defense_rating || 0), 0) / totalMatches;
+              
+              return {
+                team_number: team.team_number,
+                team_name: team.team_name,
+                total_matches: totalMatches,
+                avg_autonomous_points: avgAutonomous,
+                avg_teleop_points: avgTeleop,
+                avg_endgame_points: avgEndgame,
+                avg_total_score: avgTotal,
+                avg_defense_rating: avgDefense,
+              };
+            });
+            
+            setTeams(teamsWithStats);
+          } else {
+            // No scouting data, just set basic teams
+            const teamsWithStats = basicTeams.map((team: any) => ({
+              team_number: team.team_number,
+              team_name: team.team_name,
+              total_matches: 0,
+              avg_autonomous_points: 0,
+              avg_teleop_points: 0,
+              avg_endgame_points: 0,
+              avg_total_score: 0,
+              avg_defense_rating: 0,
+            }));
+            setTeams(teamsWithStats);
+          }
+        }
       }
 
-      // Fetch matches data
-      const matchesResponse = await fetch('/api/matches');
-      if (matchesResponse.ok) {
-        const matchesData = await matchesResponse.json();
-        setMatches(matchesData.matches || []);
+      // Fetch scouting data for matches tab (not just match schedule)
+      const scoutingResponse = await fetch('/api/scouting_data');
+      if (scoutingResponse.ok) {
+        const scoutingData = await scoutingResponse.json();
+        // Handle both array and object responses
+        const dataArray = Array.isArray(scoutingData) ? scoutingData : (scoutingData.data || []);
+        // Transform scouting data to match MatchData interface
+        const matchData = dataArray.map((sd: any) => ({
+          match_id: sd.match_id,
+          team_number: sd.team_number,
+          alliance_color: sd.alliance_color,
+          autonomous_points: sd.autonomous_points || 0,
+          teleop_points: sd.teleop_points || 0,
+          endgame_points: sd.endgame_points || 0,
+          final_score: sd.final_score || 0,
+          defense_rating: sd.defense_rating || 0,
+          created_at: sd.created_at,
+          submitted_by_name: sd.submitted_by_name,
+          submitted_by_email: sd.submitted_by_email,
+          submitted_at: sd.submitted_at,
+        }));
+        setMatches(matchData);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -131,11 +226,15 @@ export default function BasicAnalysis() {
     { name: 'Endgame', value: (teams || []).reduce((sum, team) => sum + (team.avg_endgame_points || 0), 0) }
   ];
 
-  if (authLoading) {
+  if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
+      <ProtectedRoute>
+        <Layout>
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          </div>
+        </Layout>
+      </ProtectedRoute>
     );
   }
 

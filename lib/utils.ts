@@ -10,27 +10,18 @@ export function calculateScore(data: any) {
   
   let score = 0;
   
-  // Calculate autonomous points
-  if (data.auto_leave) score += 3;
-  if (data.auto_coral_trough) score += 3 * data.auto_coral_trough;
-  if (data.auto_coral_l2) score += 4 * data.auto_coral_l2;
-  if (data.auto_coral_l3) score += 6 * data.auto_coral_l3;
-  if (data.auto_coral_l4) score += 7 * data.auto_coral_l4;
-  if (data.auto_algae_processor) score += 6 * data.auto_algae_processor;
-  if (data.auto_algae_net) score += 4 * data.auto_algae_net;
+  // Autonomous (first 20 seconds)
+  if (data.auto_fuel_active_hub) score += 1 * data.auto_fuel_active_hub;
+  if (data.auto_tower_level1) score += 15; // per robot
   
-  // Calculate teleop points
-  if (data.teleop_coral_trough) score += 2 * data.teleop_coral_trough;
-  if (data.teleop_coral_l2) score += 3 * data.teleop_coral_l2;
-  if (data.teleop_coral_l3) score += 4 * data.teleop_coral_l3;
-  if (data.teleop_coral_l4) score += 5 * data.teleop_coral_l4;
-  if (data.teleop_algae_processor) score += 6 * data.teleop_algae_processor;
-  if (data.teleop_algae_net) score += 4 * data.teleop_algae_net;
+  // Teleop (last 2:20)
+  if (data.teleop_fuel_active_hub) score += 1 * data.teleop_fuel_active_hub;
+  // TOWER: Only highest level counts (mutually exclusive)
+  if (data.teleop_tower_level3) score += 30; // LEVEL 3 highest
+  else if (data.teleop_tower_level2) score += 20; // LEVEL 2
   
-  // Calculate endgame points
-  if (data.endgame_park) score += 2;
-  if (data.endgame_shallow_cage) score += 6;
-  if (data.endgame_deep_cage) score += 12;
+  // Endgame (last 30 seconds) - both HUBs active
+  if (data.endgame_fuel) score += 1 * data.endgame_fuel;
 
   return {
     final_score: score

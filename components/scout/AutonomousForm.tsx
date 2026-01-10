@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Counter } from '../ui';
 import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
-import { Play, TreePine, Waves, CheckCircle } from 'lucide-react';
+import { Play, Fuel, TrendingUp, CheckCircle } from 'lucide-react';
 
 interface AutonomousFormProps {
   onNext: (autonomousData: Partial<ScoringNotes>) => void;
@@ -22,28 +22,16 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
   initialData,
 }) => {
   const [formData, setFormData] = useState({
-    auto_leave: (initialData?.auto_leave as boolean) || false,
-    auto_coral_trough: (initialData?.auto_coral_trough as number) || 0,
-    auto_coral_l2: (initialData?.auto_coral_l2 as number) || 0,
-    auto_coral_l3: (initialData?.auto_coral_l3 as number) || 0,
-    auto_coral_l4: (initialData?.auto_coral_l4 as number) || 0,
-    auto_algae_processor: (initialData?.auto_algae_processor as number) || 0,
-    auto_algae_net: (initialData?.auto_algae_net as number) || 0,
-    auto_cleansing: (initialData?.auto_cleansing as number) || 0,
+    auto_fuel_active_hub: (initialData?.auto_fuel_active_hub as number) || 0,
+    auto_tower_level1: (initialData?.auto_tower_level1 as boolean) || false,
   });
 
   // Sync initialData with state when it changes
   useEffect(() => {
     if (initialData) {
       setFormData({
-        auto_leave: (initialData.auto_leave as boolean) || false,
-        auto_coral_trough: (initialData.auto_coral_trough as number) || 0,
-        auto_coral_l2: (initialData.auto_coral_l2 as number) || 0,
-        auto_coral_l3: (initialData.auto_coral_l3 as number) || 0,
-        auto_coral_l4: (initialData.auto_coral_l4 as number) || 0,
-        auto_algae_processor: (initialData.auto_algae_processor as number) || 0,
-        auto_algae_net: (initialData.auto_algae_net as number) || 0,
-        auto_cleansing: (initialData.auto_cleansing as number) || 0,
+        auto_fuel_active_hub: (initialData.auto_fuel_active_hub as number) || 0,
+        auto_tower_level1: (initialData.auto_tower_level1 as boolean) || false,
       });
     }
   }, [initialData]);
@@ -57,13 +45,8 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
 
   const calculateTotal = () => {
     return (
-      (formData.auto_leave ? SCORING_VALUES.auto_leave : 0) +
-      (formData.auto_coral_trough * SCORING_VALUES.auto_coral_trough) +
-      (formData.auto_coral_l2 * SCORING_VALUES.auto_coral_l2) +
-      (formData.auto_coral_l3 * SCORING_VALUES.auto_coral_l3) +
-      (formData.auto_coral_l4 * SCORING_VALUES.auto_coral_l4) +
-      (formData.auto_algae_processor * SCORING_VALUES.auto_algae_processor) +
-      (formData.auto_algae_net * SCORING_VALUES.auto_algae_net)
+      (formData.auto_fuel_active_hub * SCORING_VALUES.auto_fuel_active_hub) +
+      (formData.auto_tower_level1 ? SCORING_VALUES.auto_tower_level1 : 0)
     );
   };
 
@@ -138,7 +121,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
             </CardTitle>
           </motion.div>
           <CardDescription className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Score the autonomous period actions (first 15 seconds)
+            Score the autonomous period actions (first 20 seconds)
           </CardDescription>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -155,44 +138,39 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
         </CardHeader>
 
         <CardContent className="space-y-4 sm:space-y-8">
-          {/* Leave Starting Zone */}
+          {/* FUEL Scoring */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 rounded-xl space-y-3 sm:space-y-0 ${
-              isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
-            }`}
+            className="space-y-4 sm:space-y-6"
           >
-            <div className="flex items-center space-x-4">
-              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-green-900/30' : 'bg-green-100'}`}>
-                <CheckCircle className={`w-6 h-6 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
-              </div>
-              <div>
-                <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Leave Starting Zone
-                </h3>
-                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Robot successfully leaves the starting zone
-                </p>
-              </div>
-            </div>
             <div className="flex items-center space-x-3">
-              <span className={`font-bold text-lg ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                +{SCORING_VALUES.auto_leave} pts
-              </span>
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={formData.auto_leave}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_leave', e.target.checked)}
-                  className="cursor-pointer"
-                />
+              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
+                <Fuel className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
               </div>
+              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                FUEL Scoring
+              </h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <Counter
+                value={formData.auto_fuel_active_hub}
+                onChange={(value: number) => handleInputChange('auto_fuel_active_hub', value)}
+                min={0}
+                max={50}
+                label="FUEL in Active HUB"
+                points={SCORING_VALUES.auto_fuel_active_hub}
+                isDarkMode={isDarkMode}
+              />
+            </div>
+            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Note: 1 point per FUEL scored in the active HUB. FUEL in inactive HUB scores 0 points.
             </div>
           </motion.div>
 
-          {/* Coral Scoring */}
+          {/* TOWER Scoring */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -201,125 +179,48 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
           >
             <div className="flex items-center space-x-3">
               <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-orange-900/30' : 'bg-orange-100'}`}>
-                <TreePine className={`w-6 h-6 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
+                <TrendingUp className={`w-6 h-6 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
               </div>
               <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                CORAL Scoring
+                TOWER Climb
               </h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              <Counter
-                value={formData.auto_coral_trough}
-                onChange={(value: number) => handleInputChange('auto_coral_trough', value)}
-                min={0}
-                max={10}
-                label="Trough (L1)"
-                points={SCORING_VALUES.auto_coral_trough}
-                isDarkMode={isDarkMode}
-              />
-              
-              <Counter
-                value={formData.auto_coral_l2}
-                onChange={(value: number) => handleInputChange('auto_coral_l2', value)}
-                min={0}
-                max={10}
-                label="Level 2 Branch"
-                points={SCORING_VALUES.auto_coral_l2}
-                isDarkMode={isDarkMode}
-              />
-              
-              <Counter
-                value={formData.auto_coral_l3}
-                onChange={(value: number) => handleInputChange('auto_coral_l3', value)}
-                min={0}
-                max={10}
-                label="Level 3 Branch"
-                points={SCORING_VALUES.auto_coral_l3}
-                isDarkMode={isDarkMode}
-              />
-              
-              <Counter
-                value={formData.auto_coral_l4}
-                onChange={(value: number) => handleInputChange('auto_coral_l4', value)}
-                min={0}
-                max={10}
-                label="Level 4 Branch"
-                points={SCORING_VALUES.auto_coral_l4}
-                isDarkMode={isDarkMode}
-              />
-            </div>
-          </motion.div>
-
-          {/* Algae Scoring */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="space-y-6"
-          >
-            <div className="flex items-center space-x-3">
-              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-teal-900/30' : 'bg-teal-100'}`}>
-                <Waves className={`w-6 h-6 ${isDarkMode ? 'text-teal-400' : 'text-teal-600'}`} />
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 rounded-xl space-y-3 sm:space-y-0 ${
+                isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center space-x-4">
+                <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-green-900/30' : 'bg-green-100'}`}>
+                  <CheckCircle className={`w-6 h-6 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                </div>
+                <div>
+                  <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    TOWER LEVEL 1 Climb
+                  </h3>
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Robot fully supported by the lowest rung
+                  </p>
+                </div>
               </div>
-              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                ALGAE Scoring
-              </h3>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              <Counter
-                value={formData.auto_algae_processor}
-                onChange={(value: number) => handleInputChange('auto_algae_processor', value)}
-                min={0}
-                max={10}
-                label="PROCESSOR"
-                points={SCORING_VALUES.auto_algae_processor}
-                isDarkMode={isDarkMode}
-              />
-              
-              <Counter
-                value={formData.auto_algae_net}
-                onChange={(value: number) => handleInputChange('auto_algae_net', value)}
-                min={0}
-                max={10}
-                label="NET"
-                points={SCORING_VALUES.auto_algae_net}
-                isDarkMode={isDarkMode}
-              />
-            </div>
-          </motion.div>
-
-          {/* Cleansing Metric */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55 }}
-            className="space-y-6"
-          >
-            <div className="flex items-center space-x-3">
-              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-purple-900/30' : 'bg-purple-100'}`}>
-                <CheckCircle className={`w-6 h-6 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+              <div className="flex items-center space-x-3">
+                <span className={`font-bold text-lg ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                  +{SCORING_VALUES.auto_tower_level1} pts
+                </span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={formData.auto_tower_level1}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('auto_tower_level1', e.target.checked)}
+                    className="cursor-pointer"
+                  />
+                </div>
               </div>
-              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                CLEANSING METRIC
-              </h3>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              <Counter
-                value={formData.auto_cleansing}
-                onChange={(value: number) => handleInputChange('auto_cleansing', value)}
-                min={0}
-                max={10}
-                label="Cleansing Count"
-                points={0}
-                isDarkMode={isDarkMode}
-              />
-            </div>
-            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Note: Cleansing metric does not contribute to points
-            </div>
+            </motion.div>
           </motion.div>
 
           {/* Total Points Display */}

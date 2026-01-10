@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Counter } from '../ui';
 import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
-import { CheckCircle } from 'lucide-react';
+import { Fuel, TrendingUp, CheckCircle } from 'lucide-react';
 
 interface TeleopFormProps {
   onNext: (teleopData: Partial<ScoringNotes>) => void;
@@ -22,31 +22,23 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   initialData,
 }) => {
   const [formData, setFormData] = useState({
-    teleop_coral_trough: (initialData?.teleop_coral_trough as number) || 0,
-    teleop_coral_l2: (initialData?.teleop_coral_l2 as number) || 0,
-    teleop_coral_l3: (initialData?.teleop_coral_l3 as number) || 0,
-    teleop_coral_l4: (initialData?.teleop_coral_l4 as number) || 0,
-    teleop_algae_processor: (initialData?.teleop_algae_processor as number) || 0,
-    teleop_algae_net: (initialData?.teleop_algae_net as number) || 0,
-    teleop_cleansing: (initialData?.teleop_cleansing as number) || 0,
+    teleop_fuel_active_hub: (initialData?.teleop_fuel_active_hub as number) || 0,
+    teleop_tower_level2: (initialData?.teleop_tower_level2 as boolean) || false,
+    teleop_tower_level3: (initialData?.teleop_tower_level3 as boolean) || false,
   });
 
   // Sync initialData with state when it changes
   useEffect(() => {
     if (initialData) {
       setFormData({
-        teleop_coral_trough: (initialData.teleop_coral_trough as number) || 0,
-        teleop_coral_l2: (initialData.teleop_coral_l2 as number) || 0,
-        teleop_coral_l3: (initialData.teleop_coral_l3 as number) || 0,
-        teleop_coral_l4: (initialData.teleop_coral_l4 as number) || 0,
-        teleop_algae_processor: (initialData.teleop_algae_processor as number) || 0,
-        teleop_algae_net: (initialData.teleop_algae_net as number) || 0,
-        teleop_cleansing: (initialData.teleop_cleansing as number) || 0,
+        teleop_fuel_active_hub: (initialData.teleop_fuel_active_hub as number) || 0,
+        teleop_tower_level2: (initialData.teleop_tower_level2 as boolean) || false,
+        teleop_tower_level3: (initialData.teleop_tower_level3 as boolean) || false,
       });
     }
   }, [initialData]);
 
-  const handleInputChange = (field: keyof typeof formData, value: number) => {
+  const handleInputChange = (field: keyof typeof formData, value: number | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
@@ -54,14 +46,14 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   };
 
   const calculateTotal = () => {
-    return (
-      (formData.teleop_coral_trough * SCORING_VALUES.teleop_coral_trough) +
-      (formData.teleop_coral_l2 * SCORING_VALUES.teleop_coral_l2) +
-      (formData.teleop_coral_l3 * SCORING_VALUES.teleop_coral_l3) +
-      (formData.teleop_coral_l4 * SCORING_VALUES.teleop_coral_l4) +
-      (formData.teleop_algae_processor * SCORING_VALUES.teleop_algae_processor) +
-      (formData.teleop_algae_net * SCORING_VALUES.teleop_algae_net)
-    );
+    let total = formData.teleop_fuel_active_hub * SCORING_VALUES.teleop_fuel_active_hub;
+    // TOWER: Only highest level counts (mutually exclusive)
+    if (formData.teleop_tower_level3) {
+      total += SCORING_VALUES.teleop_tower_level3;
+    } else if (formData.teleop_tower_level2) {
+      total += SCORING_VALUES.teleop_tower_level2;
+    }
+    return total;
   };
 
   const progressPercentage = (currentStep / totalSteps) * 100;
@@ -91,109 +83,138 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
             Teleop Period
           </CardTitle>
           <CardDescription className="text-muted-foreground">
-            Score the teleop period actions (2 minutes 15 seconds)
+            Score the teleop period actions (last 2:20, especially last 0:30)
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Coral Scoring */}
-          <div className="space-y-4">
-            <h3 className="text-foreground font-semibold text-lg">Coral Scoring</h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-              <Counter
-                value={formData.teleop_coral_trough}
-                onChange={(value: number) => handleInputChange('teleop_coral_trough', value)}
-                min={0}
-                max={20}
-                label="Trough (L1)"
-                points={SCORING_VALUES.teleop_coral_trough}
-                isDarkMode={isDarkMode}
-              />
-              
-              <Counter
-                value={formData.teleop_coral_l2}
-                onChange={(value: number) => handleInputChange('teleop_coral_l2', value)}
-                min={0}
-                max={20}
-                label="Level 2 Branch"
-                points={SCORING_VALUES.teleop_coral_l2}
-                isDarkMode={isDarkMode}
-              />
-              
-              <Counter
-                value={formData.teleop_coral_l3}
-                onChange={(value: number) => handleInputChange('teleop_coral_l3', value)}
-                min={0}
-                max={20}
-                label="Level 3 Branch"
-                points={SCORING_VALUES.teleop_coral_l3}
-                isDarkMode={isDarkMode}
-              />
-              
-              <Counter
-                value={formData.teleop_coral_l4}
-                onChange={(value: number) => handleInputChange('teleop_coral_l4', value)}
-                min={0}
-                max={20}
-                label="Level 4 Branch"
-                points={SCORING_VALUES.teleop_coral_l4}
-                isDarkMode={isDarkMode}
-              />
-            </div>
-          </div>
-
-          {/* Algae Scoring */}
-          <div className="space-y-4">
-            <h3 className="text-foreground font-semibold text-lg">Algae Scoring</h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-              <Counter
-                value={formData.teleop_algae_processor}
-                onChange={(value: number) => handleInputChange('teleop_algae_processor', value)}
-                min={0}
-                max={20}
-                label="PROCESSOR"
-                points={SCORING_VALUES.teleop_algae_processor}
-                isDarkMode={isDarkMode}
-              />
-              
-              <Counter
-                value={formData.teleop_algae_net}
-                onChange={(value: number) => handleInputChange('teleop_algae_net', value)}
-                min={0}
-                max={20}
-                label="NET"
-                points={SCORING_VALUES.teleop_algae_net}
-                isDarkMode={isDarkMode}
-              />
-            </div>
-          </div>
-
-          {/* Cleansing Metric */}
+          {/* FUEL Scoring */}
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
-              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-purple-900/30' : 'bg-purple-100'}`}>
-                <CheckCircle className={`w-6 h-6 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
+                <Fuel className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
               </div>
               <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                CLEANSING METRIC
+                FUEL Scoring
               </h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               <Counter
-                value={formData.teleop_cleansing}
-                onChange={(value: number) => handleInputChange('teleop_cleansing', value)}
+                value={formData.teleop_fuel_active_hub}
+                onChange={(value: number) => handleInputChange('teleop_fuel_active_hub', value)}
                 min={0}
-                max={20}
-                label="Cleansing Count"
-                points={0}
+                max={100}
+                label="FUEL in Active HUB"
+                points={SCORING_VALUES.teleop_fuel_active_hub}
                 isDarkMode={isDarkMode}
               />
             </div>
             <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Note: Cleansing metric does not contribute to points
+              Note: 1 point per FUEL scored in the active HUB. FUEL in inactive HUB scores 0 points.
+            </div>
+          </div>
+
+          {/* TOWER Scoring */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-orange-900/30' : 'bg-orange-100'}`}>
+                <TrendingUp className={`w-6 h-6 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
+              </div>
+              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                TOWER Climb
+              </h3>
+            </div>
+            
+            <div className="space-y-4">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 rounded-xl space-y-3 sm:space-y-0 ${
+                  isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center space-x-4">
+                  <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-green-900/30' : 'bg-green-100'}`}>
+                    <CheckCircle className={`w-6 h-6 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                  </div>
+                  <div>
+                    <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      TOWER LEVEL 2
+                    </h3>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      BUMPERS completely above LOW RUNG
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <span className={`font-bold text-lg ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                    +{SCORING_VALUES.teleop_tower_level2} pts
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={formData.teleop_tower_level2 && !formData.teleop_tower_level3}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        if (e.target.checked) {
+                          handleInputChange('teleop_tower_level2', true);
+                          handleInputChange('teleop_tower_level3', false);
+                        } else {
+                          handleInputChange('teleop_tower_level2', false);
+                        }
+                      }}
+                      className="cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 rounded-xl space-y-3 sm:space-y-0 ${
+                  isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center space-x-4">
+                  <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-purple-900/30' : 'bg-purple-100'}`}>
+                    <CheckCircle className={`w-6 h-6 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+                  </div>
+                  <div>
+                    <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      TOWER LEVEL 3
+                    </h3>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      BUMPERS completely above MID RUNG
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <span className={`font-bold text-lg ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+                    +{SCORING_VALUES.teleop_tower_level3} pts
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={formData.teleop_tower_level3}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        if (e.target.checked) {
+                          handleInputChange('teleop_tower_level3', true);
+                          handleInputChange('teleop_tower_level2', false);
+                        } else {
+                          handleInputChange('teleop_tower_level3', false);
+                        }
+                      }}
+                      className="cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Note: TOWER levels are mutually exclusive - only the highest level achieved counts. Each robot earns points for only one LEVEL.
             </div>
           </div>
 

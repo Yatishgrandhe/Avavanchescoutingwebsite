@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui';
+import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Counter } from '../ui';
 import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
+import { Fuel } from 'lucide-react';
 
 interface EndgameFormProps {
   onNext: (endgameData: Partial<ScoringNotes>) => void;
@@ -18,50 +19,28 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
   totalSteps,
   initialData,
 }) => {
-  // Determine initial endgame_score from initialData
-  const getInitialEndgameScore = () => {
-    if (!initialData) return '';
-    if (initialData.endgame_deep_cage) return 'deep';
-    if (initialData.endgame_shallow_cage) return 'shallow';
-    if (initialData.endgame_park) return 'park';
-    return '';
-  };
-
   const [formData, setFormData] = useState({
-    endgame_score: getInitialEndgameScore(),
+    endgame_fuel: (initialData?.endgame_fuel as number) || 0,
   });
-  const [validationError, setValidationError] = useState<string | null>(null);
 
   // Sync initialData with state when it changes
   useEffect(() => {
     if (initialData) {
-      const score = getInitialEndgameScore();
-      setFormData({ endgame_score: score });
+      setFormData({
+        endgame_fuel: (initialData.endgame_fuel as number) || 0,
+      });
     }
   }, [initialData]);
 
-  const handleSelectChange = (field: keyof typeof formData, value: string) => {
+  const handleInputChange = (field: keyof typeof formData, value: number) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
     }));
-    // Clear validation error when user makes a selection
-    if (validationError) {
-      setValidationError(null);
-    }
   };
 
   const calculateTotal = () => {
-    switch (formData.endgame_score) {
-      case 'park':
-        return SCORING_VALUES.endgame_park;
-      case 'shallow':
-        return SCORING_VALUES.endgame_shallow_cage;
-      case 'deep':
-        return SCORING_VALUES.endgame_deep_cage;
-      default:
-        return 0;
-    }
+    return formData.endgame_fuel * SCORING_VALUES.endgame_fuel;
   };
 
   const progressPercentage = (currentStep / totalSteps) * 100;
@@ -91,39 +70,45 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
             Endgame
           </CardTitle>
           <CardDescription className="text-muted-foreground text-sm sm:text-base">
-            Score the endgame actions (during teleop period)
+            Score the endgame actions (last 30 seconds: 0:30-0:00)
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-6">
-          {/* Validation Error */}
-          {validationError && (
-            <div className="bg-orange-500/20 text-orange-400 p-2 sm:p-3 rounded-md text-xs sm:text-sm text-center flex items-center justify-center">
-              <span>{validationError}</span>
+          {/* FUEL Scoring */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="space-y-4"
+          >
+            <div className="flex items-center space-x-3">
+              <div className={`p-3 rounded-lg bg-blue-900/30`}>
+                <Fuel className={`w-6 h-6 text-blue-400`} />
+              </div>
+              <h3 className={`text-xl font-semibold text-white`}>
+                FUEL Scoring
+              </h3>
             </div>
-          )}
-
-          {/* Endgame Score Dropdown */}
-          <div className="space-y-2 sm:space-y-3">
-            <label className="block text-sm sm:text-base font-medium text-foreground">
-              Endgame Score <span className="text-destructive">*</span>
-            </label>
-            <p className="text-muted-foreground text-xs sm:text-sm">Select the endgame score achieved during teleop period</p>
-            <Select 
-              value={formData.endgame_score} 
-              onValueChange={(value) => handleSelectChange('endgame_score', value)}
-            >
-              <SelectTrigger className="w-full bg-background border-border text-foreground">
-                <SelectValue placeholder="Select endgame score..." />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                <SelectItem value="none" className="text-foreground hover:bg-muted">No Endgame Score</SelectItem>
-                <SelectItem value="park" className="text-foreground hover:bg-muted">Park in the BARGE ZONE (+{SCORING_VALUES.endgame_park} points)</SelectItem>
-                <SelectItem value="shallow" className="text-foreground hover:bg-muted">Off-the-ground via shallow CAGE (+{SCORING_VALUES.endgame_shallow_cage} points)</SelectItem>
-                <SelectItem value="deep" className="text-foreground hover:bg-muted">Off-the-ground via deep CAGE (+{SCORING_VALUES.endgame_deep_cage} points)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+              <Counter
+                value={formData.endgame_fuel}
+                onChange={(value: number) => handleInputChange('endgame_fuel', value)}
+                min={0}
+                max={100}
+                label="FUEL in HUB"
+                points={SCORING_VALUES.endgame_fuel}
+                isDarkMode={true}
+              />
+            </div>
+            <div className={`text-sm text-gray-400`}>
+              Note: During Endgame (last 30 seconds), both HUBs are active. Every FUEL correctly scored = 1 point.
+            </div>
+            <div className={`text-sm text-gray-400`}>
+              Note: TOWER climbs (LEVEL 2 and LEVEL 3) can also be scored during Endgame and are tracked in the Teleop form.
+            </div>
+          </motion.div>
 
           {/* Total Points Display */}
           <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg">
@@ -145,17 +130,8 @@ const EndgameForm: React.FC<EndgameFormProps> = ({
           
           <Button
             onClick={() => {
-              // Validate required field
-              if (!formData.endgame_score) {
-                setValidationError('Please select an endgame score before proceeding.');
-                return;
-              }
-
-              // Convert dropdown selection to ScoringNotes format
               const scoringNotes: Partial<ScoringNotes> = {
-                endgame_park: formData.endgame_score === 'park' ? true : false,
-                endgame_shallow_cage: formData.endgame_score === 'shallow' ? true : false,
-                endgame_deep_cage: formData.endgame_score === 'deep' ? true : false,
+                endgame_fuel: formData.endgame_fuel,
               };
               onNext(scoringNotes);
             }}

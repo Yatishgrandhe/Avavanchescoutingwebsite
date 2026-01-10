@@ -347,17 +347,6 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
                           </div>
                         </div>
 
-                        {/* Cleansing Metrics */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="text-center">
-                            <div className="text-xs text-muted-foreground">Auto Cleansing</div>
-                            <div className="font-semibold text-purple-600">{data.autonomous_cleansing || 0}</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-xs text-muted-foreground">Teleop Cleansing</div>
-                            <div className="font-semibold text-purple-600">{data.teleop_cleansing || 0}</div>
-                          </div>
-                        </div>
 
                         {/* Total Score */}
                         <div className="text-center border-t pt-2">

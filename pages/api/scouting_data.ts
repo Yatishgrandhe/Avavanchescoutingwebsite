@@ -122,8 +122,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         finalEndgamePoints = endgameScore.final_score;
         finalScore = autonomousScore.final_score + teleopScore.final_score + endgameScore.final_score;
         finalNotes = scoringNotes;
-        finalAutonomousCleansing = autonomous?.auto_cleansing || 0;
-        finalTeleopCleansing = teleop?.teleop_cleansing || 0;
+        finalAutonomousCleansing = 0; // Not used in REBUILT 2026
+        finalTeleopCleansing = 0; // Not used in REBUILT 2026
       }
 
       // Create scouting data

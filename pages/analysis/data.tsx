@@ -279,13 +279,27 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const parseFormNotes = (notes: any) => {
     try {
       const parsed = typeof notes === 'string' ? JSON.parse(notes) : notes;
+      // Handle new REBUILT 2026 flat structure
       return {
-        autonomous: parsed.autonomous || {},
-        teleop: parsed.teleop || {},
-        endgame: parsed.endgame || {}
+        autonomous: {
+          auto_fuel_active_hub: parsed.auto_fuel_active_hub || 0,
+          auto_tower_level1: parsed.auto_tower_level1 || false,
+        },
+        teleop: {
+          teleop_fuel_active_hub: parsed.teleop_fuel_active_hub || 0,
+          teleop_tower_level2: parsed.teleop_tower_level2 || false,
+          teleop_tower_level3: parsed.teleop_tower_level3 || false,
+        },
+        endgame: {
+          endgame_fuel: parsed.endgame_fuel || 0,
+        }
       };
     } catch (error) {
-      return { autonomous: {}, teleop: {}, endgame: {} };
+      return { 
+        autonomous: { auto_fuel_active_hub: 0, auto_tower_level1: false },
+        teleop: { teleop_fuel_active_hub: 0, teleop_tower_level2: false, teleop_tower_level3: false },
+        endgame: { endgame_fuel: 0 }
+      };
     }
   };
 
@@ -810,85 +824,48 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                           {/* Autonomous Details */}
                                           <div className="bg-background p-3 rounded-lg border">
-                                            <h5 className="font-medium text-sm mb-2 text-blue-600">Autonomous Period</h5>
+                                            <h5 className="font-medium text-sm mb-2 text-blue-600">Autonomous Period (First 20 seconds)</h5>
                                             <div className="space-y-1 text-xs">
                                               <div className="flex justify-between">
-                                                <span>Left Starting Zone:</span>
-                                                <span className="font-medium">{formNotes.autonomous.auto_leave ? 'Yes' : 'No'}</span>
+                                                <span>FUEL in Active HUB:</span>
+                                                <span className="font-medium">{formNotes.autonomous.auto_fuel_active_hub || 0} FUEL</span>
                                               </div>
                                               <div className="flex justify-between">
-                                                <span>Coral Trough (L1):</span>
-                                                <span className="font-medium">{formNotes.autonomous.auto_coral_trough || 0} pieces</span>
-                                              </div>
-                                              <div className="flex justify-between">
-                                                <span>Coral L2:</span>
-                                                <span className="font-medium">{formNotes.autonomous.auto_coral_l2 || 0} pieces</span>
-                                              </div>
-                                              <div className="flex justify-between">
-                                                <span>Coral L3:</span>
-                                                <span className="font-medium">{formNotes.autonomous.auto_coral_l3 || 0} pieces</span>
-                                              </div>
-                                              <div className="flex justify-between">
-                                                <span>Coral L4:</span>
-                                                <span className="font-medium">{formNotes.autonomous.auto_coral_l4 || 0} pieces</span>
-                                              </div>
-                                              <div className="flex justify-between">
-                                                <span>Algae Processor:</span>
-                                                <span className="font-medium">{formNotes.autonomous.auto_algae_processor || 0} pieces</span>
-                                              </div>
-                                              <div className="flex justify-between">
-                                                <span>Algae Net:</span>
-                                                <span className="font-medium">{formNotes.autonomous.auto_algae_net || 0} pieces</span>
+                                                <span>TOWER LEVEL 1 Climb:</span>
+                                                <span className="font-medium">{formNotes.autonomous.auto_tower_level1 ? 'Yes (15 pts)' : 'No'}</span>
                                               </div>
                                             </div>
                                           </div>
 
                                           {/* Teleop Details */}
                                           <div className="bg-background p-3 rounded-lg border">
-                                            <h5 className="font-medium text-sm mb-2 text-green-600">Teleop Period</h5>
+                                            <h5 className="font-medium text-sm mb-2 text-green-600">Teleop Period (Last 2:20)</h5>
                                             <div className="space-y-1 text-xs">
                                               <div className="flex justify-between">
-                                                <span>Coral Trough (L1):</span>
-                                                <span className="font-medium">{formNotes.teleop.teleop_coral_trough || 0} pieces</span>
+                                                <span>FUEL in Active HUB:</span>
+                                                <span className="font-medium">{formNotes.teleop.teleop_fuel_active_hub || 0} FUEL</span>
                                               </div>
                                               <div className="flex justify-between">
-                                                <span>Coral L2:</span>
-                                                <span className="font-medium">{formNotes.teleop.teleop_coral_l2 || 0} pieces</span>
+                                                <span>TOWER LEVEL 2:</span>
+                                                <span className="font-medium">{formNotes.teleop.teleop_tower_level2 ? 'Yes (20 pts)' : 'No'}</span>
                                               </div>
                                               <div className="flex justify-between">
-                                                <span>Coral L3:</span>
-                                                <span className="font-medium">{formNotes.teleop.teleop_coral_l3 || 0} pieces</span>
-                                              </div>
-                                              <div className="flex justify-between">
-                                                <span>Coral L4:</span>
-                                                <span className="font-medium">{formNotes.teleop.teleop_coral_l4 || 0} pieces</span>
-                                              </div>
-                                              <div className="flex justify-between">
-                                                <span>Algae Processor:</span>
-                                                <span className="font-medium">{formNotes.teleop.teleop_algae_processor || 0} pieces</span>
-                                              </div>
-                                              <div className="flex justify-between">
-                                                <span>Algae Net:</span>
-                                                <span className="font-medium">{formNotes.teleop.teleop_algae_net || 0} pieces</span>
+                                                <span>TOWER LEVEL 3:</span>
+                                                <span className="font-medium">{formNotes.teleop.teleop_tower_level3 ? 'Yes (30 pts)' : 'No'}</span>
                                               </div>
                                             </div>
                                           </div>
 
                                           {/* Endgame & Additional Details */}
                                           <div className="bg-background p-3 rounded-lg border">
-                                            <h5 className="font-medium text-sm mb-2 text-orange-600">Endgame & Additional</h5>
+                                            <h5 className="font-medium text-sm mb-2 text-orange-600">Endgame (Last 30 seconds)</h5>
                                             <div className="space-y-1 text-xs">
                                               <div className="flex justify-between">
-                                                <span>Park in Barge:</span>
-                                                <span className="font-medium">{formNotes.endgame.endgame_park ? 'Yes' : 'No'}</span>
+                                                <span>FUEL in HUB:</span>
+                                                <span className="font-medium">{formNotes.endgame.endgame_fuel || 0} FUEL</span>
                                               </div>
-                                              <div className="flex justify-between">
-                                                <span>Shallow Cage:</span>
-                                                <span className="font-medium">{formNotes.endgame.endgame_shallow_cage ? 'Yes' : 'No'}</span>
-                                              </div>
-                                              <div className="flex justify-between">
-                                                <span>Deep Cage:</span>
-                                                <span className="font-medium">{formNotes.endgame.endgame_deep_cage ? 'Yes' : 'No'}</span>
+                                              <div className="text-xs text-muted-foreground mt-2">
+                                                Note: Both HUBs are active during Endgame
                                               </div>
                                               <div className="mt-2 pt-2 border-t">
                                                 <div className="flex justify-between">

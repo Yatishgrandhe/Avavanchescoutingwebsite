@@ -117,8 +117,26 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
               value={formData.comments}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('comments', e.target.value)}
               className="w-full h-20 sm:h-24 md:h-32 lg:h-36 bg-background border border-border text-foreground rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary text-sm sm:text-base"
-              placeholder="Add any additional observations, strategies observed, or notable robot capabilities..."
+              placeholder="Add any additional observations, strategies observed, or notable robot capabilities. Note: Include which HUB was active/inactive (determined by Auto performance), TOWER climb timing, and any other relevant details..."
             />
+          </div>
+
+          {/* Game Mechanics Notes */}
+          <div className="space-y-2 sm:space-y-4">
+            <h3 className="text-foreground font-semibold text-base sm:text-lg">Important Game Mechanics Notes</h3>
+            <div className="bg-blue-900/20 border border-blue-700/50 rounded-md p-3 sm:p-4 space-y-2 text-xs sm:text-sm text-foreground">
+              <p className="font-semibold">Active vs Inactive HUB:</p>
+              <p className="text-muted-foreground">The Alliance with more FUEL scored in Auto determines which goal becomes inactive during Shifts 2 and 4 in Teleop. FUEL in inactive HUB scores 0 points.</p>
+              
+              <p className="font-semibold mt-3">TOWER Points Evaluation:</p>
+              <p className="text-muted-foreground">TOWER points are evaluated about 3 seconds after the match ends or when all robots have come to rest.</p>
+              
+              <p className="font-semibold mt-3">FUEL Scoring Evaluation:</p>
+              <p className="text-muted-foreground">FUEL scoring is evaluated for up to 3 seconds after AUTO and after the match end to catch late-entering FUEL.</p>
+              
+              <p className="font-semibold mt-3">Endgame (Last 30 seconds):</p>
+              <p className="text-muted-foreground">During Endgame (0:30-0:00), both HUBs are active, so every FUEL correctly scored = 1 point.</p>
+            </div>
           </div>
         </CardContent>
 

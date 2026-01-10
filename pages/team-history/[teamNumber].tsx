@@ -263,27 +263,17 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
     };
 
     const scoringElements = [
-      // Autonomous
-      { label: 'Leave', value: getValue('auto_leave'), points: 3, period: 'Autonomous' },
-      { label: 'Coral Trough', value: getValue('auto_coral_trough'), points: 3, period: 'Autonomous' },
-      { label: 'Coral L2', value: getValue('auto_coral_l2'), points: 4, period: 'Autonomous' },
-      { label: 'Coral L3', value: getValue('auto_coral_l3'), points: 6, period: 'Autonomous' },
-      { label: 'Coral L4', value: getValue('auto_coral_l4'), points: 7, period: 'Autonomous' },
-      { label: 'Algae Proc', value: getValue('auto_algae_processor'), points: 6, period: 'Autonomous' },
-      { label: 'Algae Net', value: getValue('auto_algae_net'), points: 4, period: 'Autonomous' },
+      // Autonomous (First 20 seconds)
+      { label: 'FUEL Active HUB', value: getValue('auto_fuel_active_hub'), points: 1, period: 'Autonomous' },
+      { label: 'TOWER LEVEL 1', value: getValue('auto_tower_level1'), points: 15, period: 'Autonomous' },
 
-      // Teleop
-      { label: 'Coral Trough', value: getValue('teleop_coral_trough'), points: 2, period: 'Teleop' },
-      { label: 'Coral L2', value: getValue('teleop_coral_l2'), points: 3, period: 'Teleop' },
-      { label: 'Coral L3', value: getValue('teleop_coral_l3'), points: 4, period: 'Teleop' },
-      { label: 'Coral L4', value: getValue('teleop_coral_l4'), points: 5, period: 'Teleop' },
-      { label: 'Algae Proc', value: getValue('teleop_algae_processor'), points: 6, period: 'Teleop' },
-      { label: 'Algae Net', value: getValue('teleop_algae_net'), points: 4, period: 'Teleop' },
+      // Teleop (Last 2:20)
+      { label: 'FUEL Active HUB', value: getValue('teleop_fuel_active_hub'), points: 1, period: 'Teleop' },
+      { label: 'TOWER LEVEL 2', value: getValue('teleop_tower_level2'), points: 20, period: 'Teleop' },
+      { label: 'TOWER LEVEL 3', value: getValue('teleop_tower_level3'), points: 30, period: 'Teleop' },
 
-      // Endgame
-      { label: 'Park', value: getValue('endgame_park'), points: 2, period: 'Endgame' },
-      { label: 'Shallow Cage', value: getValue('endgame_shallow_cage'), points: 6, period: 'Endgame' },
-      { label: 'Deep Cage', value: getValue('endgame_deep_cage'), points: 12, period: 'Endgame' },
+      // Endgame (Last 30 seconds)
+      { label: 'FUEL in HUB', value: getValue('endgame_fuel'), points: 1, period: 'Endgame' },
     ];
 
     const autonomousElements = scoringElements.filter(el => el.period === 'Autonomous');

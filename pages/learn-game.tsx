@@ -39,79 +39,95 @@ const gameSections: GameSection[] = [
     id: 'overview',
     title: 'Game Overview',
     icon: <Gamepad2 className="w-6 h-6" />,
-    content: 'FIRST Robotics Competition (FRC) is an international high school robotics competition where teams of students work with professional mentors to design, build, and program robots to compete in challenging field games.',
+    content: 'FIRST Robotics Competition: REBUILT presented by Haas is the 2026 FRC game. Teams compete in alliances of three robots each, working together to score points by placing FUEL in HUBs and climbing the TOWER.',
     subsections: [
       {
-        title: 'Competition Format',
-        content: 'Teams compete in alliances of three robots each, working together to score points and defeat their opponents. Each match lasts 2 minutes and 30 seconds, with different phases offering various scoring opportunities.'
+        title: 'Match Duration',
+        content: 'Each match consists of an Autonomous Period (first 20 seconds) followed by a Teleoperated Period (last 2:20, especially the last 0:30 Endgame).'
       },
       {
-        title: 'Season Structure',
-        content: 'The competition season typically runs from January to April, with regional competitions leading to district championships and ultimately the World Championship in Houston, Texas.'
+        title: 'Competition Format',
+        content: 'Teams compete in alliances of three robots each, working together to score points and defeat their opponents. The alliance with the highest score wins the match.'
       }
     ]
   },
   {
-    id: 'field',
-    title: 'Field Layout & Scoring',
-    icon: <MapPin className="w-6 h-6" />,
-    content: 'The playing field is a 27ft x 54ft arena with various scoring elements strategically placed to create challenging gameplay and multiple strategic options.',
+    id: 'scoring',
+    title: 'Scoring (Points Only)',
+    icon: <Target className="w-6 h-6" />,
+    content: 'Scoring in REBUILT 2026 is based on FUEL placement and TOWER climbing. Understanding the scoring system is crucial for effective strategy.',
     subsections: [
       {
-        title: 'Scoring Elements',
-        content: 'The field contains multiple scoring zones including speaker targets, amp stations, source stations, and stage areas. Each element offers different point values and strategic advantages.'
+        title: 'FUEL Scoring',
+        content: 'FUEL in active HUB (AUTO or TELEOP): 1 point per FUEL scored. FUEL in inactive HUB: 0 points (never scores). During Endgame (last 30 seconds), both HUBs are active, so every FUEL correctly scored = 1 point.'
       },
       {
-        title: 'Alliance Stations',
-        content: 'Each alliance has a designated station area where human players can interact with the field elements and provide strategic support to their robots during matches.'
+        title: 'AUTO TOWER (First 20 seconds)',
+        content: 'LEVEL 1 climb per ROBOT: 15 points. Robots must be fully supported by the lowest rung to earn these points.'
+      },
+      {
+        title: 'TELEOP/END GAME TOWER (Last 2:20, especially last 0:30)',
+        content: 'LEVEL 2 climb per ROBOT: 20 points (BUMPERS completely above LOW RUNG). LEVEL 3 climb per ROBOT: 30 points (BUMPERS completely above MID RUNG). Each ROBOT earns points for only one LEVEL in TELEOP/END GAME.'
+      },
+      {
+        title: 'Evaluation Timing',
+        content: 'TOWER points are evaluated about 3 seconds after the match ends or when all robots have come to rest. FUEL scoring is also evaluated for up to 3 seconds after AUTO and after the match end to catch late-entering FUEL.'
       }
     ]
   },
   {
     id: 'autonomous',
-    title: 'Autonomous Period',
+    title: 'Autonomous Period (First 20 seconds)',
     icon: <Zap className="w-6 h-6" />,
-    content: 'The first 15 seconds of each match is the autonomous period, where robots operate without human control using pre-programmed instructions.',
+    content: 'During the Autonomous period, robots operate using pre-programmed code. All scoring during this period sets the stage for the rest of the match.',
     subsections: [
       {
         title: 'Autonomous Objectives',
-        content: 'During autonomous, robots can score points by placing game pieces in specific locations, moving to strategic positions, or completing complex tasks that give their alliance an early advantage.'
+        content: 'Robots can score FUEL in the active HUB (1 point per FUEL) and attempt TOWER LEVEL 1 climbs (15 points per robot). The Alliance with more FUEL scored in Auto determines which goal becomes inactive during Shifts 2 and 4 in Teleop.'
       },
       {
-        title: 'Programming Challenge',
-        content: 'Teams must program their robots to navigate the field, avoid obstacles, and execute precise movements all while operating independently for the full 15-second period.'
+        title: 'Auto Shift Advantage',
+        content: 'The Alliance with more FUEL scored in Auto determines which goal becomes inactive during Shifts 2 and 4 in Teleop. This strategic advantage can significantly impact match outcomes.'
       }
     ]
   },
   {
     id: 'teleop',
-    title: 'Teleoperated Period',
+    title: 'Teleoperated Period (Last 2:20)',
     icon: <Users className="w-6 h-6" />,
-    content: 'The main 2 minutes and 15 seconds of the match is teleoperated, where human drivers control their robots using game controllers and strategic decision-making.',
+    content: 'During the Teleoperated period, drivers take control. Scoring shifts focus to cycle efficiency and navigating field obstacles.',
     subsections: [
       {
-        title: 'Driver Control',
-        content: 'Each robot is controlled by a team of drivers who must work together to execute their alliance strategy, score points, and defend against opponents while managing limited resources.'
+        title: 'FUEL Scoring',
+        content: 'FUEL in active HUB: 1 point per FUEL scored. FUEL in inactive HUB: 0 points. The active/inactive status is determined by Auto performance.'
       },
       {
-        title: 'Strategy & Coordination',
-        content: 'Successful teleop play requires excellent communication between alliance partners, quick decision-making, and the ability to adapt to changing match conditions in real-time.'
+        title: 'TOWER Climbing',
+        content: 'Robots can climb the TOWER during Teleop, earning 20 points for LEVEL 2 (BUMPERS above LOW RUNG) or 30 points for LEVEL 3 (BUMPERS above MID RUNG). Only the highest level achieved counts per robot.'
+      },
+      {
+        title: 'The "Shift" Mechanic',
+        content: 'Transition Shift: The initial segment of Teleop. Alliance Shifts: Periodically, goals may become inactive. Refer to the FMS Game Data (\'R\' or \'B\') to identify which goal to target.'
       }
     ]
   },
   {
     id: 'endgame',
-    title: 'Endgame Phase',
+    title: 'Endgame Period (Last 30 seconds: 0:30-0:00)',
     icon: <Trophy className="w-6 h-6" />,
-    content: 'The final 30 seconds of each match is the endgame, where teams can earn significant bonus points by completing challenging tasks that often determine match outcomes.',
+    content: 'The Endgame focuses on the TOWER, a vertical structure requiring robots to climb and support their own weight. During Endgame, both HUBs are active.',
     subsections: [
       {
-        title: 'Endgame Objectives',
-        content: 'Endgame tasks typically involve climbing, hanging, or balancing on elevated structures, requiring precise robot design and skilled driver execution under pressure.'
+        title: 'Endgame FUEL Scoring',
+        content: 'During Endgame (0:30-0:00), both HUBs are active, so every FUEL correctly scored = 1 point. This creates a high-scoring opportunity in the final moments of the match.'
+      },
+      {
+        title: 'Endgame TOWER Climbing',
+        content: 'Robots may score TELEOP TOWER climbs during Endgame: LEVEL 2 (BUMPERS completely above LOW RUNG) = 20 points per ROBOT, LEVEL 3 (BUMPERS completely above MID RUNG) = 30 points per ROBOT. These TOWER points contribute both to your match score and toward the TRAVERSAL ranking point threshold (50+ TOWER points at regionals).'
       },
       {
         title: 'Match Deciders',
-        content: 'Endgame performance often determines match winners, as the bonus points available can completely change the score and provide crucial ranking points for tournament advancement.'
+        content: 'Endgame performance often determines match winners, as the combination of active HUBs and TOWER climbing opportunities can significantly change the score in the final moments.'
       }
     ]
   },
@@ -119,15 +135,19 @@ const gameSections: GameSection[] = [
     id: 'strategy',
     title: 'Strategy & Tactics',
     icon: <Target className="w-6 h-6" />,
-    content: 'Successful FRC teams combine technical excellence with strategic thinking, developing game plans that maximize their strengths while exploiting opponent weaknesses.',
+    content: 'Successful REBUILT 2026 teams combine technical excellence with strategic thinking, developing game plans that maximize FUEL scoring and TOWER climbing while managing active/inactive HUB status.',
     subsections: [
       {
-        title: 'Alliance Selection',
-        content: 'During alliance selection, top-ranked teams choose partners based on complementary capabilities, creating alliances that can execute complex strategies and adapt to different opponents.'
+        title: 'Active vs Inactive HUB Strategy',
+        content: 'Understanding which HUB is active during different periods is crucial. The Alliance with more FUEL in Auto determines inactive HUBs during Shifts 2 and 4, making Auto performance strategically important.'
       },
       {
-        title: 'Match Strategy',
-        content: 'Each match requires different strategies based on opponent capabilities, field conditions, and alliance composition. Teams must balance offensive scoring with defensive play.'
+        title: 'TOWER Climbing Strategy',
+        content: 'TOWER points are evaluated 3 seconds after match end, so robots must maintain their position. Each robot earns points for only one LEVEL, so teams must decide whether to attempt LEVEL 2 or LEVEL 3 based on robot capabilities.'
+      },
+      {
+        title: 'Endgame Strategy',
+        content: 'With both HUBs active during Endgame, teams should maximize FUEL scoring in the final 30 seconds. TOWER climbing during Endgame can provide both match points and ranking point opportunities.'
       }
     ]
   }
@@ -174,10 +194,10 @@ export default function LearnGame() {
               </div>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-                  Learn the Game
+                  REBUILT 2026 Game Rules
                 </h1>
                 <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-                  Comprehensive guide to FIRST Robotics Competition gameplay
+                  Comprehensive guide to FIRST Robotics Competition: REBUILT presented by Haas
                 </p>
               </div>
             </div>
@@ -193,14 +213,14 @@ export default function LearnGame() {
                 </div>
               </CardTitle>
               <CardDescription className="text-muted-foreground text-sm sm:text-base">
-                Watch this official game animation to understand the basics
+                Watch this official REBUILT 2026 game animation to understand the basics
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
                 <iframe
-                  src="https://www.youtube.com/embed/YWbxcjlY9JY"
-                  title="FIRST Robotics Competition Game Animation"
+                  src="https://www.youtube.com/embed/_fybREErgyM"
+                  title="REBUILT 2026 Game Animation"
                   className="w-full h-full"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

@@ -164,29 +164,17 @@ const TeamDetail: React.FC = () => {
     };
 
     const scoringElements = [
-      // Autonomous
-      { label: 'Auto Leave', value: getValue('auto_leave'), points: 3, period: 'Autonomous' },
-      { label: 'Auto Coral Trough', value: getValue('auto_coral_trough'), points: 3, period: 'Autonomous' },
-      { label: 'Auto Coral L2', value: getValue('auto_coral_l2'), points: 4, period: 'Autonomous' },
-      { label: 'Auto Coral L3', value: getValue('auto_coral_l3'), points: 6, period: 'Autonomous' },
-      { label: 'Auto Coral L4', value: getValue('auto_coral_l4'), points: 7, period: 'Autonomous' },
-      { label: 'Auto Algae Processor', value: getValue('auto_algae_processor'), points: 6, period: 'Autonomous' },
-      { label: 'Auto Algae Net', value: getValue('auto_algae_net'), points: 4, period: 'Autonomous' },
-      { label: 'Auto Cleansing', value: getValue('auto_cleansing'), points: 0, period: 'Autonomous', isCleansing: true },
+      // Autonomous (First 20 seconds)
+      { label: 'FUEL in Active HUB', value: getValue('auto_fuel_active_hub'), points: 1, period: 'Autonomous' },
+      { label: 'TOWER LEVEL 1 Climb', value: getValue('auto_tower_level1'), points: 15, period: 'Autonomous', isBoolean: true },
 
-      // Teleop
-      { label: 'Teleop Coral Trough', value: getValue('teleop_coral_trough'), points: 2, period: 'Teleop' },
-      { label: 'Teleop Coral L2', value: getValue('teleop_coral_l2'), points: 3, period: 'Teleop' },
-      { label: 'Teleop Coral L3', value: getValue('teleop_coral_l3'), points: 4, period: 'Teleop' },
-      { label: 'Teleop Coral L4', value: getValue('teleop_coral_l4'), points: 5, period: 'Teleop' },
-      { label: 'Teleop Algae Processor', value: getValue('teleop_algae_processor'), points: 6, period: 'Teleop' },
-      { label: 'Teleop Algae Net', value: getValue('teleop_algae_net'), points: 4, period: 'Teleop' },
-      { label: 'Teleop Cleansing', value: getValue('teleop_cleansing'), points: 0, period: 'Teleop', isCleansing: true },
+      // Teleop (Last 2:20)
+      { label: 'FUEL in Active HUB', value: getValue('teleop_fuel_active_hub'), points: 1, period: 'Teleop' },
+      { label: 'TOWER LEVEL 2', value: getValue('teleop_tower_level2'), points: 20, period: 'Teleop', isBoolean: true },
+      { label: 'TOWER LEVEL 3', value: getValue('teleop_tower_level3'), points: 30, period: 'Teleop', isBoolean: true },
 
-      // Endgame
-      { label: 'Park', value: getValue('endgame_park'), points: 2, period: 'Endgame' },
-      { label: 'Shallow Cage', value: getValue('endgame_shallow_cage'), points: 6, period: 'Endgame' },
-      { label: 'Deep Cage', value: getValue('endgame_deep_cage'), points: 12, period: 'Endgame' },
+      // Endgame (Last 30 seconds)
+      { label: 'FUEL in HUB', value: getValue('endgame_fuel'), points: 1, period: 'Endgame' },
     ];
 
     const autonomousElements = scoringElements.filter(el => el.period === 'Autonomous');

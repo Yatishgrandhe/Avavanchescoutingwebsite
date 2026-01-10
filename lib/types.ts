@@ -37,29 +37,17 @@ export interface ScoutingData {
 }
 
 export interface ScoringNotes {
-  // Autonomous Period
-  auto_leave: boolean;
-  auto_coral_trough: number;
-  auto_coral_l2: number;
-  auto_coral_l3: number;
-  auto_coral_l4: number;
-  auto_algae_processor: number;
-  auto_algae_net: number;
-  auto_cleansing: number;
+  // Autonomous Period (first 20 seconds)
+  auto_fuel_active_hub: number;     // 1 pt per FUEL in active HUB
+  auto_tower_level1: boolean;        // 15 pts per robot (LEVEL 1 climb)
   
-  // Teleop Period
-  teleop_coral_trough: number;
-  teleop_coral_l2: number;
-  teleop_coral_l3: number;
-  teleop_coral_l4: number;
-  teleop_algae_processor: number;
-  teleop_algae_net: number;
-  teleop_cleansing: number;
+  // Teleop Period (last 2:20, especially last 0:30)
+  teleop_fuel_active_hub: number;    // 1 pt per FUEL in active HUB
+  teleop_tower_level2: boolean;      // 20 pts per robot (LEVEL 2 - above LOW RUNG)
+  teleop_tower_level3: boolean;      // 30 pts per robot (LEVEL 3 - above MID RUNG)
   
-  // Endgame
-  endgame_park: boolean;
-  endgame_shallow_cage: boolean;
-  endgame_deep_cage: boolean;
+  // Endgame (last 30 seconds) - both HUBs active
+  endgame_fuel: number;              // 1 pt per FUEL (both HUBs active)
 }
 
 export interface User {
@@ -95,40 +83,20 @@ export interface AnalysisFilters {
 }
 
 export type ScoringElement = 
-  | 'auto_leave'
-  | 'auto_coral_trough'
-  | 'auto_coral_l2'
-  | 'auto_coral_l3'
-  | 'auto_coral_l4'
-  | 'auto_algae_processor'
-  | 'auto_algae_net'
-  | 'teleop_coral_trough'
-  | 'teleop_coral_l2'
-  | 'teleop_coral_l3'
-  | 'teleop_coral_l4'
-  | 'teleop_algae_processor'
-  | 'teleop_algae_net'
-  | 'endgame_park'
-  | 'endgame_shallow_cage'
-  | 'endgame_deep_cage';
+  | 'auto_fuel_active_hub'
+  | 'auto_tower_level1'
+  | 'teleop_fuel_active_hub'
+  | 'teleop_tower_level2'
+  | 'teleop_tower_level3'
+  | 'endgame_fuel';
 
 export const SCORING_VALUES: Record<ScoringElement, number> = {
-  auto_leave: 3,
-  auto_coral_trough: 3,
-  auto_coral_l2: 4,
-  auto_coral_l3: 6,
-  auto_coral_l4: 7,
-  auto_algae_processor: 6,
-  auto_algae_net: 4,
-  teleop_coral_trough: 2,
-  teleop_coral_l2: 3,
-  teleop_coral_l3: 4,
-  teleop_coral_l4: 5,
-  teleop_algae_processor: 6,
-  teleop_algae_net: 4,
-  endgame_park: 2,
-  endgame_shallow_cage: 6,
-  endgame_deep_cage: 12,
+  auto_fuel_active_hub: 1,
+  auto_tower_level1: 15,
+  teleop_fuel_active_hub: 1,
+  teleop_tower_level2: 20,
+  teleop_tower_level3: 30,
+  endgame_fuel: 1,
 };
 
 export interface PickList {

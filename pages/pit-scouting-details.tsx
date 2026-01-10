@@ -34,7 +34,6 @@ interface PitScoutingData {
   };
   autonomous_capabilities: string[];
   teleop_capabilities: string[];
-  endgame_capabilities: string[];
   robot_dimensions: {
     length?: number;
     width?: number;
@@ -99,7 +98,6 @@ export default function PitScoutingDetails() {
           },
           autonomous_capabilities: pitScoutingData.autonomous_capabilities || [],
           teleop_capabilities: pitScoutingData.teleop_capabilities || [],
-          endgame_capabilities: pitScoutingData.endgame_capabilities || [],
           robot_dimensions: pitScoutingData.robot_dimensions || { height: 0 },
           weight: pitScoutingData.weight || 0,
           programming_language: pitScoutingData.programming_language || 'Unknown',
@@ -421,21 +419,30 @@ export default function PitScoutingDetails() {
                     <div className="bg-purple-600 rounded-full p-2">
                       <CheckCircle className="h-5 w-5 text-white" />
                     </div>
-                    <h3 className="text-xl font-bold text-white">Endgame</h3>
+                    <h3 className="text-xl font-bold text-white">Climb & Navigation</h3>
                   </div>
                   <div className="space-y-3">
-                    {pitData.endgame_capabilities && pitData.endgame_capabilities.length > 0 ? (
-                      pitData.endgame_capabilities.map((cap: string, index: number) => (
-                        <div key={index} className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg border border-gray-600">
-                          <CheckCircle className="h-4 w-4 text-purple-400 flex-shrink-0" />
-                          <span className="text-white font-medium">{cap}</span>
+                    <div className="p-3 bg-gray-700 rounded-lg border border-gray-600">
+                      <div className="text-white font-medium mb-2">Can Climb: {(pitData.drive_train_details as any)?.can_climb ? 'Yes' : 'No'}</div>
+                      {(pitData.drive_train_details as any)?.can_climb && (pitData.drive_train_details as any)?.climb_levels?.length > 0 && (
+                        <div className="text-white mb-2">
+                          <span className="font-medium">Levels: </span>
+                          {(pitData.drive_train_details as any).climb_levels.join(', ')}
                         </div>
-                      ))
-                    ) : (
-                      <div className="p-4 bg-gray-700 rounded-lg border border-gray-600 text-center">
-                        <p className="text-gray-400">No endgame capabilities specified</p>
+                      )}
+                      <div className="text-white mb-2">
+                        <span className="font-medium">Navigation: </span>
+                        {(pitData.drive_train_details as any)?.navigation_locations?.join(', ') || 'N/A'}
                       </div>
-                    )}
+                      <div className="text-white mb-2">
+                        <span className="font-medium">Ball Hold Amount: </span>
+                        {(pitData.drive_train_details as any)?.ball_hold_amount || 0} balls
+                      </div>
+                      <div className="text-white">
+                        <span className="font-medium">Downtime Strategy: </span>
+                        {(pitData.drive_train_details as any)?.downtime_strategy?.join(', ') || 'N/A'}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

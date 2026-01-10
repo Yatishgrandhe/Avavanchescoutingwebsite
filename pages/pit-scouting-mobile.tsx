@@ -34,7 +34,11 @@ interface PitScoutingData {
   driveTrainOther?: string; // For "Other" drivetrain option
   autonomousCapabilities: string[];
   teleopCapabilities: string[];
-  endgameCapabilities: string[];
+  canClimb: boolean;
+  climbLevels: string[];
+  navigationLocations: string[];
+  ballHoldAmount?: number;
+  downtimeStrategy: string[];
   robotDimensions: {
     length?: number;
     width?: number;
@@ -63,7 +67,11 @@ export default function PitScoutingMobile() {
     driveTrainOther: '',
     autonomousCapabilities: [],
     teleopCapabilities: [],
-    endgameCapabilities: [],
+    canClimb: false,
+    climbLevels: [],
+    navigationLocations: [],
+    ballHoldAmount: 0,
+    downtimeStrategy: [],
     robotDimensions: {
       height: 0,
     },
@@ -180,12 +188,14 @@ export default function PitScoutingMobile() {
           type: formData.driveType === 'Other' ? formData.driveTrainOther : formData.driveType,
           auto_capabilities: formData.autonomousCapabilities.join(', '),
           teleop_capabilities: formData.teleopCapabilities.join(', '),
-          drive_camps: 0, // Default value
-          playoff_driver: 'TBD' // Default value
+          can_climb: formData.canClimb,
+          climb_levels: formData.climbLevels,
+          navigation_locations: formData.navigationLocations,
+          ball_hold_amount: formData.ballHoldAmount || 0,
+          downtime_strategy: formData.downtimeStrategy,
         },
         autonomous_capabilities: formData.autonomousCapabilities,
         teleop_capabilities: formData.teleopCapabilities,
-        endgame_capabilities: formData.endgameCapabilities,
         robot_dimensions: formData.robotDimensions,
         weight: formData.weight,
         programming_language: formData.programmingLanguage,
@@ -226,7 +236,11 @@ export default function PitScoutingMobile() {
           driveTrainOther: '',
           autonomousCapabilities: [],
           teleopCapabilities: [],
-          endgameCapabilities: [],
+          canClimb: false,
+          climbLevels: [],
+          navigationLocations: [],
+          ballHoldAmount: 0,
+          downtimeStrategy: [],
           robotDimensions: { height: 0 },
           weight: 0,
           programmingLanguage: '',
@@ -418,7 +432,7 @@ export default function PitScoutingMobile() {
                       Drive Train <span className="text-destructive">*</span>
                     </label>
                     <div className="space-y-3">
-                      {['8-wheel tan', 'Swerve'].map((option) => (
+                      {['Tank Drive', 'Swerve Drive'].map((option) => (
                         <label key={option} className="flex items-center space-x-3 cursor-pointer">
                           <input
                             type="radio"
@@ -562,7 +576,7 @@ export default function PitScoutingMobile() {
                   <div className="bg-muted p-4 rounded-lg border">
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Question 2: What can they do in auto</h3>
                     <div className="space-y-3">
-                      {['L1', 'L2', 'L3', 'L4', 'Move off of the starting line ONLY', 'Clean the reef (LOW algae)', 'Clean the reef (HIGH algae)'].map((option) => (
+                      {['Score FUEL in active HUB', 'TOWER LEVEL 1 climb'].map((option) => (
                         <div key={option} className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
                           <input
                             type="checkbox"
@@ -597,7 +611,7 @@ export default function PitScoutingMobile() {
                   <div className="bg-muted p-4 rounded-lg border">
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Question 3: What can they do during teleop</h3>
                     <div className="space-y-3">
-                      {['L1', 'L2', 'L3', 'L4', 'Processor', 'Barge', 'Defense'].map((option) => (
+                      {['Score FUEL in active HUB', 'TOWER LEVEL 2 climb', 'TOWER LEVEL 3 climb'].map((option) => (
                         <div key={option} className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
                           <input
                             type="checkbox"
@@ -672,35 +686,134 @@ export default function PitScoutingMobile() {
                     </motion.div>
                   )}
 
-                  {/* Endgame Capabilities */}
+                  {/* Can Climb */}
                   <div className="bg-muted p-4 rounded-lg border">
-                    <h3 className="text-lg font-semibold mb-4 text-foreground">Question 4: What can they do during endgame</h3>
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-foreground">
-                        Select Endgame Capability
-                      </label>
-                      <Select
-                        value={formData.endgameCapabilities[0] || ''}
-                        onValueChange={(value) => setFormData(prev => ({
-                          ...prev,
-                          endgameCapabilities: value ? [value] : []
-                        }))}
-                      >
-                        <SelectTrigger className="w-full bg-background border-input text-foreground">
-                          <SelectValue placeholder="Select an endgame capability" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background border-input">
-                          {['Shallow Climb', 'Deep Climb', 'Park', 'None'].map((option) => (
-                            <SelectItem 
-                              key={option} 
-                              value={option}
-                              className="text-foreground hover:bg-muted"
-                            >
-                              {option}
-                            </SelectItem>
+                    <h3 className="text-lg font-semibold mb-4 text-foreground">Can they climb? <span className="text-destructive">*</span></h3>
+                    <div className="flex gap-3 mb-4">
+                      {['Yes', 'No'].map((opt) => (
+                        <label key={opt} className="flex items-center space-x-2 cursor-pointer flex-1">
+                          <input
+                            type="radio"
+                            name="canClimb"
+                            checked={(opt === 'Yes' && formData.canClimb) || (opt === 'No' && !formData.canClimb)}
+                            onChange={() => setFormData(prev => ({ 
+                              ...prev, 
+                              canClimb: opt === 'Yes',
+                              climbLevels: opt === 'No' ? [] : prev.climbLevels
+                            }))}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm">{opt}</span>
+                        </label>
+                      ))}
+                    </div>
+                    
+                    {formData.canClimb && (
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium mb-2 text-foreground">
+                          What level(s) can they climb? <span className="text-destructive">*</span>
+                        </label>
+                        <div className="space-y-2">
+                          {['LEVEL 1', 'LEVEL 2', 'LEVEL 3'].map((level) => (
+                            <label key={level} className="flex items-center space-x-2 cursor-pointer p-2 rounded border border-input hover:bg-muted/50">
+                              <input
+                                type="checkbox"
+                                checked={formData.climbLevels.includes(level)}
+                                onChange={() => {
+                                  const active = formData.climbLevels.includes(level);
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    climbLevels: active
+                                      ? prev.climbLevels.filter(l => l !== level)
+                                      : [...prev.climbLevels, level]
+                                  }));
+                                }}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm">{level}</span>
+                            </label>
                           ))}
-                        </SelectContent>
-                      </Select>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Navigation Locations */}
+                  <div className="bg-muted p-4 rounded-lg border">
+                    <h3 className="text-lg font-semibold mb-4 text-foreground">Where can they go? <span className="text-destructive">*</span></h3>
+                    <div className="space-y-2">
+                      {['Trench', 'Bump', 'Both'].map((location) => (
+                        <label key={location} className="flex items-center space-x-2 cursor-pointer p-2 rounded border border-input hover:bg-muted/50">
+                          <input
+                            type="checkbox"
+                            checked={
+                              (location === 'Both' && formData.navigationLocations.includes('Trench') && formData.navigationLocations.includes('Bump')) ||
+                              (location !== 'Both' && formData.navigationLocations.includes(location))
+                            }
+                            onChange={() => {
+                              if (location === 'Both') {
+                                setFormData(prev => ({ ...prev, navigationLocations: ['Trench', 'Bump'] }));
+                              } else {
+                                const active = formData.navigationLocations.includes(location);
+                                setFormData(prev => ({
+                                  ...prev,
+                                  navigationLocations: active
+                                    ? prev.navigationLocations.filter(l => l !== location)
+                                    : location === 'Trench' && prev.navigationLocations.includes('Bump')
+                                      ? ['Trench', 'Bump']
+                                      : location === 'Bump' && prev.navigationLocations.includes('Trench')
+                                      ? ['Trench', 'Bump']
+                                      : [...prev.navigationLocations, location]
+                                }));
+                              }
+                            }}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm">{location}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Ball Hold Amount */}
+                  <div className="bg-muted p-4 rounded-lg border">
+                    <h3 className="text-lg font-semibold mb-4 text-foreground">Ball Hold Amount <span className="text-destructive">*</span></h3>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={formData.ballHoldAmount || ''}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const val = parseInt(e.target.value) || 0;
+                        setFormData(prev => ({ ...prev, ballHoldAmount: val }));
+                      }}
+                      placeholder="Number of balls"
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Strategy During Downtime */}
+                  <div className="bg-muted p-4 rounded-lg border">
+                    <h3 className="text-lg font-semibold mb-4 text-foreground">Strategy during downtime <span className="text-destructive">*</span></h3>
+                    <div className="space-y-2">
+                      {['Defend', 'Grab more balls'].map((strategy) => (
+                        <label key={strategy} className="flex items-center space-x-2 cursor-pointer p-2 rounded border border-input hover:bg-muted/50">
+                          <input
+                            type="checkbox"
+                            checked={formData.downtimeStrategy.includes(strategy)}
+                            onChange={() => {
+                              const active = formData.downtimeStrategy.includes(strategy);
+                              setFormData(prev => ({
+                                ...prev,
+                                downtimeStrategy: active
+                                  ? prev.downtimeStrategy.filter(s => s !== strategy)
+                                  : [...prev.downtimeStrategy, strategy]
+                              }));
+                            }}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm">{strategy}</span>
+                        </label>
+                      ))}
                     </div>
                   </div>
 
@@ -824,7 +937,11 @@ export default function PitScoutingMobile() {
                         driveType: formData.driveType,
                         autonomousCapabilities: formData.autonomousCapabilities,
                         teleopCapabilities: formData.teleopCapabilities,
-                        endgameCapabilities: formData.endgameCapabilities,
+                        canClimb: formData.canClimb,
+                        climbLevels: formData.climbLevels,
+                        navigationLocations: formData.navigationLocations,
+                        ballHoldAmount: formData.ballHoldAmount,
+                        downtimeStrategy: formData.downtimeStrategy,
                         overallRating: formData.overallRating
                       }, null, 2)}</p>
                     </div>
@@ -898,16 +1015,36 @@ export default function PitScoutingMobile() {
                           </div>
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground font-medium">Endgame:</p>
-                          <div className="space-y-1">
-                            {formData.endgameCapabilities.length > 0 ? (
-                              formData.endgameCapabilities.map((cap, index) => (
-                                <p key={index} className="text-sm text-muted-foreground">• {cap}</p>
-                              ))
-                            ) : (
-                              <p className="text-sm text-muted-foreground">N/A</p>
-                            )}
-                          </div>
+                          <p className="text-sm text-muted-foreground font-medium">Can Climb:</p>
+                          <p className="text-sm text-muted-foreground">{formData.canClimb ? 'Yes' : 'No'}</p>
+                          {formData.canClimb && formData.climbLevels.length > 0 && (
+                            <div className="mt-1">
+                              <p className="text-sm text-muted-foreground font-medium">Levels:</p>
+                              {formData.climbLevels.map((level, index) => (
+                                <p key={index} className="text-sm text-muted-foreground">• {level}</p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground font-medium">Navigation:</p>
+                          <p className="text-sm text-muted-foreground">
+                            {formData.navigationLocations.length > 0 
+                              ? formData.navigationLocations.join(', ')
+                              : 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground font-medium">Ball Hold Amount:</p>
+                          <p className="text-sm text-muted-foreground">{formData.ballHoldAmount || 0} balls</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground font-medium">Downtime Strategy:</p>
+                          <p className="text-sm text-muted-foreground">
+                            {formData.downtimeStrategy.length > 0 
+                              ? formData.downtimeStrategy.join(', ')
+                              : 'N/A'}
+                          </p>
                         </div>
                       </div>
                     </div>

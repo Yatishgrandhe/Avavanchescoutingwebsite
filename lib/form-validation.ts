@@ -146,11 +146,40 @@ export const pitScoutingRules = {
       return null;
     }
   },
-  endgameCapabilities: {
+  canClimb: {
+    required: false,
+  },
+  climbLevels: {
+    custom: (value: string[], formData?: any) => {
+      if (formData?.canClimb && (!value || value.length === 0)) {
+        return 'Please select at least one climb level';
+      }
+      return null;
+    }
+  },
+  navigationLocations: {
     required: true,
     custom: (value: string[]) => {
       if (!value || value.length === 0) {
-        return 'At least one endgame capability is required';
+        return 'Please select where the robot can navigate';
+      }
+      return null;
+    }
+  },
+  ballHoldAmount: {
+    required: true,
+    custom: (value: number) => {
+      if (value === undefined || value === null || value < 0) {
+        return 'Ball hold amount must be 0 or greater';
+      }
+      return null;
+    }
+  },
+  downtimeStrategy: {
+    required: true,
+    custom: (value: string[]) => {
+      if (!value || value.length === 0) {
+        return 'Please select at least one downtime strategy';
       }
       return null;
     }
@@ -237,7 +266,18 @@ export function validatePitScoutingStep(step: number, formData: any): Validation
     
     case 3:
       return validateForm(formData, {
-        endgameCapabilities: pitScoutingRules.endgameCapabilities,
+        canClimb: pitScoutingRules.canClimb,
+        climbLevels: {
+          custom: (value: string[]) => {
+            if (formData.canClimb && (!value || value.length === 0)) {
+              return 'Please select at least one climb level';
+            }
+            return null;
+          }
+        },
+        navigationLocations: pitScoutingRules.navigationLocations,
+        ballHoldAmount: pitScoutingRules.ballHoldAmount,
+        downtimeStrategy: pitScoutingRules.downtimeStrategy,
         overallRating: {
           required: true,
           min: 1,
@@ -275,7 +315,18 @@ export function validatePitScoutingForm(formData: any): ValidationResult {
     },
     autonomousCapabilities: pitScoutingRules.autonomousCapabilities,
     teleopCapabilities: pitScoutingRules.teleopCapabilities,
-    endgameCapabilities: pitScoutingRules.endgameCapabilities,
+    canClimb: pitScoutingRules.canClimb,
+    climbLevels: {
+      custom: (value: string[]) => {
+        if (formData.canClimb && (!value || value.length === 0)) {
+          return 'Please select at least one climb level';
+        }
+        return null;
+      }
+    },
+    navigationLocations: pitScoutingRules.navigationLocations,
+    ballHoldAmount: pitScoutingRules.ballHoldAmount,
+    downtimeStrategy: pitScoutingRules.downtimeStrategy,
     overallRating: pitScoutingRules.overallRating,
     programmingLanguage: pitScoutingRules.programmingLanguage,
     notes: pitScoutingRules.notes,

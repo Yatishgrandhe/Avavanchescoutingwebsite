@@ -49,7 +49,6 @@ interface PitScoutingData {
   };
   autonomous_capabilities: string[];
   teleop_capabilities: string[];
-  endgame_capabilities: string[];
   robot_dimensions: {
     length?: number;
     width?: number;
@@ -125,7 +124,6 @@ export default function PitScoutingData() {
           },
           autonomous_capabilities: item.autonomous_capabilities || [],
           teleop_capabilities: item.teleop_capabilities || [],
-          endgame_capabilities: item.endgame_capabilities || [],
           robot_dimensions: item.robot_dimensions || { height: 0 },
           weight: item.weight || 0,
           programming_language: item.programming_language || 'Unknown',
@@ -255,7 +253,6 @@ export default function PitScoutingData() {
         },
         autonomous_capabilities: item.autonomous_capabilities || [],
         teleop_capabilities: item.teleop_capabilities || [],
-        endgame_capabilities: item.endgame_capabilities || [],
         robot_dimensions: item.robot_dimensions || { height: 0 },
         weight: item.weight || 0,
         programming_language: item.programming_language || 'Unknown',
@@ -788,15 +785,40 @@ export default function PitScoutingData() {
                             </div>
                           </div>
                           <div>
-                            <span className="text-gray-300 font-medium">Endgame:</span>
-                            <div className="mt-1">
-                              {selectedDetailItem.endgame_capabilities.length > 0 ? (
-                                selectedDetailItem.endgame_capabilities.map((cap, index) => (
-                                  <div key={index} className="text-white">• {cap}</div>
-                                ))
-                              ) : (
-                                <div className="text-gray-400">None specified</div>
+                            <span className="text-gray-300 font-medium">Climb & Navigation:</span>
+                            <div className="mt-1 space-y-2">
+                              <div>
+                                <span className="text-white font-medium">Can Climb: </span>
+                                <span className="text-white">
+                                  {(selectedDetailItem.drive_train_details as any)?.can_climb ? 'Yes' : 'No'}
+                                </span>
+                              </div>
+                              {(selectedDetailItem.drive_train_details as any)?.can_climb && (selectedDetailItem.drive_train_details as any)?.climb_levels?.length > 0 && (
+                                <div>
+                                  <span className="text-white font-medium">Levels: </span>
+                                  <span className="text-white">
+                                    {(selectedDetailItem.drive_train_details as any).climb_levels.join(', ')}
+                                  </span>
+                                </div>
                               )}
+                              <div>
+                                <span className="text-white font-medium">Navigation: </span>
+                                <span className="text-white">
+                                  {(selectedDetailItem.drive_train_details as any)?.navigation_locations?.join(', ') || 'N/A'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-white font-medium">Ball Hold: </span>
+                                <span className="text-white">
+                                  {(selectedDetailItem.drive_train_details as any)?.ball_hold_amount || 0} balls
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-white font-medium">Downtime Strategy: </span>
+                                <span className="text-white">
+                                  {(selectedDetailItem.drive_train_details as any)?.downtime_strategy?.join(', ') || 'N/A'}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>

@@ -37,7 +37,11 @@ interface PitScoutingData {
   driveTrainOther?: string;
   autonomousCapabilities: string[];
   teleopCapabilities: string[];
-  endgameCapabilities: string[];
+  canClimb: boolean;
+  climbLevels: string[];
+  navigationLocations: string[];
+  ballHoldAmount?: number;
+  downtimeStrategy: string[];
   robotDimensions: {
     length?: number;
     width?: number;
@@ -66,7 +70,11 @@ export default function PitScouting() {
     driveTrainOther: '',
     autonomousCapabilities: [],
     teleopCapabilities: [],
-    endgameCapabilities: [],
+    canClimb: false,
+    climbLevels: [],
+    navigationLocations: [],
+    ballHoldAmount: 0,
+    downtimeStrategy: [],
     robotDimensions: { height: 0 },
     weight: 0,
     programmingLanguage: '',
@@ -135,7 +143,11 @@ export default function PitScouting() {
               driveTrainOther: existingData.drive_type === 'Other' ? existingData.drive_type : '',
               autonomousCapabilities: existingData.autonomous_capabilities || [],
               teleopCapabilities: existingData.teleop_capabilities || [],
-              endgameCapabilities: existingData.endgame_capabilities || [],
+              canClimb: existingData.drive_train_details?.can_climb || false,
+              climbLevels: existingData.drive_train_details?.climb_levels || [],
+              navigationLocations: existingData.drive_train_details?.navigation_locations || [],
+              ballHoldAmount: existingData.drive_train_details?.ball_hold_amount || 0,
+              downtimeStrategy: existingData.drive_train_details?.downtime_strategy || [],
               robotDimensions: existingData.robot_dimensions || { height: 0 },
               weight: existingData.weight || 0,
               programmingLanguage: existingData.programming_language || '',
@@ -210,12 +222,14 @@ export default function PitScouting() {
           type: formData.driveType === 'Other' ? formData.driveTrainOther : formData.driveType,
           auto_capabilities: formData.autonomousCapabilities.join(', '),
           teleop_capabilities: formData.teleopCapabilities.join(', '),
-          drive_camps: 0,
-          playoff_driver: 'TBD'
+          can_climb: formData.canClimb,
+          climb_levels: formData.climbLevels,
+          navigation_locations: formData.navigationLocations,
+          ball_hold_amount: formData.ballHoldAmount || 0,
+          downtime_strategy: formData.downtimeStrategy,
         },
         autonomous_capabilities: formData.autonomousCapabilities,
         teleop_capabilities: formData.teleopCapabilities,
-        endgame_capabilities: formData.endgameCapabilities,
         robot_dimensions: formData.robotDimensions,
         weight: formData.weight,
         programming_language: formData.programmingLanguage,
@@ -260,7 +274,11 @@ export default function PitScouting() {
             driveTrainOther: '',
             autonomousCapabilities: [],
             teleopCapabilities: [],
-            endgameCapabilities: [],
+            canClimb: false,
+            climbLevels: [],
+            navigationLocations: [],
+            ballHoldAmount: 0,
+            downtimeStrategy: [],
             robotDimensions: { height: 0 },
             weight: 0,
             programmingLanguage: '',
@@ -439,7 +457,7 @@ export default function PitScouting() {
                       <div className="space-y-3">
                         <label className="text-sm font-medium">Drive Train <span className="text-red-400">*</span></label>
                         <div className="grid grid-cols-2 gap-3">
-                          {['8-wheel tan', 'Swerve'].map((type) => (
+                          {['Tank Drive', 'Swerve Drive'].map((type) => (
                             <div
                               key={type}
                               onClick={() => setFormData(prev => ({ ...prev, driveType: type, driveTrainOther: '' }))}
@@ -544,7 +562,7 @@ export default function PitScouting() {
                         <Badge className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20">Auto</Badge> Capabilities
                       </h3>
                       <div className="grid grid-cols-1 gap-2">
-                        {['L1', 'L2', 'L3', 'L4', 'Move off line', 'Clean reef (LOW)', 'Clean reef (HIGH)'].map((opt) => (
+                        {['Score FUEL in active HUB', 'TOWER LEVEL 1 climb'].map((opt) => (
                           <div
                             key={opt}
                             onClick={() => {
@@ -579,7 +597,7 @@ export default function PitScouting() {
                         <Badge className="bg-green-500/10 text-green-400 hover:bg-green-500/20">Teleop</Badge> Capabilities
                       </h3>
                       <div className="grid grid-cols-1 gap-2">
-                        {['L1', 'L2', 'L3', 'L4', 'Processor', 'Barge', 'Defense'].map((opt) => (
+                        {['Score FUEL in active HUB', 'TOWER LEVEL 2 climb', 'TOWER LEVEL 3 climb'].map((opt) => (
                           <div
                             key={opt}
                             onClick={() => {
@@ -625,29 +643,168 @@ export default function PitScouting() {
                     </div>
                     <div>
                       <h2 className="text-xl font-semibold">Final Observations</h2>
-                      <p className="text-sm text-muted-foreground">Endgame & overall rating</p>
+                      <p className="text-sm text-muted-foreground">Climb capabilities, navigation, strategy & overall rating</p>
                     </div>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-8">
                     <div className="space-y-6">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Endgame Capability</label>
-                        <Select
-                          value={formData.endgameCapabilities[0] || ''}
-                          onValueChange={(value) => setFormData(prev => ({ ...prev, endgameCapabilities: value ? [value] : [] }))}
-                        >
-                          <SelectTrigger className="glass-input h-12 w-full border-white/10">
-                            <SelectValue placeholder="Select outcome" />
-                          </SelectTrigger>
-                          <SelectContent className="glass border-white/10">
-                            {['Shallow Climb', 'Deep Climb', 'Park', 'None'].map(opt => (
-                              <SelectItem key={opt} value={opt} className="focus:bg-white/10">{opt}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      {/* Can Climb */}
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium">Can they climb? <span className="text-red-400">*</span></label>
+                        <div className="flex gap-3">
+                          {['Yes', 'No'].map((opt) => (
+                            <div
+                              key={opt}
+                              onClick={() => setFormData(prev => ({ 
+                                ...prev, 
+                                canClimb: opt === 'Yes',
+                                climbLevels: opt === 'No' ? [] : prev.climbLevels
+                              }))}
+                              className={cn(
+                                "flex-1 cursor-pointer p-3 rounded-xl border transition-all text-sm font-medium text-center",
+                                (opt === 'Yes' && formData.canClimb) || (opt === 'No' && !formData.canClimb)
+                                  ? "bg-primary/20 border-primary/50 text-white"
+                                  : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                              )}
+                            >
+                              {opt}
+                            </div>
+                          ))}
+                        </div>
                       </div>
 
+                      {/* Climb Levels */}
+                      {formData.canClimb && (
+                        <div className="space-y-3">
+                          <label className="text-sm font-medium">What level(s) can they climb? <span className="text-red-400">*</span></label>
+                          <div className="grid grid-cols-1 gap-2">
+                            {['LEVEL 1', 'LEVEL 2', 'LEVEL 3'].map((level) => (
+                              <div
+                                key={level}
+                                onClick={() => {
+                                  const active = formData.climbLevels.includes(level);
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    climbLevels: active
+                                      ? prev.climbLevels.filter(l => l !== level)
+                                      : [...prev.climbLevels, level]
+                                  }));
+                                }}
+                                className={cn(
+                                  "p-3 rounded-lg border cursor-pointer flex items-center gap-3 transition-all",
+                                  formData.climbLevels.includes(level)
+                                    ? "bg-blue-500/10 border-blue-500/40 text-blue-100"
+                                    : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                                )}
+                              >
+                                <div className={cn("w-4 h-4 rounded border flex items-center justify-center transition-colors",
+                                  formData.climbLevels.includes(level) ? "bg-blue-500 border-blue-500" : "border-muted-foreground/50")}>
+                                  {formData.climbLevels.includes(level) && <CheckCircle size={12} className="text-white" />}
+                                </div>
+                                <span className="text-sm font-medium">{level}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Navigation Locations */}
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium">Where can they go? <span className="text-red-400">*</span></label>
+                        <div className="grid grid-cols-1 gap-2">
+                          {['Trench', 'Bump', 'Both'].map((location) => (
+                            <div
+                              key={location}
+                              onClick={() => {
+                                if (location === 'Both') {
+                                  setFormData(prev => ({ ...prev, navigationLocations: ['Trench', 'Bump'] }));
+                                } else {
+                                  const active = formData.navigationLocations.includes(location);
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    navigationLocations: active
+                                      ? prev.navigationLocations.filter(l => l !== location)
+                                      : location === 'Trench' && prev.navigationLocations.includes('Bump')
+                                        ? ['Trench', 'Bump']
+                                        : location === 'Bump' && prev.navigationLocations.includes('Trench')
+                                        ? ['Trench', 'Bump']
+                                        : [...prev.navigationLocations, location]
+                                  }));
+                                }
+                              }}
+                              className={cn(
+                                "p-3 rounded-lg border cursor-pointer flex items-center gap-3 transition-all",
+                                (location === 'Both' && formData.navigationLocations.includes('Trench') && formData.navigationLocations.includes('Bump')) ||
+                                (location !== 'Both' && formData.navigationLocations.includes(location))
+                                  ? "bg-green-500/10 border-green-500/40 text-green-100"
+                                  : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                              )}
+                            >
+                              <div className={cn("w-4 h-4 rounded border flex items-center justify-center transition-colors",
+                              ((location === 'Both' && formData.navigationLocations.includes('Trench') && formData.navigationLocations.includes('Bump')) ||
+                               (location !== 'Both' && formData.navigationLocations.includes(location)))
+                                ? "bg-green-500 border-green-500" : "border-muted-foreground/50")}>
+                                {((location === 'Both' && formData.navigationLocations.includes('Trench') && formData.navigationLocations.includes('Bump')) ||
+                                  (location !== 'Both' && formData.navigationLocations.includes(location))) && 
+                                  <CheckCircle size={12} className="text-white" />}
+                              </div>
+                              <span className="text-sm font-medium">{location}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Ball Hold Amount */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Ball Hold Amount <span className="text-red-400">*</span></label>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={formData.ballHoldAmount || ''}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            const val = parseInt(e.target.value) || 0;
+                            setFormData(prev => ({ ...prev, ballHoldAmount: val }));
+                          }}
+                          placeholder="Number of balls"
+                          className="glass-input border-white/10 placeholder:text-muted-foreground/30"
+                        />
+                      </div>
+
+                      {/* Strategy During Downtime */}
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium">Strategy during downtime <span className="text-red-400">*</span></label>
+                        <div className="grid grid-cols-1 gap-2">
+                          {['Defend', 'Grab more balls'].map((strategy) => (
+                            <div
+                              key={strategy}
+                              onClick={() => {
+                                const active = formData.downtimeStrategy.includes(strategy);
+                                setFormData(prev => ({
+                                  ...prev,
+                                  downtimeStrategy: active
+                                    ? prev.downtimeStrategy.filter(s => s !== strategy)
+                                    : [...prev.downtimeStrategy, strategy]
+                                }));
+                              }}
+                              className={cn(
+                                "p-3 rounded-lg border cursor-pointer flex items-center gap-3 transition-all",
+                                formData.downtimeStrategy.includes(strategy)
+                                  ? "bg-purple-500/10 border-purple-500/40 text-purple-100"
+                                  : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                              )}
+                            >
+                              <div className={cn("w-4 h-4 rounded border flex items-center justify-center transition-colors",
+                                formData.downtimeStrategy.includes(strategy) ? "bg-purple-500 border-purple-500" : "border-muted-foreground/50")}>
+                                {formData.downtimeStrategy.includes(strategy) && <CheckCircle size={12} className="text-white" />}
+                              </div>
+                              <span className="text-sm font-medium">{strategy}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Additional Notes */}
                       <div className="space-y-3">
                         <label className="text-sm font-medium">Additional Notes</label>
                         <textarea

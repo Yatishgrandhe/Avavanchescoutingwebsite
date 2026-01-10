@@ -75,7 +75,7 @@ interface MatchData {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 export default function BasicAnalysis() {
-  const { user, loading: authLoading } = useSupabase();
+  const { user, loading: authLoading, supabase } = useSupabase();
   const [teams, setTeams] = useState<TeamData[]>([]);
   const [matches, setMatches] = useState<MatchData[]>([]);
   const [uniqueMatchesCount, setUniqueMatchesCount] = useState(0);
@@ -92,136 +92,106 @@ export default function BasicAnalysis() {
     try {
       setLoading(true);
       
-      // Fetch team stats with calculated averages
-      const teamStatsResponse = await fetch('/api/team-stats');
-      if (teamStatsResponse.ok) {
-        const teamStatsData = await teamStatsResponse.json();
-        const stats = teamStatsData.stats || [];
-        // Transform to match TeamData interface
-        const teamsWithStats = stats.map((stat: any) => ({
-          team_number: stat.team_number,
-          team_name: stat.team_name,
-          total_matches: stat.total_matches || 0,
-          avg_autonomous_points: stat.avg_autonomous_points || 0,
-          avg_teleop_points: stat.avg_teleop_points || 0,
-          avg_endgame_points: stat.avg_endgame_points || 0,
-          avg_total_score: stat.avg_total_score || 0,
-          avg_defense_rating: stat.avg_defense_rating || 0,
-        }));
-        setTeams(teamsWithStats);
-      } else {
-        // Fallback: fetch teams and calculate stats manually
-        const teamsResponse = await fetch('/api/teams');
-        if (teamsResponse.ok) {
-          const teamsData = await teamsResponse.json();
-          const basicTeams = teamsData.teams || [];
-          
-          // Fetch scouting data to calculate stats
-          const scoutingResponse = await fetch('/api/scouting_data');
-          if (scoutingResponse.ok) {
-            const scoutingDataRaw = await scoutingResponse.json();
-            // Handle both array and object responses
-            const scoutingData = Array.isArray(scoutingDataRaw) ? scoutingDataRaw : (scoutingDataRaw.data || []);
-            
-            // Calculate stats for each team
-            const teamsWithStats = basicTeams.map((team: any) => {
-              const teamScoutingData = scoutingData.filter((sd: any) => sd.team_number === team.team_number);
-              const totalMatches = teamScoutingData.length;
-              
-              if (totalMatches === 0) {
-                return {
-                  team_number: team.team_number,
-                  team_name: team.team_name,
-                  total_matches: 0,
-                  avg_autonomous_points: 0,
-                  avg_teleop_points: 0,
-                  avg_endgame_points: 0,
-                  avg_total_score: 0,
-                  avg_defense_rating: 0,
-                };
-              }
-              
-              const avgAutonomous = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.autonomous_points || 0), 0) / totalMatches;
-              const avgTeleop = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.teleop_points || 0), 0) / totalMatches;
-              const avgEndgame = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.endgame_points || 0), 0) / totalMatches;
-              const avgTotal = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.final_score || 0), 0) / totalMatches;
-              const avgDefense = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.defense_rating || 0), 0) / totalMatches;
-              
-              return {
-                team_number: team.team_number,
-                team_name: team.team_name,
-                total_matches: totalMatches,
-                avg_autonomous_points: avgAutonomous,
-                avg_teleop_points: avgTeleop,
-                avg_endgame_points: avgEndgame,
-                avg_total_score: avgTotal,
-                avg_defense_rating: avgDefense,
-              };
-            });
-            
-            setTeams(teamsWithStats);
-          } else {
-            // No scouting data, just set basic teams
-            const teamsWithStats = basicTeams.map((team: any) => ({
-              team_number: team.team_number,
-              team_name: team.team_name,
-              total_matches: 0,
-              avg_autonomous_points: 0,
-              avg_teleop_points: 0,
-              avg_endgame_points: 0,
-              avg_total_score: 0,
-              avg_defense_rating: 0,
-            }));
-            setTeams(teamsWithStats);
-          }
-        }
+      // Load scouting data exactly like data.tsx does
+      const { data: scoutingDataResult, error: scoutingError } = await supabase
+        .from('scouting_data')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (scoutingError) {
+        console.error('Error fetching scouting data:', scoutingError);
+        throw scoutingError;
       }
 
-      // Fetch scouting data for matches tab (not just match schedule)
-      const scoutingResponse = await fetch('/api/scouting_data');
-      if (scoutingResponse.ok) {
-        const scoutingData = await scoutingResponse.json();
-        // Handle both array and object responses
-        const dataArray = Array.isArray(scoutingData) ? scoutingData : (scoutingData.data || []);
-        // Fetch teams to get team names
-        const teamsResponse = await fetch('/api/teams');
-        const teamsData = teamsResponse.ok ? await teamsResponse.json() : { teams: [] };
-        const teamsMap = new Map();
-        (teamsData.teams || []).forEach((team: any) => {
-          teamsMap.set(team.team_number, team.team_name);
-        });
-        
-        // Transform scouting data to match MatchData interface
-        const matchData = dataArray.map((sd: any) => ({
-          id: sd.id,
-          match_id: sd.match_id,
-          team_number: sd.team_number,
-          team_name: teamsMap.get(sd.team_number) || `Team ${sd.team_number}`,
-          alliance_color: sd.alliance_color,
-          autonomous_points: sd.autonomous_points || 0,
-          teleop_points: sd.teleop_points || 0,
-          endgame_points: sd.endgame_points || 0,
-          final_score: sd.final_score || 0,
-          defense_rating: sd.defense_rating || 0,
-          comments: sd.comments || '',
-          created_at: sd.created_at,
-          submitted_by_name: sd.submitted_by_name,
-          submitted_by_email: sd.submitted_by_email,
-          submitted_at: sd.submitted_at,
-        }));
-        setMatches(matchData);
-        
-        // Count unique matches (distinct match_id values)
-        const uniqueMatchIds = new Set(dataArray.map((sd: any) => sd.match_id));
-        setUniqueMatchesCount(uniqueMatchIds.size);
-      } else {
-        // If fetch fails, ensure matches is at least an empty array
-        console.error('Failed to fetch scouting data:', scoutingResponse.statusText);
-        setMatches([]);
-        setUniqueMatchesCount(0);
+      // Load teams exactly like data.tsx does
+      const { data: teamsResult, error: teamsError } = await supabase
+        .from('teams')
+        .select('*')
+        .not('team_name', 'ilike', '%avalanche%')
+        .order('team_number');
+
+      if (teamsError) {
+        console.error('Error fetching teams:', teamsError);
+        throw teamsError;
       }
+
+      const scoutingData = scoutingDataResult || [];
+      const allTeams = teamsResult || [];
+
+      // Set matches data for matches tab
+      const teamsMap = new Map();
+      allTeams.forEach((team: any) => {
+        teamsMap.set(team.team_number, team.team_name);
+      });
+
+      // Transform scouting data to match MatchData interface
+      const matchData = scoutingData.map((sd: any) => ({
+        id: sd.id,
+        match_id: sd.match_id,
+        team_number: sd.team_number,
+        team_name: teamsMap.get(sd.team_number) || `Team ${sd.team_number}`,
+        alliance_color: sd.alliance_color,
+        autonomous_points: sd.autonomous_points || 0,
+        teleop_points: sd.teleop_points || 0,
+        endgame_points: sd.endgame_points || 0,
+        final_score: sd.final_score || 0,
+        defense_rating: sd.defense_rating || 0,
+        comments: sd.comments || '',
+        created_at: sd.created_at,
+        submitted_by_name: sd.submitted_by_name,
+        submitted_by_email: sd.submitted_by_email,
+        submitted_at: sd.submitted_at,
+      }));
+      
+      setMatches(matchData);
+      
+      // Count unique matches (distinct match_id values)
+      const uniqueMatchIds = new Set(scoutingData.map((sd: any) => sd.match_id));
+      setUniqueMatchesCount(uniqueMatchIds.size);
+
+      // Calculate team stats from scouting data
+      const teamsWithStats = allTeams.map((team: any) => {
+        const teamScoutingData = scoutingData.filter((sd: any) => sd.team_number === team.team_number);
+        const totalMatches = teamScoutingData.length;
+        
+        if (totalMatches === 0) {
+          return {
+            team_number: team.team_number,
+            team_name: team.team_name,
+            total_matches: 0,
+            avg_autonomous_points: 0,
+            avg_teleop_points: 0,
+            avg_endgame_points: 0,
+            avg_total_score: 0,
+            avg_defense_rating: 0,
+          };
+        }
+        
+        const avgAutonomous = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.autonomous_points || 0), 0) / totalMatches;
+        const avgTeleop = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.teleop_points || 0), 0) / totalMatches;
+        const avgEndgame = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.endgame_points || 0), 0) / totalMatches;
+        const avgTotal = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.final_score || 0), 0) / totalMatches;
+        const avgDefense = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.defense_rating || 0), 0) / totalMatches;
+        
+        return {
+          team_number: team.team_number,
+          team_name: team.team_name,
+          total_matches: totalMatches,
+          avg_autonomous_points: avgAutonomous,
+          avg_teleop_points: avgTeleop,
+          avg_endgame_points: avgEndgame,
+          avg_total_score: avgTotal,
+          avg_defense_rating: avgDefense,
+        };
+      });
+      
+      setTeams(teamsWithStats);
     } catch (error) {
       console.error('Error fetching data:', error);
+      // Set empty arrays on error
+      setMatches([]);
+      setTeams([]);
+      setUniqueMatchesCount(0);
     } finally {
       setLoading(false);
     }

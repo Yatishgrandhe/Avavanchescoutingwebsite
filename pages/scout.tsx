@@ -22,7 +22,6 @@ import {
 import MatchDetailsForm from '@/components/scout/MatchDetailsForm';
 import AutonomousForm from '@/components/scout/AutonomousForm';
 import TeleopForm from '@/components/scout/TeleopForm';
-import EndgameForm from '@/components/scout/EndgameForm';
 import MiscellaneousForm from '@/components/scout/MiscellaneousForm';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -30,7 +29,7 @@ import { ScoringNotes } from '@/lib/types';
 import { calculateScore } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
-type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'endgame' | 'miscellaneous' | 'review';
+type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'miscellaneous' | 'review';
 
 interface FormData {
   matchData: {
@@ -53,7 +52,6 @@ interface FormData {
   alliancePosition: 1 | 2 | 3;
   autonomous: Partial<ScoringNotes>;
   teleop: Partial<ScoringNotes>;
-  endgame: Partial<ScoringNotes>;
   miscellaneous: {
     defense_rating: number;
     comments: string;
@@ -77,7 +75,6 @@ export default function Scout() {
     alliancePosition: 1,
     autonomous: {},
     teleop: {},
-    endgame: {},
     miscellaneous: {
       defense_rating: 0,
       comments: '',
@@ -88,7 +85,6 @@ export default function Scout() {
     { id: 'match-details', title: 'Match', icon: Target, description: "Setup" },
     { id: 'autonomous', title: 'Auto', icon: Zap, description: "Phase 1" },
     { id: 'teleop', title: 'Teleop', icon: Target, description: "Phase 2" },
-    { id: 'endgame', title: 'Endgame', icon: Trophy, description: "Phase 3" },
     { id: 'miscellaneous', title: 'Notes', icon: FileText, description: "Extra" },
     { id: 'review', title: 'Review', icon: Eye, description: "Finalize" },
   ];
@@ -108,8 +104,7 @@ export default function Scout() {
     try {
       const autonomousPoints = calculateScore(formData.autonomous).final_score;
       const teleopPoints = calculateScore(formData.teleop).final_score;
-      const endgamePoints = calculateScore(formData.endgame).final_score;
-      const finalScore = autonomousPoints + teleopPoints + endgamePoints;
+      const finalScore = autonomousPoints + teleopPoints;
 
       const scoutingData = {
         match_id: formData.matchData.match_id,
@@ -118,7 +113,6 @@ export default function Scout() {
         alliance_position: formData.alliancePosition,
         autonomous_points: autonomousPoints,
         teleop_points: teleopPoints,
-        endgame_points: endgamePoints,
         final_score: finalScore,
         defense_rating: formData.miscellaneous.defense_rating,
         comments: formData.miscellaneous.comments,
@@ -129,7 +123,6 @@ export default function Scout() {
         notes: {
           autonomous: formData.autonomous,
           teleop: formData.teleop,
-          endgame: formData.endgame,
         },
       };
 
@@ -161,7 +154,6 @@ export default function Scout() {
           alliancePosition: 1,
           autonomous: {},
           teleop: {},
-          endgame: {},
           miscellaneous: {
             defense_rating: 0,
             comments: '',
@@ -348,34 +340,13 @@ export default function Scout() {
                     <TeleopForm
                       onNext={(data) => {
                         setFormData(prev => ({ ...prev, teleop: data }));
-                        handleStepNext('endgame');
+                        handleStepNext('miscellaneous');
                       }}
                       onBack={() => setCurrentStep('autonomous')}
                       currentStep={currentStepIndex}
                       totalSteps={steps.length}
                       isDarkMode={true}
                       initialData={formData.teleop}
-                    />
-                  </motion.div>
-                )}
-
-                {currentStep === 'endgame' && (
-                  <motion.div
-                    key="endgame"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <EndgameForm
-                      onNext={(data) => {
-                        setFormData(prev => ({ ...prev, endgame: data }));
-                        handleStepNext('miscellaneous');
-                      }}
-                      onBack={() => setCurrentStep('teleop')}
-                      currentStep={currentStepIndex}
-                      totalSteps={steps.length}
-                      initialData={formData.endgame}
                     />
                   </motion.div>
                 )}
@@ -393,7 +364,7 @@ export default function Scout() {
                         setFormData(prev => ({ ...prev, miscellaneous: data }));
                         handleStepNext('review');
                       }}
-                      onBack={() => setCurrentStep('endgame')}
+                      onBack={() => setCurrentStep('teleop')}
                       currentStep={currentStepIndex}
                       totalSteps={steps.length}
                       initialData={formData.miscellaneous}
@@ -451,16 +422,11 @@ export default function Scout() {
                               <span className="text-sm text-muted-foreground">Teleop</span>
                               <span className="font-mono">{calculateScore(formData.teleop).final_score}</span>
                             </div>
-                            <div className="flex justify-between items-center py-1">
-                              <span className="text-sm text-muted-foreground">Endgame</span>
-                              <span className="font-mono">{calculateScore(formData.endgame).final_score}</span>
-                            </div>
                             <div className="border-t border-white/10 my-2 pt-2 flex justify-between items-center font-bold text-lg">
                               <span>Total</span>
                               <span className="text-primary">{
                                 calculateScore(formData.autonomous).final_score +
-                                calculateScore(formData.teleop).final_score +
-                                calculateScore(formData.endgame).final_score
+                                calculateScore(formData.teleop).final_score
                               }</span>
                             </div>
                           </div>

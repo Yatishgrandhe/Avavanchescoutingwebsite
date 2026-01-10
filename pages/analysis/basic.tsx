@@ -49,7 +49,6 @@ interface TeamData {
   total_matches: number;
   avg_autonomous_points: number;
   avg_teleop_points: number;
-  avg_endgame_points: number;
   avg_total_score: number;
   avg_defense_rating: number;
 }
@@ -62,7 +61,6 @@ interface MatchData {
   alliance_color: 'red' | 'blue';
   autonomous_points: number;
   teleop_points: number;
-  endgame_points: number;
   final_score: number;
   defense_rating: number;
   comments?: string;
@@ -133,7 +131,6 @@ export default function BasicAnalysis() {
         alliance_color: sd.alliance_color,
         autonomous_points: sd.autonomous_points || 0,
         teleop_points: sd.teleop_points || 0,
-        endgame_points: sd.endgame_points || 0,
         final_score: sd.final_score || 0,
         defense_rating: sd.defense_rating || 0,
         comments: sd.comments || '',
@@ -161,7 +158,6 @@ export default function BasicAnalysis() {
             total_matches: 0,
             avg_autonomous_points: 0,
             avg_teleop_points: 0,
-            avg_endgame_points: 0,
             avg_total_score: 0,
             avg_defense_rating: 0,
           };
@@ -169,7 +165,6 @@ export default function BasicAnalysis() {
         
         const avgAutonomous = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.autonomous_points || 0), 0) / totalMatches;
         const avgTeleop = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.teleop_points || 0), 0) / totalMatches;
-        const avgEndgame = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.endgame_points || 0), 0) / totalMatches;
         const avgTotal = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.final_score || 0), 0) / totalMatches;
         const avgDefense = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.defense_rating || 0), 0) / totalMatches;
         
@@ -179,7 +174,6 @@ export default function BasicAnalysis() {
           total_matches: totalMatches,
           avg_autonomous_points: avgAutonomous,
           avg_teleop_points: avgTeleop,
-          avg_endgame_points: avgEndgame,
           avg_total_score: avgTotal,
           avg_defense_rating: avgDefense,
         };
@@ -213,14 +207,12 @@ export default function BasicAnalysis() {
     teamNumber: team.team_number,
     autonomous: team.avg_autonomous_points || 0,
     teleop: team.avg_teleop_points || 0,
-    endgame: team.avg_endgame_points || 0,
     total: team.avg_total_score || 0
   }));
 
   const pieData = [
     { name: 'Autonomous', value: (teams || []).reduce((sum, team) => sum + (team.avg_autonomous_points || 0), 0) },
-    { name: 'Teleop', value: (teams || []).reduce((sum, team) => sum + (team.avg_teleop_points || 0), 0) },
-    { name: 'Endgame', value: (teams || []).reduce((sum, team) => sum + (team.avg_endgame_points || 0), 0) }
+    { name: 'Teleop', value: (teams || []).reduce((sum, team) => sum + (team.avg_teleop_points || 0), 0) }
   ];
 
   if (authLoading || loading) {
@@ -440,7 +432,6 @@ export default function BasicAnalysis() {
                         <TableHead>Matches</TableHead>
                         <TableHead>Avg Autonomous</TableHead>
                         <TableHead>Avg Teleop</TableHead>
-                        <TableHead>Avg Endgame</TableHead>
                         <TableHead>Total Score</TableHead>
                         <TableHead>Defense</TableHead>
                       </TableRow>
@@ -457,7 +448,6 @@ export default function BasicAnalysis() {
                           <TableCell>{team.total_matches}</TableCell>
                            <TableCell>{(team.avg_autonomous_points || 0).toFixed(1)}</TableCell>
                            <TableCell>{(team.avg_teleop_points || 0).toFixed(1)}</TableCell>
-                           <TableCell>{(team.avg_endgame_points || 0).toFixed(1)}</TableCell>
                            <TableCell className="font-medium">{(team.avg_total_score || 0).toFixed(1)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
@@ -492,7 +482,6 @@ export default function BasicAnalysis() {
                         <TableHead>Alliance</TableHead>
                         <TableHead>Autonomous</TableHead>
                         <TableHead>Teleop</TableHead>
-                        <TableHead>Endgame</TableHead>
                         <TableHead>Total</TableHead>
                         <TableHead>Defense</TableHead>
                         <TableHead>Comments</TableHead>
@@ -524,7 +513,6 @@ export default function BasicAnalysis() {
                             </TableCell>
                             <TableCell>{match.autonomous_points}</TableCell>
                             <TableCell>{match.teleop_points}</TableCell>
-                            <TableCell>{match.endgame_points}</TableCell>
                             <TableCell className="font-medium">{match.final_score}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1">
@@ -582,7 +570,6 @@ export default function BasicAnalysis() {
                         />
                         <Line type="monotone" dataKey="autonomous" stroke="#8884d8" strokeWidth={2} />
                         <Line type="monotone" dataKey="teleop" stroke="#82ca9d" strokeWidth={2} />
-                        <Line type="monotone" dataKey="endgame" stroke="#ffc658" strokeWidth={2} />
                       </LineChart>
                     </ResponsiveContainer>
                   </CardContent>
@@ -613,7 +600,6 @@ export default function BasicAnalysis() {
                         />
                         <Bar dataKey="autonomous" stackId="a" fill="#8884d8" />
                         <Bar dataKey="teleop" stackId="a" fill="#82ca9d" />
-                        <Bar dataKey="endgame" stackId="a" fill="#ffc658" />
                       </BarChart>
                     </ResponsiveContainer>
                   </CardContent>

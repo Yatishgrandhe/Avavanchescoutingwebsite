@@ -341,10 +341,6 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
                             <div className="text-xs text-muted-foreground">Teleop</div>
                             <div className="font-semibold text-secondary">{data.teleop_points}</div>
                           </div>
-                          <div className="text-center">
-                            <div className="text-xs text-muted-foreground">Endgame</div>
-                            <div className="font-semibold text-warning">{data.endgame_points}</div>
-                          </div>
                         </div>
 
 

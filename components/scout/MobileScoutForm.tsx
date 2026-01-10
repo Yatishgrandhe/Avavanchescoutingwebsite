@@ -19,12 +19,11 @@ import {
 import MatchDetailsForm from './MatchDetailsForm';
 import AutonomousForm from './AutonomousForm';
 import TeleopForm from './TeleopForm';
-import EndgameForm from './EndgameForm';
 import MiscellaneousForm from './MiscellaneousForm';
 import { ScoringNotes } from '@/lib/types';
 import { calculateScore } from '@/lib/utils';
 
-type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'endgame' | 'miscellaneous' | 'review';
+type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'miscellaneous' | 'review';
 
 interface FormData {
   matchData: {
@@ -47,7 +46,6 @@ interface FormData {
   alliancePosition: 1 | 2 | 3;
   autonomous: Partial<ScoringNotes>;
   teleop: Partial<ScoringNotes>;
-  endgame: Partial<ScoringNotes>;
   miscellaneous: {
     defense_rating: number;
     comments: string;
@@ -74,7 +72,6 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
     alliancePosition: 1,
     autonomous: {},
     teleop: {},
-    endgame: {},
     miscellaneous: {
       defense_rating: 0,
       comments: '',
@@ -85,7 +82,6 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
     { id: 'match-details', title: 'Match Details', icon: Target, shortTitle: 'Match' },
     { id: 'autonomous', title: 'Autonomous', icon: Zap, shortTitle: 'Auto' },
     { id: 'teleop', title: 'Teleop', icon: Target, shortTitle: 'Teleop' },
-    { id: 'endgame', title: 'Endgame', icon: Trophy, shortTitle: 'End' },
     { id: 'miscellaneous', title: 'Miscellaneous', icon: FileText, shortTitle: 'Misc' },
     { id: 'review', title: 'Review', icon: Eye, shortTitle: 'Review' },
   ];
@@ -220,32 +216,12 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
                 <TeleopForm
                   onNext={(data) => {
                     setFormData(prev => ({ ...prev, teleop: data }));
-                    setCurrentStep('endgame');
+                    setCurrentStep('miscellaneous');
                   }}
                   onBack={() => setCurrentStep('autonomous')}
                   currentStep={currentStepIndex}
                   totalSteps={steps.length}
                   isDarkMode={true}
-                />
-              </motion.div>
-            )}
-
-            {currentStep === 'endgame' && (
-              <motion.div
-                key="endgame"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <EndgameForm
-                  onNext={(data) => {
-                    setFormData(prev => ({ ...prev, endgame: data }));
-                    setCurrentStep('miscellaneous');
-                  }}
-                  onBack={() => setCurrentStep('teleop')}
-                  currentStep={currentStepIndex}
-                  totalSteps={steps.length}
                 />
               </motion.div>
             )}
@@ -263,7 +239,7 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
                     setFormData(prev => ({ ...prev, miscellaneous: data }));
                     setCurrentStep('review');
                   }}
-                  onBack={() => setCurrentStep('endgame')}
+                  onBack={() => setCurrentStep('teleop')}
                   currentStep={currentStepIndex}
                   totalSteps={steps.length}
                 />
@@ -333,17 +309,12 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
                           <span className="text-muted-foreground">Teleop:</span>
                           <span className="font-medium">{calculateScore(formData.teleop).final_score} pts</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Endgame:</span>
-                          <span className="font-medium">{calculateScore(formData.endgame).final_score} pts</span>
-                        </div>
                         <div className="border-t pt-2 mt-2">
                           <div className="flex justify-between text-lg font-bold">
                             <span>Total Score:</span>
                             <span className="text-primary">
                               {calculateScore(formData.autonomous).final_score + 
-                               calculateScore(formData.teleop).final_score + 
-                               calculateScore(formData.endgame).final_score} pts
+                               calculateScore(formData.teleop).final_score} pts
                             </span>
                           </div>
                         </div>

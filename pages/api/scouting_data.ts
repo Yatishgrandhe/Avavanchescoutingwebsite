@@ -92,14 +92,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // Handle scoring data - frontend might send pre-calculated scores or raw data
-      let finalAutonomousPoints, finalTeleopPoints, finalEndgamePoints, finalScore, finalNotes, finalAutonomousCleansing, finalTeleopCleansing;
+      let finalAutonomousPoints, finalTeleopPoints, finalScore, finalNotes, finalAutonomousCleansing, finalTeleopCleansing;
 
-      if (autonomous_points !== undefined && teleop_points !== undefined && endgame_points !== undefined) {
+      if (autonomous_points !== undefined && teleop_points !== undefined) {
         // Frontend sent pre-calculated scores
         finalAutonomousPoints = autonomous_points;
         finalTeleopPoints = teleop_points;
-        finalEndgamePoints = endgame_points;
-        finalScore = final_score || (autonomous_points + teleop_points + endgame_points);
+        finalScore = final_score || (autonomous_points + teleop_points);
         finalNotes = notes || {};
         finalAutonomousCleansing = autonomous_cleansing || 0;
         finalTeleopCleansing = teleop_cleansing || 0;
@@ -108,19 +107,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const scoringNotes = {
           ...autonomous,
           ...teleop,
-          ...endgame,
         };
 
         console.log('Scoring notes:', scoringNotes);
 
         const autonomousScore = calculateScore(autonomous || {});
         const teleopScore = calculateScore(teleop || {});
-        const endgameScore = calculateScore(endgame || {});
 
         finalAutonomousPoints = autonomousScore.final_score;
         finalTeleopPoints = teleopScore.final_score;
-        finalEndgamePoints = endgameScore.final_score;
-        finalScore = autonomousScore.final_score + teleopScore.final_score + endgameScore.final_score;
+        finalScore = autonomousScore.final_score + teleopScore.final_score;
         finalNotes = scoringNotes;
         finalAutonomousCleansing = 0; // Not used in REBUILT 2026
         finalTeleopCleansing = 0; // Not used in REBUILT 2026
@@ -134,7 +130,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         alliance_color: finalAllianceColor,
         autonomous_points: finalAutonomousPoints,
         teleop_points: finalTeleopPoints,
-        endgame_points: finalEndgamePoints,
         final_score: finalScore,
         autonomous_cleansing: finalAutonomousCleansing,
         teleop_cleansing: finalTeleopCleansing,

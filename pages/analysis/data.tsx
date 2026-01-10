@@ -37,7 +37,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     total_matches: number;
     avg_autonomous_points: number;
     avg_teleop_points: number;
-    avg_endgame_points: number;
     avg_total_score: number;
     avg_defense_rating: number;
     avg_autonomous_cleansing: number;
@@ -107,7 +106,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       total_matches: number;
       autonomous_points: number[];
       teleop_points: number[];
-      endgame_points: number[];
       total_scores: number[];
       defense_ratings: number[];
       autonomous_cleansing: number[];
@@ -122,7 +120,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         total_matches: 0,
         autonomous_points: [],
         teleop_points: [],
-        endgame_points: [],
         total_scores: [],
         defense_ratings: [],
         autonomous_cleansing: [],
@@ -137,7 +134,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         teamStat.total_matches++;
         teamStat.autonomous_points.push(data.autonomous_points || 0);
         teamStat.teleop_points.push(data.teleop_points || 0);
-        teamStat.endgame_points.push(data.endgame_points || 0);
         teamStat.total_scores.push(data.final_score || 0);
         teamStat.defense_ratings.push(data.defense_rating || 0);
         teamStat.autonomous_cleansing.push(data.autonomous_cleansing || 0);
@@ -149,7 +145,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     return Array.from(teamStatsMap.values()).map(stat => {
       const avgAutonomous = stat.autonomous_points.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
       const avgTeleop = stat.teleop_points.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
-      const avgEndgame = stat.endgame_points.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
       const avgTotal = stat.total_scores.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
       const avgDefense = stat.defense_ratings.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
       const avgAutonomousCleansing = stat.autonomous_cleansing.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
@@ -169,7 +164,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         total_matches: stat.total_matches,
         avg_autonomous_points: Math.round(avgAutonomous * 100) / 100,
         avg_teleop_points: Math.round(avgTeleop * 100) / 100,
-        avg_endgame_points: Math.round(avgEndgame * 100) / 100,
         avg_total_score: Math.round(avgTotal * 100) / 100,
         avg_defense_rating: Math.round(avgDefense * 100) / 100,
         avg_autonomous_cleansing: Math.round(avgAutonomousCleansing * 100) / 100,
@@ -290,15 +284,11 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
           teleop_tower_level2: parsed.teleop_tower_level2 || false,
           teleop_tower_level3: parsed.teleop_tower_level3 || false,
         },
-        endgame: {
-          endgame_fuel: parsed.endgame_fuel || 0,
-        }
       };
     } catch (error) {
       return { 
         autonomous: { auto_fuel_active_hub: 0, auto_tower_level1: false },
         teleop: { teleop_fuel_active_hub: 0, teleop_tower_level2: false, teleop_tower_level3: false },
-        endgame: { endgame_fuel: 0 }
       };
     }
   };
@@ -498,7 +488,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                           <th className="text-left p-2 md:p-3 text-xs md:text-sm">Avg Score</th>
                           <th className="text-left p-2 md:p-3 text-xs md:text-sm">Auto</th>
                           <th className="text-left p-2 md:p-3 text-xs md:text-sm">Teleop</th>
-                          <th className="text-left p-2 md:p-3 text-xs md:text-sm">Endgame</th>
                           <th className="text-left p-2 md:p-3 text-xs md:text-sm">Auto Cleansing</th>
                           <th className="text-left p-2 md:p-3 text-xs md:text-sm">Teleop Cleansing</th>
                           <th className="text-left p-2 md:p-3 text-xs md:text-sm">Defense (/10)</th>
@@ -537,7 +526,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               </td>
                               <td className="p-2 md:p-3 text-foreground">{team.avg_autonomous_points}</td>
                               <td className="p-2 md:p-3 text-foreground">{team.avg_teleop_points}</td>
-                              <td className="p-2 md:p-3 text-foreground">{team.avg_endgame_points}</td>
                               <td className="p-2 md:p-3 text-foreground">{team.avg_autonomous_cleansing}</td>
                               <td className="p-2 md:p-3 text-foreground">{team.avg_teleop_cleansing}</td>
                               <td className="p-2 md:p-3">
@@ -645,17 +633,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             </th>
                             <th 
                               className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
-                              onClick={() => handleSort('endgame_points')}
-                            >
-                              <div className="flex items-center gap-1 md:gap-2">
-                                Endgame
-                                {sortField === 'endgame_points' && (
-                                  <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                              </div>
-                            </th>
-                            <th 
-                              className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
                               onClick={() => handleSort('final_score')}
                             >
                               <div className="flex items-center gap-1 md:gap-2">
@@ -742,7 +719,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               </td>
                               <td className="p-2 md:p-3 font-semibold text-primary text-xs md:text-sm">{data.autonomous_points}</td>
                               <td className="p-2 md:p-3 font-semibold text-secondary text-xs md:text-sm">{data.teleop_points}</td>
-                              <td className="p-2 md:p-3 font-semibold text-warning text-xs md:text-sm">{data.endgame_points}</td>
                               <td className="p-2 md:p-3 font-bold text-sm md:text-lg text-primary">{data.final_score}</td>
                               <td className="p-2 md:p-3">
                                 <div className="flex items-center gap-1">
@@ -856,22 +832,13 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                             </div>
                                           </div>
 
-                                          {/* Endgame & Additional Details */}
+                                          {/* Additional Details */}
                                           <div className="bg-background p-3 rounded-lg border">
-                                            <h5 className="font-medium text-sm mb-2 text-orange-600">Endgame (Last 30 seconds)</h5>
+                                            <h5 className="font-medium text-sm mb-2 text-orange-600">Additional Details</h5>
                                             <div className="space-y-1 text-xs">
                                               <div className="flex justify-between">
-                                                <span>FUEL in HUB:</span>
-                                                <span className="font-medium">{formNotes.endgame.endgame_fuel || 0} FUEL</span>
-                                              </div>
-                                              <div className="text-xs text-muted-foreground mt-2">
-                                                Note: Both HUBs are active during Endgame
-                                              </div>
-                                              <div className="mt-2 pt-2 border-t">
-                                                <div className="flex justify-between">
-                                                  <span>Defense Rating:</span>
-                                                  <span className="font-medium">{data.defense_rating}/10</span>
-                                                </div>
+                                                <span>Defense Rating:</span>
+                                                <span className="font-medium">{data.defense_rating}/10</span>
                                               </div>
                                               {data.comments && (
                                                 <div className="mt-2 pt-2 border-t">

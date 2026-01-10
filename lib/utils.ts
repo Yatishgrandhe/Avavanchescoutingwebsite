@@ -19,9 +19,6 @@ export function calculateScore(data: any) {
   // TOWER: Only highest level counts (mutually exclusive)
   if (data.teleop_tower_level3) score += 30; // LEVEL 3 highest
   else if (data.teleop_tower_level2) score += 20; // LEVEL 2
-  
-  // Endgame (last 30 seconds) - both HUBs active
-  if (data.endgame_fuel) score += 1 * data.endgame_fuel;
 
   return {
     final_score: score

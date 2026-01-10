@@ -45,9 +45,6 @@ export interface ScoringNotes {
   teleop_fuel_active_hub: number;    // 1 pt per FUEL in active HUB
   teleop_tower_level2: boolean;      // 20 pts per robot (LEVEL 2 - above LOW RUNG)
   teleop_tower_level3: boolean;      // 30 pts per robot (LEVEL 3 - above MID RUNG)
-  
-  // Endgame (last 30 seconds) - both HUBs active
-  endgame_fuel: number;              // 1 pt per FUEL (both HUBs active)
 }
 
 export interface User {
@@ -87,8 +84,7 @@ export type ScoringElement =
   | 'auto_tower_level1'
   | 'teleop_fuel_active_hub'
   | 'teleop_tower_level2'
-  | 'teleop_tower_level3'
-  | 'endgame_fuel';
+  | 'teleop_tower_level3';
 
 export const SCORING_VALUES: Record<ScoringElement, number> = {
   auto_fuel_active_hub: 1,
@@ -96,7 +92,6 @@ export const SCORING_VALUES: Record<ScoringElement, number> = {
   teleop_fuel_active_hub: 1,
   teleop_tower_level2: 20,
   teleop_tower_level3: 30,
-  endgame_fuel: 1,
 };
 
 export interface PickList {

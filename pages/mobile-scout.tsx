@@ -22,13 +22,12 @@ import {
 import MatchDetailsForm from '@/components/scout/MatchDetailsForm';
 import AutonomousForm from '@/components/scout/AutonomousForm';
 import TeleopForm from '@/components/scout/TeleopForm';
-import EndgameForm from '@/components/scout/EndgameForm';
 import MiscellaneousForm from '@/components/scout/MiscellaneousForm';
 import { ScoringNotes } from '@/lib/types';
 import { calculateScore } from '@/lib/utils';
 import { useRouter } from 'next/router';
 
-type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'endgame' | 'miscellaneous' | 'review';
+type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'miscellaneous' | 'review';
 
 interface FormData {
   matchData: {
@@ -51,7 +50,6 @@ interface FormData {
   alliancePosition: 1 | 2 | 3;
   autonomous: Partial<ScoringNotes>;
   teleop: Partial<ScoringNotes>;
-  endgame: Partial<ScoringNotes>;
   miscellaneous: {
     defense_rating: number;
     comments: string;
@@ -76,7 +74,6 @@ export default function MobileScout() {
     alliancePosition: 1,
     autonomous: {},
     teleop: {},
-    endgame: {},
     miscellaneous: {
       defense_rating: 1,
       comments: '',
@@ -87,7 +84,6 @@ export default function MobileScout() {
     { id: 'match-details', title: 'Match Details', icon: Target, shortTitle: 'Match' },
     { id: 'autonomous', title: 'Autonomous', icon: Zap, shortTitle: 'Auto' },
     { id: 'teleop', title: 'Teleop', icon: Target, shortTitle: 'Teleop' },
-    { id: 'endgame', title: 'Endgame', icon: Trophy, shortTitle: 'End' },
     { id: 'miscellaneous', title: 'Miscellaneous', icon: FileText, shortTitle: 'Misc' },
     { id: 'review', title: 'Review', icon: Eye, shortTitle: 'Review' },
   ];
@@ -113,8 +109,7 @@ export default function MobileScout() {
       // Calculate final score using the scoring values
       const autonomousPoints = calculateScore(formData.autonomous).final_score;
       const teleopPoints = calculateScore(formData.teleop).final_score;
-      const endgamePoints = calculateScore(formData.endgame).final_score;
-      const finalScore = autonomousPoints + teleopPoints + endgamePoints;
+      const finalScore = autonomousPoints + teleopPoints;
 
       const scoutingData = {
         match_id: formData.matchData.match_id,
@@ -123,7 +118,6 @@ export default function MobileScout() {
         alliance_position: formData.alliancePosition,
         autonomous_points: autonomousPoints,
         teleop_points: teleopPoints,
-        endgame_points: endgamePoints,
         final_score: finalScore,
         defense_rating: formData.miscellaneous.defense_rating,
         comments: formData.miscellaneous.comments,
@@ -134,7 +128,6 @@ export default function MobileScout() {
         notes: {
           autonomous: formData.autonomous,
           teleop: formData.teleop,
-          endgame: formData.endgame,
         },
       };
 
@@ -170,7 +163,6 @@ export default function MobileScout() {
           alliancePosition: 1,
           autonomous: {},
           teleop: {},
-          endgame: {},
           miscellaneous: {
             defense_rating: 1,
             comments: '',
@@ -316,7 +308,7 @@ export default function MobileScout() {
                   <TeleopForm
                     onNext={(data) => {
                       setFormData(prev => ({ ...prev, teleop: data }));
-                    setCurrentStep('endgame');
+                      setCurrentStep('miscellaneous');
                     }}
                     onBack={() => setCurrentStep('autonomous')}
                     currentStep={currentStepIndex}
@@ -326,26 +318,13 @@ export default function MobileScout() {
                   />
                 )}
 
-                {currentStep === 'endgame' && (
-                  <EndgameForm
-                    onNext={(data) => {
-                      setFormData(prev => ({ ...prev, endgame: data }));
-                      setCurrentStep('miscellaneous');
-                    }}
-                    onBack={() => setCurrentStep('teleop')}
-                    currentStep={currentStepIndex}
-                    totalSteps={steps.length}
-                    initialData={formData.endgame}
-                  />
-                )}
-
                 {currentStep === 'miscellaneous' && (
                   <MiscellaneousForm
                     onNext={(data) => {
                       setFormData(prev => ({ ...prev, miscellaneous: data }));
                       setCurrentStep('review');
                     }}
-                    onBack={() => setCurrentStep('endgame')}
+                    onBack={() => setCurrentStep('teleop')}
                     currentStep={currentStepIndex}
                     totalSteps={steps.length}
                     initialData={formData.miscellaneous}
@@ -408,17 +387,12 @@ export default function MobileScout() {
                           <span className="text-muted-foreground">Teleop:</span>
                           <span className="font-medium">{calculateScore(formData.teleop).final_score} pts</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Endgame:</span>
-                          <span className="font-medium">{calculateScore(formData.endgame).final_score} pts</span>
-                        </div>
                         <div className="border-t pt-2 mt-2">
                           <div className="flex justify-between text-lg font-bold">
                             <span>Total Score:</span>
                             <span className="text-primary">
                               {calculateScore(formData.autonomous).final_score + 
-                               calculateScore(formData.teleop).final_score + 
-                               calculateScore(formData.endgame).final_score} pts
+                               calculateScore(formData.teleop).final_score} pts
                             </span>
                           </div>
                         </div>

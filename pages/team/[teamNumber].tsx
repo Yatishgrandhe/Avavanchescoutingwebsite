@@ -151,11 +151,10 @@ const TeamDetail: React.FC = () => {
     // Handle both flat and nested note structures
     const getValue = (path: string) => {
       if (notes && typeof notes === 'object') {
-        if (notes.autonomous && notes.teleop && notes.endgame) {
+        if (notes.autonomous || notes.teleop) {
           // Nested structure
-          if (path.startsWith('auto_')) return notes.autonomous[path];
-          if (path.startsWith('teleop_')) return notes.teleop[path];
-          if (path.startsWith('endgame_')) return notes.endgame[path];
+          if (path.startsWith('auto_')) return notes.autonomous?.[path];
+          if (path.startsWith('teleop_')) return notes.teleop?.[path];
         }
         // Flat structure
         return notes[path];

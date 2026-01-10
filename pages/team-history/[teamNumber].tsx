@@ -252,11 +252,12 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
     // Handle both flat and nested note structures
     const getValue = (path: string) => {
       if (notes && typeof notes === 'object') {
-        if (notes.autonomous && notes.teleop && notes.endgame) {
-          if (path.startsWith('auto_')) return notes.autonomous[path];
-          if (path.startsWith('teleop_')) return notes.teleop[path];
-          if (path.startsWith('endgame_')) return notes.endgame[path];
+        if (notes.autonomous || notes.teleop) {
+          // Nested structure
+          if (path.startsWith('auto_')) return notes.autonomous?.[path];
+          if (path.startsWith('teleop_')) return notes.teleop?.[path];
         }
+        // Flat structure
         return notes[path];
       }
       return undefined;

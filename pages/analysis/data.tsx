@@ -273,18 +273,35 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const parseFormNotes = (notes: any) => {
     try {
       const parsed = typeof notes === 'string' ? JSON.parse(notes) : notes;
-      // Handle new REBUILT 2026 flat structure
-      return {
-        autonomous: {
-          auto_fuel_active_hub: parsed.auto_fuel_active_hub || 0,
-          auto_tower_level1: parsed.auto_tower_level1 || false,
-        },
-        teleop: {
-          teleop_fuel_active_hub: parsed.teleop_fuel_active_hub || 0,
-          teleop_tower_level2: parsed.teleop_tower_level2 || false,
-          teleop_tower_level3: parsed.teleop_tower_level3 || false,
-        },
-      };
+      
+      // Handle nested structure (autonomous/teleop keys) or flat structure
+      if (parsed.autonomous || parsed.teleop) {
+        // Nested structure
+        return {
+          autonomous: {
+            auto_fuel_active_hub: parsed.autonomous?.auto_fuel_active_hub || 0,
+            auto_tower_level1: parsed.autonomous?.auto_tower_level1 || false,
+          },
+          teleop: {
+            teleop_fuel_active_hub: parsed.teleop?.teleop_fuel_active_hub || 0,
+            teleop_tower_level2: parsed.teleop?.teleop_tower_level2 || false,
+            teleop_tower_level3: parsed.teleop?.teleop_tower_level3 || false,
+          },
+        };
+      } else {
+        // Flat structure
+        return {
+          autonomous: {
+            auto_fuel_active_hub: parsed.auto_fuel_active_hub || 0,
+            auto_tower_level1: parsed.auto_tower_level1 || false,
+          },
+          teleop: {
+            teleop_fuel_active_hub: parsed.teleop_fuel_active_hub || 0,
+            teleop_tower_level2: parsed.teleop_tower_level2 || false,
+            teleop_tower_level3: parsed.teleop_tower_level3 || false,
+          },
+        };
+      }
     } catch (error) {
       return { 
         autonomous: { auto_fuel_active_hub: 0, auto_tower_level1: false },

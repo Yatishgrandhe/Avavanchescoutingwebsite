@@ -75,7 +75,7 @@ export default function MobileScout() {
     autonomous: {},
     teleop: {},
     miscellaneous: {
-      defense_rating: 1,
+      defense_rating: 0,
       comments: '',
     },
   });
@@ -164,7 +164,7 @@ export default function MobileScout() {
           autonomous: {},
           teleop: {},
           miscellaneous: {
-            defense_rating: 1,
+            defense_rating: 0,
             comments: '',
           },
         });

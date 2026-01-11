@@ -18,7 +18,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
   initialData,
 }) => {
   const [formData, setFormData] = useState({
-    defense_rating: (initialData?.defense_rating as number | string) || 1,
+    defense_rating: (initialData?.defense_rating as number | string) ?? 0,
     comments: initialData?.comments || '',
   });
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -27,7 +27,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
   useEffect(() => {
     if (initialData) {
       setFormData({
-        defense_rating: initialData.defense_rating || 1,
+        defense_rating: initialData.defense_rating ?? 0,
         comments: initialData.comments || '',
       });
     }
@@ -88,7 +88,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
             <h3 className="text-foreground font-semibold text-base sm:text-lg">Defense Rating <span className="text-destructive">*</span></h3>
             <Input
               type="number"
-              min="1"
+              min="0"
               max="10"
               value={formData.defense_rating === '' ? '' : formData.defense_rating.toString()}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,16 +103,16 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
                 }
               }}
               className="bg-background border-border text-foreground"
-              placeholder="Rate the team's defensive play from 1-10"
+              placeholder="Rate the team's defensive play from 0-10"
             />
             <p className="text-muted-foreground text-xs sm:text-sm">
-              1 = No defense, 10 = Exceptional defensive play
+              0 = No defense, 10 = Exceptional defensive play
             </p>
           </div>
 
           {/* Comments */}
           <div className="space-y-2 sm:space-y-4">
-            <h3 className="text-foreground font-semibold text-base sm:text-lg">Comments <span className="text-destructive">*</span></h3>
+            <h3 className="text-foreground font-semibold text-base sm:text-lg">Comments</h3>
             <textarea
               value={formData.comments}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('comments', e.target.value)}
@@ -155,13 +155,8 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
               const defenseRating = formData.defense_rating === '' ? 0 : Number(formData.defense_rating);
               const comments = formData.comments.trim();
               
-              if (!defenseRating || defenseRating < 1 || defenseRating > 10) {
-                setValidationError('Please provide a defense rating between 1 and 10.');
-                return;
-              }
-              
-              if (!comments) {
-                setValidationError('Please provide comments before proceeding.');
+              if (isNaN(defenseRating) || defenseRating < 0 || defenseRating > 10) {
+                setValidationError('Please provide a defense rating between 0 and 10.');
                 return;
               }
 

@@ -23,6 +23,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     teleop_fuel_active_hub: (initialData?.teleop_fuel_active_hub as number) || 0,
+    teleop_tower_level1: (initialData?.teleop_tower_level1 as boolean) || false,
     teleop_tower_level2: (initialData?.teleop_tower_level2 as boolean) || false,
     teleop_tower_level3: (initialData?.teleop_tower_level3 as boolean) || false,
   });
@@ -32,6 +33,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
     if (initialData) {
       setFormData({
         teleop_fuel_active_hub: (initialData.teleop_fuel_active_hub as number) || 0,
+        teleop_tower_level1: (initialData.teleop_tower_level1 as boolean) || false,
         teleop_tower_level2: (initialData.teleop_tower_level2 as boolean) || false,
         teleop_tower_level3: (initialData.teleop_tower_level3 as boolean) || false,
       });
@@ -52,6 +54,8 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
       total += SCORING_VALUES.teleop_tower_level3;
     } else if (formData.teleop_tower_level2) {
       total += SCORING_VALUES.teleop_tower_level2;
+    } else if (formData.teleop_tower_level1) {
+      total += SCORING_VALUES.teleop_tower_level1;
     }
     return total;
   };
@@ -130,6 +134,50 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+                className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 rounded-xl space-y-3 sm:space-y-0 ${
+                  isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center space-x-4">
+                  <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
+                    <CheckCircle className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                  </div>
+                  <div>
+                    <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      TOWER LEVEL 1
+                    </h3>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      LEVEL 1 climb per robot
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <span className={`font-bold text-lg ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                    +{SCORING_VALUES.teleop_tower_level1} pts
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={formData.teleop_tower_level1 && !formData.teleop_tower_level2 && !formData.teleop_tower_level3}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        if (e.target.checked) {
+                          handleInputChange('teleop_tower_level1', true);
+                          handleInputChange('teleop_tower_level2', false);
+                          handleInputChange('teleop_tower_level3', false);
+                        } else {
+                          handleInputChange('teleop_tower_level1', false);
+                        }
+                      }}
+                      className="cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
                 className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 rounded-xl space-y-3 sm:space-y-0 ${
                   isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
@@ -159,6 +207,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         if (e.target.checked) {
                           handleInputChange('teleop_tower_level2', true);
+                          handleInputChange('teleop_tower_level1', false);
                           handleInputChange('teleop_tower_level3', false);
                         } else {
                           handleInputChange('teleop_tower_level2', false);
@@ -202,6 +251,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         if (e.target.checked) {
                           handleInputChange('teleop_tower_level3', true);
+                          handleInputChange('teleop_tower_level1', false);
                           handleInputChange('teleop_tower_level2', false);
                         } else {
                           handleInputChange('teleop_tower_level3', false);

@@ -43,6 +43,7 @@ export interface ScoringNotes {
   
   // Teleop Period (last 2:20, especially last 0:30)
   teleop_fuel_active_hub: number;    // 1 pt per FUEL in active HUB
+  teleop_tower_level1: boolean;      // 15 pts per robot (LEVEL 1 climb)
   teleop_tower_level2: boolean;      // 20 pts per robot (LEVEL 2 - above LOW RUNG)
   teleop_tower_level3: boolean;      // 30 pts per robot (LEVEL 3 - above MID RUNG)
 }
@@ -83,6 +84,7 @@ export type ScoringElement =
   | 'auto_fuel_active_hub'
   | 'auto_tower_level1'
   | 'teleop_fuel_active_hub'
+  | 'teleop_tower_level1'
   | 'teleop_tower_level2'
   | 'teleop_tower_level3';
 
@@ -90,6 +92,7 @@ export const SCORING_VALUES: Record<ScoringElement, number> = {
   auto_fuel_active_hub: 1,
   auto_tower_level1: 15,
   teleop_fuel_active_hub: 1,
+  teleop_tower_level1: 15,
   teleop_tower_level2: 20,
   teleop_tower_level3: 30,
 };

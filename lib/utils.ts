@@ -19,6 +19,7 @@ export function calculateScore(data: any) {
   // TOWER: Only highest level counts (mutually exclusive)
   if (data.teleop_tower_level3) score += 30; // LEVEL 3 highest
   else if (data.teleop_tower_level2) score += 20; // LEVEL 2
+  else if (data.teleop_tower_level1) score += 15; // LEVEL 1
 
   return {
     final_score: score

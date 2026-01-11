@@ -30,7 +30,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const { supabase, user } = useSupabase();
   const { isAdmin } = useAdmin();
   const [scoutingData, setScoutingData] = useState<ScoutingData[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]); // For filter dropdown (excludes Avalanche)
+  const [allTeams, setAllTeams] = useState<Team[]>([]); // All teams for name lookups
   const [teamStats, setTeamStats] = useState<Array<{
     team_number: number;
     team_name: string;
@@ -74,7 +75,16 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
       if (scoutingError) throw scoutingError;
 
-      // Load teams
+      // Load ALL teams (including Avalanche) for team name lookups and Team Stats calculation
+      // Team Stats needs all teams that have scouting data, regardless of team list filter
+      const { data: allTeamsResult, error: allTeamsError } = await supabase
+        .from('teams')
+        .select('*')
+        .order('team_number');
+
+      if (allTeamsError) throw allTeamsError;
+
+      // For the team filter dropdown, exclude Avalanche (scouting own team)
       const { data: teamsResult, error: teamsError } = await supabase
         .from('teams')
         .select('*')
@@ -85,9 +95,11 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
       setScoutingData(scoutingDataResult || []);
       setTeams(teamsResult || []);
+      setAllTeams(allTeamsResult || []);
 
-      // Calculate team statistics
-      const stats = calculateTeamStats(scoutingDataResult || [], teamsResult || []);
+      // Calculate team statistics using ALL teams (allTeamsResult) so that teams with scouting data
+      // are included even if they're not in the filtered teams list (e.g., Avalanche)
+      const stats = calculateTeamStats(scoutingDataResult || [], allTeamsResult || []);
       setTeamStats(stats);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -109,33 +121,39 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       teleop_cleansing: number[];
     }>();
 
-    // Initialize team stats
+    // Build a map of team_number -> team_name from the teams table
+    const teamNameMap = new Map<number, string>();
     teams.forEach(team => {
-      teamStatsMap.set(team.team_number, {
-        team_number: team.team_number,
-        team_name: team.team_name,
-        total_matches: 0,
-        autonomous_points: [],
-        teleop_points: [],
-        total_scores: [],
-        defense_ratings: [],
-        autonomous_cleansing: [],
-        teleop_cleansing: []
-      });
+      teamNameMap.set(team.team_number, team.team_name);
     });
 
-    // Aggregate scouting data
+    // Aggregate scouting data - include ALL teams that have scouting data
+    // This ensures that second submissions and all match scouting forms are counted
     scoutingData.forEach(data => {
-      const teamStat = teamStatsMap.get(data.team_number);
-      if (teamStat) {
-        teamStat.total_matches++;
-        teamStat.autonomous_points.push(data.autonomous_points || 0);
-        teamStat.teleop_points.push(data.teleop_points || 0);
-        teamStat.total_scores.push(data.final_score || 0);
-        teamStat.defense_ratings.push(data.defense_rating || 0);
-        teamStat.autonomous_cleansing.push(data.autonomous_cleansing || 0);
-        teamStat.teleop_cleansing.push(data.teleop_cleansing || 0);
+      let teamStat = teamStatsMap.get(data.team_number);
+      if (!teamStat) {
+        // Team not yet in map - add it (may not be in teams table yet)
+        const teamName = teamNameMap.get(data.team_number) || `Team ${data.team_number}`;
+        teamStat = {
+          team_number: data.team_number,
+          team_name: teamName,
+          total_matches: 0,
+          autonomous_points: [],
+          teleop_points: [],
+          total_scores: [],
+          defense_ratings: [],
+          autonomous_cleansing: [],
+          teleop_cleansing: []
+        };
+        teamStatsMap.set(data.team_number, teamStat);
       }
+      teamStat.total_matches++;
+      teamStat.autonomous_points.push(data.autonomous_points || 0);
+      teamStat.teleop_points.push(data.teleop_points || 0);
+      teamStat.total_scores.push(data.final_score || 0);
+      teamStat.defense_ratings.push(data.defense_rating || 0);
+      teamStat.autonomous_cleansing.push(data.autonomous_cleansing || 0);
+      teamStat.teleop_cleansing.push(data.teleop_cleansing || 0);
     });
 
     // Calculate averages and statistics
@@ -175,8 +193,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const filteredData = scoutingData.filter(data => {
     const matchesSearch = searchTerm === '' || 
       data.team_number.toString().includes(searchTerm) ||
-      data.match_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      data.comments.toLowerCase().includes(searchTerm.toLowerCase());
+      data.match_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (data.comments && data.comments.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      getTeamName(data.team_number).toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesTeam = selectedTeam === null || data.team_number === selectedTeam;
     
@@ -211,7 +230,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
 
   const getTeamName = (teamNumber: number) => {
-    const team = teams.find(t => t.team_number === teamNumber);
+    // Use allTeams to get names for all teams including those in scouting_data but not in filter
+    const team = allTeams.find(t => t.team_number === teamNumber);
     return team ? team.team_name : `Team ${teamNumber}`;
   };
 
@@ -499,7 +519,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                     <table className="w-full border-collapse min-w-[800px]">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left p-2 md:p-3 text-xs md:text-sm">Team</th>
+                          <th className="text-left p-2 md:p-3 text-xs md:text-sm">Team Name</th>
                           <th className="text-left p-2 md:p-3 text-xs md:text-sm">Matches</th>
                           <th className="text-left p-2 md:p-3 text-xs md:text-sm">Avg Score</th>
                           <th className="text-left p-2 md:p-3 text-xs md:text-sm">Auto</th>
@@ -530,10 +550,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             >
                               <td className="p-2 md:p-3">
                                 <div className="flex items-center space-x-2">
-                                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                                  <span className="font-medium text-foreground">{team.team_name}</span>
+                                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
                                     {team.team_number}
                                   </Badge>
-                                  <span className="font-medium text-foreground">{team.team_name}</span>
                                 </div>
                               </td>
                               <td className="p-2 md:p-3 text-foreground">{team.total_matches}</td>
@@ -607,7 +627,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               onClick={() => handleSort('team_number')}
                             >
                               <div className="flex items-center gap-1 md:gap-2">
-                                Team
+                                Team Name
                                 {sortField === 'team_number' && (
                                   <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                                 )}
@@ -709,6 +729,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             >
                               <td className="p-2 md:p-3">
                                 <div className="flex items-center gap-1 md:gap-2">
+                                  <span 
+                                    className="font-medium text-xs md:text-sm text-foreground cursor-pointer hover:text-primary transition-colors"
+                                    onClick={() => window.open(`/team/${data.team_number}`, '_blank')}
+                                  >
+                                    {getTeamName(data.team_number)}
+                                  </span>
                                   <Badge 
                                     variant="outline" 
                                     className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
@@ -716,12 +742,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                   >
                                     {data.team_number}
                                   </Badge>
-                                  <span 
-                                    className="text-xs md:text-sm text-muted-foreground cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => window.open(`/team/${data.team_number}`, '_blank')}
-                                  >
-                                    {getTeamName(data.team_number)}
-                                  </span>
                                 </div>
                               </td>
                               <td className="p-2 md:p-3 font-mono text-xs md:text-sm">{data.match_id}</td>

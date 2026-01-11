@@ -67,13 +67,16 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     try {
       setLoading(true);
       
-      // Load scouting data
+      // Load scouting data - select all fields including submitted_by_name and submitted_by_email
       const { data: scoutingDataResult, error: scoutingError } = await supabase
         .from('scouting_data')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (scoutingError) throw scoutingError;
+      if (scoutingError) {
+        console.error('Error loading scouting data:', scoutingError);
+        throw scoutingError;
+      }
 
       // Load ALL teams (including Avalanche) for team name lookups and Team Stats calculation
       // Team Stats needs all teams that have scouting data, regardless of team list filter
@@ -235,9 +238,18 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     return team ? team.team_name : `Team ${teamNumber}`;
   };
 
-  const getUploaderName = (scoutId: string) => {
-    // For now, return the scout ID. In a real implementation, you'd look up the user
-    return scoutId || 'Unknown';
+  const getUploaderName = (data: ScoutingData) => {
+    // Use submitted_by_name (username) from scouting_data - this is set when the form is submitted
+    // Fall back to submitted_by_email, or 'Unknown' if neither is available
+    if (data?.submitted_by_name && typeof data.submitted_by_name === 'string' && data.submitted_by_name.trim()) {
+      return data.submitted_by_name.trim();
+    }
+    if (data?.submitted_by_email && typeof data.submitted_by_email === 'string' && data.submitted_by_email.trim()) {
+      // Extract username from email if no name is available
+      const emailUsername = data.submitted_by_email.split('@')[0];
+      return emailUsername || data.submitted_by_email;
+    }
+    return 'Unknown';
   };
 
   const handleDelete = (item: ScoutingData) => {
@@ -774,7 +786,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                   <td className="p-2 md:p-3">
                                     <div className="flex items-center gap-1 md:gap-2">
                                       <User className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
-                                      <span className="text-xs md:text-sm">{getUploaderName(data.scout_id)}</span>
+                                      <span className="text-xs md:text-sm font-medium text-foreground">{getUploaderName(data)}</span>
                                     </div>
                                   </td>
                                   <td className="p-2 md:p-3">
@@ -827,9 +839,17 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 exit={{ opacity: 0, height: 0 }}
                                 className="bg-muted/20"
                               >
-                                <td colSpan={isAdmin ? 11 : 10} className="p-4">
+                                <td colSpan={showUploaderInfo ? (isAdmin ? 12 : 11) : (isAdmin ? 10 : 9)} className="p-4">
                                   <div className="space-y-4">
-                                    <h4 className="font-semibold text-sm mb-3">Detailed Form Data</h4>
+                                    <div className="flex items-center justify-between mb-3">
+                                      <h4 className="font-semibold text-sm">Detailed Form Data</h4>
+                                      {showUploaderInfo && (
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                          <User className="w-3 h-3" />
+                                          <span>Uploaded by: <span className="font-medium text-foreground">{getUploaderName(data)}</span></span>
+                                        </div>
+                                      )}
+                                    </div>
                                     {(() => {
                                       const formNotes = parseFormNotes(data.notes);
                                       return (

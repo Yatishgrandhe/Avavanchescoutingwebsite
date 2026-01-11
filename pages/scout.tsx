@@ -118,7 +118,8 @@ export default function Scout() {
         comments: formData.miscellaneous.comments,
         scout_id: user?.id,
         submitted_by_email: user?.email,
-        submitted_by_name: user?.user_metadata?.full_name || user?.email,
+        // Use username from user_metadata: full_name, username (Discord), or name
+        submitted_by_name: user?.user_metadata?.full_name || user?.user_metadata?.username || user?.user_metadata?.name || user?.email,
         submitted_at: new Date().toISOString(),
         notes: {
           autonomous: formData.autonomous,

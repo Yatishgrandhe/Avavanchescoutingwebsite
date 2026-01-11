@@ -54,7 +54,8 @@ export default function TeamComparison() {
   const [availableTeams, setAvailableTeams] = useState<Array<{team_number: number, team_name: string}>>([]);
   const [teamsLoading, setTeamsLoading] = useState(true);
 
-  // Load available teams from Supabase
+  // Load ALL available teams from Supabase (including Avalanche) for comparison
+  // This ensures all team names load properly in the comparison tab dropdown
   useEffect(() => {
     const loadTeams = async () => {
       try {
@@ -62,7 +63,6 @@ export default function TeamComparison() {
         const { data: teams, error } = await supabase
           .from('teams')
           .select('team_number, team_name')
-          .not('team_name', 'ilike', '%avalanche%')
           .order('team_number');
 
         if (error) {
@@ -293,7 +293,7 @@ export default function TeamComparison() {
                     .filter(team => !selectedTeams.includes(team.team_number))
                     .map(team => (
                       <option key={team.team_number} value={team.team_number.toString()}>
-                        Team {team.team_number} - {team.team_name}
+                        {team.team_name} ({team.team_number})
                       </option>
                     ))}
                 </select>
@@ -319,12 +319,12 @@ export default function TeamComparison() {
                 </Button>
               </div>
 
-              {/* Selected Teams */}
+              {/* Selected Teams - show team names from teamComparisons */}
               {selectedTeams.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {selectedTeams.map(teamNumber => (
+                  {teamComparisons.map(team => (
                     <motion.div
-                      key={teamNumber}
+                      key={team.team_number}
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
@@ -332,10 +332,13 @@ export default function TeamComparison() {
                       }`}
                     >
                       <span className={`font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-                        Team {teamNumber}
+                        {team.team_name}
+                      </span>
+                      <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        ({team.team_number})
                       </span>
                       <button
-                        onClick={() => removeTeam(teamNumber)}
+                        onClick={() => removeTeam(team.team_number)}
                         className={`hover:bg-red-500/20 rounded-full p-1 transition-colors`}
                       >
                         <X className="w-4 h-4 text-red-400" />
@@ -382,7 +385,7 @@ export default function TeamComparison() {
                           {getBestTeam('avg_total_score')?.avg_total_score || 0}
                         </p>
                         <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                          Team {getBestTeam('avg_total_score')?.team_number || 'N/A'}
+                          {getBestTeam('avg_total_score')?.team_name || 'N/A'}
                         </p>
                       </div>
                       <Award className={`w-8 h-8 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`} />
@@ -401,7 +404,7 @@ export default function TeamComparison() {
                           {getBestTeam('consistency_score')?.consistency_score || 0}%
                         </p>
                         <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                          Team {getBestTeam('consistency_score')?.team_number || 'N/A'}
+                          {getBestTeam('consistency_score')?.team_name || 'N/A'}
                         </p>
                       </div>
                       <TrendingUp className={`w-8 h-8 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
@@ -420,7 +423,7 @@ export default function TeamComparison() {
                           {getBestTeam('avg_defense_rating')?.avg_defense_rating || 0}/10
                         </p>
                         <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                          Team {getBestTeam('avg_defense_rating')?.team_number || 'N/A'}
+                          {getBestTeam('avg_defense_rating')?.team_name || 'N/A'}
                         </p>
                       </div>
                       <Shield className={`w-8 h-8 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
@@ -439,7 +442,7 @@ export default function TeamComparison() {
                           {getBestTeam('best_score')?.best_score || 0}
                         </p>
                         <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                          Team {getBestTeam('best_score')?.team_number || 'N/A'}
+                          {getBestTeam('best_score')?.team_name || 'N/A'}
                         </p>
                       </div>
                       <Zap className={`w-8 h-8 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`} />
@@ -465,10 +468,10 @@ export default function TeamComparison() {
                       <div key={team.team_number} className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
                         <div className="flex items-center justify-between mb-3">
                           <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                            Team {team.team_number}
-                          </h3>
-                          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                             {team.team_name}
+                          </h3>
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                            {team.team_number}
                           </Badge>
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-sm">
@@ -525,7 +528,7 @@ export default function TeamComparison() {
                       <thead>
                         <tr className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            Team
+                            Team Name
                           </th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                             Matches
@@ -564,9 +567,9 @@ export default function TeamComparison() {
                           >
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                               <div>
-                                <div className="font-semibold">Team {team.team_number}</div>
+                                <div className="font-semibold">{team.team_name}</div>
                                 <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                  {team.team_name}
+                                  Team {team.team_number}
                                 </div>
                               </div>
                             </td>
@@ -616,7 +619,7 @@ export default function TeamComparison() {
                         <div key={team.team_number} className="space-y-2">
                           <div className="flex justify-between items-center">
                             <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                              Team {team.team_number}
+                              {team.team_name}
                             </span>
                             <span className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                               {team.avg_total_score}
@@ -648,7 +651,7 @@ export default function TeamComparison() {
                         <div key={team.team_number} className="space-y-2">
                           <div className="flex justify-between items-center">
                             <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                              Team {team.team_number}
+                              {team.team_name}
                             </span>
                             <span className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                               {team.consistency_score}%

@@ -46,13 +46,10 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
     try {
       setLoading(true);
       
-      // Load scouting data with user information
+      // Load scouting data - includes submitted_by_name for uploader display
       const { data: scoutingDataResult, error: scoutingError } = await supabase
         .from('scouting_data')
-        .select(`
-          *,
-          scout:scout_id
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (scoutingError) throw scoutingError;
@@ -116,8 +113,15 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
     return team ? team.team_name : `Team ${teamNumber}`;
   };
 
-  const getUploaderName = (scoutId: string) => {
-    return scoutId || 'Unknown';
+  const getUploaderName = (data: ScoutingData) => {
+    // Use submitted_by_name (username) from scouting_data - set when form is submitted
+    if (data.submitted_by_name && data.submitted_by_name.trim()) {
+      return data.submitted_by_name;
+    }
+    if (data.submitted_by_email && data.submitted_by_email.trim()) {
+      return data.submitted_by_email;
+    }
+    return 'Unknown';
   };
 
   // Pagination
@@ -371,7 +375,7 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
                           <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
                             <div className="flex items-center gap-2">
                               <User className="w-3 h-3" />
-                              <span>{getUploaderName(data.scout_id)}</span>
+                              <span>{getUploaderName(data)}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <Calendar className="w-3 h-3" />

@@ -270,6 +270,7 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
 
       // Teleop (Last 2:20)
       { label: 'FUEL Active HUB', value: getValue('teleop_fuel_active_hub'), points: 1, period: 'Teleop' },
+      { label: 'TOWER LEVEL 1', value: getValue('teleop_tower_level1'), points: 15, period: 'Teleop' },
       { label: 'TOWER LEVEL 2', value: getValue('teleop_tower_level2'), points: 20, period: 'Teleop' },
       { label: 'TOWER LEVEL 3', value: getValue('teleop_tower_level3'), points: 30, period: 'Teleop' },
 

@@ -284,6 +284,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
           },
           teleop: {
             teleop_fuel_active_hub: parsed.teleop?.teleop_fuel_active_hub || 0,
+            teleop_tower_level1: parsed.teleop?.teleop_tower_level1 || false,
             teleop_tower_level2: parsed.teleop?.teleop_tower_level2 || false,
             teleop_tower_level3: parsed.teleop?.teleop_tower_level3 || false,
           },
@@ -297,6 +298,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
           },
           teleop: {
             teleop_fuel_active_hub: parsed.teleop_fuel_active_hub || 0,
+            teleop_tower_level1: parsed.teleop_tower_level1 || false,
             teleop_tower_level2: parsed.teleop_tower_level2 || false,
             teleop_tower_level3: parsed.teleop_tower_level3 || false,
           },
@@ -305,7 +307,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     } catch (error) {
       return { 
         autonomous: { auto_fuel_active_hub: 0, auto_tower_level1: false },
-        teleop: { teleop_fuel_active_hub: 0, teleop_tower_level2: false, teleop_tower_level3: false },
+        teleop: { teleop_fuel_active_hub: 0, teleop_tower_level1: false, teleop_tower_level2: false, teleop_tower_level3: false },
       };
     }
   };
@@ -837,6 +839,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                               <div className="flex justify-between">
                                                 <span>FUEL in Active HUB:</span>
                                                 <span className="font-medium">{formNotes.teleop.teleop_fuel_active_hub || 0} FUEL</span>
+                                              </div>
+                                              <div className="flex justify-between">
+                                                <span>TOWER LEVEL 1:</span>
+                                                <span className="font-medium">{formNotes.teleop.teleop_tower_level1 ? 'Yes (15 pts)' : 'No'}</span>
                                               </div>
                                               <div className="flex justify-between">
                                                 <span>TOWER LEVEL 2:</span>

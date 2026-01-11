@@ -66,13 +66,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     try {
       setLoading(true);
       
-      // Load scouting data with user information
+      // Load scouting data
       const { data: scoutingDataResult, error: scoutingError } = await supabase
         .from('scouting_data')
-        .select(`
-          *,
-          scout:scout_id
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (scoutingError) throw scoutingError;

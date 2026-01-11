@@ -169,7 +169,7 @@ const TeamDetail: React.FC = () => {
 
       // Teleop (Last 2:20)
       { label: 'FUEL in Active HUB', value: getValue('teleop_fuel_active_hub'), points: 1, period: 'Teleop' },
-      { label: 'TOWER LEVEL 1', value: getValue('teleop_tower_level1'), points: 15, period: 'Teleop', isBoolean: true },
+      { label: 'TOWER LEVEL 1', value: getValue('teleop_tower_level1'), points: 10, period: 'Teleop', isBoolean: true },
       { label: 'TOWER LEVEL 2', value: getValue('teleop_tower_level2'), points: 20, period: 'Teleop', isBoolean: true },
       { label: 'TOWER LEVEL 3', value: getValue('teleop_tower_level3'), points: 30, period: 'Teleop', isBoolean: true },
 

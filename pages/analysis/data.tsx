@@ -879,7 +879,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                               </div>
                                               <div className="flex justify-between">
                                                 <span>TOWER LEVEL 1:</span>
-                                                <span className="font-medium">{formNotes.teleop.teleop_tower_level1 ? 'Yes (15 pts)' : 'No'}</span>
+                                                <span className="font-medium">{formNotes.teleop.teleop_tower_level1 ? 'Yes (10 pts)' : 'No'}</span>
                                               </div>
                                               <div className="flex justify-between">
                                                 <span>TOWER LEVEL 2:</span>

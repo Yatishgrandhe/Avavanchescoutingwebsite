@@ -127,6 +127,7 @@ export default function PitScoutingData() {
           teleop_capabilities: item.teleop_capabilities || [],
           robot_dimensions: item.robot_dimensions || { height: 0 },
           weight: item.weight || 0,
+          camera_count: item.camera_count !== undefined && item.camera_count !== null ? item.camera_count : undefined,
           programming_language: item.programming_language || 'Unknown',
           notes: item.notes || '',
           strengths: item.strengths || [],
@@ -256,6 +257,7 @@ export default function PitScoutingData() {
         teleop_capabilities: item.teleop_capabilities || [],
         robot_dimensions: item.robot_dimensions || { height: 0 },
         weight: item.weight || 0,
+        camera_count: item.camera_count !== undefined && item.camera_count !== null ? item.camera_count : undefined,
         programming_language: item.programming_language || 'Unknown',
         notes: item.notes || '',
         strengths: item.strengths || [],
@@ -740,19 +742,19 @@ export default function PitScoutingData() {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-gray-300">Length:</span>
-                            <span className="text-white font-medium">{selectedDetailItem.robot_dimensions.length ? `${selectedDetailItem.robot_dimensions.length}"` : 'N/A'}</span>
+                            <span className="text-white font-medium">{selectedDetailItem.robot_dimensions.length !== undefined && selectedDetailItem.robot_dimensions.length !== null ? `${selectedDetailItem.robot_dimensions.length}"` : 'N/A'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-300">Width:</span>
-                            <span className="text-white font-medium">{selectedDetailItem.robot_dimensions.width ? `${selectedDetailItem.robot_dimensions.width}"` : 'N/A'}</span>
+                            <span className="text-white font-medium">{selectedDetailItem.robot_dimensions.width !== undefined && selectedDetailItem.robot_dimensions.width !== null ? `${selectedDetailItem.robot_dimensions.width}"` : 'N/A'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-300">Height:</span>
-                            <span className="text-white font-medium">{selectedDetailItem.robot_dimensions.height ? `${selectedDetailItem.robot_dimensions.height}"` : 'N/A'}</span>
+                            <span className="text-white font-medium">{selectedDetailItem.robot_dimensions.height !== undefined && selectedDetailItem.robot_dimensions.height !== null ? `${selectedDetailItem.robot_dimensions.height}"` : 'N/A'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-300">Weight:</span>
-                            <span className="text-white font-medium">{selectedDetailItem.weight ? `${selectedDetailItem.weight} lbs` : 'N/A'}</span>
+                            <span className="text-white font-medium">{selectedDetailItem.weight !== undefined && selectedDetailItem.weight !== null && selectedDetailItem.weight !== 0 ? `${selectedDetailItem.weight} lbs` : 'N/A'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-300">Number of Cameras:</span>

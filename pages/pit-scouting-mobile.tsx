@@ -45,6 +45,7 @@ interface PitScoutingData {
     height?: number;
   };
   weight?: number;
+  cameraCount?: number;
   programmingLanguage: string;
   notes: string;
   photos: string[];
@@ -76,6 +77,7 @@ export default function PitScoutingMobile() {
       height: 0,
     },
     weight: 0,
+    cameraCount: 0,
     programmingLanguage: '',
     notes: '',
     photos: [],
@@ -198,6 +200,7 @@ export default function PitScoutingMobile() {
         teleop_capabilities: formData.teleopCapabilities,
         robot_dimensions: formData.robotDimensions,
         weight: formData.weight,
+        camera_count: formData.cameraCount || 0,
         programming_language: formData.programmingLanguage,
         notes: formData.notes,
         photos: formData.photos,
@@ -243,6 +246,7 @@ export default function PitScoutingMobile() {
           downtimeStrategy: [],
           robotDimensions: { height: 0 },
           weight: 0,
+          cameraCount: 0,
           programmingLanguage: '',
           notes: '',
           photos: [],
@@ -528,6 +532,21 @@ export default function PitScoutingMobile() {
                         placeholder="Optional"
                         value={formData.weight?.toString() || ''}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, weight: e.target.value ? parseFloat(e.target.value) : undefined }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Number of Cameras <span className="text-muted-foreground text-xs">(Optional)</span>
+                      </label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={formData.cameraCount?.toString() || ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const val = parseInt(e.target.value) || 0;
+                          setFormData(prev => ({ ...prev, cameraCount: val >= 0 ? val : 0 }));
+                        }}
                       />
                     </div>
                   </div>

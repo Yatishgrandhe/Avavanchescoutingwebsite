@@ -48,6 +48,7 @@ interface PitScoutingData {
     height?: number;
   };
   weight?: number;
+  cameraCount?: number;
   programmingLanguage: string;
   notes: string;
   overallRating: number;
@@ -77,6 +78,7 @@ export default function PitScouting() {
     downtimeStrategy: [],
     robotDimensions: { height: 0 },
     weight: 0,
+    cameraCount: 0,
     programmingLanguage: '',
     notes: '',
     overallRating: 1,
@@ -150,6 +152,7 @@ export default function PitScouting() {
               downtimeStrategy: existingData.drive_train_details?.downtime_strategy || [],
               robotDimensions: existingData.robot_dimensions || { height: 0 },
               weight: existingData.weight || 0,
+              cameraCount: existingData.camera_count || 0,
               programmingLanguage: existingData.programming_language || '',
               notes: existingData.notes || '',
               overallRating: existingData.overall_rating || 1,
@@ -232,6 +235,7 @@ export default function PitScouting() {
         teleop_capabilities: formData.teleopCapabilities,
         robot_dimensions: formData.robotDimensions,
         weight: formData.weight,
+        camera_count: formData.cameraCount || 0,
         programming_language: formData.programmingLanguage,
         notes: formData.notes,
         strengths: [],
@@ -281,6 +285,7 @@ export default function PitScouting() {
             downtimeStrategy: [],
             robotDimensions: { height: 0 },
             weight: 0,
+            cameraCount: 0,
             programmingLanguage: '',
             notes: '',
             overallRating: 1,
@@ -531,6 +536,23 @@ export default function PitScouting() {
                             </div>
                           ))}
                         </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium flex items-center gap-2">
+                          <Camera size={14} /> Number of Cameras
+                        </label>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          className="glass-input text-center h-9 border-white/10"
+                          value={formData.cameraCount || ''}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 0;
+                            setFormData(prev => ({ ...prev, cameraCount: val >= 0 ? val : 0 }));
+                          }}
+                        />
                       </div>
                     </div>
                   </div>

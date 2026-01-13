@@ -40,6 +40,7 @@ interface PitScoutingData {
     height: number;
   };
   weight: number;
+  camera_count?: number;
   programming_language: string;
   notes: string;
   strengths: string[];
@@ -326,6 +327,10 @@ export default function PitScoutingDetails() {
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
                       <span className="text-gray-400 font-medium">Weight</span>
                       <span className="text-white font-semibold">{pitData.weight} lbs</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400 font-medium">Number of Cameras</span>
+                      <span className="text-white font-semibold">{pitData.camera_count !== undefined && pitData.camera_count !== null ? pitData.camera_count : 'N/A'}</span>
                     </div>
                     <div className="flex justify-between items-center py-2">
                       <span className="text-gray-400 font-medium">Rating</span>

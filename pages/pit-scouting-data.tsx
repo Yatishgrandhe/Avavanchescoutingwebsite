@@ -55,6 +55,7 @@ interface PitScoutingData {
     height: number;
   };
   weight: number;
+  camera_count?: number;
   programming_language: string;
   notes: string;
   strengths: string[];
@@ -752,6 +753,10 @@ export default function PitScoutingData() {
                           <div className="flex justify-between">
                             <span className="text-gray-300">Weight:</span>
                             <span className="text-white font-medium">{selectedDetailItem.weight ? `${selectedDetailItem.weight} lbs` : 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Number of Cameras:</span>
+                            <span className="text-white font-medium">{selectedDetailItem.camera_count !== undefined && selectedDetailItem.camera_count !== null ? selectedDetailItem.camera_count : 'N/A'}</span>
                           </div>
                         </div>
                       </div>

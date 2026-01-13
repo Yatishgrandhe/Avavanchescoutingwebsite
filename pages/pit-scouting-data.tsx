@@ -744,7 +744,7 @@ export default function PitScoutingData() {
                             <span className="text-gray-300">Length:</span>
                             <span className="text-white font-medium">
                               {selectedDetailItem.robot_dimensions && 
-                               'length' in selectedDetailItem.robot_dimensions && 
+                               selectedDetailItem.robot_dimensions.length !== undefined && 
                                selectedDetailItem.robot_dimensions.length !== null 
                                 ? `${selectedDetailItem.robot_dimensions.length}"` 
                                 : 'N/A'}
@@ -754,7 +754,7 @@ export default function PitScoutingData() {
                             <span className="text-gray-300">Width:</span>
                             <span className="text-white font-medium">
                               {selectedDetailItem.robot_dimensions && 
-                               'width' in selectedDetailItem.robot_dimensions && 
+                               selectedDetailItem.robot_dimensions.width !== undefined && 
                                selectedDetailItem.robot_dimensions.width !== null 
                                 ? `${selectedDetailItem.robot_dimensions.width}"` 
                                 : 'N/A'}
@@ -764,7 +764,7 @@ export default function PitScoutingData() {
                             <span className="text-gray-300">Height:</span>
                             <span className="text-white font-medium">
                               {selectedDetailItem.robot_dimensions && 
-                               'height' in selectedDetailItem.robot_dimensions && 
+                               selectedDetailItem.robot_dimensions.height !== undefined && 
                                selectedDetailItem.robot_dimensions.height !== null 
                                 ? `${selectedDetailItem.robot_dimensions.height}"` 
                                 : 'N/A'}

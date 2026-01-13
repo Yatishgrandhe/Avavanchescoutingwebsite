@@ -233,7 +233,11 @@ export default function PitScouting() {
         },
         autonomous_capabilities: formData.autonomousCapabilities,
         teleop_capabilities: formData.teleopCapabilities,
-        robot_dimensions: formData.robotDimensions,
+        robot_dimensions: {
+          ...(formData.robotDimensions.length !== undefined && { length: formData.robotDimensions.length }),
+          ...(formData.robotDimensions.width !== undefined && { width: formData.robotDimensions.width }),
+          ...(formData.robotDimensions.height !== undefined && { height: formData.robotDimensions.height }),
+        },
         weight: formData.weight,
         camera_count: formData.cameraCount || 0,
         programming_language: formData.programmingLanguage,
@@ -519,15 +523,17 @@ export default function PitScouting() {
                                     : formData.robotDimensions[metric.toLowerCase() as keyof typeof formData.robotDimensions] || ''
                                 }
                                 onChange={(e) => {
-                                  const val = parseFloat(e.target.value);
+                                  const inputValue = e.target.value;
                                   if (metric === 'Weight') {
-                                    setFormData(prev => ({ ...prev, weight: val || undefined }));
+                                    const val = inputValue === '' ? undefined : parseFloat(inputValue);
+                                    setFormData(prev => ({ ...prev, weight: isNaN(val as number) ? undefined : val }));
                                   } else {
+                                    const val = inputValue === '' ? undefined : parseFloat(inputValue);
                                     setFormData(prev => ({
                                       ...prev,
                                       robotDimensions: {
                                         ...prev.robotDimensions,
-                                        [metric.toLowerCase()]: val || undefined
+                                        [metric.toLowerCase()]: isNaN(val as number) ? undefined : val
                                       }
                                     }));
                                   }

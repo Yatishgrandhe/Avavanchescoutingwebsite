@@ -198,7 +198,11 @@ export default function PitScoutingMobile() {
         },
         autonomous_capabilities: formData.autonomousCapabilities,
         teleop_capabilities: formData.teleopCapabilities,
-        robot_dimensions: formData.robotDimensions,
+        robot_dimensions: {
+          ...(formData.robotDimensions.length !== undefined && { length: formData.robotDimensions.length }),
+          ...(formData.robotDimensions.width !== undefined && { width: formData.robotDimensions.width }),
+          ...(formData.robotDimensions.height !== undefined && { height: formData.robotDimensions.height }),
+        },
         weight: formData.weight,
         camera_count: formData.cameraCount || 0,
         programming_language: formData.programmingLanguage,

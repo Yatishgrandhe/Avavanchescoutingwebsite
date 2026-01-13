@@ -198,11 +198,19 @@ export default function PitScoutingMobile() {
         },
         autonomous_capabilities: formData.autonomousCapabilities,
         teleop_capabilities: formData.teleopCapabilities,
-        robot_dimensions: {
-          ...(formData.robotDimensions.length !== undefined && { length: formData.robotDimensions.length }),
-          ...(formData.robotDimensions.width !== undefined && { width: formData.robotDimensions.width }),
-          ...(formData.robotDimensions.height !== undefined && { height: formData.robotDimensions.height }),
-        },
+        robot_dimensions: (() => {
+          const dims: { length?: number; width?: number; height?: number } = {};
+          if (formData.robotDimensions.length !== undefined && formData.robotDimensions.length !== null) {
+            dims.length = formData.robotDimensions.length;
+          }
+          if (formData.robotDimensions.width !== undefined && formData.robotDimensions.width !== null) {
+            dims.width = formData.robotDimensions.width;
+          }
+          if (formData.robotDimensions.height !== undefined && formData.robotDimensions.height !== null) {
+            dims.height = formData.robotDimensions.height;
+          }
+          return dims;
+        })(),
         weight: formData.weight,
         camera_count: formData.cameraCount || 0,
         programming_language: formData.programmingLanguage,

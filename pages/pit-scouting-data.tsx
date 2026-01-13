@@ -125,7 +125,7 @@ export default function PitScoutingData() {
           },
           autonomous_capabilities: item.autonomous_capabilities || [],
           teleop_capabilities: item.teleop_capabilities || [],
-          robot_dimensions: item.robot_dimensions || { height: 0 },
+          robot_dimensions: item.robot_dimensions && typeof item.robot_dimensions === 'object' ? item.robot_dimensions : { height: 0 },
           weight: item.weight || 0,
           camera_count: item.camera_count !== undefined && item.camera_count !== null ? item.camera_count : undefined,
           programming_language: item.programming_language || 'Unknown',
@@ -742,15 +742,33 @@ export default function PitScoutingData() {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-gray-300">Length:</span>
-                            <span className="text-white font-medium">{selectedDetailItem.robot_dimensions.length !== undefined && selectedDetailItem.robot_dimensions.length !== null ? `${selectedDetailItem.robot_dimensions.length}"` : 'N/A'}</span>
+                            <span className="text-white font-medium">
+                              {selectedDetailItem.robot_dimensions && 
+                               'length' in selectedDetailItem.robot_dimensions && 
+                               selectedDetailItem.robot_dimensions.length !== null 
+                                ? `${selectedDetailItem.robot_dimensions.length}"` 
+                                : 'N/A'}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-300">Width:</span>
-                            <span className="text-white font-medium">{selectedDetailItem.robot_dimensions.width !== undefined && selectedDetailItem.robot_dimensions.width !== null ? `${selectedDetailItem.robot_dimensions.width}"` : 'N/A'}</span>
+                            <span className="text-white font-medium">
+                              {selectedDetailItem.robot_dimensions && 
+                               'width' in selectedDetailItem.robot_dimensions && 
+                               selectedDetailItem.robot_dimensions.width !== null 
+                                ? `${selectedDetailItem.robot_dimensions.width}"` 
+                                : 'N/A'}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-300">Height:</span>
-                            <span className="text-white font-medium">{selectedDetailItem.robot_dimensions.height !== undefined && selectedDetailItem.robot_dimensions.height !== null ? `${selectedDetailItem.robot_dimensions.height}"` : 'N/A'}</span>
+                            <span className="text-white font-medium">
+                              {selectedDetailItem.robot_dimensions && 
+                               'height' in selectedDetailItem.robot_dimensions && 
+                               selectedDetailItem.robot_dimensions.height !== null 
+                                ? `${selectedDetailItem.robot_dimensions.height}"` 
+                                : 'N/A'}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-300">Weight:</span>

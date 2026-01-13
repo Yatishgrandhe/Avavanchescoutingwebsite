@@ -754,7 +754,7 @@ export default function PitScoutingData() {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-300">Weight:</span>
-                            <span className="text-white font-medium">{selectedDetailItem.weight !== undefined && selectedDetailItem.weight !== null && selectedDetailItem.weight !== 0 ? `${selectedDetailItem.weight} lbs` : 'N/A'}</span>
+                            <span className="text-white font-medium">{selectedDetailItem.weight !== undefined && selectedDetailItem.weight !== null ? `${selectedDetailItem.weight} lbs` : 'N/A'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-300">Number of Cameras:</span>

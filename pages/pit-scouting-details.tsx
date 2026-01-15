@@ -41,6 +41,7 @@ interface PitScoutingData {
   };
   weight: number;
   camera_count?: number;
+  shooting_locations_count?: number;
   programming_language: string;
   notes: string;
   strengths: string[];
@@ -101,6 +102,8 @@ export default function PitScoutingDetails() {
           teleop_capabilities: pitScoutingData.teleop_capabilities || [],
           robot_dimensions: pitScoutingData.robot_dimensions || { height: 0 },
           weight: pitScoutingData.weight || 0,
+          camera_count: pitScoutingData.camera_count !== undefined && pitScoutingData.camera_count !== null ? pitScoutingData.camera_count : undefined,
+          shooting_locations_count: pitScoutingData.shooting_locations_count !== undefined && pitScoutingData.shooting_locations_count !== null ? pitScoutingData.shooting_locations_count : undefined,
           programming_language: pitScoutingData.programming_language || 'Unknown',
           notes: pitScoutingData.notes || '',
           strengths: pitScoutingData.strengths || [],
@@ -331,6 +334,10 @@ export default function PitScoutingDetails() {
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
                       <span className="text-gray-400 font-medium">Number of Cameras</span>
                       <span className="text-white font-semibold">{pitData.camera_count !== undefined && pitData.camera_count !== null ? pitData.camera_count : 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400 font-medium">Number of Shooting Locations</span>
+                      <span className="text-white font-semibold">{pitData.shooting_locations_count !== undefined && pitData.shooting_locations_count !== null ? pitData.shooting_locations_count : 'N/A'}</span>
                     </div>
                     <div className="flex justify-between items-center py-2">
                       <span className="text-gray-400 font-medium">Rating</span>

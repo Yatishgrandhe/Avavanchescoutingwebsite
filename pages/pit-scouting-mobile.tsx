@@ -46,6 +46,7 @@ interface PitScoutingData {
   };
   weight?: number;
   cameraCount?: number;
+  shootingLocationsCount?: number;
   programmingLanguage: string;
   notes: string;
   photos: string[];
@@ -78,6 +79,7 @@ export default function PitScoutingMobile() {
     },
     weight: 0,
     cameraCount: 0,
+    shootingLocationsCount: 0,
     programmingLanguage: '',
     notes: '',
     photos: [],
@@ -213,6 +215,7 @@ export default function PitScoutingMobile() {
         })(),
         weight: formData.weight,
         camera_count: formData.cameraCount || 0,
+        shooting_locations_count: formData.shootingLocationsCount || 0,
         programming_language: formData.programmingLanguage,
         notes: formData.notes,
         photos: formData.photos,
@@ -259,6 +262,7 @@ export default function PitScoutingMobile() {
           robotDimensions: { height: 0 },
           weight: 0,
           cameraCount: 0,
+          shootingLocationsCount: 0,
           programmingLanguage: '',
           notes: '',
           photos: [],
@@ -558,6 +562,21 @@ export default function PitScoutingMobile() {
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           const val = parseInt(e.target.value) || 0;
                           setFormData(prev => ({ ...prev, cameraCount: val >= 0 ? val : 0 }));
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Number of Shooting Locations <span className="text-muted-foreground text-xs">(Optional)</span>
+                      </label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={formData.shootingLocationsCount?.toString() || ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const val = parseInt(e.target.value) || 0;
+                          setFormData(prev => ({ ...prev, shootingLocationsCount: val >= 0 ? val : 0 }));
                         }}
                       />
                     </div>

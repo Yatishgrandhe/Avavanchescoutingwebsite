@@ -56,6 +56,7 @@ interface PitScoutingData {
   };
   weight: number;
   camera_count?: number;
+  shooting_locations_count?: number;
   programming_language: string;
   notes: string;
   strengths: string[];
@@ -128,6 +129,7 @@ export default function PitScoutingData() {
           robot_dimensions: item.robot_dimensions && typeof item.robot_dimensions === 'object' ? item.robot_dimensions : { height: 0 },
           weight: item.weight || 0,
           camera_count: item.camera_count !== undefined && item.camera_count !== null ? item.camera_count : undefined,
+          shooting_locations_count: item.shooting_locations_count !== undefined && item.shooting_locations_count !== null ? item.shooting_locations_count : undefined,
           programming_language: item.programming_language || 'Unknown',
           notes: item.notes || '',
           strengths: item.strengths || [],
@@ -777,6 +779,10 @@ export default function PitScoutingData() {
                           <div className="flex justify-between">
                             <span className="text-gray-300">Number of Cameras:</span>
                             <span className="text-white font-medium">{selectedDetailItem.camera_count !== undefined && selectedDetailItem.camera_count !== null ? selectedDetailItem.camera_count : 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Number of Shooting Locations:</span>
+                            <span className="text-white font-medium">{selectedDetailItem.shooting_locations_count !== undefined && selectedDetailItem.shooting_locations_count !== null ? selectedDetailItem.shooting_locations_count : 'N/A'}</span>
                           </div>
                         </div>
                       </div>

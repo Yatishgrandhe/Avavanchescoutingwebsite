@@ -17,7 +17,8 @@ import {
   Settings,
   AlertCircle,
   Cpu,
-  Ruler
+  Ruler,
+  Target
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, ValidationResult } from '@/lib/form-validation';
@@ -49,6 +50,7 @@ interface PitScoutingData {
   };
   weight?: number;
   cameraCount?: number;
+  shootingLocationsCount?: number;
   programmingLanguage: string;
   notes: string;
   overallRating: number;
@@ -79,6 +81,7 @@ export default function PitScouting() {
     robotDimensions: { height: 0 },
     weight: 0,
     cameraCount: 0,
+    shootingLocationsCount: 0,
     programmingLanguage: '',
     notes: '',
     overallRating: 1,
@@ -153,6 +156,7 @@ export default function PitScouting() {
               robotDimensions: existingData.robot_dimensions || { height: 0 },
               weight: existingData.weight || 0,
               cameraCount: existingData.camera_count || 0,
+              shootingLocationsCount: existingData.shooting_locations_count || 0,
               programmingLanguage: existingData.programming_language || '',
               notes: existingData.notes || '',
               overallRating: existingData.overall_rating || 1,
@@ -248,6 +252,7 @@ export default function PitScouting() {
         })(),
         weight: formData.weight,
         camera_count: formData.cameraCount || 0,
+        shooting_locations_count: formData.shootingLocationsCount || 0,
         programming_language: formData.programmingLanguage,
         notes: formData.notes,
         strengths: [],
@@ -298,6 +303,7 @@ export default function PitScouting() {
             robotDimensions: { height: 0 },
             weight: 0,
             cameraCount: 0,
+            shootingLocationsCount: 0,
             programmingLanguage: '',
             notes: '',
             overallRating: 1,
@@ -565,6 +571,23 @@ export default function PitScouting() {
                           onChange={(e) => {
                             const val = parseInt(e.target.value) || 0;
                             setFormData(prev => ({ ...prev, cameraCount: val >= 0 ? val : 0 }));
+                          }}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium flex items-center gap-2">
+                          <Target size={14} /> Number of Shooting Locations
+                        </label>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          className="glass-input text-center h-9 border-white/10"
+                          value={formData.shootingLocationsCount || ''}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 0;
+                            setFormData(prev => ({ ...prev, shootingLocationsCount: val >= 0 ? val : 0 }));
                           }}
                         />
                       </div>

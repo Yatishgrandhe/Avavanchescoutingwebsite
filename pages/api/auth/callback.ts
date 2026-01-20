@@ -91,31 +91,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     let errorMessage = 'Authentication failed';
     
-    // Provide specific error messages based on the error type
-    switch (authError) {
-      case 'access_denied':
-        errorMessage = 'You denied access to your Discord account. Please try again and grant permission.';
-        break;
-      case 'invalid_request':
-        errorMessage = 'Invalid authentication request. Please try signing in again.';
-        break;
-      case 'unauthorized_client':
-        errorMessage = 'Discord application is not properly configured. Please contact support.';
-        break;
-      case 'unsupported_response_type':
-        errorMessage = 'Authentication method not supported. Please contact support.';
-        break;
-      case 'invalid_scope':
-        errorMessage = 'Invalid permissions requested. Please contact support.';
-        break;
-      case 'server_error':
-        errorMessage = 'Discord server error. Please try again in a few minutes.';
-        break;
-      case 'temporarily_unavailable':
-        errorMessage = 'Discord authentication is temporarily unavailable. Please try again later.';
-        break;
-      default:
-        errorMessage = error_description as string || 'Authentication failed. Please try again.';
+    // Check if error_description contains guild membership error
+    const errorDesc = error_description as string || '';
+    if (errorDesc.includes('Avalanche server') || 
+        errorDesc.includes('not allowed to login') ||
+        errorDesc.includes('guild membership') ||
+        errorDesc.includes('Discord server membership')) {
+      errorMessage = "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again.";
+    } else {
+      // Provide specific error messages based on the error type
+      switch (authError) {
+        case 'access_denied':
+          errorMessage = 'You denied access to your Discord account. Please try again and grant permission.';
+          break;
+        case 'invalid_request':
+          errorMessage = 'Invalid authentication request. Please try signing in again.';
+          break;
+        case 'unauthorized_client':
+          errorMessage = 'Discord application is not properly configured. Please contact support.';
+          break;
+        case 'unsupported_response_type':
+          errorMessage = 'Authentication method not supported. Please contact support.';
+          break;
+        case 'invalid_scope':
+          errorMessage = 'Invalid permissions requested. Please contact support.';
+          break;
+        case 'server_error':
+          errorMessage = 'Discord server error. Please try again in a few minutes.';
+          break;
+        case 'temporarily_unavailable':
+          errorMessage = 'Discord authentication is temporarily unavailable. Please try again later.';
+          break;
+        default:
+          errorMessage = errorDesc || 'Authentication failed. Please try again.';
+      }
     }
     
     // Notify Discord about the OAuth error
@@ -155,31 +164,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.log('✅ Authentication successful, redirecting to dashboard');
         
         // Successful authentication - redirect to dashboard
-        // Removed Discord server verification requirement to allow all users
-        res.redirect(302, '/');
+        res.redirect(302, next as string || '/');
         return;
       } else {
         console.error('❌ Auth callback error:', error);
+        console.error('❌ Error details:', {
+          message: error?.message,
+          status: error?.status,
+          name: error?.name,
+        });
         
         let errorMessage = 'Failed to complete authentication';
         
         // Provide specific error messages for common issues
         if (error?.message) {
-          // Check for Avalanche Discord server membership errors
-          if (error.message.includes('member of the Avalanche Discord server') || 
-              error.message.includes('Avalanche Discord server') ||
-              error.message.includes('guild membership') ||
-              error.message.includes('Discord server membership')) {
+          const errorMsg = error.message.toLowerCase();
+          // Check for Avalanche Discord server membership errors (from before-user-created hook)
+          if (errorMsg.includes('avalanche server') || 
+              errorMsg.includes('not allowed to login') ||
+              errorMsg.includes('guild membership') ||
+              errorMsg.includes('discord server membership') ||
+              errorMsg.includes('not in the avalanche')) {
             errorMessage = "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again.";
-          } else if (error.message.includes('Invalid code')) {
+          } else if (errorMsg.includes('invalid code') || errorMsg.includes('code expired')) {
             errorMessage = 'Authentication code expired. Please try signing in again.';
-          } else if (error.message.includes('User not found')) {
+          } else if (errorMsg.includes('user not found')) {
             errorMessage = 'Your Discord account could not be found. Please try again.';
-          } else if (error.message.includes('Email not confirmed')) {
+          } else if (errorMsg.includes('email not confirmed')) {
             errorMessage = 'Please confirm your Discord email address and try again.';
           } else {
             errorMessage = error.message;
           }
+        } else if (error && !data.session) {
+          // No error message but no session - likely hook rejection
+          errorMessage = "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again.";
         }
         
         // Notify Discord about the session exchange error

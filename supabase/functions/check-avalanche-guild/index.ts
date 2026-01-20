@@ -95,7 +95,7 @@ serve(async (req) => {
           console.log('User is NOT a member of Avalanche Discord server')
           return new Response(
             JSON.stringify({ 
-              error: 'You must be a member of the Avalanche Discord server to sign up. Please join the server first and try again.' 
+              error: "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again." 
             }),
             { status: 403, headers: { 'Content-Type': 'application/json' } }
           )
@@ -118,7 +118,7 @@ serve(async (req) => {
     console.log('Could not verify Discord guild membership')
     return new Response(
       JSON.stringify({ 
-        error: 'Unable to verify Discord server membership. Please ensure you are a member of the Avalanche Discord server.' 
+        error: "You're not in the Avalanche server. You're not allowed to login. Please ensure you are a member of the Avalanche Discord server and try again." 
       }),
       { status: 403, headers: { 'Content-Type': 'application/json' } }
     )

@@ -165,7 +165,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         // Provide specific error messages for common issues
         if (error?.message) {
-          if (error.message.includes('Invalid code')) {
+          // Check for Avalanche Discord server membership errors
+          if (error.message.includes('member of the Avalanche Discord server') || 
+              error.message.includes('Avalanche Discord server') ||
+              error.message.includes('guild membership') ||
+              error.message.includes('Discord server membership')) {
+            errorMessage = "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again.";
+          } else if (error.message.includes('Invalid code')) {
             errorMessage = 'Authentication code expired. Please try signing in again.';
           } else if (error.message.includes('User not found')) {
             errorMessage = 'Your Discord account could not be found. Please try again.';

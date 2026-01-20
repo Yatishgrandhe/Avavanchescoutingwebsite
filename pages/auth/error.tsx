@@ -53,6 +53,17 @@ export default function AuthError() {
   }, []);
 
   const getErrorIcon = () => {
+    // Check if message indicates guild/server membership error
+    const messageStr = typeof message === 'string' ? message.toLowerCase() : '';
+    const isGuildError = messageStr.includes('avalanche server') || 
+                         messageStr.includes('not allowed to login') ||
+                         messageStr.includes('guild') ||
+                         messageStr.includes('server membership');
+    
+    if (isGuildError) {
+      return <ShieldAlert className="w-12 h-12 text-orange-500" />;
+    }
+    
     switch (error) {
       case 'access_denied':
         return <ShieldAlert className="w-12 h-12 text-orange-500" />;
@@ -65,6 +76,21 @@ export default function AuthError() {
   };
 
   const getSuggestions = () => {
+    // Check if message indicates guild/server membership error
+    const messageStr = typeof message === 'string' ? message.toLowerCase() : '';
+    const isGuildError = messageStr.includes('avalanche server') || 
+                         messageStr.includes('not allowed to login') ||
+                         messageStr.includes('guild') ||
+                         messageStr.includes('server membership');
+    
+    if (isGuildError) {
+      return [
+        'You must be a member of the Avalanche Discord server to access this platform',
+        'Join the Avalanche Discord server and try signing in again',
+        'Contact an administrator if you believe you should have access'
+      ];
+    }
+    
     switch (error) {
       case 'access_denied':
         return [
@@ -140,10 +166,17 @@ export default function AuthError() {
             </motion.div>
 
             <h1 className="text-3xl font-bold text-foreground font-heading text-center mb-2 tracking-tight">
-              Authentication Error
+              {(() => {
+                const messageStr = typeof message === 'string' ? message.toLowerCase() : '';
+                const isGuildError = messageStr.includes('avalanche server') || 
+                                     messageStr.includes('not allowed to login') ||
+                                     messageStr.includes('guild') ||
+                                     messageStr.includes('server membership');
+                return isGuildError ? 'Access Denied' : 'Authentication Error';
+              })()}
             </h1>
 
-            <p className="text-muted-foreground text-center text-lg max-w-sm mx-auto leading-relaxed">
+            <p className="text-muted-foreground text-center text-lg max-w-sm mx-auto leading-relaxed break-words px-4">
               {message || 'An unexpected error occurred during the sign-in process.'}
             </p>
           </div>

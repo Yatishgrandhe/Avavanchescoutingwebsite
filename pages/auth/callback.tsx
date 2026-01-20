@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/lib/supabase';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui';
 
@@ -11,9 +11,9 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const handleCallback = async () => {
-      const { code, error: authError, error_description, error_code } = router.query;
+      const { error: authError, error_description, error_code } = router.query;
 
-      // Handle OAuth errors
+      // Handle OAuth errors first
       if (authError || error_code) {
         let errorMessage = 'Authentication failed';
         
@@ -48,67 +48,80 @@ export default function AuthCallback() {
         return;
       }
 
-      // Handle successful OAuth callback with code
-      if (code && typeof code === 'string') {
-        try {
-          const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-              auth: {
-                autoRefreshToken: true,
-                persistSession: true,
-                detectSessionInUrl: true,
-                flowType: 'pkce'
-              }
-            }
-          );
+      // Use the same Supabase client instance that has access to the stored code verifier
+      const supabase = getSupabaseClient();
 
-          // Exchange code for session (this will use the code verifier from localStorage)
-          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+      try {
+        // With detectSessionInUrl: true, Supabase automatically detects the code in the URL
+        // and exchanges it for a session. We'll listen for the auth state change.
+        let sessionReceived = false;
+        let authError: any = null;
 
-          if (exchangeError) {
-            console.error('Session exchange error:', exchangeError);
-            let errorMessage = 'Failed to complete authentication';
-            
-            if (exchangeError.message.includes('code verifier')) {
-              errorMessage = 'Authentication session expired. Please try signing in again.';
-            } else if (exchangeError.message.includes('Avalanche server') || 
-                       exchangeError.message.includes('not allowed to login')) {
-              errorMessage = "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again.";
-            } else {
-              errorMessage = exchangeError.message || 'Authentication failed. Please try again.';
-            }
-            
-            setError(errorMessage);
-            setLoading(false);
-            setTimeout(() => {
-              router.push(`/auth/error?message=${encodeURIComponent(errorMessage)}&error=session_error`);
-            }, 2000);
-            return;
+        // Set up auth state change listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
+          console.log('Auth state changed:', event, session ? 'Session received' : 'No session');
+          
+          if (event === 'SIGNED_IN' && session) {
+            sessionReceived = true;
+            subscription.unsubscribe();
+            // Clear URL params and redirect
+            router.replace('/');
+          } else if (event === 'TOKEN_REFRESHED' && session) {
+            sessionReceived = true;
+            subscription.unsubscribe();
+            router.replace('/');
           }
+        });
 
-          if (data.session) {
-            // Success! Redirect to homepage
-            router.push('/');
+        // Also try to get session immediately (in case it's already processed)
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          subscription.unsubscribe();
+          let errorMessage = 'Failed to complete authentication';
+          
+          if (sessionError.message.includes('code verifier') || sessionError.message.includes('non-empty')) {
+            errorMessage = 'Authentication session expired or invalid. Please try signing in again.';
+          } else if (sessionError.message.includes('Avalanche server') || 
+                     sessionError.message.includes('not allowed to login')) {
+            errorMessage = "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again.";
           } else {
-            setError('No session created. Please try again.');
-            setLoading(false);
-            setTimeout(() => {
-              router.push('/auth/error?message=No session created. Please try again.&error=session_error');
-            }, 2000);
+            errorMessage = sessionError.message || 'Authentication failed. Please try again.';
           }
-        } catch (err) {
-          console.error('Unexpected error:', err);
-          setError('An unexpected error occurred. Please try again.');
+          
+          setError(errorMessage);
           setLoading(false);
           setTimeout(() => {
-            router.push('/auth/error?message=An unexpected error occurred. Please try again.&error=unexpected_error');
+            router.push(`/auth/error?message=${encodeURIComponent(errorMessage)}&error=session_error`);
           }, 2000);
+          return;
         }
-      } else {
-        // No code and no error - redirect to sign in
-        router.push('/auth/signin');
+
+        if (currentSession) {
+          subscription.unsubscribe();
+          router.replace('/');
+          return;
+        }
+
+        // Wait for auth state change (max 5 seconds)
+        setTimeout(() => {
+          subscription.unsubscribe();
+          if (!sessionReceived) {
+            setError('Authentication timed out. Please try signing in again.');
+            setLoading(false);
+            setTimeout(() => {
+              router.push('/auth/error?message=Authentication timed out. Please try signing in again.&error=timeout');
+            }, 2000);
+          }
+        }, 5000);
+      } catch (err) {
+        console.error('Unexpected error:', err);
+        setError('An unexpected error occurred. Please try again.');
+        setLoading(false);
+        setTimeout(() => {
+          router.push('/auth/error?message=An unexpected error occurred. Please try again.&error=unexpected_error');
+        }, 2000);
       }
     };
 

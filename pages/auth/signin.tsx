@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createClient } from '@supabase/supabase-js';
 import { Button } from '../../components/ui';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui';
 import { useToast } from '../../hooks/use-toast';
@@ -107,23 +106,10 @@ export default function SignIn() {
     setSuccess(null);
 
     try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          auth: {
-            autoRefreshToken: true,
-            persistSession: true,
-            detectSessionInUrl: true,
-            flowType: 'pkce'
-          },
-          global: {
-            headers: {
-              'X-Client-Info': 'avalanche-scouting'
-            }
-          }
-        }
-      );
+      // Use the shared Supabase client instance to avoid multiple GoTrueClient instances
+      // This ensures the code verifier is stored and accessible across the OAuth flow
+      const { getSupabaseClient } = await import('@/lib/supabase');
+      const supabase = getSupabaseClient();
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',

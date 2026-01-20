@@ -186,7 +186,7 @@ export default function SignIn() {
           </div>
         </div>
         <div className="text-muted-foreground text-xs uppercase tracking-widest font-semibold hidden sm:block">
-          FRC 2025 Reefscape
+          FRC 2026 Rebuilt
         </div>
       </header>
 

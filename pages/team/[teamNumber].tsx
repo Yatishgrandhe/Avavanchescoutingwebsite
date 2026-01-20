@@ -283,7 +283,7 @@ const TeamDetail: React.FC = () => {
                 <span className="text-2xl md:text-4xl">{team.team_name}</span>
               </h1>
               <p className="text-muted-foreground mt-2 max-w-2xl">
-                Comprehensive performance analysis for FRC Season 2025.
+                Comprehensive performance analysis for FRC Season 2026 Rebuilt.
               </p>
             </div>
           </motion.div>

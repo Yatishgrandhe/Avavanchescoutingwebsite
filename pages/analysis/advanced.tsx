@@ -304,7 +304,7 @@ export default function AdvancedAnalysis() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Input
                       
-                      placeholder="e.g., 2025mabos"
+                      placeholder="e.g., 2026mabos"
                       value={filters.event_key || ''}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters(prev => ({ ...prev, event_key: e.target.value || undefined }))}
                       

@@ -91,7 +91,7 @@ const AvalancheAnimation = () => {
 const features = [
   {
     title: "Real-time Scoring",
-    description: "Instant feedback with automatic FRC 2025 score calculation.",
+    description: "Instant feedback with automatic FRC 2026 Rebuilt score calculation.",
     icon: Target,
     color: "text-blue-400",
     bgColor: "bg-blue-400/10"
@@ -500,7 +500,7 @@ export default function Home() {
         >
           <div className="absolute -inset-4 bg-primary/20 blur-2xl rounded-full opacity-50"></div>
           <Badge className="relative bg-primary/20 text-primary-foreground hover:bg-primary/30 border-primary/20 px-4 py-1.5 text-sm rounded-full mb-6 transition-all">
-            FRC 2025 Ready
+            FRC 2026 Rebuilt Ready
           </Badge>
         </motion.div>
 
@@ -558,7 +558,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="relative z-20 py-8 text-center text-xs text-muted-foreground/50 border-t border-white/5 bg-background/50 backdrop-blur-xl">
-        <p>© 2025 Avalanche Robotics • FRC Team 2724</p>
+        <p>© 2026 Avalanche Robotics • FRC Team 2724</p>
       </footer>
     </div>
   );

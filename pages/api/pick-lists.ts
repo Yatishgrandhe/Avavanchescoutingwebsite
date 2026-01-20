@@ -95,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const pickListData = {
         user_id: user.id,
         name,
-        event_key: event_key || '2025test',
+        event_key: event_key || '2026test',
         teams: validatedTeams,
       };
 

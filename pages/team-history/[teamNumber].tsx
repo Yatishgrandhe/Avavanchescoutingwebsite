@@ -197,8 +197,8 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
 
         competitionsData.push({
           competition_id: 'current',
-          competition_name: 'Current Season (2025)',
-          competition_year: 2025,
+          competition_name: 'Current Season (2026)',
+          competition_year: 2026,
           competition_key: 'current',
           scoutingData: currentScoutingData,
           pitScoutingData: [],

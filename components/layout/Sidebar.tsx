@@ -218,7 +218,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   Avalanche
                 </h2>
                 <p className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
-                  Scouting 2025
+                  Scouting 2026
                 </p>
               </motion.div>
             )}

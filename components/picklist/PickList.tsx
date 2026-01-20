@@ -276,7 +276,7 @@ interface PickListProps {
   session?: any;
 }
 
-export function PickList({ pickListId, eventKey = '2025test', onSave, session }: PickListProps) {
+export function PickList({ pickListId, eventKey = '2026test', onSave, session }: PickListProps) {
   const [teams, setTeams] = useState<PickListTeam[]>([]);
   const [availableTeams, setAvailableTeams] = useState<Array<{ team_number: number; team_name: string; stats?: TeamStats }>>([]);
   const [pickListName, setPickListName] = useState('My Pick List');

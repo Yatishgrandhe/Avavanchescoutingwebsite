@@ -283,8 +283,8 @@ export default function BasicAnalysis() {
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-600">
                     <SelectItem value="all" className="text-white hover:bg-gray-700">All Events</SelectItem>
-                    <SelectItem value="2025camb" className="text-white hover:bg-gray-700">CAMB 2025</SelectItem>
-                    <SelectItem value="2025mabt" className="text-white hover:bg-gray-700">MABT 2025</SelectItem>
+                    <SelectItem value="2026camb" className="text-white hover:bg-gray-700">CAMB 2026</SelectItem>
+                    <SelectItem value="2026mabt" className="text-white hover:bg-gray-700">MABT 2026</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -81,7 +81,7 @@ export default function PickListPage() {
         },
         body: JSON.stringify({
           name: newPickListName,
-          event_key: '2025test',
+          event_key: '2026test',
           teams: [],
         }),
       });

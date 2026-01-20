@@ -20,8 +20,8 @@ supabase login
 # Link to your project
 supabase link --project-ref ylzahxkfmklwcgkogeff
 
-# Deploy the function
-supabase functions deploy check-avalanche-guild
+# Deploy the function WITHOUT JWT verification (required for Auth Hooks)
+supabase functions deploy check-avalanche-guild --no-verify-jwt
 ```
 
 #### Option B: Using Supabase Dashboard
@@ -29,7 +29,10 @@ supabase functions deploy check-avalanche-guild
 2. Navigate to: **Edge Functions** > **Create a new function**
 3. Name it: `check-avalanche-guild`
 4. Copy the contents of `index.ts` into the function editor
-5. Click **Deploy**
+5. **IMPORTANT:** Before deploying, make sure **"Enforce JWT verification"** is **DISABLED** (unchecked)
+   - Auth Hooks use system-level signatures, not standard JWTs
+   - If JWT verification is enabled, you'll get "Hook requires authorization token" error
+6. Click **Deploy**
 
 ### 2. Set Environment Variables
 
@@ -111,9 +114,14 @@ supabase functions serve check-avalanche-guild --env-file .env.local
 
 ## Troubleshooting
 
+- **"Hook requires authorization token" Error**: 
+  - The Edge Function has JWT verification enabled, but Auth Hooks don't use standard JWTs
+  - **Fix:** Go to Edge Functions > check-avalanche-guild > Settings, and disable "Enforce JWT verification"
+  - Or redeploy with: `supabase functions deploy check-avalanche-guild --no-verify-jwt`
 - **403 Error**: User is not a member of the Discord server
 - **400 Error**: No Discord user ID found (user didn't sign in with Discord)
 - **500 Error**: Check function logs in Supabase Dashboard > Edge Functions > Logs
+- **404 Error**: Edge Function not deployed or wrong URL in Auth Hook configuration
 
 ## Notes
 

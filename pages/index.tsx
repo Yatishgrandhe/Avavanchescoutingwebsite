@@ -254,7 +254,7 @@ export default function Home() {
           id: 'pit-sample',
           type: 'pit',
           title: 'Pit Scouting Updated',
-          description: 'Robot mechanics analyzed for Team 360',
+          description: 'Robot mechanics analyzed for Team 2724',
           timestamp: '1 hour ago',
           icon: 'clock',
         });
@@ -557,7 +557,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="relative z-20 py-8 text-center text-xs text-muted-foreground/50 border-t border-white/5 bg-background/50 backdrop-blur-xl">
-        <p>© 2025 Avalanche Robotics • FRC Team 360</p>
+        <p>© 2025 Avalanche Robotics • FRC Team 2724</p>
       </footer>
     </div>
   );

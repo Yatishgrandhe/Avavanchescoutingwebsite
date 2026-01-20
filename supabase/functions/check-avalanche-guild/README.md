@@ -10,11 +10,11 @@ You have two options:
 
 #### Option A: Using Supabase CLI (Recommended)
 ```bash
-# Install Supabase CLI (if not already installed)
-# macOS: brew install supabase/tap/supabase
-# Or download from: https://github.com/supabase/cli/releases
+# The Supabase CLI is already installed at ~/.local/bin/supabase
+# Add it to your PATH (add this to your ~/.zshrc or ~/.bashrc):
+export PATH="$HOME/.local/bin:$PATH"
 
-# Login to Supabase
+# Login to Supabase (opens browser for authentication)
 supabase login
 
 # Link to your project
@@ -22,6 +22,9 @@ supabase link --project-ref ylzahxkfmklwcgkogeff
 
 # Deploy the function WITHOUT JWT verification (required for Auth Hooks)
 supabase functions deploy check-avalanche-guild --no-verify-jwt
+
+# Or use the deployment script:
+./deploy-function.sh
 ```
 
 #### Option B: Using Supabase Dashboard

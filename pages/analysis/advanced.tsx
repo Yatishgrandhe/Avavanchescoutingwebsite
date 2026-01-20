@@ -252,7 +252,7 @@ export default function AdvancedAnalysis() {
 
   return (
     <Layout>
-      <div className="min-h-full p-6 data-page">
+      <div className="min-h-full p-3 sm:p-6 data-page max-w-full overflow-x-hidden">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -262,7 +262,7 @@ export default function AdvancedAnalysis() {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                <h1 className={`text-2xl sm:text-3xl font-bold break-words ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   Advanced Team Analysis
                 </h1>
                 <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>

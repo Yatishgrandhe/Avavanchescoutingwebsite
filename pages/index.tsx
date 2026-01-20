@@ -467,19 +467,20 @@ export default function Home() {
 
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/5">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+        <div className="container mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
             <Logo size="sm" />
-            <span className="text-lg font-heading font-bold text-foreground tracking-tight">Avalanche Scouting</span>
+            <span className="text-sm sm:text-lg font-heading font-bold text-foreground tracking-tight truncate">Avalanche Scouting</span>
           </div>
-          <Button onClick={handleSignIn} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full px-6">
-            Sign In
+          <Button onClick={handleSignIn} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full px-3 sm:px-6 flex-shrink-0">
+            <span className="hidden sm:inline">Sign In</span>
+            <span className="sm:hidden">Sign In</span>
           </Button>
         </div>
       </header>
 
       {/* Hero Section */}
-      <main className="flex-1 container mx-auto px-6 pt-32 pb-16 flex flex-col items-center justify-center text-center relative z-20">
+      <main className="flex-1 container mx-auto px-4 sm:px-6 pt-24 sm:pt-32 pb-16 flex flex-col items-center justify-center text-center relative z-20 max-w-full overflow-x-hidden">
         {errorMessage && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -507,7 +508,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.8 }}
-          className="text-4xl md:text-6xl lg:text-7xl font-heading font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-white via-white/90 to-white/50 mb-6 tracking-tight max-w-4xl"
+          className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-heading font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-white via-white/90 to-white/50 mb-6 tracking-tight max-w-4xl px-4"
         >
           Precision Scouting for <br className="hidden md:block" /> Championship Performance
         </motion.h1>
@@ -516,7 +517,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.8 }}
-          className="text-lg md:text-xl text-muted-foreground/80 max-w-2xl mb-10 leading-relaxed"
+          className="text-base sm:text-lg md:text-xl text-muted-foreground/80 max-w-2xl mb-10 leading-relaxed px-4"
         >
           The advanced data platform for Avalanche Robotics.
           Real-time analytics, predictive modeling, and comprehensive robot validation.
@@ -526,7 +527,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6, duration: 0.8 }}
-          className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
+          className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto px-4"
         >
           <Button onClick={handleSignIn} size="lg" className="w-full sm:w-auto h-12 px-8 rounded-full bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all font-semibold text-lg">
             System Access <ArrowRight size={20} className="ml-2" />
@@ -541,15 +542,15 @@ export default function Home() {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, duration: 0.8 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-24 w-full"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-24 w-full px-4"
         >
           {features.map((feature, i) => (
             <div key={i} className="glass-card p-6 rounded-2xl text-left border border-white/5 hover:border-primary/20 transition-all group">
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${feature.bgColor} ${feature.color} group-hover:scale-110 transition-transform`}>
                 <feature.icon size={24} />
               </div>
-              <h3 className="font-semibold text-foreground text-lg mb-2">{feature.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+              <h3 className="font-semibold text-foreground text-base sm:text-lg mb-2 break-words">{feature.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed break-words">{feature.description}</p>
             </div>
           ))}
         </motion.div>

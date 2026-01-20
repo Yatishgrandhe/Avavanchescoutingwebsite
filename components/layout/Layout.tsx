@@ -119,7 +119,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 {isMobileNavOpen ? <X size={20} /> : <Menu size={20} />}
               </Button>
               <Logo size="sm" />
-              <h1 className="text-base font-heading font-bold text-foreground">
+              <h1 className="text-sm sm:text-base font-heading font-bold text-foreground truncate">
                 Avalanche Scouting
               </h1>
             </div>

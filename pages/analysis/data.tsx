@@ -361,7 +361,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   return (
     <ProtectedRoute>
       <Layout>
-        <div className="space-y-6 data-page">
+        <div className="space-y-6 data-page px-2 sm:px-4 md:px-0 max-w-full overflow-x-hidden">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -371,11 +371,11 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
           >
             <div className="flex items-center justify-center gap-2 mb-4">
               <Database className="w-8 h-8 text-blue-600" />
-              <h1 className="text-4xl font-bold text-foreground font-display">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground font-display break-words">
                 Data Analysis
               </h1>
             </div>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-sm sm:text-base md:text-xl text-muted-foreground max-w-2xl mx-auto px-4 break-words">
               Comprehensive view of all scouting data with detailed breakdowns and uploader information
             </p>
           </motion.div>
@@ -566,9 +566,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               onClick={() => setSelectedTeamDetails(team.team_number)}
                             >
                               <td className="p-2 md:p-3">
-                                <div className="flex items-center space-x-2">
-                                  <span className="font-medium text-foreground">{team.team_name}</span>
-                                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                                <div className="flex items-center space-x-2 min-w-0">
+                                  <span className="font-medium text-foreground truncate max-w-[120px] sm:max-w-none">{team.team_name}</span>
+                                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs flex-shrink-0">
                                     {team.team_number}
                                   </Badge>
                                 </div>
@@ -745,16 +745,16 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               className="border-b hover:bg-muted/50"
                             >
                               <td className="p-2 md:p-3">
-                                <div className="flex items-center gap-1 md:gap-2">
+                                <div className="flex items-center gap-1 md:gap-2 min-w-0">
                                   <span 
-                                    className="font-medium text-xs md:text-sm text-foreground cursor-pointer hover:text-primary transition-colors"
+                                    className="font-medium text-xs md:text-sm text-foreground cursor-pointer hover:text-primary transition-colors truncate max-w-[100px] sm:max-w-none"
                                     onClick={() => window.open(`/team/${data.team_number}`, '_blank')}
                                   >
                                     {getTeamName(data.team_number)}
                                   </span>
                                   <Badge 
                                     variant="outline" 
-                                    className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                                    className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors flex-shrink-0"
                                     onClick={() => window.open(`/team/${data.team_number}`, '_blank')}
                                   >
                                     {data.team_number}
@@ -804,7 +804,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                   </td>
                                 </>
                               )}
-                              <td className="p-2 md:p-3 max-w-xs">
+                              <td className="p-2 md:p-3 max-w-[150px] sm:max-w-xs">
                                 <div className="text-xs md:text-sm text-muted-foreground truncate" title={data.comments}>
                                   {data.comments || '-'}
                                 </div>

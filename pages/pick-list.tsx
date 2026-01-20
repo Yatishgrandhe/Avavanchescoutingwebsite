@@ -160,7 +160,7 @@ export default function PickListPage() {
           <div className="bg-red-500/10 p-4 rounded-full mb-4">
             <Shield className="w-12 h-12 text-red-400" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Access Restricted</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2 break-words px-4">Access Restricted</h2>
           <p className="text-muted-foreground max-w-md mb-6">
             Pick list management is restricted to alliance captains and administrators.
           </p>
@@ -179,7 +179,7 @@ export default function PickListPage() {
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70">
+              <h1 className="text-2xl sm:text-3xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 break-words">
                 Alliance Selection
               </h1>
               <p className="text-muted-foreground mt-1">

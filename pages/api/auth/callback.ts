@@ -81,22 +81,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  const { code, error: authError, error_description, next = '/' } = req.query;
+  const { code, error: authError, error_description, error_code, next = '/' } = req.query;
 
   console.log('🔍 Processing callback with:', { code: !!code, authError, error_description, next });
 
   // Handle OAuth errors with detailed messages
-  if (authError) {
-    console.error('❌ OAuth error received:', authError, error_description);
+  if (authError || error_code) {
+    console.error('❌ OAuth error received:', { authError, error_code, error_description });
     
     let errorMessage = 'Authentication failed';
     
-    // Check if error_description contains guild membership error
+    // Check if error_description contains guild membership error or hook errors
     const errorDesc = error_description as string || '';
-    if (errorDesc.includes('Avalanche server') || 
-        errorDesc.includes('not allowed to login') ||
-        errorDesc.includes('guild membership') ||
-        errorDesc.includes('Discord server membership')) {
+    const decodedErrorDesc = errorDesc ? decodeURIComponent(errorDesc) : '';
+    
+    // Check for hook 404 error (Edge Function not deployed or wrong URL)
+    if (decodedErrorDesc.includes('404') || decodedErrorDesc.includes('status code returned from hook')) {
+      errorMessage = "Authentication service is not properly configured. The Discord server verification function is not available. Please contact an administrator.";
+    } else if (decodedErrorDesc.includes('Avalanche server') || 
+        decodedErrorDesc.includes('not allowed to login') ||
+        decodedErrorDesc.includes('guild membership') ||
+        decodedErrorDesc.includes('Discord server membership')) {
       errorMessage = "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again.";
     } else {
       // Provide specific error messages based on the error type

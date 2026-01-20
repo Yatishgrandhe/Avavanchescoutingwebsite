@@ -176,7 +176,45 @@ export default function Home() {
   useRefreshHandler();
 
   useEffect(() => {
-    const { message, error } = router.query;
+    const { message, error, error_code, error_description } = router.query;
+    
+    // Handle error parameters from Supabase OAuth redirect
+    if (error || error_code || error_description) {
+      let errorMsg = '';
+      
+      // Decode error_description if present
+      if (error_description && typeof error_description === 'string') {
+        const decoded = decodeURIComponent(error_description);
+        // Check if it's a hook 404 error (Edge Function not deployed)
+        if (decoded.includes('404') || decoded.includes('status code returned from hook')) {
+          errorMsg = "Authentication service is not properly configured. The Discord server verification function is not available. Please contact an administrator.";
+        } else if (decoded.includes('Avalanche server') || decoded.includes('not allowed to login')) {
+          errorMsg = "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again.";
+        } else {
+          errorMsg = decoded;
+        }
+      } else if (error && typeof error === 'string') {
+        // Map common error codes to user-friendly messages
+        switch (error) {
+          case 'server_error':
+            errorMsg = 'Authentication server error. Please try again in a few moments.';
+            break;
+          case 'access_denied':
+            errorMsg = 'You denied access to your Discord account. Please try again and grant permission.';
+            break;
+          default:
+            errorMsg = 'Authentication failed. Please try again.';
+        }
+      } else {
+        errorMsg = 'An authentication error occurred. Please try again.';
+      }
+      
+      // Redirect to error page with the message
+      router.replace(`/auth/error?message=${encodeURIComponent(errorMsg)}&error=${error || error_code || 'unknown'}`);
+      return;
+    }
+    
+    // Handle message parameter (legacy)
     if (message && typeof message === 'string') {
       setErrorMessage(message);
       router.replace('/', undefined, { shallow: true });

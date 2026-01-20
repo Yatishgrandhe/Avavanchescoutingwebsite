@@ -15,28 +15,44 @@ export default function AuthCallback() {
 
       // Handle OAuth errors first
       if (authError || error_code) {
+        console.error('OAuth error detected:', { authError, error_code, error_description });
+        
         let errorMessage = 'Authentication failed';
         
         const errorDesc = error_description as string || '';
         const decodedErrorDesc = errorDesc ? decodeURIComponent(errorDesc) : '';
         
-        // Check for hook 404 error
+        console.log('Decoded error description:', decodedErrorDesc);
+        
+        // Check for hook-specific errors first (these are more specific than generic server_error)
         if (decodedErrorDesc.includes('404') || decodedErrorDesc.includes('status code returned from hook')) {
           errorMessage = "Authentication service is not properly configured. The Discord server verification function is not available. Please contact an administrator.";
-        } else if (decodedErrorDesc.includes('Avalanche server') || decodedErrorDesc.includes('not allowed to login')) {
+        } else if (decodedErrorDesc.includes('500') || decodedErrorDesc.includes('Internal Server Error') || decodedErrorDesc.includes('hook failed')) {
+          errorMessage = "The authentication verification service encountered an error. Please contact an administrator or try again later.";
+        } else if (decodedErrorDesc.includes('timeout') || decodedErrorDesc.includes('timed out')) {
+          errorMessage = "Authentication verification timed out. Please try again.";
+        } else if (decodedErrorDesc.includes('Avalanche server') || decodedErrorDesc.includes('not allowed to login') || decodedErrorDesc.includes('guild membership')) {
           errorMessage = "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again.";
         } else if (decodedErrorDesc) {
+          // Use the decoded error description if available (it's usually more specific)
           errorMessage = decodedErrorDesc;
         } else if (authError) {
+          // Fallback to generic error messages if no description
           switch (authError) {
             case 'server_error':
-              errorMessage = 'Authentication server error. Please try again in a few moments.';
+              // server_error could be from Discord, Supabase, or our hook
+              // Check if we have more context
+              if (error_code === 'unexpected_failure') {
+                errorMessage = "Authentication verification failed. This may be due to a configuration issue. Please contact an administrator.";
+              } else {
+                errorMessage = 'Discord authentication server error. Please try again in a few minutes.';
+              }
               break;
             case 'access_denied':
               errorMessage = 'You denied access to your Discord account. Please try again and grant permission.';
               break;
             default:
-              errorMessage = 'Authentication failed. Please try again.';
+              errorMessage = `Authentication failed: ${authError}. Please try again.`;
           }
         }
         

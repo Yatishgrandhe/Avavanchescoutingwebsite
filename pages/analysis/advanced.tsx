@@ -350,7 +350,7 @@ export default function AdvancedAnalysis() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex space-x-4">
+              <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
                 <select
                   value={selectedTeam || ''}
                   onChange={(e) => setSelectedTeam(parseInt(e.target.value) || null)}
@@ -373,7 +373,7 @@ export default function AdvancedAnalysis() {
                 <Button
                   onClick={handleTeamSearch}
                   disabled={!selectedTeam || loading || teamsLoading}
-                  className="px-8"
+                  className="px-8 w-full sm:w-auto"
                 >
                   {loading ? (
                     <motion.div

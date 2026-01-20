@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, User, LogOut, Menu, X } from 'lucide-react';
+import { User, LogOut, Menu, X } from 'lucide-react';
 import {
   Button,
   Avatar,
@@ -125,11 +125,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
 
             <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm" className="p-2 relative">
-                <Bell size={18} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              </Button>
-
               {user && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -160,11 +155,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <DropdownMenuItem className="focus:bg-white/10">
                       <User className="mr-2 h-4 w-4" />
                       <span>Profile</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="focus:bg-white/10">
-                      <Bell className="mr-2 h-4 w-4" />
-                      <span>Notifications</span>
-                      <Badge variant="secondary" className="ml-auto bg-primary/20 text-primary">3</Badge>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-white/10" />
                     <DropdownMenuItem onClick={handleSignOut} className="focus:bg-destructive/20 text-red-400">
@@ -251,15 +241,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
 
               <div className="flex items-center space-x-4">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="p-2 rounded-xl transition-all duration-200 hover:bg-white/5 text-muted-foreground hover:text-white relative"
-                >
-                  <Bell size={20} />
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-background" />
-                </motion.button>
-
                 {user && (
                   <div className="flex items-center space-x-3 pl-4 border-l border-white/10">
                     <div className="text-right hidden md:block">

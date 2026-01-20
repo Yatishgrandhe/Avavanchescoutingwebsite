@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui';
@@ -193,45 +193,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     }).filter(stat => stat.total_matches > 0); // Only show teams with scouting data
   };
 
-  const filteredData = scoutingData.filter(data => {
-    const matchesSearch = searchTerm === '' || 
-      data.team_number.toString().includes(searchTerm) ||
-      data.match_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (data.comments && data.comments.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      getTeamName(data.team_number).toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesTeam = selectedTeam === null || data.team_number === selectedTeam;
-    
-    return matchesSearch && matchesTeam;
-  });
-
-  const sortedData = [...filteredData].sort((a, b) => {
-    const aValue = a[sortField];
-    const bValue = b[sortField];
-    
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return sortDirection === 'asc' 
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
-    }
-    
-    if (typeof aValue === 'number' && typeof bValue === 'number') {
-      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-    }
-    
-    return 0;
-  });
-
-  const handleSort = (field: keyof ScoutingData) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
-  };
-
-
+  // Helper functions - defined before use to avoid temporal dead zone errors
   const getTeamName = (teamNumber: number) => {
     // Use allTeams to get names for all teams including those in scouting_data but not in filter
     const team = allTeams.find(t => t.team_number === teamNumber);
@@ -250,6 +212,49 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       return emailUsername || data.submitted_by_email;
     }
     return 'Unknown';
+  };
+
+  // Filter and sort data - using useMemo to prevent recalculation on every render
+  const filteredData = useMemo(() => {
+    return scoutingData.filter(data => {
+      const matchesSearch = searchTerm === '' || 
+        data.team_number.toString().includes(searchTerm) ||
+        data.match_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (data.comments && data.comments.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        getTeamName(data.team_number).toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesTeam = selectedTeam === null || data.team_number === selectedTeam;
+      
+      return matchesSearch && matchesTeam;
+    });
+  }, [scoutingData, searchTerm, selectedTeam, allTeams]);
+
+  const sortedData = useMemo(() => {
+    return [...filteredData].sort((a, b) => {
+      const aValue = a[sortField];
+      const bValue = b[sortField];
+      
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      return 0;
+    });
+  }, [filteredData, sortField, sortDirection]);
+
+  const handleSort = (field: keyof ScoutingData) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
   };
 
   const handleDelete = (item: ScoutingData) => {

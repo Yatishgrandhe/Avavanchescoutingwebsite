@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../ui';
+import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Counter } from '../ui';
 
 interface MiscellaneousFormProps {
   onNext: (miscData: { defense_rating: number; comments: string }) => void;
@@ -18,7 +18,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
   initialData,
 }) => {
   const [formData, setFormData] = useState({
-    defense_rating: (initialData?.defense_rating as number | string) ?? 0,
+    defense_rating: (initialData?.defense_rating as number) ?? 0,
     comments: initialData?.comments || '',
   });
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -27,7 +27,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
   useEffect(() => {
     if (initialData) {
       setFormData({
-        defense_rating: initialData.defense_rating ?? 0,
+        defense_rating: (initialData.defense_rating as number) ?? 0,
         comments: initialData.comments || '',
       });
     }
@@ -86,25 +86,17 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
           {/* Defense Rating */}
           <div className="space-y-2 sm:space-y-4">
             <h3 className="text-foreground font-semibold text-base sm:text-lg">Defense Rating <span className="text-destructive">*</span></h3>
-            <Input
-              type="number"
-              min="0"
-              max="10"
-              value={formData.defense_rating === '' ? '' : formData.defense_rating.toString()}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                const value = e.target.value;
-                if (value === '') {
-                  setFormData(prev => ({ ...prev, defense_rating: '' }));
-                } else {
-                  const numValue = parseInt(value);
-                  if (!isNaN(numValue)) {
-                    setFormData(prev => ({ ...prev, defense_rating: numValue }));
-                  }
-                }
-              }}
-              className="bg-background border-border text-foreground"
-              placeholder="Rate the team's defensive play from 0-10"
-            />
+            <div className="max-w-xs">
+              <Counter
+                value={typeof formData.defense_rating === 'number' ? formData.defense_rating : 0}
+                onChange={(value: number) => handleInputChange('defense_rating', value)}
+                min={0}
+                max={10}
+                step={1}
+                label="Rate the team's defensive play"
+                isDarkMode={true}
+              />
+            </div>
             <p className="text-muted-foreground text-xs sm:text-sm">
               0 = No defense, 10 = Exceptional defensive play
             </p>
@@ -152,10 +144,10 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
           <Button
             onClick={() => {
               // Validate required fields
-              const defenseRating = formData.defense_rating === '' ? 0 : Number(formData.defense_rating);
+              const defenseRating = typeof formData.defense_rating === 'number' ? formData.defense_rating : 0;
               const comments = formData.comments.trim();
               
-              if (isNaN(defenseRating) || defenseRating < 0 || defenseRating > 10) {
+              if (defenseRating < 0 || defenseRating > 10) {
                 setValidationError('Please provide a defense rating between 0 and 10.');
                 return;
               }

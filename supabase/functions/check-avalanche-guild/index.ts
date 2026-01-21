@@ -41,46 +41,9 @@ serve(async (req) => {
     }
 
     console.log('Checking Discord guild membership for user:', discordUserId)
+    console.log('Guild ID to check:', AVALANCHE_GUILD_ID)
+    console.log('Bot token available:', !!DISCORD_BOT_TOKEN)
 
-    // Method 1: Try using user's access token (if available) - but bot token is more reliable
-    // Note: This is a fallback, but we'll still verify with bot token for security
-    const userAccessToken = record?.raw_user_meta_data?.access_token
-    
-    if (userAccessToken) {
-      try {
-        const guildsResponse = await fetch(
-          `https://discord.com/api/v10/users/@me/guilds`,
-          {
-            headers: {
-              'Authorization': `Bearer ${userAccessToken}`,
-            },
-          }
-        )
-
-        if (guildsResponse.ok) {
-          const guilds = await guildsResponse.json()
-          const isInGuild = guilds.some((guild: any) => guild.id === AVALANCHE_GUILD_ID)
-          
-          if (!isInGuild) {
-            // User token shows they're NOT in guild - deny immediately
-            console.log('User is NOT a member of Avalanche Discord server (via user token)')
-            return new Response(
-              JSON.stringify({ 
-                error: "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again." 
-              }),
-              { status: 403, headers: { 'Content-Type': 'application/json' } }
-            )
-          }
-          // If user token says they ARE in guild, continue to bot token verification for double-check
-          console.log('User appears to be in guild (via user token), verifying with bot token...')
-        }
-      } catch (error) {
-        console.log('User token method failed, will use bot token method:', error)
-        // Continue to bot token verification
-      }
-    }
-
-    // Method 2: Use bot token to check guild membership (more reliable)
     // SECURITY: Bot token is REQUIRED - deny access if not configured
     if (!DISCORD_BOT_TOKEN) {
       console.error('DISCORD_BOT_TOKEN not set - SECURITY RISK: Denying all user creation')
@@ -92,7 +55,8 @@ serve(async (req) => {
       )
     }
 
-    // Use bot token to verify guild membership
+    // Use bot token to verify guild membership (primary method - most reliable)
+    console.log('Attempting to verify guild membership using bot token...')
     try {
       const memberResponse = await fetch(
         `https://discord.com/api/v10/guilds/${AVALANCHE_GUILD_ID}/members/${discordUserId}`,
@@ -103,23 +67,47 @@ serve(async (req) => {
         }
       )
 
+      console.log('Discord API response status:', memberResponse.status)
+      console.log('Discord API response statusText:', memberResponse.statusText)
+
       if (memberResponse.ok) {
-        console.log('User is a member of Avalanche Discord server (via bot token)')
+        // User is a member - allow creation
+        const memberData = await memberResponse.json().catch(() => null)
+        console.log('✅ User IS a member of Avalanche Discord server (via bot token)')
+        console.log('Member data:', memberData ? 'Received' : 'No data')
         return new Response(
           JSON.stringify({ record }),
           { status: 200, headers: { 'Content-Type': 'application/json' } }
         )
       } else if (memberResponse.status === 404) {
-        console.log('User is NOT a member of Avalanche Discord server')
+        // User is NOT a member - deny access
+        console.log('❌ User is NOT a member of Avalanche Discord server (404 from Discord API)')
+        const errorResponse = {
+          error: "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again."
+        }
+        console.log('Returning 403 with error:', errorResponse)
         return new Response(
-          JSON.stringify({ 
-            error: "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again." 
-          }),
+          JSON.stringify(errorResponse),
           { status: 403, headers: { 'Content-Type': 'application/json' } }
         )
+      } else if (memberResponse.status === 401 || memberResponse.status === 403) {
+        // Bot token is invalid or bot doesn't have permissions
+        const errorText = await memberResponse.text().catch(() => 'Unknown error')
+        console.error(`❌ Discord API authentication error (${memberResponse.status}):`, errorText)
+        console.error('This usually means:')
+        console.error('  1. Bot token is invalid/expired')
+        console.error('  2. Bot is not in the Discord server')
+        console.error('  3. Bot does not have "Read Members" permission')
+        return new Response(
+          JSON.stringify({ 
+            error: 'Authentication service configuration error. Please contact an administrator.' 
+          }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        )
       } else {
-        // Handle other Discord API errors (401, 403, 500, etc.)
-        console.error(`Discord API error: ${memberResponse.status} ${memberResponse.statusText}`)
+        // Handle other Discord API errors (500, 502, etc.)
+        const errorText = await memberResponse.text().catch(() => 'Unknown error')
+        console.error(`❌ Discord API error (${memberResponse.status}):`, errorText)
         return new Response(
           JSON.stringify({ 
             error: 'Failed to verify Discord server membership. Please try again later or contact support.' 
@@ -128,7 +116,9 @@ serve(async (req) => {
         )
       }
     } catch (error) {
-      console.error('Bot token method failed:', error)
+      console.error('❌ Bot token method failed with exception:', error)
+      console.error('Error details:', error.message)
+      console.error('Error stack:', error.stack)
       // SECURITY: Deny access on error - fail secure
       return new Response(
         JSON.stringify({ 

@@ -90,6 +90,15 @@ export default function AuthError() {
         'Contact an administrator if you believe you should have access'
       ];
     }
+
+    // "Invalid payload sent to hook" - auth hook received or returned an unexpected format
+    if (messageStr.includes('invalid payload') || messageStr.includes('invalid payload sent to hook')) {
+      return [
+        'This usually indicates a sign-in configuration issue on first-time sign-up',
+        'Wait a moment and try signing in again',
+        'If it persists, an admin should check the auth hook and Edge Function logs in Supabase'
+      ];
+    }
     
     switch (error) {
       case 'access_denied':

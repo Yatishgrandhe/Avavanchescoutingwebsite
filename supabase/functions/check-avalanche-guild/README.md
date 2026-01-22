@@ -93,10 +93,11 @@ supabase secrets set DISCORD_GUILD_ID=1241008226598649886
 ## How It Works
 
 1. When a user tries to sign up with Discord OAuth, the hook is triggered
-2. The function extracts the Discord user ID from the OAuth metadata
-3. It checks if the user is a member of the Avalanche Discord server (ID: 1241008226598649886)
-4. If the user is a member, user creation is allowed (returns 200)
-5. If the user is NOT a member, user creation is blocked (returns 403)
+2. The request body has `{ metadata, user }`; we use `user` (fallbacks: `record`, `new`, or body)
+3. The function extracts the Discord user ID from the OAuth metadata
+4. It checks if the user is a member of the Avalanche Discord server (ID: 1241008226598649886)
+5. **Allow**: returns `200` with body `{}` (Supabase expects empty object, not `{ record }`)
+6. **Reject**: returns `4xx`/`5xx` with body `{ error: { http_code, message } }`
 
 ## Testing
 

@@ -5,20 +5,41 @@ const DISCORD_BOT_TOKEN = Deno.env.get('DISCORD_BOT_TOKEN')
 
 serve(async (req) => {
   try {
-    // Note: Supabase handles secret verification automatically for auth hooks
-    // The secret is configured in the Auth Hook settings, not in the function code
-    // Supabase will verify the signature before calling this function
+    // Parse the request body - Supabase auth hooks can send different structures
+    const body = await req.json()
     
-    // Parse the request body
-    const { record } = await req.json()
+    // Support multiple payload structures: { record }, { user }, or record at top level
+    const record = body?.record ?? body?.user ?? body
     
-    // Log for debugging
+    // Extract provider from various possible locations
+    const provider = record?.raw_user_meta_data?.provider 
+      ?? record?.identities?.[0]?.provider 
+      ?? record?.app_metadata?.provider
+      ?? record?.user_metadata?.provider
+    
+    // Extract Discord user ID from various possible locations
+    const discordUserId = record?.raw_user_meta_data?.provider_id 
+      ?? record?.raw_user_meta_data?.sub 
+      ?? record?.identities?.[0]?.identity_data?.provider_id
+      ?? record?.identities?.[0]?.identity_data?.id
+      ?? record?.identities?.[0]?.id
+    
+    // Extract email for logging (Discord may not always provide email)
+    const email = record?.email 
+      ?? record?.raw_user_meta_data?.email 
+      ?? record?.user_metadata?.email
+      ?? record?.identities?.[0]?.identity_data?.email
+      ?? '(not provided)'
+    
+    // Log for debugging (safe - no tokens)
     console.log('Before User Created Hook triggered')
-    console.log('User email:', record?.email)
-    console.log('Provider:', record?.raw_user_meta_data?.provider)
+    console.log('Email:', email)
+    console.log('Provider:', provider)
+    console.log('Discord user ID:', discordUserId)
+    console.log('Payload keys:', record ? Object.keys(record).join(', ') : 'no record')
     
     // Check if this is a Discord authentication
-    if (record?.raw_user_meta_data?.provider !== 'discord') {
+    if (provider !== 'discord') {
       console.log('Not a Discord authentication, allowing user creation')
       return new Response(
         JSON.stringify({ record }),
@@ -26,10 +47,6 @@ serve(async (req) => {
       )
     }
 
-    // Get Discord user ID from OAuth metadata
-    const discordUserId = record?.raw_user_meta_data?.provider_id || 
-                          record?.raw_user_meta_data?.sub
-    
     if (!discordUserId) {
       console.error('No Discord user ID found in metadata')
       return new Response(

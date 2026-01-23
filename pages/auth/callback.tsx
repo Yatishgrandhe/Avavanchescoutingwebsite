@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { getSupabaseClient } from '@/lib/supabase';
 import { Loader2, AlertTriangle } from 'lucide-react';
@@ -8,9 +8,12 @@ export default function AuthCallback() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const started = useRef(false);
 
   useEffect(() => {
     const handleCallback = async () => {
+      if (started.current) return;
+      started.current = true;
       const { error: authError, error_description, error_code } = router.query;
 
       // Handle OAuth errors first
@@ -65,17 +68,20 @@ export default function AuthCallback() {
       }
 
       const supabase = getSupabaseClient();
+      const code = router.query.code as string | undefined;
 
       const GUILD_ERR = "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again.";
+      const PROVIDER_TOKEN_ERR = "Discord permissions could not be verified. Please sign in again and ensure you grant all requested permissions (including server list).";
 
       const VERIFY_TIMEOUT_MS = 15000;
 
-      const runGuildCheck = async (session: { access_token: string; provider_token?: string | null }): Promise<true | false | 'timeout'> => {
-        if (!session?.provider_token) return false;
+      const runGuildCheck = async (session: { access_token: string; provider_token?: string | null }): Promise<true | false | 'timeout' | 'no_token'> => {
+        if (!session?.provider_token) return 'no_token';
         const ac = new AbortController();
         const t = setTimeout(() => ac.abort(), VERIFY_TIMEOUT_MS);
+        const url = typeof window !== 'undefined' ? `${window.location.origin}/api/verify-guild` : '/api/verify-guild';
         try {
-          const res = await fetch('/api/verify-guild', {
+          const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
             body: JSON.stringify({ providerToken: session.provider_token }),
@@ -93,6 +99,11 @@ export default function AuthCallback() {
       };
 
       const finishWithGuildCheck = async (session: any) => {
+        if (!session?.provider_token) {
+          await supabase.auth.signOut();
+          router.push(`/auth/error?message=${encodeURIComponent(PROVIDER_TOKEN_ERR)}&error=provider_token`);
+          return;
+        }
         const result = await runGuildCheck(session);
         if (result === true) {
           router.replace('/');
@@ -106,6 +117,41 @@ export default function AuthCallback() {
         }
       };
 
+      // PKCE: Supabase redirects with ?code=... — we must exchange it for a session. getSession() does NOT do this.
+      if (code && typeof code === 'string') {
+        try {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            let errorMessage = 'Failed to complete authentication';
+            if (error.message?.toLowerCase().includes('code verifier') || error.message?.toLowerCase().includes('invalid') || error.message?.toLowerCase().includes('expired')) {
+              errorMessage = 'Authentication link expired or invalid. Please try signing in again.';
+            } else if (error.message) {
+              errorMessage = error.message;
+            }
+            setError(errorMessage);
+            setLoading(false);
+            setTimeout(() => router.push(`/auth/error?message=${encodeURIComponent(errorMessage)}&error=session_error`), 2000);
+            return;
+          }
+          if (data?.session) {
+            await finishWithGuildCheck(data.session);
+            return;
+          }
+          setError('Failed to complete authentication');
+          setLoading(false);
+          setTimeout(() => router.push(`/auth/error?message=${encodeURIComponent('Failed to complete authentication.')}&error=session_error`), 2000);
+          return;
+        } catch (err) {
+          console.error('exchangeCodeForSession error:', err);
+          const errMsg = err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.';
+          setError(errMsg);
+          setLoading(false);
+          setTimeout(() => router.push(`/auth/error?message=${encodeURIComponent(errMsg)}&error=session_error`), 2000);
+          return;
+        }
+      }
+
+      // No code in URL: may already have a session (e.g. refresh) or legacy flow
       try {
         let sessionReceived = false;
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {

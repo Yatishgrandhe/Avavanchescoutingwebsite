@@ -68,27 +68,40 @@ export default function AuthCallback() {
 
       const GUILD_ERR = "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again.";
 
-      const runGuildCheck = async (session: { access_token: string; provider_token?: string | null }): Promise<boolean> => {
+      const VERIFY_TIMEOUT_MS = 15000;
+
+      const runGuildCheck = async (session: { access_token: string; provider_token?: string | null }): Promise<true | false | 'timeout'> => {
         if (!session?.provider_token) return false;
+        const ac = new AbortController();
+        const t = setTimeout(() => ac.abort(), VERIFY_TIMEOUT_MS);
         try {
           const res = await fetch('/api/verify-guild', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
             body: JSON.stringify({ providerToken: session.provider_token }),
+            signal: ac.signal,
           });
+          clearTimeout(t);
+          if (res.status === 504) return 'timeout';
           const data = await res.json().catch(() => ({}));
-          return res.ok && data.inGuild === true;
-        } catch {
+          return res.ok && data.inGuild === true ? true : false;
+        } catch (e) {
+          clearTimeout(t);
+          if (e instanceof Error && e.name === 'AbortError') return 'timeout';
           return false;
         }
       };
 
       const finishWithGuildCheck = async (session: any) => {
-        const ok = await runGuildCheck(session);
-        if (ok) {
+        const result = await runGuildCheck(session);
+        if (result === true) {
           router.replace('/');
+          return;
+        }
+        await supabase.auth.signOut();
+        if (result === 'timeout') {
+          router.push(`/auth/error?message=${encodeURIComponent('Verification timed out. Please try signing in again.')}&error=timeout`);
         } else {
-          await supabase.auth.signOut();
           router.push(`/auth/error?message=${encodeURIComponent(GUILD_ERR)}&error=guild_check`);
         }
       };
@@ -123,11 +136,13 @@ export default function AuthCallback() {
         }
 
         if (currentSession) {
+          sessionReceived = true;
           subscription.unsubscribe();
           await finishWithGuildCheck(currentSession);
           return;
         }
 
+        const waitMs = 15000;
         setTimeout(() => {
           subscription.unsubscribe();
           if (!sessionReceived) {
@@ -135,7 +150,7 @@ export default function AuthCallback() {
             setLoading(false);
             setTimeout(() => router.push('/auth/error?message=Authentication timed out. Please try signing in again.&error=timeout'), 2000);
           }
-        }, 5000);
+        }, waitMs);
       } catch (err) {
         console.error('Unexpected error:', err);
         setError('An unexpected error occurred. Please try again.');

@@ -1,11 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 
-const AVALANCHE_GUILD_ID = process.env.AVALANCHE_GUILD_ID || '1241008226598649886';
+/** Avalanche Discord server (guild) ID – used to restrict login to members of this server. */
+const AVALANCHE_GUILD_ID =
+  (process.env.AVALANCHE_GUILD_ID || process.env.DISCORD_SERVER_ID || '1241008226598649886').trim();
 
 /**
  * Verify Discord guild membership using the user's OAuth access token.
  * Uses Discord API: GET /users/@me/guilds (requires "guilds" scope).
+ * Checks that the user is in the Avalanche Discord server (guild ID above).
  * No bot or bot token needed.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -38,6 +41,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
+  if (!AVALANCHE_GUILD_ID) {
+    res.status(500).json({ error: 'AVALANCHE_GUILD_ID or DISCORD_SERVER_ID must be set' });
+    return;
+  }
+
   const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -48,9 +56,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  const guildsRes = await fetch('https://discord.com/api/v10/users/@me/guilds', {
-    headers: { Authorization: `Bearer ${providerToken}` },
-  });
+  const discordTimeoutMs = 10000;
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), discordTimeoutMs);
+  let guildsRes: Response;
+  try {
+    guildsRes = await fetch('https://discord.com/api/v10/users/@me/guilds', {
+      headers: { Authorization: `Bearer ${providerToken}` },
+      signal: ac.signal,
+    });
+  } catch (e) {
+    clearTimeout(t);
+    res.status(504).json({ error: 'Discord API request timed out' });
+    return;
+  }
+  clearTimeout(t);
 
   if (guildsRes.status === 401 || guildsRes.status === 403) {
     res.status(400).json({ error: 'Discord token invalid or missing guilds scope' });
@@ -63,7 +83,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const guilds: { id: string }[] = await guildsRes.json();
-  const inGuild = Array.isArray(guilds) && guilds.some((g) => g.id === AVALANCHE_GUILD_ID);
+  const inGuild =
+    Array.isArray(guilds) &&
+    guilds.some((g) => String(g?.id || '').trim() === AVALANCHE_GUILD_ID);
 
   if (!inGuild) {
     await supabaseAdmin.auth.admin.deleteUser(user.id);

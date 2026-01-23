@@ -68,15 +68,25 @@ export default function AuthCallback() {
       }
 
       const supabase = getSupabaseClient();
-      const code = router.query.code as string | undefined;
+      const code =
+        (router.query.code as string | undefined) ||
+        (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('code') || undefined : undefined);
+
+      const codeParamInUrl = typeof window !== 'undefined' && /[?&]code=/.test(window.location.search);
+      if (codeParamInUrl && (!code || !String(code).trim())) {
+        setError('Invalid sign-in link: the authorization code is missing. Please try signing in again.');
+        setLoading(false);
+        setTimeout(() => router.push(`/auth/error?message=${encodeURIComponent('Invalid sign-in link: the authorization code is missing. Please try signing in again.')}&error=session_error`), 2000);
+        return;
+      }
 
       const GUILD_ERR = "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again.";
       const PROVIDER_TOKEN_ERR = "Discord permissions could not be verified. Please sign in again and ensure you grant all requested permissions (including server list).";
 
       const VERIFY_TIMEOUT_MS = 15000;
 
-      const runGuildCheck = async (session: { access_token: string; provider_token?: string | null }): Promise<true | false | 'timeout' | 'no_token'> => {
-        if (!session?.provider_token) return 'no_token';
+      const runGuildCheck = async (session: { access_token: string; provider_token?: string | null }): Promise<true | false | 'timeout'> => {
+        if (!session?.provider_token) return false;
         const ac = new AbortController();
         const t = setTimeout(() => ac.abort(), VERIFY_TIMEOUT_MS);
         const url = typeof window !== 'undefined' ? `${window.location.origin}/api/verify-guild` : '/api/verify-guild';
@@ -119,12 +129,20 @@ export default function AuthCallback() {
 
       // PKCE: Supabase redirects with ?code=... — we must exchange it for a session. getSession() does NOT do this.
       if (code && typeof code === 'string') {
+        const EXCHANGE_TIMEOUT_MS = 20000;
         try {
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          const { data, error } = await Promise.race([
+            supabase.auth.exchangeCodeForSession(code),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('EXCHANGE_TIMEOUT')), EXCHANGE_TIMEOUT_MS)
+            ),
+          ]);
           if (error) {
+            console.error('exchangeCodeForSession error:', error?.message, error);
             let errorMessage = 'Failed to complete authentication';
-            if (error.message?.toLowerCase().includes('code verifier') || error.message?.toLowerCase().includes('invalid') || error.message?.toLowerCase().includes('expired')) {
-              errorMessage = 'Authentication link expired or invalid. Please try signing in again.';
+            const msg = (error.message || '').toLowerCase();
+            if (msg.includes('code verifier') || msg.includes('invalid') || msg.includes('expired') || msg.includes('already been used')) {
+              errorMessage = 'This sign-in link has expired or was already used. Please try signing in again from the sign-in page. Use the same browser and avoid clearing site data before completing sign-in.';
             } else if (error.message) {
               errorMessage = error.message;
             }
@@ -142,6 +160,12 @@ export default function AuthCallback() {
           setTimeout(() => router.push(`/auth/error?message=${encodeURIComponent('Failed to complete authentication.')}&error=session_error`), 2000);
           return;
         } catch (err) {
+          if (err instanceof Error && err.message === 'EXCHANGE_TIMEOUT') {
+            setError('Authentication timed out. Please try again.');
+            setLoading(false);
+            setTimeout(() => router.push(`/auth/error?message=${encodeURIComponent('Authentication timed out. Please try again.')}&error=timeout`), 2000);
+            return;
+          }
           console.error('exchangeCodeForSession error:', err);
           const errMsg = err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.';
           setError(errMsg);
@@ -207,7 +231,8 @@ export default function AuthCallback() {
       }
     };
 
-    if (router.isReady) {
+    const hasCodeInUrl = typeof window !== 'undefined' && /[?&]code=/.test(window.location.search);
+    if (router.isReady || hasCodeInUrl) {
       handleCallback();
     }
   }, [router.isReady, router.query, router]);

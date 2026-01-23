@@ -116,9 +116,9 @@ export default function AuthError() {
         ];
       case 'session_error':
         return [
-          'Your authentication session may have expired',
-          'Try signing in again',
-          'Clear your browser cookies and try again'
+          'Try signing in again from the sign-in page',
+          'Use the same browser and avoid clearing site data before completing sign-in',
+          'If you use a custom domain, ensure https://yourdomain.com/auth/callback is in Supabase → Authentication → URL Configuration → Redirect URLs'
         ];
       default:
         return [

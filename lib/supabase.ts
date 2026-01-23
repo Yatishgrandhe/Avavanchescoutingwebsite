@@ -13,7 +13,7 @@ export const getSupabaseClient = () => {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: true,
+        detectSessionInUrl: false, // we handle ?code= ourselves in /auth/callback to avoid race with exchangeCodeForSession
         flowType: 'pkce'
       },
       global: {

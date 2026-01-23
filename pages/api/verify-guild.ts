@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 
+export const config = { api: { bodyParser: { sizeLimit: '64kb' } } };
+
 /** Avalanche Discord server (guild) ID – used to restrict login to members of this server. */
 const AVALANCHE_GUILD_ID =
   (process.env.AVALANCHE_GUILD_ID || process.env.DISCORD_SERVER_ID || '1241008226598649886').trim();
@@ -12,6 +14,7 @@ const AVALANCHE_GUILD_ID =
  * No bot or bot token needed.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  try {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     res.status(405).json({ error: 'Method not allowed' });
@@ -94,4 +97,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   res.status(200).json({ inGuild: true });
+  } catch (e) {
+    console.error('verify-guild error:', e);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 }

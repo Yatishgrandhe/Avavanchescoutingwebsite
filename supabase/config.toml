@@ -128,8 +128,3 @@ url = ""
 
 [functions]
 # Enable Deno runtime for Edge Functions
-
-# Configure check-avalanche-guild Edge Function
-# verify_jwt must be false for Auth Hooks because they use system-level signatures, not standard JWTs
-[functions.check-avalanche-guild]
-verify_jwt = false

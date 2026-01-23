@@ -64,71 +64,76 @@ export default function AuthCallback() {
         return;
       }
 
-      // Use the same Supabase client instance that has access to the stored code verifier
       const supabase = getSupabaseClient();
 
-      try {
-        // With detectSessionInUrl: true, Supabase automatically detects the code in the URL
-        // and exchanges it for a session. We'll listen for the auth state change.
-        let sessionReceived = false;
-        let authError: any = null;
+      const GUILD_ERR = "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again.";
 
-        // Set up auth state change listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
+      const runGuildCheck = async (session: { access_token: string; provider_token?: string | null }): Promise<boolean> => {
+        if (!session?.provider_token) return false;
+        try {
+          const res = await fetch('/api/verify-guild', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+            body: JSON.stringify({ providerToken: session.provider_token }),
+          });
+          const data = await res.json().catch(() => ({}));
+          return res.ok && data.inGuild === true;
+        } catch {
+          return false;
+        }
+      };
+
+      const finishWithGuildCheck = async (session: any) => {
+        const ok = await runGuildCheck(session);
+        if (ok) {
+          router.replace('/');
+        } else {
+          await supabase.auth.signOut();
+          router.push(`/auth/error?message=${encodeURIComponent(GUILD_ERR)}&error=guild_check`);
+        }
+      };
+
+      try {
+        let sessionReceived = false;
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
           console.log('Auth state changed:', event, session ? 'Session received' : 'No session');
-          
-          if (event === 'SIGNED_IN' && session) {
+          if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
             sessionReceived = true;
             subscription.unsubscribe();
-            // Clear URL params and redirect
-            router.replace('/');
-          } else if (event === 'TOKEN_REFRESHED' && session) {
-            sessionReceived = true;
-            subscription.unsubscribe();
-            router.replace('/');
+            await finishWithGuildCheck(session);
           }
         });
 
-        // Also try to get session immediately (in case it's already processed)
         const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
-          console.error('Session error:', sessionError);
           subscription.unsubscribe();
           let errorMessage = 'Failed to complete authentication';
-          
           if (sessionError.message.includes('code verifier') || sessionError.message.includes('non-empty')) {
             errorMessage = 'Authentication session expired or invalid. Please try signing in again.';
-          } else if (sessionError.message.includes('Avalanche server') || 
-                     sessionError.message.includes('not allowed to login')) {
-            errorMessage = "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again.";
+          } else if (sessionError.message.includes('Avalanche server') || sessionError.message.includes('not allowed to login')) {
+            errorMessage = GUILD_ERR;
           } else {
             errorMessage = sessionError.message || 'Authentication failed. Please try again.';
           }
-          
           setError(errorMessage);
           setLoading(false);
-          setTimeout(() => {
-            router.push(`/auth/error?message=${encodeURIComponent(errorMessage)}&error=session_error`);
-          }, 2000);
+          setTimeout(() => router.push(`/auth/error?message=${encodeURIComponent(errorMessage)}&error=session_error`), 2000);
           return;
         }
 
         if (currentSession) {
           subscription.unsubscribe();
-          router.replace('/');
+          await finishWithGuildCheck(currentSession);
           return;
         }
 
-        // Wait for auth state change (max 5 seconds)
         setTimeout(() => {
           subscription.unsubscribe();
           if (!sessionReceived) {
             setError('Authentication timed out. Please try signing in again.');
             setLoading(false);
-            setTimeout(() => {
-              router.push('/auth/error?message=Authentication timed out. Please try signing in again.&error=timeout');
-            }, 2000);
+            setTimeout(() => router.push('/auth/error?message=Authentication timed out. Please try signing in again.&error=timeout'), 2000);
           }
         }, 5000);
       } catch (err) {

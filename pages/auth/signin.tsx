@@ -115,6 +115,7 @@ export default function SignIn() {
         provider: 'discord',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: 'identify email guilds',
         },
       });
 

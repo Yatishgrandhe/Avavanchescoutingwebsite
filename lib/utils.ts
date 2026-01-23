@@ -15,7 +15,16 @@ export function calculateScore(data: any) {
   if (data.auto_tower_level1) score += 15; // per robot
   
   // Teleop (last 2:20)
-  if (data.teleop_fuel_active_hub) score += 1 * data.teleop_fuel_active_hub;
+  // Calculate fuel from shifts array if available, otherwise use single value
+  let teleopFuel = 0;
+  if (data.teleop_fuel_shifts && Array.isArray(data.teleop_fuel_shifts)) {
+    // Sum all fuel from all shifts
+    teleopFuel = data.teleop_fuel_shifts.reduce((sum: number, fuel: number) => sum + (fuel || 0), 0);
+  } else if (data.teleop_fuel_active_hub) {
+    teleopFuel = data.teleop_fuel_active_hub;
+  }
+  score += 1 * teleopFuel;
+  
   // TOWER: Only highest level counts (mutually exclusive)
   if (data.teleop_tower_level3) score += 30; // LEVEL 3 highest
   else if (data.teleop_tower_level2) score += 20; // LEVEL 2

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Counter } from '../ui';
 import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
-import { Fuel, TrendingUp, CheckCircle } from 'lucide-react';
+import { Fuel, TrendingUp, CheckCircle, Plus, X } from 'lucide-react';
 
 interface TeleopFormProps {
   onNext: (teleopData: Partial<ScoringNotes>) => void;
@@ -21,6 +21,16 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   isDarkMode = true,
   initialData,
 }) => {
+  // Initialize fuel shifts from initialData or create new array
+  const initialShifts = initialData?.teleop_fuel_shifts && Array.isArray(initialData.teleop_fuel_shifts) 
+    ? [...initialData.teleop_fuel_shifts] 
+    : initialData?.teleop_fuel_active_hub 
+      ? [initialData.teleop_fuel_active_hub as number]
+      : [0];
+
+  const [fuelShifts, setFuelShifts] = useState<number[]>(initialShifts);
+  const [currentShiftFuel, setCurrentShiftFuel] = useState<number>(0);
+  
   const [formData, setFormData] = useState({
     teleop_fuel_active_hub: (initialData?.teleop_fuel_active_hub as number) || 0,
     teleop_tower_level1: (initialData?.teleop_tower_level1 as boolean) || false,
@@ -31,6 +41,13 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   // Sync initialData with state when it changes
   useEffect(() => {
     if (initialData) {
+      const shifts = initialData.teleop_fuel_shifts && Array.isArray(initialData.teleop_fuel_shifts)
+        ? [...initialData.teleop_fuel_shifts]
+        : initialData.teleop_fuel_active_hub
+          ? [initialData.teleop_fuel_active_hub as number]
+          : [0];
+      setFuelShifts(shifts);
+      setCurrentShiftFuel(0);
       setFormData({
         teleop_fuel_active_hub: (initialData.teleop_fuel_active_hub as number) || 0,
         teleop_tower_level1: (initialData.teleop_tower_level1 as boolean) || false,
@@ -40,6 +57,22 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
     }
   }, [initialData]);
 
+  const handleAddShift = () => {
+    if (currentShiftFuel > 0) {
+      setFuelShifts([...fuelShifts, currentShiftFuel]);
+      setCurrentShiftFuel(0);
+    }
+  };
+
+  const handleRemoveShift = (index: number) => {
+    const newShifts = fuelShifts.filter((_, i) => i !== index);
+    setFuelShifts(newShifts.length > 0 ? newShifts : [0]);
+  };
+
+  const getTotalFuel = () => {
+    return fuelShifts.reduce((sum, fuel) => sum + fuel, 0);
+  };
+
   const handleInputChange = (field: keyof typeof formData, value: number | boolean) => {
     setFormData(prev => ({
       ...prev,
@@ -48,7 +81,8 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   };
 
   const calculateTotal = () => {
-    let total = formData.teleop_fuel_active_hub * SCORING_VALUES.teleop_fuel_active_hub;
+    const totalFuel = getTotalFuel();
+    let total = totalFuel * SCORING_VALUES.teleop_fuel_active_hub;
     // TOWER: Only highest level counts (mutually exclusive)
     if (formData.teleop_tower_level3) {
       total += SCORING_VALUES.teleop_tower_level3;
@@ -103,19 +137,70 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
               </h3>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-              <Counter
-                value={formData.teleop_fuel_active_hub}
-                onChange={(value: number) => handleInputChange('teleop_fuel_active_hub', value)}
-                min={0}
-                max={100}
-                label="FUEL in Active HUB"
-                points={SCORING_VALUES.teleop_fuel_active_hub}
-                isDarkMode={isDarkMode}
-              />
+            {/* Current Shift Input */}
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                <Counter
+                  value={currentShiftFuel}
+                  onChange={(value: number) => setCurrentShiftFuel(value)}
+                  min={0}
+                  max={100}
+                  label="Current Shift FUEL"
+                  points={SCORING_VALUES.teleop_fuel_active_hub}
+                  isDarkMode={isDarkMode}
+                />
+              </div>
+              
+              {/* Next Shift Button */}
+              <Button
+                onClick={handleAddShift}
+                disabled={currentShiftFuel === 0}
+                className={`w-full sm:w-auto ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Shift
+              </Button>
             </div>
+
+            {/* Display All Shifts */}
+            {fuelShifts.length > 0 && fuelShifts.some(f => f > 0) && (
+              <div className="space-y-2">
+                <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Fuel Shifts ({fuelShifts.filter(f => f > 0).length} shift{fuelShifts.filter(f => f > 0).length !== 1 ? 's' : ''}):
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {fuelShifts.map((fuel, index) => {
+                    if (fuel === 0 && fuelShifts.length === 1) return null;
+                    return (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+                          isDarkMode ? 'bg-blue-900/30 border border-blue-700' : 'bg-blue-100 border border-blue-300'
+                        }`}
+                      >
+                        <span className={`font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+                          Shift {index + 1}: {fuel} fuel
+                        </span>
+                        <button
+                          onClick={() => handleRemoveShift(index)}
+                          className={`hover:bg-red-500/20 rounded-full p-1 transition-colors`}
+                        >
+                          <X className="w-3 h-3 text-red-400" />
+                        </button>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+                <div className={`text-sm font-semibold ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+                  Total FUEL: {getTotalFuel()} ({getTotalFuel()} points)
+                </div>
+              </div>
+            )}
+            
             <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Note: 1 point per FUEL scored in the active HUB. FUEL in inactive HUB scores 0 points.
+              Note: 1 point per FUEL scored in the active HUB. Add multiple shifts to track fuel across the teleop period. FUEL in inactive HUB scores 0 points.
             </div>
           </div>
 
@@ -287,7 +372,14 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
           </Button>
           
           <Button
-            onClick={() => onNext(formData)}
+            onClick={() => {
+              const totalFuel = getTotalFuel();
+              onNext({
+                ...formData,
+                teleop_fuel_active_hub: totalFuel,
+                teleop_fuel_shifts: fuelShifts.filter(f => f > 0).length > 0 ? fuelShifts.filter(f => f > 0) : undefined,
+              });
+            }}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             Next

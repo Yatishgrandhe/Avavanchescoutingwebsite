@@ -54,6 +54,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         teamNumber,
         alliance_color,
         allianceColor,
+        alliance_position,
+        alliancePosition,
         autonomous_points,
         teleop_points,
         endgame_points,
@@ -124,12 +126,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         finalTeleopCleansing = 0; // Not used in REBUILT 2026
       }
 
+      // alliance_position from match scouting form (1, 2, or 3)
+      const finalAlliancePosition = alliance_position ?? alliancePosition;
+      const validAlliancePosition = (finalAlliancePosition === 1 || finalAlliancePosition === 2 || finalAlliancePosition === 3)
+        ? finalAlliancePosition
+        : null;
+
       // Create scouting data
       const scoutingData = {
         scout_id: user.id,
         match_id: finalMatchId,
         team_number: finalTeamNumber,
         alliance_color: finalAllianceColor,
+        alliance_position: validAlliancePosition,
         autonomous_points: finalAutonomousPoints,
         teleop_points: finalTeleopPoints,
         final_score: finalScore,

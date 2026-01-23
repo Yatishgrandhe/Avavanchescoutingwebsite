@@ -21,15 +21,17 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   isDarkMode = true,
   initialData,
 }) => {
-  // Initialize fuel shifts from initialData or create new array
+  // Initialize fuel shifts from initialData or create new empty array
   const initialShifts = initialData?.teleop_fuel_shifts && Array.isArray(initialData.teleop_fuel_shifts) 
     ? [...initialData.teleop_fuel_shifts] 
-    : initialData?.teleop_fuel_active_hub 
-      ? [initialData.teleop_fuel_active_hub as number]
-      : [0];
+    : [];
 
   const [fuelShifts, setFuelShifts] = useState<number[]>(initialShifts);
-  const [currentShiftFuel, setCurrentShiftFuel] = useState<number>(0);
+  const [currentShiftFuel, setCurrentShiftFuel] = useState<number>(
+    initialData?.teleop_fuel_active_hub && !initialData?.teleop_fuel_shifts
+      ? (initialData.teleop_fuel_active_hub as number)
+      : 0
+  );
   
   const [formData, setFormData] = useState({
     teleop_fuel_active_hub: (initialData?.teleop_fuel_active_hub as number) || 0,
@@ -43,11 +45,14 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
     if (initialData) {
       const shifts = initialData.teleop_fuel_shifts && Array.isArray(initialData.teleop_fuel_shifts)
         ? [...initialData.teleop_fuel_shifts]
-        : initialData.teleop_fuel_active_hub
-          ? [initialData.teleop_fuel_active_hub as number]
-          : [0];
+        : [];
       setFuelShifts(shifts);
-      setCurrentShiftFuel(0);
+      // If there are no shifts but there's a fuel_active_hub value, set it as current shift
+      setCurrentShiftFuel(
+        shifts.length === 0 && initialData.teleop_fuel_active_hub
+          ? (initialData.teleop_fuel_active_hub as number)
+          : 0
+      );
       setFormData({
         teleop_fuel_active_hub: (initialData.teleop_fuel_active_hub as number) || 0,
         teleop_tower_level1: (initialData.teleop_tower_level1 as boolean) || false,
@@ -66,11 +71,21 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
 
   const handleRemoveShift = (index: number) => {
     const newShifts = fuelShifts.filter((_, i) => i !== index);
-    setFuelShifts(newShifts.length > 0 ? newShifts : [0]);
+    setFuelShifts(newShifts);
   };
 
   const getTotalFuel = () => {
-    return fuelShifts.reduce((sum, fuel) => sum + fuel, 0);
+    // Include current shift fuel in the total
+    return fuelShifts.reduce((sum, fuel) => sum + fuel, 0) + currentShiftFuel;
+  };
+
+  const getAllShifts = () => {
+    // Return all shifts including current one if it has fuel
+    const allShifts = [...fuelShifts];
+    if (currentShiftFuel > 0) {
+      allShifts.push(currentShiftFuel);
+    }
+    return allShifts;
   };
 
   const handleInputChange = (field: keyof typeof formData, value: number | boolean) => {
@@ -151,47 +166,58 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                 />
               </div>
               
-              {/* Next Shift Button */}
+              {/* Add Shift Button - Finalizes current shift and starts a new one */}
               <Button
                 onClick={handleAddShift}
                 disabled={currentShiftFuel === 0}
                 className={`w-full sm:w-auto ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Shift
+                Finalize Shift & Start Next
               </Button>
             </div>
 
             {/* Display All Shifts */}
-            {fuelShifts.length > 0 && fuelShifts.some(f => f > 0) && (
+            {(fuelShifts.length > 0 || currentShiftFuel > 0) && (
               <div className="space-y-2">
                 <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Fuel Shifts ({fuelShifts.filter(f => f > 0).length} shift{fuelShifts.filter(f => f > 0).length !== 1 ? 's' : ''}):
+                  Fuel Shifts ({getAllShifts().length} shift{getAllShifts().length !== 1 ? 's' : ''}):
                 </h4>
                 <div className="flex flex-wrap gap-2">
-                  {fuelShifts.map((fuel, index) => {
-                    if (fuel === 0 && fuelShifts.length === 1) return null;
-                    return (
-                      <motion.div
-                        key={index}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
-                          isDarkMode ? 'bg-blue-900/30 border border-blue-700' : 'bg-blue-100 border border-blue-300'
-                        }`}
+                  {fuelShifts.map((fuel, index) => (
+                    <motion.div
+                      key={`shift-${index}`}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+                        isDarkMode ? 'bg-blue-900/30 border border-blue-700' : 'bg-blue-100 border border-blue-300'
+                      }`}
+                    >
+                      <span className={`font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+                        Shift {index + 1}: {fuel} fuel ({fuel} pts)
+                      </span>
+                      <button
+                        onClick={() => handleRemoveShift(index)}
+                        className={`hover:bg-red-500/20 rounded-full p-1 transition-colors`}
                       >
-                        <span className={`font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-                          Shift {index + 1}: {fuel} fuel
-                        </span>
-                        <button
-                          onClick={() => handleRemoveShift(index)}
-                          className={`hover:bg-red-500/20 rounded-full p-1 transition-colors`}
-                        >
-                          <X className="w-3 h-3 text-red-400" />
-                        </button>
-                      </motion.div>
-                    );
-                  })}
+                        <X className="w-3 h-3 text-red-400" />
+                      </button>
+                    </motion.div>
+                  ))}
+                  {currentShiftFuel > 0 && (
+                    <motion.div
+                      key="current-shift"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+                        isDarkMode ? 'bg-blue-700/50 border-2 border-blue-500' : 'bg-blue-200 border-2 border-blue-400'
+                      }`}
+                    >
+                      <span className={`font-medium ${isDarkMode ? 'text-blue-200' : 'text-blue-800'}`}>
+                        Shift {fuelShifts.length + 1}: {currentShiftFuel} fuel ({currentShiftFuel} pts) - Current
+                      </span>
+                    </motion.div>
+                  )}
                 </div>
                 <div className={`text-sm font-semibold ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
                   Total FUEL: {getTotalFuel()} ({getTotalFuel()} points)
@@ -374,10 +400,14 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
           <Button
             onClick={() => {
               const totalFuel = getTotalFuel();
+              // Include current shift in the shifts array when submitting
+              const allShifts = currentShiftFuel > 0 
+                ? [...fuelShifts, currentShiftFuel]
+                : fuelShifts;
               onNext({
                 ...formData,
                 teleop_fuel_active_hub: totalFuel,
-                teleop_fuel_shifts: fuelShifts.filter(f => f > 0).length > 0 ? fuelShifts.filter(f => f > 0) : undefined,
+                teleop_fuel_shifts: allShifts.length > 0 ? allShifts : undefined,
               });
             }}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"

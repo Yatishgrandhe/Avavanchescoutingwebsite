@@ -17,7 +17,12 @@ import {
   Logo,
   Input
 } from '../ui';
-import Sidebar from './Sidebar';
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from '../ui/sidebar';
+import AppSidebar from './Sidebar';
 import { useSupabase } from '@/pages/_app';
 import { useResponsive } from '@/lib/screen-detector';
 import { useAdmin } from '@/hooks/use-admin';
@@ -32,73 +37,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const screenInfo = useResponsive();
   const { isAdmin } = useAdmin();
   const router = useRouter();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(true); // Always dark mode
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-
-  // Auto-collapse sidebar on mobile/tablet
-  useEffect(() => {
-    if (screenInfo.isMobile || screenInfo.isTablet) {
-      setIsSidebarCollapsed(true);
-    } else {
-      setIsSidebarCollapsed(false);
-    }
-  }, [screenInfo.isMobile, screenInfo.isTablet]);
-
-  // Close mobile nav when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: Event) => {
-      if (isMobileNavOpen && screenInfo.isMobile) {
-        const target = event.target as Element;
-        // Close if clicking outside the mobile nav container (Sidebar w/ mobile class) or trigger
-        // Note: The Sidebar container doesn't strictly have a class 'mobile-nav-container' unless we add it
-        // But clicking main content (outside the drawer) should close it.
-        // We can check if the click target is within the specialized Sidebar drawer.
-        // However, standard drawer behavior is often overlay + click outside.
-
-        // Simpler check: if we are open, and click is NOT in the header menu button...
-        // We need to be careful not to close it immediately if we click inside the menu.
-        // For now, let's rely on the route change for link clicks, and this for background clicks.
-
-        const sidebarEl = document.getElementById('mobile-sidebar-container');
-        if (sidebarEl && !sidebarEl.contains(target) && !target.closest('.mobile-nav-trigger')) {
-          setIsMobileNavOpen(false);
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, [isMobileNavOpen, screenInfo.isMobile]);
-
-  // Close mobile nav on route change
-  useEffect(() => {
-    setIsMobileNavOpen(false);
-  }, [router.asPath]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     window.location.href = '/auth/signin';
   };
 
-  const toggleSidebar = () => {
-    setIsSidebarCollapsed(!isSidebarCollapsed);
-  };
-
-  const toggleMobileNav = () => {
-    setIsMobileNavOpen(!isMobileNavOpen);
-  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-400 overflow-x-hidden overflow-y-auto max-w-full relative selection:bg-primary/30">
-      {/* Global Background Gradient */}
-      <div className="fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
+    <SidebarProvider>
+      <div className="min-h-screen bg-background text-foreground transition-colors duration-400 overflow-x-hidden overflow-y-auto max-w-full relative selection:bg-primary/30">
+        {/* Global Background Gradient */}
+        <div className="fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
 
       {/* Mobile Layout - Stack vertically */}
       {screenInfo.isMobile ? (
@@ -111,14 +61,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             className="flex items-center justify-between px-4 py-3 bg-background/80 backdrop-blur-md border-b border-border sticky top-0 z-40 shadow-sm"
           >
             <div className="flex items-center space-x-3 flex-1 min-w-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleMobileNav}
-                className="h-9 w-9 mobile-nav-trigger flex-shrink-0"
-              >
-                {isMobileNavOpen ? <X size={20} /> : <Menu size={20} />}
-              </Button>
+              <SidebarTrigger className="mobile-nav-trigger flex-shrink-0 h-9 w-9" />
               <div className="flex items-center space-x-2 min-w-0 flex-1">
                 <Logo size="sm" />
                 <h1 className="text-sm sm:text-base font-heading font-bold text-foreground truncate">
@@ -174,36 +117,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           </motion.header>
 
-          {/* Collapsible Mobile Navigation Bar */}
-          <AnimatePresence>
-            {isMobileNavOpen && (
-              <motion.div
-                id="mobile-sidebar-container"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="bg-background/95 backdrop-blur-xl border-b border-border w-full overflow-hidden z-30 shadow-sm"
-              >
-                <div className="p-2">
-                  <Sidebar
-                    isCollapsed={false}
-                    onToggle={() => {
-                      toggleSidebar();
-                      setIsMobileNavOpen(false);
-                    }}
-                    user={user ? {
-                      name: user.user_metadata?.full_name || user.email || 'User',
-                      username: user.user_metadata?.username || user.email,
-                      image: user.user_metadata?.avatar_url
-                    } : undefined}
-                    isDarkMode={isDarkMode}
-                    isMobile={true}
-                    isAdmin={isAdmin}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {/* Mobile Content */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full p-4 relative z-0">
@@ -212,28 +125,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       ) : (
         /* Desktop Layout - Side by side */
-        <div className="flex h-screen overflow-hidden relative z-10">
-          {/* Sidebar */}
-          <div className={cn(
-            "relative z-50 h-full transition-all duration-300 ease-in-out",
-            isSidebarCollapsed ? "w-[80px]" : "w-[260px]"
-          )}>
-            <Sidebar
-              isCollapsed={isSidebarCollapsed}
-              onToggle={toggleSidebar}
-              user={user ? {
-                name: user.user_metadata?.full_name || user.email || 'User',
-                username: user.user_metadata?.username || user.email,
-                image: user.user_metadata?.avatar_url
-              } : undefined}
-              isDarkMode={isDarkMode}
-              isMobile={false}
-              isAdmin={isAdmin}
-            />
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background/30 relative">
+        <>
+          <AppSidebar
+            user={user ? {
+              name: user.user_metadata?.full_name || user.email || 'User',
+              username: user.user_metadata?.username || user.email,
+              image: user.user_metadata?.avatar_url
+            } : undefined}
+            isAdmin={isAdmin}
+          />
+          <SidebarInset>
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background/30 relative">
             {/* Top Bar - Enhanced with Search and Notifications */}
             <motion.header
               initial={{ opacity: 0, y: -10 }}
@@ -241,6 +144,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               className="flex items-center justify-between px-6 py-4 glass border-b border-border mx-6 mt-4 rounded-2xl sticky top-4 z-40 shadow-lg"
             >
               <div className="flex items-center space-x-4 flex-1 min-w-0">
+                <SidebarTrigger className="-ml-1 md:hidden" />
                 <h1 className="text-lg font-heading font-semibold text-foreground/90 hidden lg:block">
                   Avalanche Scouting
                 </h1>
@@ -333,10 +237,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 {children}
               </div>
             </motion.main>
-          </div>
-        </div>
+            </div>
+          </SidebarInset>
+        </>
       )}
-    </div>
+      </div>
+    </SidebarProvider>
   );
 };
 

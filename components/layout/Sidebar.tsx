@@ -7,51 +7,47 @@ import {
   BarChart3,
   TrendingUp,
   ArrowLeftRight,
-  ChevronRight,
-  ChevronLeft,
-  Settings,
-  Menu,
-  X,
   Wrench,
   Home,
-  Target,
-  Users,
   Database,
-  FileText,
   List,
   Eye,
   BookOpen,
   Archive,
-  LogOut,
-  PanelLeftClose,
-  PanelLeftOpen,
   Sparkles
 } from 'lucide-react';
-import { Button, Badge, Logo, Separator, Avatar, AvatarFallback, AvatarImage } from '../ui';
+import { Badge, Logo, Avatar, AvatarFallback, AvatarImage } from '../ui';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from '../ui/sidebar';
 import { cn } from '@/lib/utils';
 
 interface SidebarProps {
-  isCollapsed: boolean;
-  onToggle: () => void;
   user?: {
     name: string;
     username?: string;
     image?: string;
   };
-  isDarkMode?: boolean;
-  isMobile?: boolean;
   isAdmin?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({
-  isCollapsed,
-  onToggle,
+const AppSidebar: React.FC<SidebarProps> = ({
   user,
-  isDarkMode = false,
-  isMobile = false,
   isAdmin = false
 }) => {
   const router = useRouter();
+  const { state } = useSidebar();
+  const isCollapsed = state === 'collapsed';
 
   const menuItems = [
     {
@@ -126,86 +122,20 @@ const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
-  // Mobile navigation - Glass morphism sideways scrollable bar
-  if (isMobile) {
-    return (
-      <div className="w-full bg-transparent overflow-hidden">
-        <style jsx>{`
-          .mobile-nav-scroll {
-            -webkit-overflow-scrolling: touch;
-            scroll-behavior: smooth;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-          }
-          .mobile-nav-scroll::-webkit-scrollbar {
-            display: none;
-          }
-        `}</style>
-
-        <nav className="mobile-nav-scroll flex items-center space-x-2 overflow-x-auto py-2 px-1 w-full flex-nowrap">
-          {/* Dashboard Button */}
-          <Link href="/" passHref>
-            <div className={cn(
-              "flex flex-col items-center justify-center min-w-[70px] h-[64px] p-2 rounded-xl transition-all flex-shrink-0 cursor-pointer border border-transparent",
-              router.pathname === "/"
-                ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary/20"
-                : "text-muted-foreground hover:bg-white/5 bg-card/30 border-white/5"
-            )}>
-              <Home size={20} />
-              <span className="text-[10px] font-medium mt-1">Home</span>
-            </div>
-          </Link>
-
-          {/* All Menu Items Flattened */}
-          {menuItems.flatMap(section => section.items).map((item) => {
-            const isActive = router.pathname === item.href;
-            const Icon = item.icon;
-            return (
-              <Link key={item.href} href={item.href} passHref>
-                <div className={cn(
-                  "flex flex-col items-center justify-center min-w-[70px] h-[64px] p-2 rounded-xl transition-all flex-shrink-0 cursor-pointer border",
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 border-primary/20"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent bg-card/30 border-border"
-                )}>
-                  <Icon size={20} />
-                  <span className="text-[10px] font-medium mt-1 truncate max-w-[80px] text-center">
-                    {item.label === 'Match Scouting' ? 'Match' :
-                      item.label === 'Pit Scouting' ? 'Pit' :
-                        item.label === 'Pit Data' ? 'Pit Data' :
-                          item.label === 'Game Rules' ? 'Rules' :
-                            item.label.split(' ')[0]}
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-    );
-  }
-
-  // Desktop sidebar - Glass container
   return (
-    <motion.div
-      initial={{ width: isCollapsed ? 80 : 260 }}
-      animate={{ width: isCollapsed ? 80 : 260 }}
-      transition={{ duration: 0.3, type: "spring", stiffness: 120, damping: 20 }}
-      className="h-full flex flex-col bg-background/60 backdrop-blur-xl border-r border-border shadow-2xl z-50 relative overflow-hidden"
+    <Sidebar 
+      collapsible="icon" 
+      variant="sidebar"
+      className="border-r border-sidebar-border bg-background/60 backdrop-blur-xl"
     >
       {/* Decorative gradient blob */}
-      <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none z-0" />
 
-      {/* Header */}
-      <div className={cn(
-        "flex items-center p-4 mb-2 relative z-10",
-        isCollapsed ? "justify-center flex-col gap-4" : "justify-between"
-      )}>
-        <div className="flex items-center space-x-3 overflow-hidden">
+      <SidebarHeader className="border-b border-sidebar-border relative z-10">
+        <div className="flex items-center gap-2 px-2 py-1.5">
           <div className="flex-shrink-0">
             <Logo size="sm" />
           </div>
-
           <AnimatePresence>
             {!isCollapsed && (
               <motion.div
@@ -213,130 +143,77 @@ const Sidebar: React.FC<SidebarProps> = ({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2 }}
-                className="whitespace-nowrap"
+                className="flex items-center gap-2"
               >
-                <div className="flex items-center gap-2">
-                  <h2 className="font-heading font-bold text-lg tracking-tight text-foreground">
-                    Avalanche
-                  </h2>
-                  <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 border-primary/30 text-primary">
-                    <Sparkles className="h-2.5 w-2.5 mr-1" />
-                    2026
-                  </Badge>
-                </div>
-                <p className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
-                  Scouting Platform
-                </p>
+                <h2 className="font-heading font-bold text-lg tracking-tight text-sidebar-foreground">
+                  Avalanche
+                </h2>
+                <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 border-primary/30 text-primary">
+                  <Sparkles className="h-2.5 w-2.5 mr-1" />
+                  2026
+                </Badge>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
+      </SidebarHeader>
 
-        {/* Toggle Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggle}
-          className={cn("text-muted-foreground hover:text-foreground rounded-lg hover:bg-accent transition-all", isCollapsed ? "w-8 h-8" : "")}
-        >
-          {isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
-        </Button>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 px-3 space-y-6 overflow-y-auto scrollbar-hide relative z-10 py-2">
+      <SidebarContent className="relative z-10">
         {/* Dashboard Button */}
-        <div>
-          <Link href="/">
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={cn(
-                "flex items-center p-3 rounded-xl transition-all duration-200 group cursor-pointer",
-                router.pathname === "/"
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 border border-primary/20"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent border border-transparent"
-              )}
-            >
-              <Home size={20} className={cn("flex-shrink-0", isCollapsed ? "mx-auto" : "mr-3")} />
-              <AnimatePresence>
-                {!isCollapsed && (
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="font-medium text-sm"
-                  >
-                    Dashboard
-                  </motion.span>
-                )}
-              </AnimatePresence>
-
-              {router.pathname === "/" && !isCollapsed && (
-                <motion.div layoutId="active-pill" className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-foreground" />
-              )}
-            </motion.div>
-          </Link>
-        </div>
-
-        {menuItems.map((section, sectionIndex) => (
-          <div key={section.title}>
-            <AnimatePresence>
-              {!isCollapsed && (
-                <motion.h3
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="px-3 mb-2 text-xs font-semibold text-muted-foreground/60 uppercase tracking-widest"
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={router.pathname === "/"}
+                  tooltip={isCollapsed ? "Dashboard" : undefined}
                 >
-                  {section.title}
-                </motion.h3>
-              )}
-            </AnimatePresence>
-
-            <div className="space-y-1">
-              {section.items.map((item) => {
-                const isActive = router.pathname === item.href;
-                return (
-                  <Link key={item.href} href={item.href}>
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={cn(
-                        "flex items-center p-3 rounded-xl transition-all duration-200 group cursor-pointer relative",
-                        isActive
-                          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 border border-primary/20"
-                          : "text-muted-foreground hover:text-foreground hover:bg-accent border border-transparent"
-                      )}
-                    >
-                      <item.icon size={20} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary-foreground" : "group-hover:text-foreground", isCollapsed ? "mx-auto" : "mr-3")} />
-
-                      <AnimatePresence>
-                        {!isCollapsed && (
-                          <motion.span
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="font-medium text-sm whitespace-nowrap"
-                          >
-                            {item.label}
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
+                  <Link href="/">
+                    <Home />
+                    <span>Dashboard</span>
                   </Link>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </nav>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-      {/* User Profile */}
-      <div className="p-3 border-t border-border relative z-10 bg-background/40">
-        <Separator className="mb-3" />
-        <div className={cn("flex items-center rounded-xl p-2", isCollapsed ? "justify-center" : "space-x-3")}>
+        {menuItems.map((section) => (
+          <SidebarGroup key={section.title}>
+            {!isCollapsed && (
+              <SidebarGroupLabel className="text-sidebar-foreground/60">
+                {section.title}
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {section.items.map((item) => {
+                  const isActive = router.pathname === item.href;
+                  const Icon = item.icon;
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={isActive}
+                        tooltip={isCollapsed ? item.label : undefined}
+                      >
+                        <Link href={item.href}>
+                          <Icon />
+                          <span>{item.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+      </SidebarContent>
+
+      <SidebarFooter className="border-t border-sidebar-border relative z-10">
+        <div className={cn("flex items-center rounded-lg p-2", isCollapsed ? "justify-center" : "space-x-3")}>
           {user?.image ? (
             <Avatar className={cn("flex-shrink-0", isCollapsed ? "h-8 w-8 mx-auto" : "h-8 w-8")}>
               <AvatarImage src={user.image} alt={user.name} />
@@ -358,15 +235,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                 exit={{ opacity: 0, width: 0 }}
                 className="flex-1 min-w-0"
               >
-                <p className="text-sm font-medium truncate text-foreground">{user?.name || 'User'}</p>
-                <p className="text-[10px] text-muted-foreground truncate">Team Member</p>
+                <p className="text-sm font-medium truncate text-sidebar-foreground">{user?.name || 'User'}</p>
+                <p className="text-[10px] text-sidebar-foreground/70 truncate">Team Member</p>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
-      </div>
-    </motion.div>
+      </SidebarFooter>
+    </Sidebar>
   );
 };
 
-export default Sidebar;
+export default AppSidebar;

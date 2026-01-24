@@ -123,10 +123,17 @@ const AppSidebar: React.FC<SidebarProps> = ({
   ];
 
   return (
-    <Sidebar collapsible="icon" variant="sidebar" className="border-r border-sidebar-border">
-      <SidebarHeader className="border-b border-sidebar-border">
+    <Sidebar 
+      collapsible="icon" 
+      variant="sidebar"
+      className="border-r border-sidebar-border bg-background/60 backdrop-blur-xl"
+    >
+      {/* Decorative gradient blob */}
+      <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none z-0" />
+
+      <SidebarHeader className="border-b border-sidebar-border relative z-10">
         <div className="flex items-center gap-2 px-2 py-1.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+          <div className="flex-shrink-0">
             <Logo size="sm" />
           </div>
           <AnimatePresence>
@@ -151,13 +158,17 @@ const AppSidebar: React.FC<SidebarProps> = ({
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="relative z-10">
         {/* Dashboard Button */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={router.pathname === "/"}>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={router.pathname === "/"}
+                  tooltip={isCollapsed ? "Dashboard" : undefined}
+                >
                   <Link href="/">
                     <Home />
                     <span>Dashboard</span>
@@ -171,7 +182,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
         {menuItems.map((section) => (
           <SidebarGroup key={section.title}>
             {!isCollapsed && (
-              <SidebarGroupLabel className="text-sidebar-foreground/70">
+              <SidebarGroupLabel className="text-sidebar-foreground/60">
                 {section.title}
               </SidebarGroupLabel>
             )}
@@ -201,17 +212,17 @@ const AppSidebar: React.FC<SidebarProps> = ({
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border">
+      <SidebarFooter className="border-t border-sidebar-border relative z-10">
         <div className={cn("flex items-center rounded-lg p-2", isCollapsed ? "justify-center" : "space-x-3")}>
           {user?.image ? (
             <Avatar className={cn("flex-shrink-0", isCollapsed ? "h-8 w-8 mx-auto" : "h-8 w-8")}>
               <AvatarImage src={user.image} alt={user.name} />
-              <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground">
+              <AvatarFallback className="bg-primary/20 text-primary">
                 {user?.name?.[0]?.toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
           ) : (
-            <div className={cn("w-8 h-8 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs font-bold flex-shrink-0", isCollapsed && "mx-auto")}>
+            <div className={cn("w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-xs text-primary-foreground font-bold flex-shrink-0 shadow-lg shadow-primary/20", isCollapsed && "mx-auto")}>
               {user?.name?.[0]?.toUpperCase() || 'U'}
             </div>
           )}

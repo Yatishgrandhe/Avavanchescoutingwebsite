@@ -135,7 +135,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <SidebarInset>
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background/30 relative">
-            {/* Top Bar - Enhanced with Search and Notifications */}
+            {/* Top Bar */}
             <motion.header
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}

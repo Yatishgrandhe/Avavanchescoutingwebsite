@@ -27,7 +27,7 @@ export interface ScoutingData {
   final_score: number;
   autonomous_cleansing: number;
   teleop_cleansing: number;
-  notes: ScoringNotes;
+  notes: ScoringNotes | { autonomous?: Partial<ScoringNotes>, teleop?: Partial<ScoringNotes> };
   defense_rating: number;
   comments: string;
   created_at: string;

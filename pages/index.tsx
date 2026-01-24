@@ -346,234 +346,317 @@ export default function Home() {
     return (
       <ProtectedRoute>
         <Layout>
-          <div className="space-y-8 animate-in-fade">
+          <div className="space-y-6">
             {/* Welcome Section */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70">
-                  Dashboard
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                  Welcome back, {user.user_metadata?.full_name?.split(' ')[0] || 'Scout'}. Ready for the competition?
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Button onClick={() => loadDashboardStats()} variant="outline" size="sm" className="glass bg-white/5 hover:bg-white/10 border-white/10 text-xs">
-                  Refresh Data
-                </Button>
-                <div className="text-xs text-muted-foreground bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
-                  <span className="w-2 h-2 rounded-full bg-green-500 inline-block mr-2 animate-pulse"></span>
-                  System Online
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-3xl font-heading font-bold tracking-tight">
+                    Dashboard
+                  </h1>
+                  <p className="text-muted-foreground mt-1.5">
+                    Welcome back, {user.user_metadata?.full_name?.split(' ')[0] || 'Scout'}. Ready for the competition?
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    onClick={() => loadDashboardStats()} 
+                    variant="outline" 
+                    size="sm"
+                    disabled={loadingStats}
+                  >
+                    {loadingStats ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Refreshing...
+                      </>
+                    ) : (
+                      'Refresh Data'
+                    )}
+                  </Button>
+                  <Badge variant="outline" className="gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                    System Online
+                  </Badge>
                 </div>
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Stats Cards */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {[
-                { title: "Start Scouting", subtitle: "Collect match data", icon: Target, path: "/scout", color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
-                { title: "Pit Scouting", subtitle: "Robot analysis", icon: Settings, path: "/pit-scouting", color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
-                { title: "Data Analysis", subtitle: "View reports", icon: BarChart3, path: "/analysis/data", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
-                { title: "Team Comparison", subtitle: "Compare stats", icon: Users, path: "/analysis/comparison", color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/20" }
-              ].map((action, i) => (
-                <motion.button
-                  key={i}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => router.push(action.path)}
-                  className={`glass-card p-4 rounded-xl flex items-center space-x-4 text-left group border ${action.border}`}
-                >
-                  <div className={`p-3 rounded-lg ${action.bg} ${action.color} group-hover:scale-110 transition-transform duration-300`}>
-                    <action.icon size={24} />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground group-hover:text-white transition-colors">
-                      {action.title}
-                    </h3>
-                    <p className="text-xs text-muted-foreground">{action.subtitle}</p>
-                  </div>
-                  <ChevronRight className="ml-auto text-white/20 group-hover:text-white/50 transition-colors" size={18} />
-                </motion.button>
+                { 
+                  label: "Total Matches", 
+                  value: dashboardStats.totalMatches, 
+                  icon: Target, 
+                  description: "Matches scouted",
+                  trend: "+12%"
+                },
+                { 
+                  label: "Teams Tracked", 
+                  value: dashboardStats.teamsCount, 
+                  icon: Users, 
+                  description: "Active teams",
+                  trend: "+5"
+                },
+                { 
+                  label: "Data Points", 
+                  value: dashboardStats.dataPoints, 
+                  icon: Database, 
+                  description: "Data collected",
+                  trend: "+234"
+                },
+                { 
+                  label: "Success Rate", 
+                  value: `${dashboardStats.successRate}%`, 
+                  icon: Activity, 
+                  description: "Completion rate",
+                  trend: dashboardStats.successRate > 80 ? "Excellent" : "Good"
+                }
+              ].map((stat, i) => (
+                <Card key={i} className="relative overflow-hidden">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      {stat.label}
+                    </CardTitle>
+                    <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
+                      <stat.icon className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {loadingStats ? (
+                      <div className="space-y-2">
+                        <div className="h-8 w-24 bg-muted animate-pulse rounded" />
+                        <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-2xl font-bold">{stat.value}</div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {stat.description}
+                        </p>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
               ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Stats Grid with Tabs */}
-              <div className="lg:col-span-2 space-y-4">
-                <Tabs defaultValue="overview" className="w-full">
-                  <TabsList className="glass bg-background/50 border-border">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="stats">Statistics</TabsTrigger>
-                    <TabsTrigger value="insights">Insights</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="overview" className="space-y-4 mt-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {[
-                        { label: "Total Matches", value: dashboardStats.totalMatches, icon: Target, color: "text-blue-400" },
-                        { label: "Teams Tracked", value: dashboardStats.teamsCount, icon: Users, color: "text-purple-400" },
-                        { label: "Data Points", value: dashboardStats.dataPoints, icon: Database, color: "text-emerald-400" },
-                        { label: "Success Rate", value: `${dashboardStats.successRate}%`, icon: Activity, color: "text-orange-400" }
-                      ].map((stat, i) => (
-                        <Card key={i} className="glass-card border-l-4 border-l-primary/50">
-                          <CardContent className="p-5 flex items-center justify-between relative overflow-hidden">
-                            <div className="absolute right-0 top-0 p-4 opacity-5 pointer-events-none">
-                              <stat.icon size={64} />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                              {loadingStats ? (
-                                <div className="h-8 w-24 bg-muted animate-pulse rounded mt-1" />
-                              ) : (
-                                <h2 className="text-2xl font-bold text-foreground mt-1 font-heading">{stat.value}</h2>
-                              )}
-                            </div>
-                            <div className={`p-2 rounded-lg bg-accent ${stat.color}`}>
-                              <stat.icon size={20} />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+            {/* Quick Actions */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {[
+                { 
+                  title: "Start Scouting", 
+                  description: "Collect match data", 
+                  icon: Target, 
+                  path: "/scout",
+                  color: "text-blue-600 dark:text-blue-400"
+                },
+                { 
+                  title: "Pit Scouting", 
+                  description: "Robot analysis", 
+                  icon: Settings, 
+                  path: "/pit-scouting",
+                  color: "text-purple-600 dark:text-purple-400"
+                },
+                { 
+                  title: "Data Analysis", 
+                  description: "View reports", 
+                  icon: BarChart3, 
+                  path: "/analysis/data",
+                  color: "text-emerald-600 dark:text-emerald-400"
+                },
+                { 
+                  title: "Team Comparison", 
+                  description: "Compare stats", 
+                  icon: Users, 
+                  path: "/analysis/comparison",
+                  color: "text-orange-600 dark:text-orange-400"
+                }
+              ].map((action, i) => (
+                <Card 
+                  key={i}
+                  className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
+                  onClick={() => router.push(action.path)}
+                >
+                  <CardHeader className="flex flex-row items-center space-y-0 pb-2">
+                    <div className={`h-10 w-10 rounded-lg bg-muted flex items-center justify-center ${action.color}`}>
+                      <action.icon className="h-5 w-5" />
                     </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="stats" className="mt-4">
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle>Detailed Statistics</CardTitle>
-                        <CardDescription>Comprehensive view of scouting data</CardDescription>
-                      </CardHeader>
-                      <CardContent>
+                  </CardHeader>
+                  <CardContent>
+                    <CardTitle className="text-base mb-1">{action.title}</CardTitle>
+                    <CardDescription className="text-xs">{action.description}</CardDescription>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+              {/* Stats Grid with Tabs */}
+              <Card className="lg:col-span-4">
+                <CardHeader>
+                  <CardTitle>Statistics Overview</CardTitle>
+                  <CardDescription>Comprehensive view of scouting data</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Tabs defaultValue="overview" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="overview">Overview</TabsTrigger>
+                      <TabsTrigger value="stats">Statistics</TabsTrigger>
+                      <TabsTrigger value="insights">Insights</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="overview" className="space-y-4 mt-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Total Matches</span>
+                          <span className="text-sm font-medium">{loadingStats ? '...' : dashboardStats.totalMatches}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Teams Tracked</span>
+                          <span className="text-sm font-medium">{loadingStats ? '...' : dashboardStats.teamsCount}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Data Points</span>
+                          <span className="text-sm font-medium">{loadingStats ? '...' : dashboardStats.dataPoints}</span>
+                        </div>
+                        <Separator />
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Success Rate</span>
+                          <Badge variant={dashboardStats.successRate > 80 ? "default" : "secondary"}>
+                            {loadingStats ? '...' : `${dashboardStats.successRate}%`}
+                          </Badge>
+                        </div>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="stats" className="mt-4">
+                      <div className="rounded-md border">
                         <Table>
                           <TableHeader>
                             <TableRow>
                               <TableHead>Metric</TableHead>
-                              <TableHead>Value</TableHead>
-                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Value</TableHead>
+                              <TableHead className="text-right">Status</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             <TableRow>
                               <TableCell className="font-medium">Total Matches</TableCell>
-                              <TableCell>{loadingStats ? '...' : dashboardStats.totalMatches}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/20">
+                              <TableCell className="text-right">{loadingStats ? '...' : dashboardStats.totalMatches}</TableCell>
+                              <TableCell className="text-right">
+                                <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
                                   Active
                                 </Badge>
                               </TableCell>
                             </TableRow>
                             <TableRow>
                               <TableCell className="font-medium">Teams Tracked</TableCell>
-                              <TableCell>{loadingStats ? '...' : dashboardStats.teamsCount}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">
+                              <TableCell className="text-right">{loadingStats ? '...' : dashboardStats.teamsCount}</TableCell>
+                              <TableCell className="text-right">
+                                <Badge variant="outline" className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
                                   Tracking
                                 </Badge>
                               </TableCell>
                             </TableRow>
                             <TableRow>
                               <TableCell className="font-medium">Data Points</TableCell>
-                              <TableCell>{loadingStats ? '...' : dashboardStats.dataPoints}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/20">
+                              <TableCell className="text-right">{loadingStats ? '...' : dashboardStats.dataPoints}</TableCell>
+                              <TableCell className="text-right">
+                                <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">
                                   Collected
                                 </Badge>
                               </TableCell>
                             </TableRow>
                             <TableRow>
                               <TableCell className="font-medium">Success Rate</TableCell>
-                              <TableCell>{loadingStats ? '...' : `${dashboardStats.successRate}%`}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className={dashboardStats.successRate > 80 ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-orange-500/10 text-orange-400 border-orange-500/20"}>
+                              <TableCell className="text-right">{loadingStats ? '...' : `${dashboardStats.successRate}%`}</TableCell>
+                              <TableCell className="text-right">
+                                <Badge variant="outline" className={dashboardStats.successRate > 80 ? "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20" : "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20"}>
                                   {dashboardStats.successRate > 80 ? 'Excellent' : 'Good'}
                                 </Badge>
                               </TableCell>
                             </TableRow>
                           </TableBody>
                         </Table>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                  
-                  <TabsContent value="insights" className="mt-4">
-                    <Card className="glass-card bg-gradient-to-br from-primary/10 to-transparent">
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <CardTitle>Quick Insights</CardTitle>
-                          <Sparkles size={16} className="text-primary" />
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="insights" className="mt-4">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium">Quick Insights</span>
                         </div>
-                        <CardDescription>Key metrics at a glance</CardDescription>
-                      </CardHeader>
-                      <CardContent>
                         <div className="grid grid-cols-3 gap-2">
                           {['Rankings', 'Averages', 'Predictions'].map((item) => (
-                            <div key={item} className="text-center p-3 rounded-lg bg-background/40 border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-colors">
+                            <div key={item} className="text-center p-3 rounded-lg border text-sm hover:bg-accent cursor-pointer transition-colors">
                               {item}
                             </div>
                           ))}
                         </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                </Tabs>
-              </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
 
               {/* Recent Activity Feed */}
-              <div className="glass-card rounded-xl flex flex-col h-full max-h-[400px]">
-                <div className="p-5 border-b border-white/5 flex items-center justify-between">
-                  <h3 className="font-semibold text-foreground flex items-center gap-2">
-                    <Clock size={16} className="text-primary" />
-                    Activity Feed
-                  </h3>
-                  <Badge variant="outline" className="text-[10px] h-5 border-white/10 bg-white/5">Latest</Badge>
-                </div>
-                <div className="p-4 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
-                  {loadingActivity ? (
-                    <div className="flex flex-col gap-3">
-                      {[1, 2, 3].map(i => (
-                        <div key={i} className="flex gap-3 animate-pulse">
-                          <div className="w-8 h-8 rounded-full bg-white/5" />
-                          <div className="flex-1 space-y-2">
-                            <div className="h-4 w-3/4 bg-white/5 rounded" />
-                            <div className="h-3 w-1/2 bg-white/5 rounded" />
+              <Card className="lg:col-span-3">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Activity Feed
+                    </CardTitle>
+                    <Badge variant="outline">Latest</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {loadingActivity ? (
+                      <div className="space-y-3">
+                        {[1, 2, 3].map(i => (
+                          <div key={i} className="flex gap-3 animate-pulse">
+                            <div className="h-8 w-8 rounded-full bg-muted" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-4 w-3/4 bg-muted rounded" />
+                              <div className="h-3 w-1/2 bg-muted rounded" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : recentActivity.length > 0 ? (
+                      recentActivity.map((activity) => (
+                        <div key={activity.id} className="flex gap-3 group">
+                          <div className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            activity.type === 'match' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' :
+                            activity.type === 'pit' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400' : 
+                            'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                          }`}>
+                            {activity.type === 'match' ? <CheckCircle className="h-4 w-4" /> :
+                              activity.type === 'pit' ? <Settings className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium group-hover:text-primary transition-colors">
+                              {activity.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">{activity.description}</p>
+                            <span className="text-xs text-muted-foreground mt-0.5 block">{activity.timestamp}</span>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : recentActivity.length > 0 ? (
-                    recentActivity.map((activity) => (
-                      <div key={activity.id} className="flex gap-3 group">
-                        <div className={`mt-1 p-1.5 rounded-full h-fit flex-shrink-0 ${activity.type === 'match' ? 'bg-blue-500/20 text-blue-400' :
-                          activity.type === 'pit' ? 'bg-purple-500/20 text-purple-400' : 'bg-emerald-500/20 text-emerald-400'
-                          }`}>
-                          {activity.type === 'match' ? <CheckCircle size={14} /> :
-                            activity.type === 'pit' ? <Settings size={14} /> : <BarChart3 size={14} />}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                            {activity.title}
-                          </p>
-                          <p className="text-xs text-muted-foreground line-clamp-1">{activity.description}</p>
-                          <span className="text-[10px] text-white/30 mt-1 block">{activity.timestamp}</span>
-                        </div>
+                      ))
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-sm">
+                        <Clock className="h-8 w-8 mb-2 opacity-50" />
+                        No recent activity
                       </div>
-                    ))
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-40 text-muted-foreground text-xs">
-                      <Clock size={24} className="mb-2 opacity-50" />
-                      No recent activity
-                    </div>
-                  )}
-                </div>
-                <div className="p-3 border-t border-white/5">
-                  <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground hover:text-white justify-between group">
-                    View All Activity
-                    <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </div>
-              </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-
           </div>
         </Layout>
       </ProtectedRoute>

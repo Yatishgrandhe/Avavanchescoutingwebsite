@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, LogOut, Menu, X, Bell, Settings, Search } from 'lucide-react';
+import { User, LogOut, Settings } from 'lucide-react';
 import {
   Button,
   Avatar,
@@ -13,9 +13,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  Badge,
-  Logo,
-  Input
+  Logo
 } from '../ui';
 import {
   SidebarProvider,
@@ -148,39 +146,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <h1 className="text-lg font-heading font-semibold text-foreground/90 hidden lg:block">
                   Avalanche Scouting
                 </h1>
-                {/* Search Bar - Desktop Only */}
-                <div className="hidden md:flex items-center flex-1 max-w-md">
-                  <div className="relative w-full">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder="Search teams, matches..."
-                      className="pl-9 w-full bg-background/50 border-border"
-                    />
-                  </div>
-                </div>
               </div>
 
               <div className="flex items-center space-x-3">
-                {/* Notifications */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="relative">
-                      <Bell className="h-5 w-5" />
-                      <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-destructive">
-                        3
-                      </Badge>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-80 glass border-border" align="end">
-                    <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <div className="p-2 text-sm text-muted-foreground">
-                      No new notifications
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
                 {user && (
                   <div className="flex items-center space-x-3 pl-3 border-l border-border">
                     <div className="text-right hidden lg:block">

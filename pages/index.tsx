@@ -4,6 +4,10 @@ import { useRouter } from 'next/router';
 import { Button } from '../components/ui';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui';
 import { Badge } from '../components/ui/badge';
+import { Alert, AlertTitle, AlertDescription } from '../components/ui';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui';
+import { Separator } from '../components/ui';
 import {
   BarChart3,
   Target,
@@ -394,46 +398,124 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Stats Grid */}
-              <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[
-                  { label: "Total Matches", value: dashboardStats.totalMatches, icon: Target, color: "text-blue-400" },
-                  { label: "Teams Tracked", value: dashboardStats.teamsCount, icon: Users, color: "text-purple-400" },
-                  { label: "Data Points", value: dashboardStats.dataPoints, icon: Database, color: "text-emerald-400" },
-                  { label: "Success Rate", value: `${dashboardStats.successRate}%`, icon: Activity, color: "text-orange-400" }
-                ].map((stat, i) => (
-                  <div key={i} className="glass-card p-5 rounded-xl flex items-center justify-between border-l-4 border-l-primary/50 relative overflow-hidden">
-                    <div className="absolute right-0 top-0 p-4 opacity-5 pointer-events-none">
-                      <stat.icon size={64} />
+              {/* Stats Grid with Tabs */}
+              <div className="lg:col-span-2 space-y-4">
+                <Tabs defaultValue="overview" className="w-full">
+                  <TabsList className="glass bg-background/50 border-border">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="stats">Statistics</TabsTrigger>
+                    <TabsTrigger value="insights">Insights</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="overview" className="space-y-4 mt-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[
+                        { label: "Total Matches", value: dashboardStats.totalMatches, icon: Target, color: "text-blue-400" },
+                        { label: "Teams Tracked", value: dashboardStats.teamsCount, icon: Users, color: "text-purple-400" },
+                        { label: "Data Points", value: dashboardStats.dataPoints, icon: Database, color: "text-emerald-400" },
+                        { label: "Success Rate", value: `${dashboardStats.successRate}%`, icon: Activity, color: "text-orange-400" }
+                      ].map((stat, i) => (
+                        <Card key={i} className="glass-card border-l-4 border-l-primary/50">
+                          <CardContent className="p-5 flex items-center justify-between relative overflow-hidden">
+                            <div className="absolute right-0 top-0 p-4 opacity-5 pointer-events-none">
+                              <stat.icon size={64} />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                              {loadingStats ? (
+                                <div className="h-8 w-24 bg-muted animate-pulse rounded mt-1" />
+                              ) : (
+                                <h2 className="text-2xl font-bold text-foreground mt-1 font-heading">{stat.value}</h2>
+                              )}
+                            </div>
+                            <div className={`p-2 rounded-lg bg-accent ${stat.color}`}>
+                              <stat.icon size={20} />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                      {loadingStats ? (
-                        <div className="h-8 w-24 bg-white/5 animate-pulse rounded mt-1" />
-                      ) : (
-                        <h2 className="text-2xl font-bold text-foreground mt-1 font-heading">{stat.value}</h2>
-                      )}
-                    </div>
-                    <div className={`p-2 rounded-lg bg-white/5 ${stat.color}`}>
-                      <stat.icon size={20} />
-                    </div>
-                  </div>
-                ))}
-
-                {/* Feature Highlights (Mini) */}
-                <div className="col-span-1 sm:col-span-2 glass-card p-5 rounded-xl border border-white/5 bg-gradient-to-br from-primary/10 to-transparent">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-foreground">Quick Insights</h3>
-                    <Sparkles size={16} className="text-primary" />
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {['Rankings', 'Averages', 'Predictions'].map((item) => (
-                      <div key={item} className="text-center p-2 rounded-lg bg-background/40 border border-white/5 text-xs text-muted-foreground hover:text-white hover:bg-white/10 cursor-pointer transition-colors">
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="stats" className="mt-4">
+                    <Card className="glass-card">
+                      <CardHeader>
+                        <CardTitle>Detailed Statistics</CardTitle>
+                        <CardDescription>Comprehensive view of scouting data</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Metric</TableHead>
+                              <TableHead>Value</TableHead>
+                              <TableHead>Status</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            <TableRow>
+                              <TableCell className="font-medium">Total Matches</TableCell>
+                              <TableCell>{loadingStats ? '...' : dashboardStats.totalMatches}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/20">
+                                  Active
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium">Teams Tracked</TableCell>
+                              <TableCell>{loadingStats ? '...' : dashboardStats.teamsCount}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">
+                                  Tracking
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium">Data Points</TableCell>
+                              <TableCell>{loadingStats ? '...' : dashboardStats.dataPoints}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/20">
+                                  Collected
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium">Success Rate</TableCell>
+                              <TableCell>{loadingStats ? '...' : `${dashboardStats.successRate}%`}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={dashboardStats.successRate > 80 ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-orange-500/10 text-orange-400 border-orange-500/20"}>
+                                  {dashboardStats.successRate > 80 ? 'Excellent' : 'Good'}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="insights" className="mt-4">
+                    <Card className="glass-card bg-gradient-to-br from-primary/10 to-transparent">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle>Quick Insights</CardTitle>
+                          <Sparkles size={16} className="text-primary" />
+                        </div>
+                        <CardDescription>Key metrics at a glance</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-3 gap-2">
+                          {['Rankings', 'Averages', 'Predictions'].map((item) => (
+                            <div key={item} className="text-center p-3 rounded-lg bg-background/40 border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-colors">
+                              {item}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
               </div>
 
               {/* Recent Activity Feed */}
@@ -523,10 +605,13 @@ export default function Home() {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8 p-3 px-4 bg-red-500/10 border border-red-500/20 rounded-full flex items-center gap-2 text-red-200 text-sm backdrop-blur-md"
+            className="mb-8 max-w-2xl mx-auto"
           >
-            <AlertTriangle size={16} />
-            <span>{errorMessage}</span>
+            <Alert variant="destructive" className="backdrop-blur-md">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Authentication Error</AlertTitle>
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
           </motion.div>
         )}
 

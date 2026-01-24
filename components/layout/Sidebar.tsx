@@ -24,9 +24,10 @@ import {
   Archive,
   LogOut,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Sparkles
 } from 'lucide-react';
-import { Button, Badge, Logo } from '../ui';
+import { Button, Badge, Logo, Separator, Avatar, AvatarFallback, AvatarImage } from '../ui';
 import { cn } from '@/lib/utils';
 
 interface SidebarProps {
@@ -162,10 +163,10 @@ const Sidebar: React.FC<SidebarProps> = ({
             return (
               <Link key={item.href} href={item.href} passHref>
                 <div className={cn(
-                  "flex flex-col items-center justify-center min-w-[70px] h-[64px] p-2 rounded-xl transition-all flex-shrink-0 cursor-pointer border border-transparent",
+                  "flex flex-col items-center justify-center min-w-[70px] h-[64px] p-2 rounded-xl transition-all flex-shrink-0 cursor-pointer border",
                   isActive
-                    ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary/20"
-                    : "text-muted-foreground hover:bg-white/5 bg-card/30 border-white/5"
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 border-primary/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent bg-card/30 border-border"
                 )}>
                   <Icon size={20} />
                   <span className="text-[10px] font-medium mt-1 truncate max-w-[80px] text-center">
@@ -190,7 +191,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       initial={{ width: isCollapsed ? 80 : 260 }}
       animate={{ width: isCollapsed ? 80 : 260 }}
       transition={{ duration: 0.3, type: "spring", stiffness: 120, damping: 20 }}
-      className="h-full flex flex-col bg-background/60 backdrop-blur-xl border-r border-white/10 shadow-2xl z-50 relative overflow-hidden"
+      className="h-full flex flex-col bg-background/60 backdrop-blur-xl border-r border-border shadow-2xl z-50 relative overflow-hidden"
     >
       {/* Decorative gradient blob */}
       <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
@@ -214,11 +215,17 @@ const Sidebar: React.FC<SidebarProps> = ({
                 transition={{ duration: 0.2 }}
                 className="whitespace-nowrap"
               >
-                <h2 className="font-heading font-bold text-lg tracking-tight text-white">
-                  Avalanche
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-heading font-bold text-lg tracking-tight text-foreground">
+                    Avalanche
+                  </h2>
+                  <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 border-primary/30 text-primary">
+                    <Sparkles className="h-2.5 w-2.5 mr-1" />
+                    2026
+                  </Badge>
+                </div>
                 <p className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
-                  Scouting 2026
+                  Scouting Platform
                 </p>
               </motion.div>
             )}
@@ -230,7 +237,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           variant="ghost"
           size="icon"
           onClick={onToggle}
-          className={cn("text-muted-foreground hover:text-white rounded-lg hover:bg-white/10 transition-all", isCollapsed ? "w-8 h-8" : "")}
+          className={cn("text-muted-foreground hover:text-foreground rounded-lg hover:bg-accent transition-all", isCollapsed ? "w-8 h-8" : "")}
         >
           {isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
         </Button>
@@ -242,13 +249,13 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div>
           <Link href="/">
             <motion.div
-              whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.05)" }}
+              whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className={cn(
                 "flex items-center p-3 rounded-xl transition-all duration-200 group cursor-pointer",
                 router.pathname === "/"
-                  ? "bg-primary text-white shadow-lg shadow-primary/25 border border-primary/20"
-                  : "text-muted-foreground hover:text-white border border-transparent"
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 border border-primary/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent border border-transparent"
               )}
             >
               <Home size={20} className={cn("flex-shrink-0", isCollapsed ? "mx-auto" : "mr-3")} />
@@ -266,7 +273,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               </AnimatePresence>
 
               {router.pathname === "/" && !isCollapsed && (
-                <motion.div layoutId="active-pill" className="ml-auto w-1.5 h-1.5 rounded-full bg-white" />
+                <motion.div layoutId="active-pill" className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-foreground" />
               )}
             </motion.div>
           </Link>
@@ -294,16 +301,16 @@ const Sidebar: React.FC<SidebarProps> = ({
                 return (
                   <Link key={item.href} href={item.href}>
                     <motion.div
-                      whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.05)" }}
+                      whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       className={cn(
                         "flex items-center p-3 rounded-xl transition-all duration-200 group cursor-pointer relative",
                         isActive
-                          ? "bg-primary/90 text-white shadow-lg shadow-primary/20 border border-primary/20"
-                          : "text-muted-foreground hover:text-white border border-transparent"
+                          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 border border-primary/20"
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent border border-transparent"
                       )}
                     >
-                      <item.icon size={20} className={cn("flex-shrink-0 transition-colors", isActive ? "text-white" : "group-hover:text-white", isCollapsed ? "mx-auto" : "mr-3")} />
+                      <item.icon size={20} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary-foreground" : "group-hover:text-foreground", isCollapsed ? "mx-auto" : "mr-3")} />
 
                       <AnimatePresence>
                         {!isCollapsed && (
@@ -327,11 +334,21 @@ const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       {/* User Profile */}
-      <div className="p-3 border-t border-white/5 relative z-10 bg-black/10">
+      <div className="p-3 border-t border-border relative z-10 bg-background/40">
+        <Separator className="mb-3" />
         <div className={cn("flex items-center rounded-xl p-2", isCollapsed ? "justify-center" : "space-x-3")}>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-xs text-white font-bold flex-shrink-0 shadow-lg shadow-primary/20">
-            {user?.name?.[0]?.toUpperCase() || 'U'}
-          </div>
+          {user?.image ? (
+            <Avatar className={cn("flex-shrink-0", isCollapsed ? "h-8 w-8 mx-auto" : "h-8 w-8")}>
+              <AvatarImage src={user.image} alt={user.name} />
+              <AvatarFallback className="bg-primary/20 text-primary">
+                {user?.name?.[0]?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+          ) : (
+            <div className={cn("w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-xs text-primary-foreground font-bold flex-shrink-0 shadow-lg shadow-primary/20", isCollapsed && "mx-auto")}>
+              {user?.name?.[0]?.toUpperCase() || 'U'}
+            </div>
+          )}
 
           <AnimatePresence>
             {!isCollapsed && (
@@ -341,7 +358,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 exit={{ opacity: 0, width: 0 }}
                 className="flex-1 min-w-0"
               >
-                <p className="text-sm font-medium truncate text-white">{user?.name || 'User'}</p>
+                <p className="text-sm font-medium truncate text-foreground">{user?.name || 'User'}</p>
                 <p className="text-[10px] text-muted-foreground truncate">Team Member</p>
               </motion.div>
             )}

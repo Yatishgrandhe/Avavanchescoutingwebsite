@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, LogOut, Menu, X } from 'lucide-react';
+import { User, LogOut, Menu, X, Bell, Settings, Search } from 'lucide-react';
 import {
   Button,
   Avatar,
@@ -14,7 +14,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Badge,
-  Logo
+  Logo,
+  Input
 } from '../ui';
 import Sidebar from './Sidebar';
 import { useSupabase } from '@/pages/_app';
@@ -107,40 +108,42 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="flex items-center justify-between px-4 py-3 bg-background/80 backdrop-blur-md border-b border-white/10 sticky top-0 z-40"
+            className="flex items-center justify-between px-4 py-3 bg-background/80 backdrop-blur-md border-b border-border sticky top-0 z-40 shadow-sm"
           >
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 flex-1 min-w-0">
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={toggleMobileNav}
-                className="p-2 md:hidden mobile-nav-trigger"
+                className="h-9 w-9 mobile-nav-trigger flex-shrink-0"
               >
                 {isMobileNavOpen ? <X size={20} /> : <Menu size={20} />}
               </Button>
-              <Logo size="sm" />
-              <h1 className="text-sm sm:text-base font-heading font-bold text-foreground truncate">
-                Avalanche Scouting
-              </h1>
+              <div className="flex items-center space-x-2 min-w-0 flex-1">
+                <Logo size="sm" />
+                <h1 className="text-sm sm:text-base font-heading font-bold text-foreground truncate">
+                  Avalanche Scouting
+                </h1>
+              </div>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-shrink-0">
               {user && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full ring-2 ring-primary/20">
-                      <Avatar className="h-8 w-8">
+                    <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-2 ring-primary/20 p-0">
+                      <Avatar className="h-9 w-9">
                         <AvatarImage
                           src={user.user_metadata?.avatar_url}
-                          alt={user.user_metadata?.full_name}
+                          alt={user.user_metadata?.full_name || 'User'}
                         />
-                        <AvatarFallback>
+                        <AvatarFallback className="bg-primary/20 text-primary">
                           {(user.user_metadata?.full_name || user.email || 'U').slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 glass border-white/10" align="end" forceMount>
+                  <DropdownMenuContent className="w-56 glass border-border" align="end" forceMount>
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
                         <p className="text-sm font-medium leading-none">
@@ -151,13 +154,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         </p>
                       </div>
                     </DropdownMenuLabel>
-                    <DropdownMenuSeparator className="bg-white/10" />
-                    <DropdownMenuItem className="focus:bg-white/10">
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
                       <span>Profile</span>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-white/10" />
-                    <DropdownMenuItem onClick={handleSignOut} className="focus:bg-destructive/20 text-red-400">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive">
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Sign Out</span>
                     </DropdownMenuItem>
@@ -175,7 +182,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="bg-background/95 backdrop-blur-xl border-b border-white/10 w-full overflow-hidden z-30"
+                className="bg-background/95 backdrop-blur-xl border-b border-border w-full overflow-hidden z-30 shadow-sm"
               >
                 <div className="p-2">
                   <Sidebar
@@ -227,33 +234,64 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
           {/* Main Content */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background/30 relative">
-            {/* Top Bar - Glass Effect */}
+            {/* Top Bar - Enhanced with Search and Notifications */}
             <motion.header
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between px-6 py-4 glass border-b-0 border-white/5 mx-6 mt-4 rounded-2xl sticky top-4 z-40"
+              className="flex items-center justify-between px-6 py-4 glass border-b border-border mx-6 mt-4 rounded-2xl sticky top-4 z-40 shadow-lg"
             >
-              <div className="flex items-center space-x-3 lg:space-x-4">
-                {/* Breadcrumbs or Page Title could go here */}
-                <h1 className="text-lg font-heading font-semibold text-foreground/90">
+              <div className="flex items-center space-x-4 flex-1 min-w-0">
+                <h1 className="text-lg font-heading font-semibold text-foreground/90 hidden lg:block">
                   Avalanche Scouting
                 </h1>
+                {/* Search Bar - Desktop Only */}
+                <div className="hidden md:flex items-center flex-1 max-w-md">
+                  <div className="relative w-full">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder="Search teams, matches..."
+                      className="pl-9 w-full bg-background/50 border-border"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
+                {/* Notifications */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="relative">
+                      <Bell className="h-5 w-5" />
+                      <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-destructive">
+                        3
+                      </Badge>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-80 glass border-border" align="end">
+                    <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <div className="p-2 text-sm text-muted-foreground">
+                      No new notifications
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
                 {user && (
-                  <div className="flex items-center space-x-3 pl-4 border-l border-white/10">
-                    <div className="text-right hidden md:block">
-                      <p className="text-sm font-medium leading-none text-white">{user.user_metadata?.full_name}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Team Member</p>
+                  <div className="flex items-center space-x-3 pl-3 border-l border-border">
+                    <div className="text-right hidden lg:block">
+                      <p className="text-sm font-medium leading-none text-foreground">{user.user_metadata?.full_name || 'User'}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {isAdmin ? 'Administrator' : 'Team Member'}
+                      </p>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="relative h-10 w-10 rounded-full ring-2 ring-white/10 hover:ring-primary/50 transition-all p-0 overflow-hidden">
+                        <Button variant="ghost" className="relative h-10 w-10 rounded-full ring-2 ring-border hover:ring-primary/50 transition-all p-0 overflow-hidden">
                           <Avatar className="h-full w-full">
                             <AvatarImage
                               src={user.user_metadata?.avatar_url}
-                              alt={user.user_metadata?.full_name}
+                              alt={user.user_metadata?.full_name || 'User'}
                             />
                             <AvatarFallback className="bg-primary/20 text-primary">
                               {(user.user_metadata?.full_name || 'U').slice(0, 2).toUpperCase()}
@@ -261,14 +299,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                           </Avatar>
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-56 glass border-white/10 mt-2" align="end">
+                      <DropdownMenuContent className="w-56 glass border-border mt-2" align="end">
                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                        <DropdownMenuSeparator className="bg-white/10" />
-                        <DropdownMenuItem className="focus:bg-white/10 cursor-pointer">
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="cursor-pointer">
                           <User className="mr-2 h-4 w-4" />
                           <span>Profile</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleSignOut} className="focus:bg-destructive/20 text-red-400 cursor-pointer">
+                        <DropdownMenuItem className="cursor-pointer">
+                          <Settings className="mr-2 h-4 w-4" />
+                          <span>Settings</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive">
                           <LogOut className="mr-2 h-4 w-4" />
                           <span>Sign Out</span>
                         </DropdownMenuItem>

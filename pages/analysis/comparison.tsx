@@ -124,7 +124,7 @@ export default function TeamComparison() {
       const scores = scoutingData.map((match: any) => match.final_score || 0);
       const autonomousScores = scoutingData.map((match: any) => match.autonomous_points || 0);
       const teleopScores = scoutingData.map((match: any) => match.teleop_points || 0);
-      const endgameScores = scoutingData.map((match: any) => match.endgame_points || 0);
+      const endgameScores = scoutingData.map((match: any) => 0); // endgame_points not in database schema
       const defenseRatings = scoutingData.map((match: any) => match.defense_rating || 0);
 
       // Calculate averages

@@ -429,7 +429,7 @@ export default function PastCompetitionsPage() {
                                   teamStat.scores.push(data.final_score || 0);
                                   teamStat.autonomous_points.push(data.autonomous_points || 0);
                                   teamStat.teleop_points.push(data.teleop_points || 0);
-                                  teamStat.endgame_points.push(data.endgame_points || 0);
+                                  teamStat.endgame_points.push(0); // endgame_points not in database schema
                                   teamStat.defense_ratings.push(data.defense_rating || 0);
                                 }
                               });

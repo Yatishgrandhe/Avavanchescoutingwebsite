@@ -40,19 +40,6 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
 
   useEffect(() => {
     loadData();
-    
-    // Reload data when page becomes visible (user navigates back to tab/page)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        loadData();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
   }, []);
 
   const loadData = async () => {
@@ -60,21 +47,19 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
       setLoading(true);
       
       // Load scouting data - includes submitted_by_name for uploader display
+      // Fetch all data, then sort client-side by submitted_at (or created_at as fallback)
       const { data: scoutingDataResult, error: scoutingError } = await supabase
         .from('scouting_data')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      // Sort by submitted_at if available, otherwise created_at
-      if (scoutingDataResult) {
-        scoutingDataResult.sort((a: ScoutingData, b: ScoutingData) => {
-          const aTime = a.submitted_at ? new Date(a.submitted_at).getTime() : new Date(a.created_at).getTime();
-          const bTime = b.submitted_at ? new Date(b.submitted_at).getTime() : new Date(b.created_at).getTime();
-          return bTime - aTime; // Descending order
-        });
-      }
+        .select('*');
 
       if (scoutingError) throw scoutingError;
+
+      // Sort by submitted_at first, then created_at as fallback (most recent first)
+      const sortedScoutingData = (scoutingDataResult || []).sort((a: ScoutingData, b: ScoutingData) => {
+        const aTime = a.submitted_at || a.created_at;
+        const bTime = b.submitted_at || b.created_at;
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      });
 
       // Load teams
       const { data: teamsResult, error: teamsError } = await supabase
@@ -84,7 +69,7 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
 
       if (teamsError) throw teamsError;
 
-      setScoutingData(scoutingDataResult || []);
+      setScoutingData(sortedScoutingData);
       setTeams(teamsResult || []);
     } catch (error) {
       console.error('Error loading data:', error);

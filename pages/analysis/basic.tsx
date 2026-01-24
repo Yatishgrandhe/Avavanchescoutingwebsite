@@ -91,15 +91,22 @@ export default function BasicAnalysis() {
       setLoading(true);
       
       // Load scouting data exactly like data.tsx does
+      // Fetch all data, then sort client-side by submitted_at (or created_at as fallback)
       const { data: scoutingDataResult, error: scoutingError } = await supabase
         .from('scouting_data')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
 
       if (scoutingError) {
         console.error('Error fetching scouting data:', scoutingError);
         throw scoutingError;
       }
+
+      // Sort by submitted_at first, then created_at as fallback (most recent first)
+      const sortedScoutingData = (scoutingDataResult || []).sort((a: any, b: any) => {
+        const aTime = a.submitted_at || a.created_at;
+        const bTime = b.submitted_at || b.created_at;
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      });
 
       // Load teams exactly like data.tsx does
       const { data: teamsResult, error: teamsError } = await supabase
@@ -113,7 +120,6 @@ export default function BasicAnalysis() {
         throw teamsError;
       }
 
-      const scoutingData = scoutingDataResult || [];
       const allTeams = teamsResult || [];
 
       // Set matches data for matches tab
@@ -123,7 +129,7 @@ export default function BasicAnalysis() {
       });
 
       // Transform scouting data to match MatchData interface
-      const matchData = scoutingData.map((sd: any) => ({
+      const matchData = sortedScoutingData.map((sd: any) => ({
         id: sd.id,
         match_id: sd.match_id,
         team_number: sd.team_number,
@@ -143,12 +149,12 @@ export default function BasicAnalysis() {
       setMatches(matchData);
       
       // Count unique matches (distinct match_id values)
-      const uniqueMatchIds = new Set(scoutingData.map((sd: any) => sd.match_id));
+      const uniqueMatchIds = new Set(sortedScoutingData.map((sd: any) => sd.match_id));
       setUniqueMatchesCount(uniqueMatchIds.size);
 
       // Calculate team stats from scouting data
       const teamsWithStats = allTeams.map((team: any) => {
-        const teamScoutingData = scoutingData.filter((sd: any) => sd.team_number === team.team_number);
+        const teamScoutingData = sortedScoutingData.filter((sd: any) => sd.team_number === team.team_number);
         const totalMatches = teamScoutingData.length;
         
         if (totalMatches === 0) {

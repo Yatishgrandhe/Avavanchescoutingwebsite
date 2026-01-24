@@ -23,11 +23,10 @@ export interface ScoutingData {
   alliance_position?: 1 | 2 | 3;
   autonomous_points: number;
   teleop_points: number;
-  endgame_points: number;
   final_score: number;
   autonomous_cleansing: number;
   teleop_cleansing: number;
-  notes: ScoringNotes | { autonomous?: Partial<ScoringNotes>, teleop?: Partial<ScoringNotes> };
+  notes: ScoringNotes | { autonomous?: Partial<ScoringNotes>; teleop?: Partial<ScoringNotes> };
   defense_rating: number;
   comments: string;
   created_at: string;

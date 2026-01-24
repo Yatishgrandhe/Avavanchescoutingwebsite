@@ -220,7 +220,7 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
 
         const avgAutonomous = allScoutingData.reduce((sum, data) => sum + (data.autonomous_points || 0), 0) / totalMatches;
         const avgTeleop = allScoutingData.reduce((sum, data) => sum + (data.teleop_points || 0), 0) / totalMatches;
-        const avgEndgame = allScoutingData.reduce((sum, data) => sum + (data.endgame_points || 0), 0) / totalMatches;
+        const avgEndgame = 0; // endgame_points not in database schema
         const avgDefense = allScoutingData.reduce((sum, data) => sum + (data.defense_rating || 0), 0) / totalMatches;
 
         const variance = allScores.reduce((sum, score) => sum + Math.pow(score - overallAvgScore, 2), 0) / totalMatches;
@@ -512,7 +512,7 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
                                     <div className="flex justify-between text-xs text-muted-foreground mb-3 bg-black/20 rounded p-1.5">
                                       <span>A: <strong className="text-blue-400">{data.autonomous_points}</strong></span>
                                       <span>T: <strong className="text-orange-400">{data.teleop_points}</strong></span>
-                                      <span>E: <strong className="text-green-400">{data.endgame_points}</strong></span>
+                                      <span>E: <strong className="text-green-400">0</strong></span>
                                     </div>
 
                                     {/* Expanded details trigger (could be nested inside this small card) */}

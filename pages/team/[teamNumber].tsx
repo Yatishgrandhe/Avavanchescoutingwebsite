@@ -121,7 +121,7 @@ const TeamDetail: React.FC = () => {
     const totalMatches = scoutingData.length;
     const avgAutonomous = scoutingData.reduce((sum, data) => sum + (data.autonomous_points || 0), 0) / totalMatches;
     const avgTeleop = scoutingData.reduce((sum, data) => sum + (data.teleop_points || 0), 0) / totalMatches;
-    const avgEndgame = scoutingData.reduce((sum, data) => sum + (data.endgame_points || 0), 0) / totalMatches;
+    const avgEndgame = 0; // endgame_points not in database schema
     const avgTotal = scoutingData.reduce((sum, data) => sum + (data.final_score || 0), 0) / totalMatches;
     const avgDefense = scoutingData.reduce((sum, data) => sum + (data.defense_rating || 0), 0) / totalMatches;
 
@@ -388,7 +388,7 @@ const TeamDetail: React.FC = () => {
                           </div>
                           <div>
                             <div className="text-xs text-muted-foreground uppercase">End</div>
-                            <div className="font-bold text-green-400">{data.endgame_points}</div>
+                            <div className="font-bold text-green-400">0</div>
                           </div>
                         </div>
 

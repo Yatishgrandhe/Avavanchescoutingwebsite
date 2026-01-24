@@ -47,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const avgAutonomous = scoutingData!.reduce((sum: number, data: any) => sum + (data.autonomous_points || 0), 0) / totalMatches;
       const avgTeleop = scoutingData!.reduce((sum: number, data: any) => sum + (data.teleop_points || 0), 0) / totalMatches;
-      const avgEndgame = scoutingData!.reduce((sum: number, data: any) => sum + (data.endgame_points || 0), 0) / totalMatches;
+      const avgEndgame = 0; // endgame_points not in database schema
       const avgTotal = scoutingData!.reduce((sum: number, data: any) => sum + (data.final_score || 0), 0) / totalMatches;
       const avgDefense = scoutingData!.reduce((sum: number, data: any) => sum + (data.defense_rating || 0), 0) / totalMatches;
       

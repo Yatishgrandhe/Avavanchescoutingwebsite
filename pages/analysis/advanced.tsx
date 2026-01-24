@@ -154,7 +154,7 @@ export default function AdvancedAnalysis() {
       const scores = scoutingData.map((match: any) => match.final_score || 0);
       const autonomousScores = scoutingData.map((match: any) => match.autonomous_points || 0);
       const teleopScores = scoutingData.map((match: any) => match.teleop_points || 0);
-      const endgameScores = scoutingData.map((match: any) => match.endgame_points || 0);
+      const endgameScores = scoutingData.map((match: any) => 0); // endgame_points not in database schema
       const defenseRatings = scoutingData.map((match: any) => match.defense_rating || 0);
 
       // Calculate averages
@@ -194,7 +194,7 @@ export default function AdvancedAnalysis() {
           final_score: match.final_score || 0,
           autonomous_points: match.autonomous_points || 0,
           teleop_points: match.teleop_points || 0,
-          endgame_points: match.endgame_points || 0,
+          endgame_points: 0, // endgame_points not in database schema
           defense_rating: match.defense_rating || 0,
           created_at: match.created_at
         }))
@@ -595,7 +595,7 @@ export default function AdvancedAnalysis() {
                               {match.teleop_points}
                             </td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                              {match.endgame_points}
+                              0
                             </td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               {match.defense_rating}/10

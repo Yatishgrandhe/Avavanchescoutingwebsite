@@ -123,10 +123,12 @@ const AppSidebar: React.FC<SidebarProps> = ({
   ];
 
   return (
-    <Sidebar collapsible="icon" className="border-r">
-      <SidebarHeader>
+    <Sidebar collapsible="icon" variant="sidebar" className="border-r border-sidebar-border">
+      <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2 px-2 py-1.5">
-          <Logo size="sm" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+            <Logo size="sm" />
+          </div>
           <AnimatePresence>
             {!isCollapsed && (
               <motion.div
@@ -136,7 +138,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
                 transition={{ duration: 0.2 }}
                 className="flex items-center gap-2"
               >
-                <h2 className="font-heading font-bold text-lg tracking-tight">
+                <h2 className="font-heading font-bold text-lg tracking-tight text-sidebar-foreground">
                   Avalanche
                 </h2>
                 <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 border-primary/30 text-primary">
@@ -169,7 +171,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
         {menuItems.map((section) => (
           <SidebarGroup key={section.title}>
             {!isCollapsed && (
-              <SidebarGroupLabel>
+              <SidebarGroupLabel className="text-sidebar-foreground/70">
                 {section.title}
               </SidebarGroupLabel>
             )}
@@ -180,7 +182,11 @@ const AppSidebar: React.FC<SidebarProps> = ({
                   const Icon = item.icon;
                   return (
                     <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton asChild isActive={isActive}>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={isActive}
+                        tooltip={isCollapsed ? item.label : undefined}
+                      >
                         <Link href={item.href}>
                           <Icon />
                           <span>{item.label}</span>
@@ -195,17 +201,17 @@ const AppSidebar: React.FC<SidebarProps> = ({
         ))}
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-sidebar-border">
         <div className={cn("flex items-center rounded-lg p-2", isCollapsed ? "justify-center" : "space-x-3")}>
           {user?.image ? (
             <Avatar className={cn("flex-shrink-0", isCollapsed ? "h-8 w-8 mx-auto" : "h-8 w-8")}>
               <AvatarImage src={user.image} alt={user.name} />
-              <AvatarFallback className="bg-primary/20 text-primary">
+              <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground">
                 {user?.name?.[0]?.toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
           ) : (
-            <div className={cn("w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-xs text-primary-foreground font-bold flex-shrink-0 shadow-lg shadow-primary/20", isCollapsed && "mx-auto")}>
+            <div className={cn("w-8 h-8 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs font-bold flex-shrink-0", isCollapsed && "mx-auto")}>
               {user?.name?.[0]?.toUpperCase() || 'U'}
             </div>
           )}
@@ -218,8 +224,8 @@ const AppSidebar: React.FC<SidebarProps> = ({
                 exit={{ opacity: 0, width: 0 }}
                 className="flex-1 min-w-0"
               >
-                <p className="text-sm font-medium truncate">{user?.name || 'User'}</p>
-                <p className="text-[10px] text-muted-foreground truncate">Team Member</p>
+                <p className="text-sm font-medium truncate text-sidebar-foreground">{user?.name || 'User'}</p>
+                <p className="text-[10px] text-sidebar-foreground/70 truncate">Team Member</p>
               </motion.div>
             )}
           </AnimatePresence>

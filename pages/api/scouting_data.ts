@@ -161,17 +161,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       console.log('Scouting data to insert:', scoutingData);
 
-      // Insert directly using Supabase client to avoid the db helper issues
+      // Use upsert to handle duplicate submissions (unique constraint on scout_id, match_id, team_number, alliance_color)
+      // This allows updating existing submissions instead of failing
       const { data: result, error: insertError } = await supabase
         .from('scouting_data')
-        .insert([scoutingData])
+        .upsert(scoutingData, {
+          onConflict: 'scout_id,match_id,team_number,alliance_color',
+          ignoreDuplicates: false
+        })
         .select()
         .single();
 
       if (insertError) {
-        console.error('Database insert error:', insertError);
+        console.error('Database upsert error:', insertError);
         res.status(500).json({ 
-          error: 'Failed to insert scouting data',
+          error: 'Failed to save scouting data',
           details: insertError.message
         });
         return;

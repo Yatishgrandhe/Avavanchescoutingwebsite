@@ -318,6 +318,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
           },
           teleop: {
             teleop_fuel_active_hub: parsed.teleop?.teleop_fuel_active_hub || 0,
+            teleop_fuel_shifts: parsed.teleop?.teleop_fuel_shifts || (parsed.teleop?.teleop_fuel_active_hub ? [parsed.teleop.teleop_fuel_active_hub] : []),
             teleop_tower_level1: parsed.teleop?.teleop_tower_level1 || false,
             teleop_tower_level2: parsed.teleop?.teleop_tower_level2 || false,
             teleop_tower_level3: parsed.teleop?.teleop_tower_level3 || false,
@@ -332,6 +333,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
           },
           teleop: {
             teleop_fuel_active_hub: parsed.teleop_fuel_active_hub || 0,
+            teleop_fuel_shifts: parsed.teleop_fuel_shifts || (parsed.teleop_fuel_active_hub ? [parsed.teleop_fuel_active_hub] : []),
             teleop_tower_level1: parsed.teleop_tower_level1 || false,
             teleop_tower_level2: parsed.teleop_tower_level2 || false,
             teleop_tower_level3: parsed.teleop_tower_level3 || false,
@@ -341,7 +343,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     } catch (error) {
       return { 
         autonomous: { auto_fuel_active_hub: 0, auto_tower_level1: false },
-        teleop: { teleop_fuel_active_hub: 0, teleop_tower_level1: false, teleop_tower_level2: false, teleop_tower_level3: false },
+        teleop: { teleop_fuel_active_hub: 0, teleop_fuel_shifts: [], teleop_tower_level1: false, teleop_tower_level2: false, teleop_tower_level3: false },
       };
     }
   };
@@ -879,12 +881,25 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                             <h5 className="font-medium text-sm mb-2 text-green-600">Teleop Period (Last 2:20)</h5>
                                             <div className="space-y-1 text-xs">
                                               <div className="flex justify-between">
-                                                <span>FUEL in Active HUB:</span>
+                                                <span>Total FUEL:</span>
                                                 <span className="font-medium">{formNotes.teleop.teleop_fuel_active_hub || 0} FUEL</span>
                                               </div>
+                                              {formNotes.teleop.teleop_fuel_shifts && Array.isArray(formNotes.teleop.teleop_fuel_shifts) && formNotes.teleop.teleop_fuel_shifts.length > 0 && (
+                                                <div className="mt-2 pt-2 border-t border-border">
+                                                  <div className="text-xs font-semibold mb-1">Fuel Shifts:</div>
+                                                  <div className="space-y-1">
+                                                    {formNotes.teleop.teleop_fuel_shifts.map((shiftFuel: number, shiftIndex: number) => (
+                                                      <div key={shiftIndex} className="flex justify-between pl-2">
+                                                        <span>Shift {shiftIndex + 1}:</span>
+                                                        <span className="font-medium">{shiftFuel} FUEL ({shiftFuel} pts)</span>
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                </div>
+                                              )}
                                               <div className="flex justify-between">
                                                 <span>TOWER LEVEL 1:</span>
-                                                <span className="font-medium">{formNotes.teleop.teleop_tower_level1 ? 'Yes (15 pts)' : 'No'}</span>
+                                                <span className="font-medium">{formNotes.teleop.teleop_tower_level1 ? 'Yes (10 pts)' : 'No'}</span>
                                               </div>
                                               <div className="flex justify-between">
                                                 <span>TOWER LEVEL 2:</span>

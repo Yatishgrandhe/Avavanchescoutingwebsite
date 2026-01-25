@@ -112,7 +112,26 @@ async function parseForm(req: NextApiRequest): Promise<{ fields: Fields; files: 
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    // Only allow POST requests
+    // Health check endpoint for debugging (allows GET)
+    if (req.method === 'GET' && req.query.health === 'check') {
+        const hasUrl = !!SUPABASE_URL;
+        const hasKey = !!SUPABASE_SERVICE_ROLE_KEY;
+        const keyPrefix = SUPABASE_SERVICE_ROLE_KEY ? SUPABASE_SERVICE_ROLE_KEY.substring(0, 10) : 'missing';
+        const keyStartsWithJWT = SUPABASE_SERVICE_ROLE_KEY ? SUPABASE_SERVICE_ROLE_KEY.startsWith('eyJ') : false;
+        
+        return res.status(200).json({
+            configured: hasUrl && hasKey,
+            hasSupabaseUrl: hasUrl,
+            hasServiceRoleKey: hasKey,
+            serviceRoleKeyPrefix: keyPrefix + '...',
+            keyIsJWTFormat: keyStartsWithJWT,
+            bucket: STORAGE_BUCKET,
+            supabaseUrl: SUPABASE_URL ? SUPABASE_URL.substring(0, 30) + '...' : 'missing',
+            note: 'Service Role Key should start with "eyJ" (JWT token). If keyIsJWTFormat is false, you may be using the anon key instead.'
+        });
+    }
+
+    // Only allow POST requests for actual uploads
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }

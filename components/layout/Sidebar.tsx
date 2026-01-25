@@ -28,6 +28,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
   useSidebar,
 } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
@@ -123,8 +124,8 @@ const AppSidebar: React.FC<SidebarProps> = ({
   ];
 
   return (
-    <Sidebar 
-      collapsible="icon" 
+    <Sidebar
+      collapsible="icon"
       variant="sidebar"
       className="border-r border-sidebar-border bg-background/60 backdrop-blur-xl"
     >
@@ -164,8 +165,8 @@ const AppSidebar: React.FC<SidebarProps> = ({
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
+                <SidebarMenuButton
+                  asChild
                   isActive={router.pathname === "/"}
                   tooltip={isCollapsed ? "Dashboard" : undefined}
                 >
@@ -193,8 +194,8 @@ const AppSidebar: React.FC<SidebarProps> = ({
                   const Icon = item.icon;
                   return (
                     <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton 
-                        asChild 
+                      <SidebarMenuButton
+                        asChild
                         isActive={isActive}
                         tooltip={isCollapsed ? item.label : undefined}
                       >
@@ -242,6 +243,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
           </AnimatePresence>
         </div>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   );
 };

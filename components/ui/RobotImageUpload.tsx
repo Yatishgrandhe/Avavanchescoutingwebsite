@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Upload, X, Loader2, CheckCircle, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { Button } from './Button';
@@ -11,12 +11,17 @@ interface RobotImageUploadProps {
     className?: string;
 }
 
-export const RobotImageUpload: React.FC<RobotImageUploadProps> = ({
+export interface RobotImageUploadRef {
+    uploadImage: () => Promise<string | null>;
+    hasFile: () => boolean;
+}
+
+export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUploadProps>(({
     teamNumber,
     onImageUploaded,
     currentImageUrl,
     className,
-}) => {
+}, ref) => {
     const [preview, setPreview] = useState<string | null>(currentImageUrl || null);
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -77,12 +82,12 @@ export const RobotImageUpload: React.FC<RobotImageUploadProps> = ({
         }
     }, [handleFileSelect]);
 
-    const handleUpload = async () => {
+    const handleUpload = async (): Promise<string | null> => {
         if (!selectedFile || !teamNumber) {
             if (!teamNumber) {
                 setUploadError('Please select a team number first');
             }
-            return;
+            return null;
         }
 
         setIsUploading(true);
@@ -110,14 +115,22 @@ export const RobotImageUpload: React.FC<RobotImageUploadProps> = ({
             // Clear success message after 3 seconds
             setTimeout(() => setUploadSuccess(false), 3000);
 
+            return data.directViewUrl;
         } catch (error) {
             console.error('Upload error:', error);
             setUploadError(error instanceof Error ? error.message : 'Failed to upload image');
             onImageUploaded(null);
+            return null;
         } finally {
             setIsUploading(false);
         }
     };
+
+    // Expose methods via ref
+    useImperativeHandle(ref, () => ({
+        uploadImage: handleUpload,
+        hasFile: () => selectedFile !== null,
+    }));
 
     const handleRemove = () => {
         setPreview(null);
@@ -245,42 +258,24 @@ export const RobotImageUpload: React.FC<RobotImageUploadProps> = ({
                                 >
                                     <div className="flex flex-col items-center gap-2">
                                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                        <span className="text-sm">Uploading to Google Drive...</span>
+                                        <span className="text-sm">Uploading image...</span>
                                     </div>
                                 </motion.div>
                             )}
                         </AnimatePresence>
                     </div>
 
-                    {/* Upload Button */}
-                    {selectedFile && !uploadSuccess && (
-                        <div className="mt-3 flex gap-2">
-                            <Button
-                                type="button"
-                                onClick={handleUpload}
-                                disabled={isUploading || !teamNumber}
-                                className="flex-1 bg-primary hover:bg-primary/90"
-                            >
-                                {isUploading ? (
-                                    <>
-                                        <Loader2 size={14} className="mr-2 animate-spin" />
-                                        Uploading...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Upload size={14} className="mr-2" />
-                                        Upload to Drive
-                                    </>
-                                )}
-                            </Button>
+                    {/* Remove Button */}
+                    {selectedFile && (
+                        <div className="mt-3">
                             <Button
                                 type="button"
                                 variant="outline"
                                 onClick={handleRemove}
-                                className="border-white/20"
+                                className="w-full border-white/20"
                             >
                                 <X size={14} className="mr-2" />
-                                Remove
+                                Remove Image
                             </Button>
                         </div>
                     )}
@@ -315,6 +310,8 @@ export const RobotImageUpload: React.FC<RobotImageUploadProps> = ({
             </AnimatePresence>
         </div>
     );
-};
+});
+
+RobotImageUpload.displayName = 'RobotImageUpload';
 
 export default RobotImageUpload;

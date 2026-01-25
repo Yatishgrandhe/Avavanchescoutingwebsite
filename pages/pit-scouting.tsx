@@ -24,7 +24,7 @@ import { supabase } from '@/lib/supabase';
 import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, ValidationResult } from '@/lib/form-validation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import RobotImageUpload from '@/components/ui/RobotImageUpload';
+import RobotImageUpload, { RobotImageUploadRef } from '@/components/ui/RobotImageUpload';
 
 interface Team {
   team_number: number;
@@ -96,6 +96,7 @@ export default function PitScouting() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const [scoutedTeamNumbers, setScoutedTeamNumbers] = useState<Set<number>>(new Set());
+  const robotImageUploadRef = React.useRef<RobotImageUploadRef>(null);
 
   const totalSteps = 3;
 
@@ -217,6 +218,16 @@ export default function PitScouting() {
     try {
       if (!user) throw new Error('User not authenticated. Please sign in and try again.');
 
+      // Upload image if a file is selected but not yet uploaded
+      let imageUrl = formData.robotImageUrl;
+      if (robotImageUploadRef.current?.hasFile() && !imageUrl) {
+        const uploadedUrl = await robotImageUploadRef.current.uploadImage();
+        if (uploadedUrl) {
+          imageUrl = uploadedUrl;
+          setFormData(prev => ({ ...prev, robotImageUrl: uploadedUrl }));
+        }
+      }
+
       const validation = validatePitScoutingForm(formData);
 
       if (!validation.isValid) {
@@ -258,7 +269,7 @@ export default function PitScouting() {
         camera_count: formData.cameraCount || 0,
         shooting_locations_count: formData.shootingLocationsCount || 0,
         programming_language: formData.programmingLanguage,
-        robot_image_url: formData.robotImageUrl,
+        robot_image_url: imageUrl,
         notes: formData.notes,
         strengths: [],
         weaknesses: [],
@@ -473,6 +484,7 @@ export default function PitScouting() {
 
                       {/* Robot Image Upload */}
                       <RobotImageUpload
+                        ref={robotImageUploadRef}
                         teamNumber={formData.teamNumber}
                         currentImageUrl={formData.robotImageUrl}
                         onImageUploaded={(url) => setFormData(prev => ({ ...prev, robotImageUrl: url }))}

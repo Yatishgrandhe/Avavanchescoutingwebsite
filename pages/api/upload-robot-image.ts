@@ -47,6 +47,7 @@ async function parseForm(req: NextApiRequest): Promise<{ fields: Fields; files: 
     return new Promise((resolve, reject) => {
         const form = formidable({
             maxFileSize: 10 * 1024 * 1024, // 10MB max
+            keepExtensions: true,
             filter: ({ mimetype }: { mimetype: string | null }) => {
                 // Accept only image files
                 return mimetype ? mimetype.startsWith('image/') : false;
@@ -54,7 +55,11 @@ async function parseForm(req: NextApiRequest): Promise<{ fields: Fields; files: 
         });
 
         form.parse(req, (err: Error | null, fields: Fields, files: Files) => {
-            if (err) reject(err);
+            if (err) {
+                console.error('Form parsing error:', err);
+                reject(err);
+                return;
+            }
             resolve({ fields, files });
         });
     });
@@ -82,17 +87,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // Parse the uploaded file
-        const { fields, files } = await parseForm(req);
+        let fields: Fields;
+        let files: Files;
+        try {
+            const parsed = await parseForm(req);
+            fields = parsed.fields;
+            files = parsed.files;
+        } catch (parseError) {
+            console.error('Failed to parse form data:', parseError);
+            return res.status(400).json({
+                error: 'Failed to parse form data',
+                details: parseError instanceof Error ? parseError.message : 'Unknown parsing error'
+            });
+        }
 
         const imageFile = Array.isArray(files.image) ? files.image[0] : files.image as File | undefined;
         const teamNumber = Array.isArray(fields.teamNumber) ? fields.teamNumber[0] : fields.teamNumber;
 
         if (!imageFile) {
-            return res.status(400).json({ error: 'No image file provided' });
+            return res.status(400).json({ 
+                error: 'No image file provided',
+                details: 'Please ensure you are uploading a valid image file'
+            });
         }
 
         if (!teamNumber) {
-            return res.status(400).json({ error: 'Team number is required' });
+            return res.status(400).json({ 
+                error: 'Team number is required',
+                details: 'Please provide a team number in the form data'
+            });
+        }
+
+        // Validate file path exists
+        if (!imageFile.filepath || !fs.existsSync(imageFile.filepath)) {
+            return res.status(400).json({
+                error: 'Invalid file path',
+                details: 'The uploaded file could not be accessed'
+            });
         }
 
         // Get Google Drive client

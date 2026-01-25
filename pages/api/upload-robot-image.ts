@@ -179,7 +179,8 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
 
         if (!uploadResponse.ok) {
             const errorText = await uploadResponse.text();
-            throw new Error(`Failed to upload file content: ${uploadResponse.status} ${errorText}`);
+            console.error(`[API/upload-robot-image] Google Drive content upload failed (${uploadResponse.status}):`, errorText);
+            throw new Error(`Failed to upload file content: ${uploadResponse.status} - ${errorText}`);
         }
 
         const fileData = await uploadResponse.json();

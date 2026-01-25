@@ -151,7 +151,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 body: fileContent
             });
 
-            if (!uploadResponse.ok) throw new Error(`Upload failed: ${uploadResponse.status}`);
+            if (!uploadResponse.ok) {
+                const errorText = await uploadResponse.text();
+                console.error(`[API/upload-robot-image] Upload failed (${uploadResponse.status}):`, errorText);
+                throw new Error(`Failed to upload file content: ${uploadResponse.status} - ${errorText}`);
+            }
+
             const fileData = await uploadResponse.json();
             testFileId = fileData.id;
 
@@ -161,10 +166,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 message: `Successfully created test file using Resumable Flow (ID: ${testFileId})`
             });
         } catch (e: any) {
+            // Check for specific 403 details
+            const errorMsg = e.message;
             results.steps.push({
                 name: 'Resumable Write Test',
                 status: 'error',
-                message: `Resumable upload failed: ${e.message}`
+                message: `Resumable upload failed: ${errorMsg}`
             });
             results.overall = 'error';
             return res.status(200).json(results);

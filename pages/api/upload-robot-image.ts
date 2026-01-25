@@ -3,6 +3,7 @@ import { google } from 'googleapis';
 import formidable, { Fields, Files, File } from 'formidable';
 import fs from 'fs';
 import path from 'path';
+import { createClient } from '@supabase/supabase-js';
 
 // Disable Next.js body parsing for file uploads
 export const config = {
@@ -14,6 +15,11 @@ export const config = {
 // Google Drive folder ID where robot images will be stored
 // You'll get this from your Google Drive folder URL
 const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || '';
+
+// Supabase Storage configuration
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const STORAGE_BUCKET = 'robot-images';
 
 // Parse the service account credentials from environment variable
 function getServiceAccountCredentials() {
@@ -40,6 +46,39 @@ async function getDriveClient() {
 
     const drive = google.drive({ version: 'v3', auth });
     return drive;
+}
+
+// Initialize Supabase Storage client
+function getSupabaseStorageClient() {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error('Supabase configuration is missing. Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
+    }
+    return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+}
+
+// Upload to Supabase Storage
+async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeType: string): Promise<string> {
+    const supabase = getSupabaseStorageClient();
+    
+    const fileBuffer = fs.readFileSync(filePath);
+    
+    const { data, error } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(fileName, fileBuffer, {
+            contentType: mimeType,
+            upsert: true, // Replace if file already exists
+        });
+
+    if (error) {
+        throw new Error(`Failed to upload to Supabase Storage: ${error.message}`);
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+        .from(STORAGE_BUCKET)
+        .getPublicUrl(data.path);
+
+    return urlData.publicUrl;
 }
 
 // Parse multipart form data
@@ -72,17 +111,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        // Check if Google Drive is configured
-        if (!GOOGLE_DRIVE_FOLDER_ID) {
-            return res.status(500).json({
-                error: 'Google Drive is not configured. Please set GOOGLE_DRIVE_FOLDER_ID environment variable.'
-            });
-        }
+        // Check if at least one storage method is configured
+        const googleDriveConfigured = GOOGLE_DRIVE_FOLDER_ID && process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+        const supabaseConfigured = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY;
 
-        // Check if service account credentials are configured
-        if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+        if (!googleDriveConfigured && !supabaseConfigured) {
             return res.status(500).json({
-                error: 'Google Drive service account credentials are not configured. Please set GOOGLE_SERVICE_ACCOUNT_KEY environment variable.'
+                error: 'No storage method configured. Please configure either Google Drive or Supabase Storage.',
+                details: 'For Google Drive: set GOOGLE_DRIVE_FOLDER_ID and GOOGLE_SERVICE_ACCOUNT_KEY. For Supabase: set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.'
             });
         }
 
@@ -126,81 +162,114 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        // Get Google Drive client
-        let drive;
-        try {
-            drive = await getDriveClient();
-        } catch (authError) {
-            console.error('Failed to initialize Google Drive client:', authError);
-            return res.status(500).json({
-                error: 'Failed to initialize Google Drive client',
-                details: authError instanceof Error ? authError.message : 'Unknown authentication error'
-            });
-        }
-
         // Create filename: team_XXXX_robot_TIMESTAMP.ext
         const timestamp = Date.now();
         const extension = path.extname(imageFile.originalFilename || '.jpg');
         const fileName = `team_${teamNumber}_robot_${timestamp}${extension}`;
+        const mimeType = imageFile.mimetype || 'image/jpeg';
 
-        // Upload file to Google Drive
-        const fileMetadata = {
-            name: fileName,
-            parents: [GOOGLE_DRIVE_FOLDER_ID],
-        };
+        let imageUrl: string | undefined;
+        let storageMethod: string | undefined;
+        let errorDetails: any = null;
 
-        const media = {
-            mimeType: imageFile.mimetype || 'image/jpeg',
-            body: fs.createReadStream(imageFile.filepath),
-        };
+        // Try Google Drive first if configured
+        if (googleDriveConfigured) {
+            try {
+                const drive = await getDriveClient();
 
-        const uploadResponse = await drive.files.create({
-            requestBody: fileMetadata,
-            media: media,
-            fields: 'id, name, webViewLink, webContentLink',
-        });
+                // Upload file to Google Drive
+                const fileMetadata = {
+                    name: fileName,
+                    parents: [GOOGLE_DRIVE_FOLDER_ID],
+                };
 
-        const fileId = uploadResponse.data.id;
+                const media = {
+                    mimeType: mimeType,
+                    body: fs.createReadStream(imageFile.filepath),
+                };
 
-        if (!fileId) {
-            throw new Error('Failed to get file ID from Google Drive');
+                const uploadResponse = await drive.files.create({
+                    requestBody: fileMetadata,
+                    media: media,
+                    fields: 'id, name, webViewLink, webContentLink',
+                });
+
+                const fileId = uploadResponse.data.id;
+
+                if (!fileId) {
+                    throw new Error('Failed to get file ID from Google Drive');
+                }
+
+                // Set the file to be publicly viewable (anyone with the link can view)
+                await drive.permissions.create({
+                    fileId: fileId,
+                    requestBody: {
+                        type: 'anyone',
+                        role: 'reader',
+                    },
+                });
+
+                // Generate the direct view URL
+                imageUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+                storageMethod = 'Google Drive';
+
+            } catch (driveError) {
+                console.error('Google Drive upload failed:', driveError);
+                errorDetails = driveError instanceof Error ? driveError.message : 'Unknown Google Drive error';
+                
+                // Fall back to Supabase Storage if configured
+                if (supabaseConfigured) {
+                    console.log('Falling back to Supabase Storage...');
+                } else {
+                    throw new Error(`Google Drive upload failed: ${errorDetails}`);
+                }
+            }
         }
 
-        // Set the file to be publicly viewable (anyone with the link can view)
-        await drive.permissions.create({
-            fileId: fileId,
-            requestBody: {
-                type: 'anyone',
-                role: 'reader',
-            },
-        });
+        // Use Supabase Storage (either as primary or fallback)
+        if (!imageUrl && supabaseConfigured) {
+            try {
+                imageUrl = await uploadToSupabaseStorage(imageFile.filepath, fileName, mimeType);
+                storageMethod = 'Supabase Storage';
+            } catch (supabaseError) {
+                console.error('Supabase Storage upload failed:', supabaseError);
+                const supabaseErrorMsg = supabaseError instanceof Error ? supabaseError.message : 'Unknown Supabase Storage error';
+                
+                if (googleDriveConfigured && errorDetails) {
+                    // Both methods failed
+                    throw new Error(`Both storage methods failed. Google Drive: ${errorDetails}. Supabase Storage: ${supabaseErrorMsg}`);
+                } else {
+                    throw new Error(`Supabase Storage upload failed: ${supabaseErrorMsg}`);
+                }
+            }
+        }
 
-        // Generate the direct view URL
-        const directViewUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
-        const driveViewUrl = `https://drive.google.com/file/d/${fileId}/view`;
+        // Ensure we have an image URL
+        if (!imageUrl) {
+            throw new Error('Failed to upload image: No storage method succeeded');
+        }
 
         // Clean up the temporary file
         fs.unlink(imageFile.filepath, (unlinkErr) => {
             if (unlinkErr) console.warn('Failed to clean up temp file:', unlinkErr);
         });
 
-        // Return success with the image URLs
+        // Return success with the image URL
         return res.status(200).json({
             success: true,
-            fileId: fileId,
             fileName: fileName,
-            directViewUrl: directViewUrl,
-            driveViewUrl: driveViewUrl,
-            message: 'Image uploaded successfully to Google Drive',
+            directViewUrl: imageUrl,
+            storageMethod: storageMethod || 'Unknown',
+            message: `Image uploaded successfully to ${storageMethod || 'storage'}`,
         });
 
     } catch (error) {
-        console.error('Google Drive upload error:', error);
+        console.error('Image upload error:', error);
 
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
         return res.status(500).json({
-            error: 'Failed to upload image to Google Drive',
+            error: 'Failed to upload image',
             details: errorMessage,
         });
     }

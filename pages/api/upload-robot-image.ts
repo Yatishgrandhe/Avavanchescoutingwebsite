@@ -27,12 +27,12 @@ function getSupabaseStorageClient() {
 // Upload to Supabase Storage
 async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeType: string): Promise<string> {
     const supabase = getSupabaseStorageClient();
-    
+
     // Read file as buffer
     const fileBuffer = fs.readFileSync(filePath);
-    
+
     console.log(`Uploading ${fileName} (${fileBuffer.length} bytes) to Supabase Storage bucket: ${STORAGE_BUCKET}`);
-    
+
     // Upload file to Supabase Storage
     const { data, error } = await supabase.storage
         .from(STORAGE_BUCKET)
@@ -64,7 +64,7 @@ async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeT
 
     const publicUrl = urlData.publicUrl;
     console.log(`Public URL generated: ${publicUrl}`);
-    
+
     // Verify the URL is valid
     if (!publicUrl || typeof publicUrl !== 'string' || !publicUrl.startsWith('http')) {
         throw new Error(`Invalid public URL format: ${publicUrl}`);
@@ -103,13 +103,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
+        console.log('[API/upload-robot-image] Received upload request');
+
         // Check if Supabase Storage is configured
         if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+            console.error('[API/upload-robot-image] Missing Supabase configuration');
             return res.status(500).json({
                 error: 'Supabase Storage is not configured',
                 details: 'Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.'
             });
         }
+        console.log('[API/upload-robot-image] Supabase configuration verified');
 
         // Parse the uploaded file
         let fields: Fields;
@@ -130,14 +134,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const teamNumber = Array.isArray(fields.teamNumber) ? fields.teamNumber[0] : fields.teamNumber;
 
         if (!imageFile) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'No image file provided',
                 details: 'Please ensure you are uploading a valid image file'
             });
         }
 
         if (!teamNumber) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'Team number is required',
                 details: 'Please provide a team number in the form data'
             });

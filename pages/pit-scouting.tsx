@@ -220,23 +220,23 @@ export default function PitScouting() {
 
       // Upload image if a file is selected (always upload new files)
       let imageUrl = formData.robotImageUrl;
-      
+
       // Always try to upload if ref exists and has a file
       if (robotImageUploadRef.current) {
         const hasFile = robotImageUploadRef.current.hasFile();
-        console.log('Form submission - Image upload check:', { 
-          hasFile, 
+        console.log('Form submission - Image upload check:', {
+          hasFile,
           currentImageUrl: imageUrl,
           formDataRobotImageUrl: formData.robotImageUrl
         });
-        
+
         // Try to upload if hasFile returns true
         if (hasFile) {
           console.log('Uploading image before form submission...');
           try {
             const uploadedUrl = await robotImageUploadRef.current.uploadImage();
             console.log('Image upload completed:', uploadedUrl);
-            
+
             if (uploadedUrl && typeof uploadedUrl === 'string' && uploadedUrl.startsWith('http')) {
               imageUrl = uploadedUrl;
               setFormData(prev => ({ ...prev, robotImageUrl: uploadedUrl }));
@@ -306,6 +306,7 @@ export default function PitScouting() {
         shooting_locations_count: formData.shootingLocationsCount || 0,
         programming_language: formData.programmingLanguage,
         robot_image_url: imageUrl,
+        photos: imageUrl ? [imageUrl] : [],
         notes: formData.notes,
         strengths: [],
         weaknesses: [],
@@ -315,6 +316,12 @@ export default function PitScouting() {
         submitted_by_name: user?.user_metadata?.full_name || user?.email,
         submitted_at: new Date().toISOString(),
       };
+
+      console.log('[PitScouting] Final submission data:', {
+        team: submissionData.team_number,
+        imageUrl: submissionData.robot_image_url,
+        photos: submissionData.photos
+      });
 
       console.log('Saving to database with imageUrl:', imageUrl);
       console.log('Submission data robot_image_url:', submissionData.robot_image_url);
@@ -344,7 +351,7 @@ export default function PitScouting() {
         console.error('Database save error:', error);
         throw new Error(`Failed to save pit scouting data: ${error.message}`);
       }
-      
+
       console.log('Database save successful!');
 
       setSubmitSuccess(true);

@@ -99,8 +99,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
     const handleUpload = useCallback(async (): Promise<string | null> => {
         // Double-check that we have a file - this prevents stale closure issues
         if (!selectedFile) {
-            console.error('handleUpload called but selectedFile is null!');
-            console.error('Current state:', { selectedFile, isNewFileSelected });
+            console.error('[RobotImageUpload] handleUpload called but selectedFile is null!');
             setUploadError('No file selected for upload');
             return null;
         }
@@ -112,7 +111,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             return null;
         }
 
-        console.log(`Starting upload for team ${teamNumber}, file: ${selectedFile.name}, size: ${selectedFile.size} bytes`);
+        console.log(`[RobotImageUpload] Starting upload for team ${teamNumber}, file: ${selectedFile.name}, size: ${selectedFile.size} bytes`);
         setIsUploading(true);
         setUploadError(null);
         setUploadSuccess(false);
@@ -124,7 +123,16 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             const fileName = `team_${teamNumber}_robot_${timestamp}.${fileExtension}`;
             const filePath = fileName;
 
-            console.log('Attempting direct Supabase Storage upload:', { bucket: 'robot-images', path: filePath });
+            console.log(`[RobotImageUpload] Attempting direct Supabase Storage upload to 'robot-images' as '${filePath}'`);
+
+            // Verify bucket connection
+            const { data: bucketData, error: bucketError } = await supabase.storage.getBucket('robot-images');
+            if (bucketError) {
+                console.warn('[RobotImageUpload] Could not access bucket information directly:', bucketError);
+                // We'll proceed anyway as the upload might still work if policies allow it
+            } else {
+                console.log('[RobotImageUpload] Bucket access verified:', bucketData.name);
+            }
 
             // Upload directly to Supabase Storage
             const { data: uploadData, error: uploadError } = await supabase.storage
@@ -136,15 +144,15 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
                 });
 
             if (uploadError) {
-                console.error('Direct Supabase upload failed:', uploadError);
+                console.error('[RobotImageUpload] Direct Supabase upload failed:', uploadError);
                 throw uploadError;
             }
 
             if (!uploadData || !uploadData.path) {
-                throw new Error('Upload succeeded but no path returned');
+                throw new Error('Upload succeeded but no path returned from Supabase Storage');
             }
 
-            console.log('Direct upload successful. Path:', uploadData.path);
+            console.log('[RobotImageUpload] Direct upload successful. Path:', uploadData.path);
 
             // Get public URL
             const { data: urlData } = supabase.storage
@@ -156,7 +164,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             }
 
             const publicUrl = urlData.publicUrl;
-            console.log('Upload successful! Image URL:', publicUrl);
+            console.log('[RobotImageUpload] Upload successful! Image URL:', publicUrl);
 
             setIsUploading(false);
             setUploadSuccess(true);
@@ -168,42 +176,42 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
 
             return publicUrl;
         } catch (directUploadError) {
-            console.warn('Direct upload failed, falling back to API route:', directUploadError);
+            console.warn('[RobotImageUpload] Direct upload failed, falling back to API route:', directUploadError);
 
             // Method 2: Fallback to API route (server-side upload)
             try {
+                console.log('[RobotImageUpload] Starting fallback upload to /api/upload-robot-image');
                 const formData = new FormData();
                 formData.append('image', selectedFile);
                 formData.append('teamNumber', teamNumber.toString());
 
-                console.log('Sending upload request to /api/upload-robot-image (fallback)');
                 const response = await fetch('/api/upload-robot-image', {
                     method: 'POST',
                     body: formData,
                 });
 
-                console.log('Upload response status:', response.status);
+                console.log('[RobotImageUpload] API route response status:', response.status);
 
                 let data;
                 try {
                     data = await response.json();
                 } catch (jsonError) {
                     const text = await response.text();
-                    console.error('Failed to parse response as JSON:', text);
+                    console.error('[RobotImageUpload] Failed to parse API response as JSON:', text);
                     throw new Error(`Server returned invalid response: ${response.status} ${response.statusText}`);
                 }
 
                 if (!response.ok) {
                     const errorMsg = data.error || data.details || `Upload failed with status ${response.status}`;
-                    console.error('API route upload failed:', errorMsg);
+                    console.error('[RobotImageUpload] API route upload failed:', errorMsg);
                     throw new Error(errorMsg);
                 }
 
                 if (!data.directViewUrl) {
-                    throw new Error('Upload succeeded but no image URL returned');
+                    throw new Error('Upload succeeded but no image URL returned in API response');
                 }
 
-                console.log('API route upload successful! Image URL:', data.directViewUrl);
+                console.log('[RobotImageUpload] API route upload successful! Image URL:', data.directViewUrl);
                 setIsUploading(false);
                 setUploadSuccess(true);
                 setIsNewFileSelected(false);
@@ -214,14 +222,14 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
 
                 return data.directViewUrl;
             } catch (apiError) {
-                console.error('Both upload methods failed:', { directUploadError, apiError });
-                const errorMessage = apiError instanceof Error ? apiError.message : 'Failed to upload image';
+                console.error('[RobotImageUpload] Both upload methods failed:', { directUploadError, apiError });
+                const errorMessage = apiError instanceof Error ? apiError.message : 'Failed to upload image after all attempts';
                 setUploadError(errorMessage);
                 setIsUploading(false);
-                throw apiError;
+                return null; // Return null instead of throwing to allow the form to still submit if desired, or handle in parent
             }
         }
-    }, [selectedFile, teamNumber, onImageUploaded]);
+    }, [selectedFile, teamNumber, onImageUploaded, supabase.storage]);
 
     // Expose methods via ref
     useImperativeHandle(ref, () => ({

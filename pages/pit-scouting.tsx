@@ -211,20 +211,31 @@ export default function PitScouting() {
 
   const handleSubmit = async () => {
     // Add alert for debugging - remove after confirming it works
+    const debugInfo = {
+      teamNumber: formData.teamNumber,
+      hasFile: robotImageUploadRef.current?.hasFile(),
+      robotImageUrl: formData.robotImageUrl,
+      timestamp: new Date().toISOString()
+    };
+    
     console.log('=== FORM SUBMISSION STARTED ===');
     console.log('Form data:', formData);
     console.log('Team number:', formData.teamNumber);
     console.log('Form submission triggered at:', new Date().toISOString());
+    console.log('Debug info:', debugInfo);
     
-    // Visual indicator
-    alert('Form submission started! Check console for logs.');
+    // Use console.error so it's more visible
+    console.error('FORM SUBMIT DEBUG:', debugInfo);
     
-    setSubmitting(true);
-    setSubmitError(null);
-    setSubmitSuccess(false);
-    setValidationError(null);
-
+    // Visual indicator with more info
+    alert(`Form submission started!\nTeam: ${formData.teamNumber}\nHas File: ${robotImageUploadRef.current?.hasFile()}\nCheck console for logs.`);
+    
     try {
+      setSubmitting(true);
+      setSubmitError(null);
+      setSubmitSuccess(false);
+      setValidationError(null);
+
       if (!user) throw new Error('User not authenticated. Please sign in and try again.');
 
       // Upload image if a file is selected (always upload new files)
@@ -367,10 +378,15 @@ export default function PitScouting() {
       }, 2000);
 
     } catch (error) {
-      console.error('Submission error:', error);
+      console.error('=== SUBMISSION ERROR ===');
+      console.error('Error:', error);
+      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
       setSubmitError(error instanceof Error ? error.message : 'An unknown error occurred.');
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
     } finally {
       setSubmitting(false);
+      console.log('=== FORM SUBMISSION COMPLETED ===');
     }
   };
 

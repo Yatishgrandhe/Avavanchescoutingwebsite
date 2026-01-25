@@ -570,6 +570,24 @@ export default function PitScoutingData() {
                       <p className="text-gray-400">{item.robot_name}</p>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                      {/* Robot Image Preview */}
+                      {item.robot_image_url && (
+                        <div className="relative w-full rounded-lg overflow-hidden border border-gray-700 bg-gray-900 aspect-video">
+                          <img
+                            src={item.robot_image_url}
+                            alt={`Team ${item.team_number} - ${item.robot_name}`}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.innerHTML = '<div class="p-4 text-center text-gray-400 text-sm">Failed to load image</div>';
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
                       <div>
                         <p className="text-sm text-gray-400">Drive Type</p>
                         <p className="text-white">{item.drive_type}</p>
@@ -714,9 +732,9 @@ export default function PitScoutingData() {
                     </div>
 
                     {/* Robot Image */}
-                    {selectedDetailItem.robot_image_url && (
-                      <div className="mb-6">
-                        <h3 className="text-lg font-semibold text-white mb-3">Robot Image</h3>
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-white mb-3">Robot Image</h3>
+                      {selectedDetailItem.robot_image_url ? (
                         <div className="relative w-full max-w-2xl mx-auto rounded-lg overflow-hidden border border-gray-700 bg-gray-900">
                           <img
                             src={selectedDetailItem.robot_image_url}
@@ -732,8 +750,12 @@ export default function PitScoutingData() {
                             }}
                           />
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="relative w-full max-w-2xl mx-auto rounded-lg overflow-hidden border border-gray-700 bg-gray-900 p-8 text-center">
+                          <p className="text-gray-400">No robot image available</p>
+                        </div>
+                      )}
+                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {/* Basic Information */}

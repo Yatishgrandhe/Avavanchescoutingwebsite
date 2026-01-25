@@ -166,7 +166,8 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             const errorMessage = error instanceof Error ? error.message : 'Failed to upload image';
             setUploadError(errorMessage);
             setIsUploading(false);
-            return null;
+            // Re-throw the error so form submission can catch it and show proper error message
+            throw error;
         }
     }, [selectedFile, teamNumber, onImageUploaded]);
 

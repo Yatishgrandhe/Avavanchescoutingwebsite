@@ -252,10 +252,8 @@ export default function PitScouting() {
           } catch (error) {
             console.error('Error uploading image during form submission:', error);
             const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-            // Only throw if it's a real error, not if upload was skipped
-            if (!errorMsg.includes('No file selected')) {
-              throw new Error(`Failed to upload image: ${errorMsg}`);
-            }
+            // Always throw upload errors - they should be shown to the user
+            throw new Error(`Failed to upload image: ${errorMsg}`);
           }
         } else {
           console.log('No new file to upload, using existing imageUrl:', imageUrl);

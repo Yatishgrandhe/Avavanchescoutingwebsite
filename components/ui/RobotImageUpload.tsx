@@ -173,26 +173,27 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
     useImperativeHandle(ref, () => ({
         uploadImage: handleUpload,
         hasFile: (): boolean => {
-            // Return true if there's a file selected that hasn't been uploaded yet
-            // If selectedFile exists, it means a file was selected and should be uploaded
-            // The isNewFileSelected flag helps track state, but if selectedFile exists,
-            // we should attempt upload (defensive check for state reset issues)
+            // Return true if there's a file selected that should be uploaded
+            // If selectedFile exists, it means a file was selected
+            // Upload if: selectedFile exists AND (isNewFileSelected flag is set OR no currentImageUrl exists)
+            // This ensures we upload new files even if the flag gets reset, but don't re-upload already uploaded files
             const hasSelectedFile = selectedFile !== null;
-            // Upload if: file is selected AND (flag is set OR no current URL exists OR preview is a data URL)
-            // This ensures we upload new files even if the flag gets reset
             const hasDataUrlPreview = Boolean(preview && preview.startsWith('data:'));
-            const hasFile = Boolean(hasSelectedFile && (isNewFileSelected || !currentImageUrl || hasDataUrlPreview));
+            // Upload if we have a selected file and either the flag is set OR there's no existing URL
+            // Also check for data URL preview as a fallback indicator
+            const shouldUpload = hasSelectedFile && (isNewFileSelected || !currentImageUrl || hasDataUrlPreview);
             
             console.log('hasFile() called:', {
                 selectedFile: selectedFile?.name || null,
                 fileSize: selectedFile?.size || null,
                 isNewFileSelected,
                 hasSelectedFile,
+                hasDataUrlPreview,
                 currentImageUrl: currentImageUrl ? (currentImageUrl.substring(0, 50) + '...') : null,
                 previewType: preview ? (preview.startsWith('data:') ? 'data-url' : 'http-url') : 'none',
-                result: hasFile
+                result: shouldUpload
             });
-            return hasFile;
+            return shouldUpload;
         },
     }), [handleUpload, selectedFile, isNewFileSelected, preview, currentImageUrl]);
 

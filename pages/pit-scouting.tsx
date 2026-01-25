@@ -218,13 +218,22 @@ export default function PitScouting() {
     try {
       if (!user) throw new Error('User not authenticated. Please sign in and try again.');
 
-      // Upload image if a file is selected but not yet uploaded
+      // Upload image if a file is selected (always upload new files)
       let imageUrl = formData.robotImageUrl;
-      if (robotImageUploadRef.current?.hasFile() && !imageUrl) {
-        const uploadedUrl = await robotImageUploadRef.current.uploadImage();
-        if (uploadedUrl) {
-          imageUrl = uploadedUrl;
-          setFormData(prev => ({ ...prev, robotImageUrl: uploadedUrl }));
+      if (robotImageUploadRef.current?.hasFile()) {
+        console.log('File selected, uploading image...');
+        try {
+          const uploadedUrl = await robotImageUploadRef.current.uploadImage();
+          if (uploadedUrl) {
+            imageUrl = uploadedUrl;
+            setFormData(prev => ({ ...prev, robotImageUrl: uploadedUrl }));
+            console.log('Image uploaded successfully:', uploadedUrl);
+          } else {
+            console.warn('Image upload returned null URL');
+          }
+        } catch (error) {
+          console.error('Error uploading image during form submission:', error);
+          throw new Error(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
 

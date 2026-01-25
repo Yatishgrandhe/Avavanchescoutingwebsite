@@ -83,13 +83,19 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
     }, [handleFileSelect]);
 
     const handleUpload = async (): Promise<string | null> => {
-        if (!selectedFile || !teamNumber) {
-            if (!teamNumber) {
-                setUploadError('Please select a team number first');
-            }
+        if (!selectedFile) {
+            console.warn('No file selected for upload');
             return null;
         }
 
+        if (!teamNumber) {
+            const errorMsg = 'Please select a team number first';
+            setUploadError(errorMsg);
+            console.error(errorMsg);
+            return null;
+        }
+
+        console.log(`Starting upload for team ${teamNumber}, file: ${selectedFile.name}, size: ${selectedFile.size} bytes`);
         setIsUploading(true);
         setUploadError(null);
 
@@ -98,17 +104,34 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             formData.append('image', selectedFile);
             formData.append('teamNumber', teamNumber.toString());
 
+            console.log('Sending upload request to /api/upload-robot-image');
             const response = await fetch('/api/upload-robot-image', {
                 method: 'POST',
                 body: formData,
             });
 
-            const data = await response.json();
+            console.log('Upload response status:', response.status);
 
-            if (!response.ok) {
-                throw new Error(data.error || 'Upload failed');
+            let data;
+            try {
+                data = await response.json();
+            } catch (jsonError) {
+                const text = await response.text();
+                console.error('Failed to parse response as JSON:', text);
+                throw new Error(`Server returned invalid response: ${response.status} ${response.statusText}`);
             }
 
+            if (!response.ok) {
+                const errorMsg = data.error || data.details || `Upload failed with status ${response.status}`;
+                console.error('Upload failed:', errorMsg);
+                throw new Error(errorMsg);
+            }
+
+            if (!data.directViewUrl) {
+                throw new Error('Upload succeeded but no image URL returned');
+            }
+
+            console.log('Upload successful! Image URL:', data.directViewUrl);
             setUploadSuccess(true);
             onImageUploaded(data.directViewUrl);
 
@@ -118,9 +141,10 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             return data.directViewUrl;
         } catch (error) {
             console.error('Upload error:', error);
-            setUploadError(error instanceof Error ? error.message : 'Failed to upload image');
+            const errorMessage = error instanceof Error ? error.message : 'Failed to upload image';
+            setUploadError(errorMessage);
             onImageUploaded(null);
-            return null;
+            throw error; // Re-throw so form submission can catch it
         } finally {
             setIsUploading(false);
         }

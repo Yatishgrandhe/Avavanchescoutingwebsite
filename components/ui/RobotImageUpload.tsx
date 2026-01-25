@@ -172,19 +172,24 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
         uploadImage: handleUpload,
-        hasFile: () => {
+        hasFile: (): boolean => {
             // Return true if there's a file selected that hasn't been uploaded yet
-            // Primary check: selectedFile exists and isNewFileSelected is true
-            // Fallback: If selectedFile exists, we should try to upload it (defensive check)
-            // This handles cases where isNewFileSelected might be reset due to re-renders
+            // If selectedFile exists, it means a file was selected and should be uploaded
+            // The isNewFileSelected flag helps track state, but if selectedFile exists,
+            // we should attempt upload (defensive check for state reset issues)
             const hasSelectedFile = selectedFile !== null;
-            const hasFile = hasSelectedFile && (isNewFileSelected || !currentImageUrl);
+            // Upload if: file is selected AND (flag is set OR no current URL exists OR preview is a data URL)
+            // This ensures we upload new files even if the flag gets reset
+            const hasDataUrlPreview = Boolean(preview && preview.startsWith('data:'));
+            const hasFile = Boolean(hasSelectedFile && (isNewFileSelected || !currentImageUrl || hasDataUrlPreview));
             
             console.log('hasFile() called:', {
                 selectedFile: selectedFile?.name || null,
+                fileSize: selectedFile?.size || null,
                 isNewFileSelected,
                 hasSelectedFile,
                 currentImageUrl: currentImageUrl ? (currentImageUrl.substring(0, 50) + '...') : null,
+                previewType: preview ? (preview.startsWith('data:') ? 'data-url' : 'http-url') : 'none',
                 result: hasFile
             });
             return hasFile;

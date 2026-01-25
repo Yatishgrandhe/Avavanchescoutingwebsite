@@ -95,9 +95,15 @@ async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeT
 }
 
 // Upload to Google Drive (v2 Multipart Method - Best for bypassing Service Account quota issues)
+// Upload to Google Drive (OAuth2 User Method - Best for bypassing all quota issues)
 async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType: string): Promise<string> {
-    if (!GOOGLE_SERVICE_ACCOUNT_KEY_RAW || !GOOGLE_DRIVE_FOLDER_ID) {
-        throw new Error('Google Drive configuration missing');
+    const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+    const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+    const GOOGLE_REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
+    const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
+
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REFRESH_TOKEN || !GOOGLE_DRIVE_FOLDER_ID) {
+        throw new Error('Google OAuth configuration missing (ClientId, ClientSecret, or RefreshToken)');
     }
 
     try {
@@ -107,24 +113,24 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
             if (match && match[1]) folderId = match[1];
         }
 
-        const credentials = JSON.parse(GOOGLE_SERVICE_ACCOUNT_KEY_RAW);
-        const auth = new google.auth.JWT({
-            email: credentials.client_email,
-            key: credentials.private_key,
-            scopes: ['https://www.googleapis.com/auth/drive'],
-            subject: process.env.GOOGLE_DRIVE_DELEGATED_USER // Your email address
+        const oauth2Client = new google.auth.OAuth2(
+            GOOGLE_CLIENT_ID,
+            GOOGLE_CLIENT_SECRET,
+            'https://developers.google.com/oauthplayground'
+        );
+
+        oauth2Client.setCredentials({
+            refresh_token: GOOGLE_REFRESH_TOKEN
         });
 
-        // Use v2 instead of v3
-        const drive = google.drive({ version: 'v2', auth });
+        const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
-        console.log(`[API/upload-robot-image] v2 Multipart Upload for: ${fileName}`);
+        console.log(`[API/upload-robot-image] OAuth Uploading: ${fileName} to folder ${folderId}`);
 
-        const response = await drive.files.insert({
+        const response = await drive.files.create({
             requestBody: {
-                title: fileName, // v2 uses 'title' instead of 'name'
-                parents: [{ id: folderId }], // v2 uses an array of objects
-                mimeType: mimeType
+                name: fileName,
+                parents: [folderId],
             },
             media: {
                 mimeType: mimeType,
@@ -136,10 +142,9 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
         const fileId = response.data.id;
         if (!fileId) throw new Error('No file ID returned');
 
-        // Permissions stay the same (v3 is fine here)
-        const driveV3 = google.drive({ version: 'v3', auth });
+        // Set permissions to public
         try {
-            await driveV3.permissions.create({
+            await drive.permissions.create({
                 fileId: fileId,
                 requestBody: { role: 'reader', type: 'anyone' },
             });
@@ -147,7 +152,7 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
 
         return `https://drive.google.com/uc?export=view&id=${fileId}`;
     } catch (error: any) {
-        console.error('[API/upload-robot-image] Google v2 error:', error.message);
+        console.error('[API/upload-robot-image] OAuth error:', error.message);
         throw error;
     }
 }

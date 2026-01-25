@@ -5,9 +5,9 @@ import path from 'path';
 import { Readable } from 'stream';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    // Basic authorization check could be added here if needed
-
-    const GOOGLE_SERVICE_ACCOUNT_KEY = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+    const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+    const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+    const GOOGLE_REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
     let GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
     // Helper to extract ID from URL if necessary
@@ -20,7 +20,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const results: any = {
         envVars: {
-            GOOGLE_SERVICE_ACCOUNT_KEY: !!GOOGLE_SERVICE_ACCOUNT_KEY,
+            GOOGLE_CLIENT_ID: !!GOOGLE_CLIENT_ID,
+            GOOGLE_CLIENT_SECRET: !!GOOGLE_CLIENT_SECRET,
+            GOOGLE_REFRESH_TOKEN: !!GOOGLE_REFRESH_TOKEN,
             GOOGLE_DRIVE_FOLDER_ID: !!GOOGLE_DRIVE_FOLDER_ID,
         },
         steps: [],
@@ -29,11 +31,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
         // Step 1: Check Env Vars
-        if (!GOOGLE_SERVICE_ACCOUNT_KEY || !GOOGLE_DRIVE_FOLDER_ID) {
+        if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REFRESH_TOKEN || !GOOGLE_DRIVE_FOLDER_ID) {
             results.steps.push({
                 name: 'Environment Variables',
                 status: 'error',
-                message: 'Required environment variables are missing.'
+                message: 'Required environment variables for OAuth are missing (Client ID, Secret, or Refresh Token).'
             });
             results.overall = 'error';
             return res.status(200).json(results);
@@ -41,56 +43,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         results.steps.push({
             name: 'Environment Variables',
             status: 'success',
-            message: 'All required environment variables are present.'
+            message: 'All OAuth environment variables are present.'
         });
 
-        // Step 2: Parse JSON Key
-        let credentials;
+        // Step 2: OAuth Authentication
+        let oauth2Client;
         try {
-            credentials = JSON.parse(GOOGLE_SERVICE_ACCOUNT_KEY);
-            results.steps.push({
-                name: 'Credentials Parsing',
-                status: 'success',
-                message: `Successfully parsed service account key for ${credentials.client_email}`
-            });
-        } catch (e) {
-            results.steps.push({
-                name: 'Credentials Parsing',
-                status: 'error',
-                message: 'Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY. Is it valid JSON?'
-            });
-            results.overall = 'error';
-            return res.status(200).json(results);
-        }
+            oauth2Client = new google.auth.OAuth2(
+                GOOGLE_CLIENT_ID,
+                GOOGLE_CLIENT_SECRET,
+                'https://developers.google.com/oauthplayground'
+            );
+            oauth2Client.setCredentials({ refresh_token: GOOGLE_REFRESH_TOKEN });
 
-        // Step 3: Authentication
-        let auth;
-        try {
-            auth = new google.auth.JWT({
-                email: credentials.client_email,
-                key: credentials.private_key,
-                scopes: ['https://www.googleapis.com/auth/drive'],
-                subject: process.env.GOOGLE_DRIVE_DELEGATED_USER
-            });
-            await auth.authorize();
+            // Refresh to test
+            const { token } = await oauth2Client.getAccessToken();
+            if (!token) throw new Error('Token refresh returned empty');
+
             results.steps.push({
-                name: 'Google Authentication',
+                name: 'OAuth Authentication',
                 status: 'success',
-                message: 'Successfully authenticated with Google APIs.'
+                message: 'Successfully authenticated and refreshed user token.'
             });
         } catch (e: any) {
             results.steps.push({
-                name: 'Google Authentication',
+                name: 'OAuth Authentication',
                 status: 'error',
-                message: `Authentication failed: ${e.message}`
+                message: `Authentication failed: ${e.message}. Check if Client ID/Secret and Refresh Token are correct.`
             });
             results.overall = 'error';
             return res.status(200).json(results);
         }
 
-        const drive = google.drive({ version: 'v3', auth });
+        const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
-        // Step 4: Folder Access
+        // Step 3: Folder Access
         try {
             const folder = await drive.files.get({
                 fileId: GOOGLE_DRIVE_FOLDER_ID,
@@ -100,31 +87,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             results.steps.push({
                 name: 'Folder Access',
                 status: canWrite ? 'success' : 'warning',
-                message: `Found folder: "${folder.data.name}". Write access: ${canWrite ? 'YES' : 'NO (Check folder sharing)'}`
+                message: `Found folder: "${folder.data.name}". Write access: ${canWrite ? 'YES' : 'NO'}`
             });
         } catch (e: any) {
             results.steps.push({
                 name: 'Folder Access',
                 status: 'error',
-                message: `Could not access folder: ${e.message}. Is the service account shared with this folder?`
+                message: `Could not access folder: ${e.message}. Check if you have access to the folder ID.`
             });
             results.overall = 'error';
             return res.status(200).json(results);
         }
 
-        // Step 5: Test Write via v2 Multipart flow (Best for service account quota issues)
+        // Step 4: Test Write
         let testFileId;
         try {
-            const fileName = `health-check-v2-${Date.now()}.txt`;
+            const fileName = `health-check-oauth-${Date.now()}.txt`;
             const mimeType = 'text/plain';
-            const fileContent = 'Google Drive Health Check - v2 Multipart Test';
+            const fileContent = 'Google Drive Health Check - OAuth Write Test';
 
-            const driveV2 = google.drive({ version: 'v2', auth });
-            const response = await driveV2.files.insert({
+            const response = await drive.files.create({
                 requestBody: {
-                    title: fileName,
-                    parents: [{ id: GOOGLE_DRIVE_FOLDER_ID }],
-                    mimeType: mimeType
+                    name: fileName,
+                    parents: [GOOGLE_DRIVE_FOLDER_ID]
                 },
                 media: {
                     mimeType: mimeType,
@@ -134,60 +119,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
 
             testFileId = response.data.id;
-            if (!testFileId) throw new Error('No file ID returned');
-
             results.steps.push({
-                name: 'v2 Multipart Write Test',
+                name: 'Write Test',
                 status: 'success',
-                message: `Successfully created test file using v2 API (ID: ${testFileId})`
+                message: `Successfully created test file as user (ID: ${testFileId})`
             });
         } catch (e: any) {
             results.steps.push({
-                name: 'v2 Multipart Write Test',
+                name: 'Write Test',
                 status: 'error',
-                message: `v2 upload failed: ${e.message}. If this still fails with quota error, the only solution is to use a Shared Drive or OAuth Delegation.`
+                message: `Upload failed: ${e.message}`
             });
             results.overall = 'error';
             return res.status(200).json(results);
         }
 
-        // Step 6: Test Permissions (Set Public)
+        // Step 5: Cleanup
         try {
-            await drive.permissions.create({
-                fileId: testFileId!,
-                requestBody: {
-                    role: 'reader',
-                    type: 'anyone',
-                },
-            });
+            await drive.files.delete({ fileId: testFileId! });
             results.steps.push({
-                name: 'Public Permission Setting',
+                name: 'Cleanup',
                 status: 'success',
-                message: 'Successfully set file to public read (viewable by link).'
+                message: 'Deleted test file.'
             });
-        } catch (e: any) {
+        } catch (e) {
             results.steps.push({
-                name: 'Public Permission Setting',
+                name: 'Cleanup',
                 status: 'warning',
-                message: `Could not set public permissions: ${e.message}. Files might not be viewable without Google account.`
-            });
-        }
-
-        // Step 7: Test Delete (Clean up)
-        try {
-            await drive.files.delete({
-                fileId: testFileId!
-            });
-            results.steps.push({
-                name: 'Cleanup (Delete Test)',
-                status: 'success',
-                message: 'Successfully deleted the test file.'
-            });
-        } catch (e: any) {
-            results.steps.push({
-                name: 'Cleanup (Delete Test)',
-                status: 'warning',
-                message: `Failed to delete test file: ${e.message}. You manually delete file ID ${testFileId}.`
+                message: 'Failed to delete test file.'
             });
         }
 

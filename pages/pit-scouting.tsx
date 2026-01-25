@@ -220,10 +220,16 @@ export default function PitScouting() {
 
       // Upload image if a file is selected (always upload new files)
       let imageUrl = formData.robotImageUrl;
+      console.log('Form submission started');
+      console.log('Current robotImageUrl:', imageUrl);
+      console.log('robotImageUploadRef.current:', robotImageUploadRef.current);
+      console.log('hasFile():', robotImageUploadRef.current?.hasFile());
+      
       if (robotImageUploadRef.current?.hasFile()) {
         console.log('File selected, uploading image...');
         try {
           const uploadedUrl = await robotImageUploadRef.current.uploadImage();
+          console.log('Upload function returned:', uploadedUrl);
           if (uploadedUrl) {
             imageUrl = uploadedUrl;
             setFormData(prev => ({ ...prev, robotImageUrl: uploadedUrl }));
@@ -235,6 +241,9 @@ export default function PitScouting() {
           console.error('Error uploading image during form submission:', error);
           throw new Error(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
+      } else {
+        console.log('No file selected, skipping image upload');
+        console.log('Using existing imageUrl:', imageUrl);
       }
 
       const validation = validatePitScoutingForm(formData);

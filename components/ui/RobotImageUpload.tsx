@@ -31,6 +31,8 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileSelect = useCallback((file: File) => {
+        console.log('File selected:', file.name, file.size, file.type);
+        
         // Validate file type
         if (!file.type.startsWith('image/')) {
             setUploadError('Please select an image file (JPEG, PNG, WebP, etc.)');
@@ -46,6 +48,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
         setUploadError(null);
         setUploadSuccess(false);
         setSelectedFile(file);
+        console.log('selectedFile state updated to:', file.name);
 
         // Create preview
         const reader = new FileReader();
@@ -153,7 +156,11 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
         uploadImage: handleUpload,
-        hasFile: () => selectedFile !== null,
+        hasFile: () => {
+            const hasFile = selectedFile !== null;
+            console.log('hasFile() called, selectedFile:', selectedFile, 'result:', hasFile);
+            return hasFile;
+        },
     }));
 
     const handleRemove = () => {

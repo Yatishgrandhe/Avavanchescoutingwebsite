@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Upload, X, Loader2, CheckCircle, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { Button } from './Button';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 
 interface RobotImageUploadProps {
     teamNumber: number;
@@ -116,56 +117,107 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
         setUploadError(null);
         setUploadSuccess(false);
 
+        // Method 1: Try direct client-side upload to Supabase Storage (recommended approach)
         try {
-            const formData = new FormData();
-            formData.append('image', selectedFile);
-            formData.append('teamNumber', teamNumber.toString());
+            const timestamp = Date.now();
+            const fileExtension = selectedFile.name.split('.').pop() || 'jpg';
+            const fileName = `team_${teamNumber}_robot_${timestamp}.${fileExtension}`;
+            const filePath = fileName;
 
-            console.log('Sending upload request to /api/upload-robot-image');
-            const response = await fetch('/api/upload-robot-image', {
-                method: 'POST',
-                body: formData,
-            });
+            console.log('Attempting direct Supabase Storage upload:', { bucket: 'robot-images', path: filePath });
 
-            console.log('Upload response status:', response.status);
+            // Upload directly to Supabase Storage
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('robot-images')
+                .upload(filePath, selectedFile, {
+                    contentType: selectedFile.type || 'image/jpeg',
+                    upsert: true, // Replace if file already exists
+                    cacheControl: '3600',
+                });
 
-            let data;
-            try {
-                data = await response.json();
-            } catch (jsonError) {
-                const text = await response.text();
-                console.error('Failed to parse response as JSON:', text);
-                throw new Error(`Server returned invalid response: ${response.status} ${response.statusText}`);
+            if (uploadError) {
+                console.error('Direct Supabase upload failed:', uploadError);
+                throw uploadError;
             }
 
-            if (!response.ok) {
-                const errorMsg = data.error || data.details || `Upload failed with status ${response.status}`;
-                console.error('Upload failed:', errorMsg);
-                throw new Error(errorMsg);
+            if (!uploadData || !uploadData.path) {
+                throw new Error('Upload succeeded but no path returned');
             }
 
-            if (!data.directViewUrl) {
-                throw new Error('Upload succeeded but no image URL returned');
+            console.log('Direct upload successful. Path:', uploadData.path);
+
+            // Get public URL
+            const { data: urlData } = supabase.storage
+                .from('robot-images')
+                .getPublicUrl(uploadData.path);
+
+            if (!urlData || !urlData.publicUrl) {
+                throw new Error('Failed to get public URL from Supabase Storage');
             }
 
-            console.log('Upload successful! Image URL:', data.directViewUrl);
+            const publicUrl = urlData.publicUrl;
+            console.log('Upload successful! Image URL:', publicUrl);
+
             setUploadSuccess(true);
-            setIsNewFileSelected(false); // Clear flag after successful upload
-            setSelectedFile(null); // Clear selected file after successful upload
-            onImageUploaded(data.directViewUrl);
+            setIsNewFileSelected(false);
+            setSelectedFile(null);
+            onImageUploaded(publicUrl);
 
-            // Clear success message after 3 seconds
             setTimeout(() => setUploadSuccess(false), 3000);
 
-            return data.directViewUrl;
-        } catch (error) {
-            console.error('Upload error:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Failed to upload image';
-            setUploadError(errorMessage);
-            setIsUploading(false);
-            // Don't clear selectedFile on error - allow retry
-            // Don't call onImageUploaded(null) here - keep existing URL if any
-            throw error; // Re-throw so form submission can catch it
+            return publicUrl;
+        } catch (directUploadError) {
+            console.warn('Direct upload failed, falling back to API route:', directUploadError);
+            
+            // Method 2: Fallback to API route (server-side upload)
+            try {
+                const formData = new FormData();
+                formData.append('image', selectedFile);
+                formData.append('teamNumber', teamNumber.toString());
+
+                console.log('Sending upload request to /api/upload-robot-image (fallback)');
+                const response = await fetch('/api/upload-robot-image', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                console.log('Upload response status:', response.status);
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (jsonError) {
+                    const text = await response.text();
+                    console.error('Failed to parse response as JSON:', text);
+                    throw new Error(`Server returned invalid response: ${response.status} ${response.statusText}`);
+                }
+
+                if (!response.ok) {
+                    const errorMsg = data.error || data.details || `Upload failed with status ${response.status}`;
+                    console.error('API route upload failed:', errorMsg);
+                    throw new Error(errorMsg);
+                }
+
+                if (!data.directViewUrl) {
+                    throw new Error('Upload succeeded but no image URL returned');
+                }
+
+                console.log('API route upload successful! Image URL:', data.directViewUrl);
+                setUploadSuccess(true);
+                setIsNewFileSelected(false);
+                setSelectedFile(null);
+                onImageUploaded(data.directViewUrl);
+
+                setTimeout(() => setUploadSuccess(false), 3000);
+
+                return data.directViewUrl;
+            } catch (apiError) {
+                console.error('Both upload methods failed:', { directUploadError, apiError });
+                const errorMessage = apiError instanceof Error ? apiError.message : 'Failed to upload image';
+                setUploadError(errorMessage);
+                setIsUploading(false);
+                throw apiError;
+            }
         }
     }, [selectedFile, teamNumber, onImageUploaded]);
 

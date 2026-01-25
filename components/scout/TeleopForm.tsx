@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Counter } from '../ui';
+import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Counter, Badge } from '../ui';
 import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
-import { Fuel, TrendingUp, CheckCircle, Plus, X } from 'lucide-react';
+import { Fuel, TrendingUp, CheckCircle, Plus, X, ArrowLeft, ArrowRight, Trophy } from 'lucide-react';
 
 interface TeleopFormProps {
   onNext: (teleopData: Partial<ScoringNotes>) => void;
@@ -21,20 +21,10 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   isDarkMode = true,
   initialData,
 }) => {
-  // Initialize fuel shifts from initialData or create new empty array
-  const initialShifts = initialData?.teleop_fuel_shifts && Array.isArray(initialData.teleop_fuel_shifts) 
-    ? [...initialData.teleop_fuel_shifts] 
-    : [];
+  // Initialize fuel shifts - exactly 4 shifts as requested
+  const [fuelShifts, setFuelShifts] = useState<number[]>([0, 0, 0, 0]);
 
-  const [fuelShifts, setFuelShifts] = useState<number[]>(initialShifts);
-  const [currentShiftFuel, setCurrentShiftFuel] = useState<number>(
-    initialData?.teleop_fuel_active_hub && !initialData?.teleop_fuel_shifts
-      ? (initialData.teleop_fuel_active_hub as number)
-      : 0
-  );
-  
   const [formData, setFormData] = useState({
-    teleop_fuel_active_hub: (initialData?.teleop_fuel_active_hub as number) || 0,
     teleop_tower_level1: (initialData?.teleop_tower_level1 as boolean) || false,
     teleop_tower_level2: (initialData?.teleop_tower_level2 as boolean) || false,
     teleop_tower_level3: (initialData?.teleop_tower_level3 as boolean) || false,
@@ -43,18 +33,17 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   // Sync initialData with state when it changes
   useEffect(() => {
     if (initialData) {
-      const shifts = initialData.teleop_fuel_shifts && Array.isArray(initialData.teleop_fuel_shifts)
-        ? [...initialData.teleop_fuel_shifts]
-        : [];
-      setFuelShifts(shifts);
-      // If there are no shifts but there's a fuel_active_hub value, set it as current shift
-      setCurrentShiftFuel(
-        shifts.length === 0 && initialData.teleop_fuel_active_hub
-          ? (initialData.teleop_fuel_active_hub as number)
-          : 0
-      );
+      if (initialData.teleop_fuel_shifts && Array.isArray(initialData.teleop_fuel_shifts)) {
+        const shifts = [...initialData.teleop_fuel_shifts];
+        // Ensure we have exactly 4 values
+        while (shifts.length < 4) shifts.push(0);
+        setFuelShifts(shifts.slice(0, 4));
+      } else if (initialData.teleop_fuel_active_hub) {
+        // Fallback if only total is provided
+        setFuelShifts([initialData.teleop_fuel_active_hub as number, 0, 0, 0]);
+      }
+
       setFormData({
-        teleop_fuel_active_hub: (initialData.teleop_fuel_active_hub as number) || 0,
         teleop_tower_level1: (initialData.teleop_tower_level1 as boolean) || false,
         teleop_tower_level2: (initialData.teleop_tower_level2 as boolean) || false,
         teleop_tower_level3: (initialData.teleop_tower_level3 as boolean) || false,
@@ -62,30 +51,14 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
     }
   }, [initialData]);
 
-  const handleAddShift = () => {
-    if (currentShiftFuel > 0) {
-      setFuelShifts([...fuelShifts, currentShiftFuel]);
-      setCurrentShiftFuel(0);
-    }
-  };
-
-  const handleRemoveShift = (index: number) => {
-    const newShifts = fuelShifts.filter((_, i) => i !== index);
+  const handleShiftChange = (index: number, value: number) => {
+    const newShifts = [...fuelShifts];
+    newShifts[index] = value;
     setFuelShifts(newShifts);
   };
 
   const getTotalFuel = () => {
-    // Include current shift fuel in the total
-    return fuelShifts.reduce((sum, fuel) => sum + fuel, 0) + currentShiftFuel;
-  };
-
-  const getAllShifts = () => {
-    // Return all shifts including current one if it has fuel
-    const allShifts = [...fuelShifts];
-    if (currentShiftFuel > 0) {
-      allShifts.push(currentShiftFuel);
-    }
-    return allShifts;
+    return fuelShifts.reduce((sum, fuel) => sum + fuel, 0);
   };
 
   const handleInputChange = (field: keyof typeof formData, value: number | boolean) => {
@@ -118,7 +91,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
       transition={{ duration: 0.3 }}
       className="max-w-6xl mx-auto min-h-[500px]"
     >
-      <Card className="bg-card border-border">
+      <Card className="bg-card border-border shadow-lg">
         {/* Progress Bar */}
         <div className="px-6 pt-6">
           <div className="w-full bg-muted rounded-full h-2">
@@ -136,103 +109,62 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
             Teleop Period
           </CardTitle>
           <CardDescription className="text-muted-foreground">
-            Score the teleop period actions (last 2:20, especially last 0:30)
+            Scoring for fuel (exactly 4 shifts) and tower climb
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-6">
-          {/* FUEL Scoring */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
+        <CardContent className="space-y-8">
+          {/* FUEL Scoring Section */}
+          <div className="space-y-6">
+            <div className="flex items-center space-x-3 pb-2 border-b border-border/50">
               <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
                 <Fuel className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
               </div>
               <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                FUEL Scoring
+                FUEL Scoring (4 Shifts)
               </h3>
             </div>
-            
-            {/* Current Shift Input */}
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                <Counter
-                  value={currentShiftFuel}
-                  onChange={(value: number) => setCurrentShiftFuel(value)}
-                  min={0}
-                  max={100}
-                  label="Current Shift FUEL"
-                  points={SCORING_VALUES.teleop_fuel_active_hub}
-                  isDarkMode={isDarkMode}
-                />
-              </div>
-              
-              {/* Add Shift Button - Finalizes current shift and starts a new one */}
-              <Button
-                onClick={handleAddShift}
-                disabled={currentShiftFuel === 0}
-                className={`w-full sm:w-auto ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Finalize Shift & Start Next
-              </Button>
+
+            {/* 4 Fixed Shifts Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {fuelShifts.map((fuel, index) => (
+                <div key={`shift-${index}`} className="relative group">
+                  <div className={`absolute -top-3 left-3 px-2 text-[10px] font-bold uppercase rounded-md z-10 ${isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                    Shift {index + 1}
+                  </div>
+                  <Counter
+                    value={fuel}
+                    onChange={(value: number) => handleShiftChange(index, value)}
+                    min={0}
+                    max={100}
+                    label=""
+                    points={SCORING_VALUES.teleop_fuel_active_hub}
+                    isDarkMode={isDarkMode}
+                  />
+                </div>
+              ))}
             </div>
 
-            {/* Display All Shifts */}
-            {(fuelShifts.length > 0 || currentShiftFuel > 0) && (
-              <div className="space-y-2">
-                <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Fuel Shifts ({getAllShifts().length} shift{getAllShifts().length !== 1 ? 's' : ''}):
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {fuelShifts.map((fuel, index) => (
-                    <motion.div
-                      key={`shift-${index}`}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
-                        isDarkMode ? 'bg-blue-900/30 border border-blue-700' : 'bg-blue-100 border border-blue-300'
-                      }`}
-                    >
-                      <span className={`font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-                        Shift {index + 1}: {fuel} fuel ({fuel} pts)
-                      </span>
-                      <button
-                        onClick={() => handleRemoveShift(index)}
-                        className={`hover:bg-red-500/20 rounded-full p-1 transition-colors`}
-                      >
-                        <X className="w-3 h-3 text-red-400" />
-                      </button>
-                    </motion.div>
-                  ))}
-                  {currentShiftFuel > 0 && (
-                    <motion.div
-                      key="current-shift"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
-                        isDarkMode ? 'bg-blue-700/50 border-2 border-blue-500' : 'bg-blue-200 border-2 border-blue-400'
-                      }`}
-                    >
-                      <span className={`font-medium ${isDarkMode ? 'text-blue-200' : 'text-blue-800'}`}>
-                        Shift {fuelShifts.length + 1}: {currentShiftFuel} fuel ({currentShiftFuel} pts) - Current
-                      </span>
-                    </motion.div>
-                  )}
-                </div>
-                <div className={`text-sm font-semibold ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-                  Total FUEL: {getTotalFuel()} ({getTotalFuel()} points)
-                </div>
+            <div className={`flex items-center justify-between p-4 rounded-xl ${isDarkMode ? 'bg-blue-900/20 border border-blue-800' : 'bg-blue-50 border border-blue-200'
+              }`}>
+              <div className="flex items-center gap-2">
+                <span className={`text-sm font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+                  Total Teleop Fuel Sum:
+                </span>
+                <span className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-blue-900'}`}>
+                  {getTotalFuel()}
+                </span>
               </div>
-            )}
-            
-            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Note: 1 point per FUEL scored in the active HUB. Add multiple shifts to track fuel across the teleop period. FUEL in inactive HUB scores 0 points.
+              <Badge variant="outline" className={`${isDarkMode ? 'border-blue-700 text-blue-400' : 'border-blue-300 text-blue-600'}`}>
+                {getTotalFuel()} points
+              </Badge>
             </div>
           </div>
 
-          {/* TOWER Scoring */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
+          {/* TOWER Scoring Section */}
+          <div className="space-y-6">
+            <div className="flex items-center space-x-3 pb-2 border-b border-border/50">
               <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-orange-900/30' : 'bg-orange-100'}`}>
                 <TrendingUp className={`w-6 h-6 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
               </div>
@@ -240,179 +172,94 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                 TOWER Climb
               </h3>
             </div>
-            
-            <div className="space-y-4">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 }}
-                className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 rounded-xl space-y-3 sm:space-y-0 ${
-                  isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center space-x-4">
-                  <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
-                    <CheckCircle className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                  </div>
-                  <div>
-                    <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                      TOWER LEVEL 1
-                    </h3>
-                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      LEVEL 1 climb per robot
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <span className={`font-bold text-lg ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                    +{SCORING_VALUES.teleop_tower_level1} pts
-                  </span>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={formData.teleop_tower_level1 && !formData.teleop_tower_level2 && !formData.teleop_tower_level3}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                        if (e.target.checked) {
-                          handleInputChange('teleop_tower_level1', true);
-                          handleInputChange('teleop_tower_level2', false);
-                          handleInputChange('teleop_tower_level3', false);
-                        } else {
-                          handleInputChange('teleop_tower_level1', false);
-                        }
-                      }}
-                      className="cursor-pointer"
-                    />
-                  </div>
-                </div>
-              </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 rounded-xl space-y-3 sm:space-y-0 ${
-                  isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center space-x-4">
-                  <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-green-900/30' : 'bg-green-100'}`}>
-                    <CheckCircle className={`w-6 h-6 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+            <div className="grid grid-cols-1 gap-4">
+              {[
+                { id: 'teleop_tower_level1', label: 'TOWER LEVEL 1', sub: 'Simple climb per robot', pts: SCORING_VALUES.teleop_tower_level1, color: 'blue' },
+                { id: 'teleop_tower_level2', label: 'TOWER LEVEL 2', sub: 'BUMPERS above LOW RUNG', pts: SCORING_VALUES.teleop_tower_level2, color: 'green' },
+                { id: 'teleop_tower_level3', label: 'TOWER LEVEL 3', sub: 'BUMPERS above MID RUNG', pts: SCORING_VALUES.teleop_tower_level3, color: 'purple' },
+              ].map((level) => (
+                <motion.div
+                  key={level.id}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  onClick={() => {
+                    const isCurrentlyChecked = formData[level.id as keyof typeof formData] as boolean;
+                    if (!isCurrentlyChecked) {
+                      handleInputChange('teleop_tower_level1', level.id === 'teleop_tower_level1');
+                      handleInputChange('teleop_tower_level2', level.id === 'teleop_tower_level2');
+                      handleInputChange('teleop_tower_level3', level.id === 'teleop_tower_level3');
+                    } else {
+                      handleInputChange(level.id as keyof typeof formData, false);
+                    }
+                  }}
+                  className={`flex items-center justify-between p-5 rounded-2xl cursor-pointer transition-all border-2 ${formData[level.id as keyof typeof formData]
+                    ? `bg-${level.color}-500/10 border-${level.color}-500/50`
+                    : 'bg-muted/30 border-transparent hover:bg-muted/50'
+                    }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-xl ${formData[level.id as keyof typeof formData]
+                      ? `bg-${level.color}-500 text-white`
+                      : 'bg-muted text-muted-foreground'
+                      }`}>
+                      <CheckCircle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold">{level.label}</h4>
+                      <p className="text-xs text-muted-foreground">{level.sub}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                      TOWER LEVEL 2
-                    </h3>
-                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      BUMPERS completely above LOW RUNG
-                    </p>
+                  <div className="text-right">
+                    <span className={`text-lg font-bold ${formData[level.id as keyof typeof formData] ? `text-${level.color}-500` : 'text-muted-foreground'
+                      }`}>
+                      +{level.pts} pts
+                    </span>
                   </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <span className={`font-bold text-lg ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                    +{SCORING_VALUES.teleop_tower_level2} pts
-                  </span>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={formData.teleop_tower_level2 && !formData.teleop_tower_level3}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                        if (e.target.checked) {
-                          handleInputChange('teleop_tower_level2', true);
-                          handleInputChange('teleop_tower_level1', false);
-                          handleInputChange('teleop_tower_level3', false);
-                        } else {
-                          handleInputChange('teleop_tower_level2', false);
-                        }
-                      }}
-                      className="cursor-pointer"
-                    />
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 rounded-xl space-y-3 sm:space-y-0 ${
-                  isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center space-x-4">
-                  <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-purple-900/30' : 'bg-purple-100'}`}>
-                    <CheckCircle className={`w-6 h-6 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
-                  </div>
-                  <div>
-                    <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                      TOWER LEVEL 3
-                    </h3>
-                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      BUMPERS completely above MID RUNG
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <span className={`font-bold text-lg ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
-                    +{SCORING_VALUES.teleop_tower_level3} pts
-                  </span>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={formData.teleop_tower_level3}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                        if (e.target.checked) {
-                          handleInputChange('teleop_tower_level3', true);
-                          handleInputChange('teleop_tower_level1', false);
-                          handleInputChange('teleop_tower_level2', false);
-                        } else {
-                          handleInputChange('teleop_tower_level3', false);
-                        }
-                      }}
-                      className="cursor-pointer"
-                    />
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Note: TOWER levels are mutually exclusive - only the highest level achieved counts. Each robot earns points for only one LEVEL.
+                </motion.div>
+              ))}
             </div>
           </div>
 
-          {/* Total Points Display */}
-          <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
-            <div className="flex justify-between items-center">
-              <span className="text-foreground font-semibold">Total Teleop Points:</span>
-              <span className="text-primary text-2xl font-bold">{calculateTotal()}</span>
+          {/* Final Summary Card */}
+          <div className="relative overflow-hidden p-6 bg-primary/10 border border-primary/30 rounded-2xl">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <Trophy size={80} className="text-primary" />
+            </div>
+            <div className="flex justify-between items-center relative z-10">
+              <div>
+                <p className="text-sm font-medium text-primary/80 uppercase tracking-wider">Estimated Score</p>
+                <h3 className="text-foreground text-xl font-bold">Total Teleop Segment</h3>
+              </div>
+              <div className="text-4xl font-extrabold text-primary animate-pulse">
+                {calculateTotal()}
+              </div>
             </div>
           </div>
         </CardContent>
 
-        <CardFooter className="flex justify-between">
+        <CardFooter className="flex justify-between p-6 bg-muted/20">
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={onBack}
-            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="flex items-center gap-2"
           >
+            <ArrowLeft className="w-4 h-4" />
             Previous
           </Button>
-          
+
           <Button
             onClick={() => {
-              const totalFuel = getTotalFuel();
-              // Include current shift in the shifts array when submitting
-              const allShifts = currentShiftFuel > 0 
-                ? [...fuelShifts, currentShiftFuel]
-                : fuelShifts;
               onNext({
                 ...formData,
-                teleop_fuel_active_hub: totalFuel,
-                teleop_fuel_shifts: allShifts.length > 0 ? allShifts : undefined,
+                teleop_fuel_active_hub: getTotalFuel(),
+                teleop_fuel_shifts: fuelShifts,
               });
             }}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-8 shadow-md"
           >
-            Next
+            Next Section
+            <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </CardFooter>
       </Card>

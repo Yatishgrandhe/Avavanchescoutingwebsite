@@ -112,12 +112,11 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
             throw new Error('Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY. Ensure it is valid JSON.');
         }
 
-        const auth = new google.auth.JWT(
-            credentials.client_email,
-            undefined,
-            credentials.private_key,
-            ['https://www.googleapis.com/auth/drive.file']
-        );
+        const auth = new google.auth.JWT({
+            email: credentials.client_email,
+            key: credentials.private_key,
+            scopes: ['https://www.googleapis.com/auth/drive.file']
+        });
 
         const drive = google.drive({ version: 'v3', auth });
 

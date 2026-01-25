@@ -174,16 +174,22 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
         uploadImage: handleUpload,
         hasFile: () => {
             // Return true if there's a file selected that hasn't been uploaded yet
-            // This ensures we only upload when a new file is selected
-            const hasFile = selectedFile !== null && isNewFileSelected;
+            // Primary check: selectedFile exists and isNewFileSelected is true
+            // Fallback: If selectedFile exists, we should try to upload it (defensive check)
+            // This handles cases where isNewFileSelected might be reset due to re-renders
+            const hasSelectedFile = selectedFile !== null;
+            const hasFile = hasSelectedFile && (isNewFileSelected || !currentImageUrl);
+            
             console.log('hasFile() called:', {
                 selectedFile: selectedFile?.name || null,
                 isNewFileSelected,
+                hasSelectedFile,
+                currentImageUrl: currentImageUrl ? (currentImageUrl.substring(0, 50) + '...') : null,
                 result: hasFile
             });
             return hasFile;
         },
-    }), [handleUpload, selectedFile, isNewFileSelected]);
+    }), [handleUpload, selectedFile, isNewFileSelected, preview, currentImageUrl]);
 
     const handleRemove = () => {
         setPreview(null);

@@ -7,7 +7,7 @@ import { Button } from '../components/ui';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { 
+import {
   Table,
   TableBody,
   TableCell,
@@ -15,10 +15,10 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table';
-import { 
-  Search, 
-  Filter, 
-  Download, 
+import {
+  Search,
+  Filter,
+  Download,
   Eye,
   User,
   Calendar,
@@ -57,12 +57,11 @@ interface PitScoutingData {
   };
   weight: number;
   camera_count?: number;
-  shooting_locations_count?: number;
+  shooting_locations: string[];
   programming_language: string;
   notes: string;
   strengths: string[];
   weaknesses: string[];
-  overall_rating: number;
   submitted_by: string;
   submitted_by_email: string;
   submitted_by_name: string;
@@ -84,7 +83,7 @@ export default function PitScoutingData() {
   const [editingItem, setEditingItem] = useState<PitScoutingData | null>(null);
   const [deletingItem, setDeletingItem] = useState<PitScoutingData | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [allTeams, setAllTeams] = useState<Array<{team_number: number, team_name: string}>>([]);
+  const [allTeams, setAllTeams] = useState<Array<{ team_number: number, team_name: string }>>([]);
   const [scoutedTeamNumbers, setScoutedTeamNumbers] = useState<Set<number>>(new Set());
   const [showUnscoutedTeams, setShowUnscoutedTeams] = useState(false);
   const [selectedDetailItem, setSelectedDetailItem] = useState<PitScoutingData | null>(null);
@@ -131,22 +130,21 @@ export default function PitScoutingData() {
           robot_dimensions: item.robot_dimensions && typeof item.robot_dimensions === 'object' ? item.robot_dimensions : { height: 0 },
           weight: item.weight || 0,
           camera_count: item.camera_count !== undefined && item.camera_count !== null ? item.camera_count : undefined,
-          shooting_locations_count: item.shooting_locations_count !== undefined && item.shooting_locations_count !== null ? item.shooting_locations_count : undefined,
+          shooting_locations: item.shooting_locations || [],
           programming_language: item.programming_language || 'Unknown',
           notes: item.notes || '',
           strengths: item.strengths || [],
           weaknesses: item.weaknesses || [],
-          overall_rating: item.overall_rating || 0,
           submitted_by: item.submitted_by,
           submitted_by_email: item.submitted_by_email,
           submitted_by_name: item.submitted_by_name,
           submitted_at: item.submitted_at,
           created_at: item.created_at
         }));
-        
+
         setPitData(transformedData);
         setFilteredData(transformedData);
-        
+
         // Set teams and scouted team numbers
         setAllTeams(teamsData);
         const scoutedNumbers = new Set<number>(pitScoutingData?.map((item: any) => item.team_number) || []);
@@ -173,7 +171,7 @@ export default function PitScoutingData() {
     let filtered = pitData;
 
     if (searchTerm) {
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         item.robot_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.team_number.toString().includes(searchTerm) ||
         item.drive_type.toLowerCase().includes(searchTerm.toLowerCase())
@@ -218,7 +216,7 @@ export default function PitScoutingData() {
       // Remove from local state
       setPitData(prev => prev.filter(item => item.id !== deletingItem.id));
       setFilteredData(prev => prev.filter(item => item.id !== deletingItem.id));
-      
+
       setShowDeleteConfirm(false);
       setDeletingItem(null);
     } catch (error) {
@@ -263,18 +261,18 @@ export default function PitScoutingData() {
         robot_dimensions: item.robot_dimensions || { height: 0 },
         weight: item.weight || 0,
         camera_count: item.camera_count !== undefined && item.camera_count !== null ? item.camera_count : undefined,
+        shooting_locations: item.shooting_locations || [],
         programming_language: item.programming_language || 'Unknown',
         notes: item.notes || '',
         strengths: item.strengths || [],
         weaknesses: item.weaknesses || [],
-        overall_rating: item.overall_rating || 0,
         submitted_by: item.submitted_by,
         submitted_by_email: item.submitted_by_email,
         submitted_by_name: item.submitted_by_name,
         submitted_at: item.submitted_at,
         created_at: item.created_at
       }));
-      
+
       setPitData(transformedData);
       setFilteredData(transformedData);
     } catch (error) {
@@ -359,7 +357,7 @@ export default function PitScoutingData() {
                       {showUnscoutedTeams ? 'Hide' : 'Show'} Unscouted Teams
                     </Button>
                   </div>
-                  
+
                   {/* Progress Bar */}
                   <div className="w-full bg-gray-700 rounded-full h-2">
                     <motion.div
@@ -369,7 +367,7 @@ export default function PitScoutingData() {
                       transition={{ duration: 0.8, delay: 0.3 }}
                     />
                   </div>
-                  
+
                   {/* Unscouted Teams List */}
                   {showUnscoutedTeams && (
                     <motion.div
@@ -464,95 +462,83 @@ export default function PitScoutingData() {
                 <CardContent className="px-6 pb-6">
                   <div className="overflow-x-auto">
                     <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Team</TableHead>
-                        <TableHead>Robot Name</TableHead>
-                        <TableHead>Drive Type</TableHead>
-                        <TableHead>Dimensions</TableHead>
-                        <TableHead>Weight</TableHead>
-                        <TableHead>Rating</TableHead>
-                        <TableHead>Uploaded By</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>
-                          <div className="flex items-center space-x-2">
-                            <span>Actions</span>
-                            {isAdmin && (
-                              <Shield className="w-4 h-4 text-yellow-500" />
-                            )}
-                          </div>
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredData.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">Team {item.team_number}</TableCell>
-                          <TableCell>{item.robot_name}</TableCell>
-                          <TableCell>{item.drive_type}</TableCell>
-                          <TableCell>
-                            {item.robot_dimensions.length && item.robot_dimensions.width 
-                              ? `${item.robot_dimensions.length}" × ${item.robot_dimensions.width}" × ${item.robot_dimensions.height}"`
-                              : `${item.robot_dimensions.height}" (H only)`
-                            }
-                          </TableCell>
-                          <TableCell>{item.weight} lbs</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div className="w-16 bg-gray-700 rounded-full h-2">
-                                <div 
-                                  className="bg-blue-600 h-2 rounded-full" 
-                                  style={{ width: `${(item.overall_rating / 10) * 100}%` }}
-                                />
-                              </div>
-                              <span className="text-sm">{item.overall_rating}/10</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {item.submitted_by_name}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {new Date(item.created_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Team</TableHead>
+                          <TableHead>Robot Name</TableHead>
+                          <TableHead>Drive Type</TableHead>
+                          <TableHead>Dimensions</TableHead>
+                          <TableHead>Weight</TableHead>
+                          <TableHead>Uploaded By</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>
                             <div className="flex items-center space-x-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-                                onClick={() => handleViewDetails(item)}
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                View
-                              </Button>
+                              <span>Actions</span>
                               {isAdmin && (
-                                <>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="bg-blue-800 border-blue-600 text-white hover:bg-blue-700"
-                                    onClick={() => handleEdit(item)}
-                                  >
-                                    <Edit className="h-4 w-4 mr-1" />
-                                    Edit
-                                  </Button>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="bg-red-800 border-red-600 text-white hover:bg-red-700"
-                                    onClick={() => handleDelete(item)}
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-1" />
-                                    Delete
-                                  </Button>
-                                </>
+                                <Shield className="w-4 h-4 text-yellow-500" />
                               )}
                             </div>
-                          </TableCell>
+                          </TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredData.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium">Team {item.team_number}</TableCell>
+                            <TableCell>{item.robot_name}</TableCell>
+                            <TableCell>{item.drive_type}</TableCell>
+                            <TableCell>
+                              {item.robot_dimensions.length && item.robot_dimensions.width
+                                ? `${item.robot_dimensions.length}" × ${item.robot_dimensions.width}" × ${item.robot_dimensions.height}"`
+                                : `${item.robot_dimensions.height}" (H only)`
+                              }
+                            </TableCell>
+                            <TableCell>{item.weight} lbs</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {item.submitted_by_name}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {new Date(item.created_at).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+                                  onClick={() => handleViewDetails(item)}
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View
+                                </Button>
+                                {isAdmin && (
+                                  <>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="bg-blue-800 border-blue-600 text-white hover:bg-blue-700"
+                                      onClick={() => handleEdit(item)}
+                                    >
+                                      <Edit className="h-4 w-4 mr-1" />
+                                      Edit
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="bg-red-800 border-red-600 text-white hover:bg-red-700"
+                                      onClick={() => handleDelete(item)}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-1" />
+                                      Delete
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
                 </CardContent>
               </Card>
@@ -563,9 +549,6 @@ export default function PitScoutingData() {
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-white">Team {item.team_number}</CardTitle>
-                        <Badge variant="outline" className="text-blue-400 border-blue-400">
-                          {item.overall_rating}/10
-                        </Badge>
                       </div>
                       <p className="text-gray-400">{item.robot_name}</p>
                     </CardHeader>
@@ -595,7 +578,7 @@ export default function PitScoutingData() {
                       <div>
                         <p className="text-sm text-gray-400">Dimensions</p>
                         <p className="text-white">
-                          {item.robot_dimensions.length && item.robot_dimensions.width 
+                          {item.robot_dimensions.length && item.robot_dimensions.width
                             ? `${item.robot_dimensions.length}" × ${item.robot_dimensions.width}" × ${item.robot_dimensions.height}"`
                             : `${item.robot_dimensions.height}" (H only)`
                           }
@@ -620,9 +603,9 @@ export default function PitScoutingData() {
                         </div>
                       </div>
                       <div className="pt-3 space-y-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="w-full bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
                           onClick={() => handleViewDetails(item)}
                         >
@@ -631,18 +614,18 @@ export default function PitScoutingData() {
                         </Button>
                         {isAdmin && (
                           <div className="flex space-x-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
+                            <Button
+                              variant="outline"
+                              size="sm"
                               className="flex-1 bg-blue-800 border-blue-600 text-white hover:bg-blue-700"
                               onClick={() => handleEdit(item)}
                             >
                               <Edit className="h-4 w-4 mr-1" />
                               Edit
                             </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
+                            <Button
+                              variant="outline"
+                              size="sm"
                               className="flex-1 bg-red-800 border-red-600 text-white hover:bg-red-700"
                               onClick={() => handleDelete(item)}
                             >
@@ -698,8 +681,8 @@ export default function PitScoutingData() {
                   <Wrench className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-white mb-2">No Pit Scouting Data</h3>
                   <p className="text-gray-400">
-                    {searchTerm || selectedTeam !== 'all' 
-                      ? 'No data matches your current filters.' 
+                    {searchTerm || selectedTeam !== 'all'
+                      ? 'No data matches your current filters.'
                       : 'No pit scouting data has been submitted yet.'
                     }
                   </p>
@@ -778,10 +761,6 @@ export default function PitScoutingData() {
                             <span className="text-gray-300">Programming Language:</span>
                             <span className="text-white font-medium">{selectedDetailItem.programming_language || 'N/A'}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-300">Overall Rating:</span>
-                            <span className="text-white font-medium">{selectedDetailItem.overall_rating}/10</span>
-                          </div>
                         </div>
                       </div>
 
@@ -792,30 +771,30 @@ export default function PitScoutingData() {
                           <div className="flex justify-between">
                             <span className="text-gray-300">Length:</span>
                             <span className="text-white font-medium">
-                              {selectedDetailItem.robot_dimensions && 
-                               selectedDetailItem.robot_dimensions.length !== undefined && 
-                               selectedDetailItem.robot_dimensions.length !== null 
-                                ? `${selectedDetailItem.robot_dimensions.length}"` 
+                              {selectedDetailItem.robot_dimensions &&
+                                selectedDetailItem.robot_dimensions.length !== undefined &&
+                                selectedDetailItem.robot_dimensions.length !== null
+                                ? `${selectedDetailItem.robot_dimensions.length}"`
                                 : 'N/A'}
                             </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-300">Width:</span>
                             <span className="text-white font-medium">
-                              {selectedDetailItem.robot_dimensions && 
-                               selectedDetailItem.robot_dimensions.width !== undefined && 
-                               selectedDetailItem.robot_dimensions.width !== null 
-                                ? `${selectedDetailItem.robot_dimensions.width}"` 
+                              {selectedDetailItem.robot_dimensions &&
+                                selectedDetailItem.robot_dimensions.width !== undefined &&
+                                selectedDetailItem.robot_dimensions.width !== null
+                                ? `${selectedDetailItem.robot_dimensions.width}"`
                                 : 'N/A'}
                             </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-300">Height:</span>
                             <span className="text-white font-medium">
-                              {selectedDetailItem.robot_dimensions && 
-                               selectedDetailItem.robot_dimensions.height !== undefined && 
-                               selectedDetailItem.robot_dimensions.height !== null 
-                                ? `${selectedDetailItem.robot_dimensions.height}"` 
+                              {selectedDetailItem.robot_dimensions &&
+                                selectedDetailItem.robot_dimensions.height !== undefined &&
+                                selectedDetailItem.robot_dimensions.height !== null
+                                ? `${selectedDetailItem.robot_dimensions.height}"`
                                 : 'N/A'}
                             </span>
                           </div>
@@ -827,9 +806,19 @@ export default function PitScoutingData() {
                             <span className="text-gray-300">Number of Cameras:</span>
                             <span className="text-white font-medium">{selectedDetailItem.camera_count !== undefined && selectedDetailItem.camera_count !== null ? selectedDetailItem.camera_count : 'N/A'}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-300">Number of Shooting Locations:</span>
-                            <span className="text-white font-medium">{selectedDetailItem.shooting_locations_count !== undefined && selectedDetailItem.shooting_locations_count !== null ? selectedDetailItem.shooting_locations_count : 'N/A'}</span>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-gray-300">Shooting/Passing Locations:</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {selectedDetailItem.shooting_locations && selectedDetailItem.shooting_locations.length > 0 ? (
+                                selectedDetailItem.shooting_locations.map((loc, index) => (
+                                  <Badge key={index} variant="secondary" className="bg-primary/20 text-blue-300 border-primary/30 text-[10px]">
+                                    {loc}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span className="text-gray-400 text-xs">None specified</span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>

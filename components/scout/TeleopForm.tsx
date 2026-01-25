@@ -21,8 +21,8 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   isDarkMode = true,
   initialData,
 }) => {
-  // Initialize fuel shifts - exactly 4 shifts as requested
-  const [fuelShifts, setFuelShifts] = useState<number[]>([0, 0, 0, 0]);
+  // Initialize fuel shifts - exactly 5 shifts as requested
+  const [fuelShifts, setFuelShifts] = useState<number[]>([0, 0, 0, 0, 0]);
 
   const [formData, setFormData] = useState({
     teleop_tower_level1: (initialData?.teleop_tower_level1 as boolean) || false,
@@ -35,12 +35,12 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
     if (initialData) {
       if (initialData.teleop_fuel_shifts && Array.isArray(initialData.teleop_fuel_shifts)) {
         const shifts = [...initialData.teleop_fuel_shifts];
-        // Ensure we have exactly 4 values
-        while (shifts.length < 4) shifts.push(0);
-        setFuelShifts(shifts.slice(0, 4));
+        // Ensure we have exactly 5 values
+        while (shifts.length < 5) shifts.push(0);
+        setFuelShifts(shifts.slice(0, 5));
       } else if (initialData.teleop_fuel_active_hub) {
         // Fallback if only total is provided
-        setFuelShifts([initialData.teleop_fuel_active_hub as number, 0, 0, 0]);
+        setFuelShifts([initialData.teleop_fuel_active_hub as number, 0, 0, 0, 0]);
       }
 
       setFormData({
@@ -109,7 +109,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
             Teleop Period
           </CardTitle>
           <CardDescription className="text-muted-foreground">
-            Scoring for fuel (exactly 4 shifts) and tower climb
+            Scoring for fuel (exactly 5 shifts) and tower climb
           </CardDescription>
         </CardHeader>
 
@@ -121,17 +121,17 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                 <Fuel className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
               </div>
               <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                FUEL Scoring (4 Shifts)
+                FUEL Scoring (5 Shifts)
               </h3>
             </div>
 
-            {/* 4 Fixed Shifts Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* 5 Fixed Shifts Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {fuelShifts.map((fuel, index) => (
                 <div key={`shift-${index}`} className="relative group">
                   <div className={`absolute -top-3 left-3 px-2 text-[10px] font-bold uppercase rounded-md z-10 ${isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'
                     }`}>
-                    Shift {index + 1}
+                    {index === 4 ? 'End Game' : `Shift ${index + 1}`}
                   </div>
                   <Counter
                     value={fuel}

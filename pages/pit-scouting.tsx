@@ -52,10 +52,9 @@ interface PitScoutingData {
   };
   weight?: number;
   cameraCount?: number;
-  shootingLocationsCount?: number;
+  shootingLocations: string[];
   programmingLanguage: string;
   notes: string;
-  overallRating: number;
 }
 
 export default function PitScouting() {
@@ -84,10 +83,9 @@ export default function PitScouting() {
     robotDimensions: { height: 0 },
     weight: 0,
     cameraCount: 0,
-    shootingLocationsCount: 0,
+    shootingLocations: [],
     programmingLanguage: '',
     notes: '',
-    overallRating: 1,
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -161,10 +159,9 @@ export default function PitScouting() {
               robotDimensions: existingData.robot_dimensions || { height: 0 },
               weight: existingData.weight || 0,
               cameraCount: existingData.camera_count || 0,
-              shootingLocationsCount: existingData.shooting_locations_count || 0,
+              shootingLocations: existingData.shooting_locations || [],
               programmingLanguage: existingData.programming_language || '',
               notes: existingData.notes || '',
-              overallRating: existingData.overall_rating || 1,
             });
           }
         } catch (err) {
@@ -307,6 +304,7 @@ export default function PitScouting() {
           navigation_locations: formData.navigationLocations,
           ball_hold_amount: formData.ballHoldAmount || 0,
           downtime_strategy: formData.downtimeStrategy,
+          shooting_locations: formData.shootingLocations,
         },
         autonomous_capabilities: formData.autonomousCapabilities,
         teleop_capabilities: formData.teleopCapabilities,
@@ -325,14 +323,13 @@ export default function PitScouting() {
         })(),
         weight: formData.weight,
         camera_count: formData.cameraCount || 0,
-        shooting_locations_count: formData.shootingLocationsCount || 0,
+        shooting_locations: formData.shootingLocations,
         programming_language: formData.programmingLanguage,
         robot_image_url: imageUrl,
         photos: imageUrl ? [imageUrl] : [],
         notes: formData.notes,
         strengths: [],
         weaknesses: [],
-        overall_rating: formData.overallRating || 0,
         submitted_by: user.id,
         submitted_by_email: user.email,
         submitted_by_name: user?.user_metadata?.full_name || user?.email,
@@ -398,10 +395,9 @@ export default function PitScouting() {
             robotDimensions: { height: 0 },
             weight: 0,
             cameraCount: 0,
-            shootingLocationsCount: 0,
+            shootingLocations: [],
             programmingLanguage: '',
             notes: '',
-            overallRating: 1,
           });
           setCurrentStep(1);
         }
@@ -677,23 +673,6 @@ export default function PitScouting() {
                           }}
                         />
                       </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium flex items-center gap-2">
-                          <Target size={14} /> Number of Shooting Locations
-                        </label>
-                        <Input
-                          type="number"
-                          min="0"
-                          placeholder="0"
-                          className="glass-input text-center h-9 border-white/10"
-                          value={formData.shootingLocationsCount || ''}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value) || 0;
-                            setFormData(prev => ({ ...prev, shootingLocationsCount: val >= 0 ? val : 0 }));
-                          }}
-                        />
-                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -786,6 +765,44 @@ export default function PitScouting() {
                           </div>
                         ))}
                       </div>
+                    </div>
+
+                    {/* Shooting/Passing Locations Checklist - Added here as requested */}
+                    <div className="col-span-full space-y-4 pt-4 border-t border-white/5">
+                      <h3 className="font-heading font-semibold text-lg flex items-center gap-2">
+                        <Target size={20} className="text-primary" /> Shooting/Passing Locations
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {['Bump fire', 'Alliance wall', 'Half field', 'Full field'].map((loc) => (
+                          <div
+                            key={loc}
+                            onClick={() => {
+                              const active = formData.shootingLocations.includes(loc);
+                              setFormData(prev => ({
+                                ...prev,
+                                shootingLocations: active
+                                  ? prev.shootingLocations.filter(l => l !== loc)
+                                  : [...prev.shootingLocations, loc]
+                              }));
+                            }}
+                            className={cn(
+                              "p-4 rounded-xl border cursor-pointer flex items-center gap-3 transition-all",
+                              formData.shootingLocations.includes(loc)
+                                ? "bg-primary/20 border-primary/50 text-white shadow-[0_0_15px_rgba(var(--primary),0.1)]"
+                                : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                            )}
+                          >
+                            <div className={cn("w-5 h-5 rounded border flex items-center justify-center transition-colors",
+                              formData.shootingLocations.includes(loc) ? "bg-primary border-primary" : "border-muted-foreground/50")}>
+                              {formData.shootingLocations.includes(loc) && <CheckCircle size={14} className="text-white" />}
+                            </div>
+                            <span className="font-medium">{loc}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-sm text-muted-foreground italic">
+                        Identify locations the robot can effectively shoot or pass from based on their strategy.
+                      </p>
                     </div>
                   </div>
                 </motion.div>
@@ -978,34 +995,7 @@ export default function PitScouting() {
                       </div>
                     </div>
 
-                    <div className="glass bg-white/5 p-6 rounded-xl border border-white/10 flex flex-col items-center justify-center text-center space-y-6">
-                      <div>
-                        <h3 className="text-lg font-bold mb-1">Overall Rating</h3>
-                        <p className="text-xs text-muted-foreground">How competitive is this team?</p>
-                      </div>
-
-                      <div className="relative">
-                        <div className="text-6xl font-heading font-bold text-primary">{formData.overallRating}</div>
-                        <div className="text-xs text-muted-foreground uppercase tracking-widest mt-2">{formData.overallRating >= 8 ? 'Excellent' : formData.overallRating >= 5 ? 'Average' : 'Below Avg'}</div>
-                      </div>
-
-                      <div className="w-full px-4">
-                        <input
-                          type="range"
-                          min="1"
-                          max="10"
-                          step="1"
-                          value={formData.overallRating}
-                          onChange={(e) => setFormData(prev => ({ ...prev, overallRating: parseInt(e.target.value) }))}
-                          className="w-full accent-primary h-2 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                        />
-                        <div className="flex justify-between text-[10px] text-muted-foreground mt-2 px-1">
-                          <span>1</span>
-                          <span>5</span>
-                          <span>10</span>
-                        </div>
-                      </div>
-                    </div>
+                    {/* The overall rating card was removed as requested */}
                   </div>
                 </motion.div>
               )}

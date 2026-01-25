@@ -184,17 +184,6 @@ export const pitScoutingRules = {
       return null;
     }
   },
-  overallRating: {
-    required: true,
-    min: 1,
-    max: 10,
-    custom: (value: number) => {
-      if (value === undefined || value === null || value < 1 || value > 10) {
-        return 'Overall rating must be between 1 and 10';
-      }
-      return null;
-    }
-  },
   programmingLanguage: {
     maxLength: 50,
     custom: (value: string) => {
@@ -257,13 +246,13 @@ export function validatePitScoutingStep(step: number, formData: any): Validation
           }
         }
       });
-    
+
     case 2:
       return validateForm(formData, {
         autonomousCapabilities: pitScoutingRules.autonomousCapabilities,
         teleopCapabilities: pitScoutingRules.teleopCapabilities
       });
-    
+
     case 3:
       return validateForm(formData, {
         canClimb: pitScoutingRules.canClimb,
@@ -278,22 +267,11 @@ export function validatePitScoutingStep(step: number, formData: any): Validation
         navigationLocations: pitScoutingRules.navigationLocations,
         ballHoldAmount: pitScoutingRules.ballHoldAmount,
         downtimeStrategy: pitScoutingRules.downtimeStrategy,
-        overallRating: {
-          required: true,
-          min: 1,
-          max: 10,
-          custom: (value: number) => {
-            if (value === undefined || value === null || value < 1 || value > 10) {
-              return 'Overall rating must be between 1 and 10';
-            }
-            return null;
-          }
-        }
       });
-    
+
     case 4:
       return { isValid: true, errors: {} };
-    
+
     default:
       return { isValid: true, errors: {} };
   }
@@ -327,7 +305,6 @@ export function validatePitScoutingForm(formData: any): ValidationResult {
     navigationLocations: pitScoutingRules.navigationLocations,
     ballHoldAmount: pitScoutingRules.ballHoldAmount,
     downtimeStrategy: pitScoutingRules.downtimeStrategy,
-    overallRating: pitScoutingRules.overallRating,
     programmingLanguage: pitScoutingRules.programmingLanguage,
     notes: pitScoutingRules.notes,
     robotDimensions: pitScoutingRules.robotDimensions,
@@ -340,8 +317,8 @@ export function getStepErrorMessage(step: number, errors: ValidationErrors): str
   const errorMessages = {
     1: 'Please select a team, enter robot name, and choose drive type.',
     2: 'Please select at least one autonomous capability and one teleop capability.',
-    3: 'Please select at least one endgame capability and provide an overall rating.',
+    3: 'Please select climb capabilities and provide strategy details.',
   };
-  
+
   return errorMessages[step as keyof typeof errorMessages] || 'Please complete all required fields before proceeding.';
 }

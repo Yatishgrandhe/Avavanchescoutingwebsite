@@ -28,6 +28,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [uploadSuccess, setUploadSuccess] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isNewFileSelected, setIsNewFileSelected] = useState(false); // Track if a new file was selected
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileSelect = useCallback((file: File) => {
@@ -48,7 +49,9 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
         setUploadError(null);
         setUploadSuccess(false);
         setSelectedFile(file);
+        setIsNewFileSelected(true); // Mark that a new file was selected
         console.log('selectedFile state updated to:', file.name);
+        console.log('isNewFileSelected set to true');
 
         // Create preview
         const reader = new FileReader();
@@ -136,6 +139,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
 
             console.log('Upload successful! Image URL:', data.directViewUrl);
             setUploadSuccess(true);
+            setIsNewFileSelected(false); // Clear flag after successful upload
             onImageUploaded(data.directViewUrl);
 
             // Clear success message after 3 seconds
@@ -157,8 +161,11 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
     useImperativeHandle(ref, () => ({
         uploadImage: handleUpload,
         hasFile: () => {
-            const hasFile = selectedFile !== null;
-            console.log('hasFile() called, selectedFile:', selectedFile, 'result:', hasFile);
+            const hasFile = selectedFile !== null || isNewFileSelected;
+            console.log('hasFile() called');
+            console.log('  selectedFile:', selectedFile);
+            console.log('  isNewFileSelected:', isNewFileSelected);
+            console.log('  result:', hasFile);
             return hasFile;
         },
     }));
@@ -166,6 +173,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
     const handleRemove = () => {
         setPreview(null);
         setSelectedFile(null);
+        setIsNewFileSelected(false);
         setUploadSuccess(false);
         setUploadError(null);
         onImageUploaded(null);

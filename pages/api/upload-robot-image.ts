@@ -94,72 +94,59 @@ async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeT
     return publicUrl;
 }
 
-// Upload to Google Drive (Standard Multipart Method - Better for Service Accounts)
+// Upload to Google Drive (v2 Multipart Method - Best for bypassing Service Account quota issues)
 async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType: string): Promise<string> {
     if (!GOOGLE_SERVICE_ACCOUNT_KEY_RAW || !GOOGLE_DRIVE_FOLDER_ID) {
-        console.error('[API/upload-robot-image] Google Drive configuration missing');
-        throw new Error('Google Drive configuration is missing in environment variables.');
+        throw new Error('Google Drive configuration missing');
     }
 
     try {
         let folderId = GOOGLE_DRIVE_FOLDER_ID;
-        if (folderId && folderId.includes('drive.google.com')) {
+        if (folderId.includes('drive.google.com')) {
             const match = folderId.match(/\/folders\/([a-zA-Z0-9_-]+)/) || folderId.match(/id=([a-zA-Z0-9_-]+)/);
-            if (match && match[1]) {
-                folderId = match[1];
-            }
+            if (match && match[1]) folderId = match[1];
         }
 
-        console.log(`[API/upload-robot-image] Initializing Standard Google Drive upload to folder: ${folderId}`);
-
-        // 1. Setup Auth
-        let credentials;
-        try {
-            credentials = JSON.parse(GOOGLE_SERVICE_ACCOUNT_KEY_RAW);
-        } catch (e) {
-            throw new Error('Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY.');
-        }
-
+        const credentials = JSON.parse(GOOGLE_SERVICE_ACCOUNT_KEY_RAW);
         const auth = new google.auth.JWT({
             email: credentials.client_email,
             key: credentials.private_key,
             scopes: ['https://www.googleapis.com/auth/drive']
         });
 
-        const drive = google.drive({ version: 'v3', auth });
+        // Use v2 instead of v3
+        const drive = google.drive({ version: 'v2', auth });
 
-        // 2. Upload using the internal library (handles multipart automatically)
-        console.log(`[API/upload-robot-image] Uploading file: ${fileName}...`);
-        const response = await drive.files.create({
+        console.log(`[API/upload-robot-image] v2 Multipart Upload for: ${fileName}`);
+
+        const response = await drive.files.insert({
             requestBody: {
-                name: fileName,
-                parents: [folderId!],
+                title: fileName, // v2 uses 'title' instead of 'name'
+                parents: [{ id: folderId }], // v2 uses an array of objects
+                mimeType: mimeType
             },
             media: {
                 mimeType: mimeType,
-                body: fs.createReadStream(filePath),
+                body: fs.createReadStream(filePath)
             },
-            fields: 'id',
+            fields: 'id'
         });
 
         const fileId = response.data.id;
-        if (!fileId) throw new Error('No file ID returned from Google Drive');
+        if (!fileId) throw new Error('No file ID returned');
 
-        console.log(`[API/upload-robot-image] Google Drive upload successful. File ID: ${fileId}`);
-
-        // 3. Set permissions to public
+        // Permissions stay the same (v3 is fine here)
+        const driveV3 = google.drive({ version: 'v3', auth });
         try {
-            await drive.permissions.create({
+            await driveV3.permissions.create({
                 fileId: fileId,
                 requestBody: { role: 'reader', type: 'anyone' },
             });
-        } catch (permError) {
-            console.warn('[API/upload-robot-image] Could not set public permissions:', permError);
-        }
+        } catch (e) { console.warn('Permission error:', e); }
 
         return `https://drive.google.com/uc?export=view&id=${fileId}`;
-    } catch (error) {
-        console.error('[API/upload-robot-image] Google Drive upload error:', error);
+    } catch (error: any) {
+        console.error('[API/upload-robot-image] Google v2 error:', error.message);
         throw error;
     }
 }

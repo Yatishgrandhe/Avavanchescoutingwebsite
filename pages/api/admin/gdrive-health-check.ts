@@ -111,17 +111,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(200).json(results);
         }
 
-        // Step 5: Test Write via Standard Multipart flow
+        // Step 5: Test Write via v2 Multipart flow (Best for service account quota issues)
         let testFileId;
         try {
-            const fileName = `health-check-std-${Date.now()}.txt`;
+            const fileName = `health-check-v2-${Date.now()}.txt`;
             const mimeType = 'text/plain';
-            const fileContent = 'Google Drive Health Check - Standard Write Test';
+            const fileContent = 'Google Drive Health Check - v2 Multipart Test';
 
-            const response = await drive.files.create({
+            const driveV2 = google.drive({ version: 'v2', auth });
+            const response = await driveV2.files.insert({
                 requestBody: {
-                    name: fileName,
-                    parents: [GOOGLE_DRIVE_FOLDER_ID]
+                    title: fileName,
+                    parents: [{ id: GOOGLE_DRIVE_FOLDER_ID }],
+                    mimeType: mimeType
                 },
                 media: {
                     mimeType: mimeType,
@@ -134,15 +136,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (!testFileId) throw new Error('No file ID returned');
 
             results.steps.push({
-                name: 'Standard Write Test',
+                name: 'v2 Multipart Write Test',
                 status: 'success',
-                message: `Successfully created test file using Standard Flow (ID: ${testFileId})`
+                message: `Successfully created test file using v2 API (ID: ${testFileId})`
             });
         } catch (e: any) {
             results.steps.push({
-                name: 'Standard Write Test',
+                name: 'v2 Multipart Write Test',
                 status: 'error',
-                message: `Standard upload failed: ${e.message}. Note: Service Accounts on personal drives often fail resumable uploads due to quota limits; standard multipart is preferred.`
+                message: `v2 upload failed: ${e.message}. If this still fails with quota error, the only solution is to use a Shared Drive or OAuth Delegation.`
             });
             results.overall = 'error';
             return res.status(200).json(results);

@@ -102,7 +102,15 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
     }
 
     try {
-        console.log(`[API/upload-robot-image] Initializing Google Drive upload to folder: ${GOOGLE_DRIVE_FOLDER_ID}`);
+        let folderId = GOOGLE_DRIVE_FOLDER_ID;
+        if (folderId && folderId.includes('drive.google.com')) {
+            const match = folderId.match(/\/folders\/([a-zA-Z0-9_-]+)/) || folderId.match(/id=([a-zA-Z0-9_-]+)/);
+            if (match && match[1]) {
+                folderId = match[1];
+            }
+        }
+
+        console.log(`[API/upload-robot-image] Initializing Google Drive upload to folder: ${folderId}`);
 
         // Parse credentials
         let credentials;
@@ -115,7 +123,7 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
         const auth = new google.auth.JWT({
             email: credentials.client_email,
             key: credentials.private_key,
-            scopes: ['https://www.googleapis.com/auth/drive.file']
+            scopes: ['https://www.googleapis.com/auth/drive']
         });
 
         const drive = google.drive({ version: 'v3', auth });
@@ -123,7 +131,7 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
         // Create the file in Google Drive
         const fileMetadata = {
             name: fileName,
-            parents: [GOOGLE_DRIVE_FOLDER_ID],
+            parents: [folderId!],
         };
 
         const media = {

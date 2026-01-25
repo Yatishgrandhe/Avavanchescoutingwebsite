@@ -7,7 +7,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Basic authorization check could be added here if needed
 
     const GOOGLE_SERVICE_ACCOUNT_KEY = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-    const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
+    let GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
+
+    // Helper to extract ID from URL if necessary
+    if (GOOGLE_DRIVE_FOLDER_ID && GOOGLE_DRIVE_FOLDER_ID.includes('drive.google.com')) {
+        const match = GOOGLE_DRIVE_FOLDER_ID.match(/\/folders\/([a-zA-Z0-9_-]+)/) || GOOGLE_DRIVE_FOLDER_ID.match(/id=([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+            GOOGLE_DRIVE_FOLDER_ID = match[1];
+        }
+    }
 
     const results: any = {
         envVars: {
@@ -60,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             auth = new google.auth.JWT({
                 email: credentials.client_email,
                 key: credentials.private_key,
-                scopes: ['https://www.googleapis.com/auth/drive.file']
+                scopes: ['https://www.googleapis.com/auth/drive']
             });
             await auth.authorize();
             results.steps.push({

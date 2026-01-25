@@ -41,7 +41,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
 
     const handleFileSelect = useCallback((file: File) => {
         console.log('File selected:', file.name, file.size, file.type);
-        
+
         // Validate file type
         if (!file.type.startsWith('image/')) {
             setUploadError('Please select an image file (JPEG, PNG, WebP, etc.)');
@@ -158,6 +158,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             const publicUrl = urlData.publicUrl;
             console.log('Upload successful! Image URL:', publicUrl);
 
+            setIsUploading(false);
             setUploadSuccess(true);
             setIsNewFileSelected(false);
             setSelectedFile(null);
@@ -168,7 +169,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             return publicUrl;
         } catch (directUploadError) {
             console.warn('Direct upload failed, falling back to API route:', directUploadError);
-            
+
             // Method 2: Fallback to API route (server-side upload)
             try {
                 const formData = new FormData();
@@ -203,6 +204,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
                 }
 
                 console.log('API route upload successful! Image URL:', data.directViewUrl);
+                setIsUploading(false);
                 setUploadSuccess(true);
                 setIsNewFileSelected(false);
                 setSelectedFile(null);
@@ -234,7 +236,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             // Upload if we have a selected file and either the flag is set OR there's no existing URL
             // Also check for data URL preview as a fallback indicator
             const shouldUpload = hasSelectedFile && (isNewFileSelected || !currentImageUrl || hasDataUrlPreview);
-            
+
             console.log('hasFile() called:', {
                 selectedFile: selectedFile?.name || null,
                 fileSize: selectedFile?.size || null,

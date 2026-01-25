@@ -39,6 +39,7 @@ interface PitScoutingData {
   id: string;
   team_number: number;
   robot_name: string;
+  robot_image_url?: string | null;
   drive_type: string;
   drive_train_details: {
     type: string;
@@ -247,6 +248,7 @@ export default function PitScoutingData() {
         id: item.id,
         team_number: item.team_number,
         robot_name: item.robot_name || 'Unknown Robot',
+        robot_image_url: item.robot_image_url || null,
         drive_type: item.drive_type || 'Unknown',
         drive_train_details: item.drive_train_details || {
           type: item.drive_type || 'Unknown',

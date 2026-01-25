@@ -58,12 +58,19 @@ async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeT
         .getPublicUrl(data.path);
 
     if (!urlData || !urlData.publicUrl) {
+        console.error('Failed to get public URL. urlData:', urlData);
         throw new Error('Failed to get public URL from Supabase Storage');
     }
 
-    console.log(`Public URL: ${urlData.publicUrl}`);
+    const publicUrl = urlData.publicUrl;
+    console.log(`Public URL generated: ${publicUrl}`);
+    
+    // Verify the URL is valid
+    if (!publicUrl || typeof publicUrl !== 'string' || !publicUrl.startsWith('http')) {
+        throw new Error(`Invalid public URL format: ${publicUrl}`);
+    }
 
-    return urlData.publicUrl;
+    return publicUrl;
 }
 
 // Parse multipart form data

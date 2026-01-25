@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useRef, useCallback, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Upload, X, Loader2, CheckCircle, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { Button } from './Button';
@@ -30,6 +30,13 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isNewFileSelected, setIsNewFileSelected] = useState(false); // Track if a new file was selected
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Sync preview with currentImageUrl when it changes (for edit mode)
+    useEffect(() => {
+        if (currentImageUrl && !isNewFileSelected) {
+            setPreview(currentImageUrl);
+        }
+    }, [currentImageUrl, isNewFileSelected]);
 
     const handleFileSelect = useCallback((file: File) => {
         console.log('File selected:', file.name, file.size, file.type);
@@ -91,10 +98,11 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
     const handleUpload = async (): Promise<string | null> => {
         if (!selectedFile) {
             console.warn('No file selected for upload');
+            setUploadError('No file selected for upload');
             return null;
         }
 
-        if (!teamNumber) {
+        if (!teamNumber || teamNumber === 0) {
             const errorMsg = 'Please select a team number first';
             setUploadError(errorMsg);
             console.error(errorMsg);
@@ -104,6 +112,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
         console.log(`Starting upload for team ${teamNumber}, file: ${selectedFile.name}, size: ${selectedFile.size} bytes`);
         setIsUploading(true);
         setUploadError(null);
+        setUploadSuccess(false);
 
         try {
             const formData = new FormData();
@@ -140,6 +149,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             console.log('Upload successful! Image URL:', data.directViewUrl);
             setUploadSuccess(true);
             setIsNewFileSelected(false); // Clear flag after successful upload
+            setSelectedFile(null); // Clear selected file after successful upload
             onImageUploaded(data.directViewUrl);
 
             // Clear success message after 3 seconds
@@ -150,10 +160,10 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             console.error('Upload error:', error);
             const errorMessage = error instanceof Error ? error.message : 'Failed to upload image';
             setUploadError(errorMessage);
-            onImageUploaded(null);
-            throw error; // Re-throw so form submission can catch it
-        } finally {
             setIsUploading(false);
+            // Don't clear selectedFile on error - allow retry
+            // Don't call onImageUploaded(null) here - keep existing URL if any
+            throw error; // Re-throw so form submission can catch it
         }
     };
 
@@ -161,14 +171,17 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
     useImperativeHandle(ref, () => ({
         uploadImage: handleUpload,
         hasFile: () => {
-            const hasFile = selectedFile !== null || isNewFileSelected;
-            console.log('hasFile() called');
-            console.log('  selectedFile:', selectedFile);
-            console.log('  isNewFileSelected:', isNewFileSelected);
-            console.log('  result:', hasFile);
+            // Return true if there's a file selected that hasn't been uploaded yet
+            // This ensures we only upload when a new file is selected
+            const hasFile = selectedFile !== null && isNewFileSelected;
+            console.log('hasFile() called:', {
+                selectedFile: selectedFile?.name || null,
+                isNewFileSelected,
+                result: hasFile
+            });
             return hasFile;
         },
-    }));
+    }), [selectedFile, isNewFileSelected]);
 
     const handleRemove = () => {
         setPreview(null);

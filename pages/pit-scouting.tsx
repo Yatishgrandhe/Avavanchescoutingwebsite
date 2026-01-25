@@ -210,26 +210,6 @@ export default function PitScouting() {
   };
 
   const handleSubmit = async () => {
-    // Add alert for debugging - remove after confirming it works
-    const debugInfo = {
-      teamNumber: formData.teamNumber,
-      hasFile: robotImageUploadRef.current?.hasFile(),
-      robotImageUrl: formData.robotImageUrl,
-      timestamp: new Date().toISOString()
-    };
-    
-    console.log('=== FORM SUBMISSION STARTED ===');
-    console.log('Form data:', formData);
-    console.log('Team number:', formData.teamNumber);
-    console.log('Form submission triggered at:', new Date().toISOString());
-    console.log('Debug info:', debugInfo);
-    
-    // Use console.error so it's more visible
-    console.error('FORM SUBMIT DEBUG:', debugInfo);
-    
-    // Visual indicator with more info
-    alert(`Form submission started!\nTeam: ${formData.teamNumber}\nHas File: ${robotImageUploadRef.current?.hasFile()}\nCheck console for logs.`);
-    
     try {
       setSubmitting(true);
       setSubmitError(null);
@@ -240,38 +220,36 @@ export default function PitScouting() {
 
       // Upload image if a file is selected (always upload new files)
       let imageUrl = formData.robotImageUrl;
-      console.log('=== FORM SUBMISSION STARTED ===');
-      console.log('Current robotImageUrl:', imageUrl);
-      console.log('robotImageUploadRef.current:', robotImageUploadRef.current);
       
       // Always try to upload if ref exists and has a file
       if (robotImageUploadRef.current) {
         const hasFile = robotImageUploadRef.current.hasFile();
-        console.log('hasFile() result:', hasFile);
+        console.log('Form submission - Image upload check:', { hasFile, currentImageUrl: imageUrl });
         
         if (hasFile) {
-          console.log('File detected, attempting upload...');
+          console.log('Uploading image before form submission...');
           try {
             const uploadedUrl = await robotImageUploadRef.current.uploadImage();
-            console.log('Upload function returned:', uploadedUrl);
-            if (uploadedUrl) {
+            console.log('Image upload completed:', uploadedUrl);
+            
+            if (uploadedUrl && typeof uploadedUrl === 'string' && uploadedUrl.startsWith('http')) {
               imageUrl = uploadedUrl;
               setFormData(prev => ({ ...prev, robotImageUrl: uploadedUrl }));
-              console.log('Image uploaded successfully, new URL:', uploadedUrl);
+              console.log('Image URL set for database save:', imageUrl);
             } else {
-              console.warn('Image upload returned null URL - upload may have failed silently');
+              console.error('Invalid upload URL received:', uploadedUrl);
+              throw new Error(`Invalid image URL received: ${uploadedUrl}`);
             }
           } catch (error) {
             console.error('Error uploading image during form submission:', error);
             const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-            console.error('Full error details:', error);
             throw new Error(`Failed to upload image: ${errorMsg}`);
           }
         } else {
-          console.log('No file selected, using existing imageUrl:', imageUrl);
+          console.log('No new file to upload, using existing imageUrl:', imageUrl);
         }
       } else {
-        console.warn('robotImageUploadRef.current is null - ref may not be connected');
+        console.warn('robotImageUploadRef.current is null');
       }
 
       const validation = validatePitScoutingForm(formData);
@@ -326,23 +304,36 @@ export default function PitScouting() {
         submitted_at: new Date().toISOString(),
       };
 
+      console.log('Saving to database with imageUrl:', imageUrl);
+      console.log('Submission data robot_image_url:', submissionData.robot_image_url);
+
       let error;
 
       if (isEditMode && editingId) {
         const { submitted_by, submitted_by_email, submitted_by_name, submitted_at, ...updateFields } = submissionData;
+        console.log('Updating existing record:', editingId);
         const result = await supabase
           .from('pit_scouting_data')
           .update(updateFields)
           .eq('id', editingId);
         error = result.error;
+        if (result.data) console.log('Update result:', result.data);
       } else {
+        console.log('Inserting new record');
         const result = await supabase
           .from('pit_scouting_data')
-          .insert([submissionData]);
+          .insert([submissionData])
+          .select();
         error = result.error;
+        if (result.data) console.log('Insert result:', result.data);
       }
 
-      if (error) throw new Error(`Failed to save pit scouting data: ${error.message}`);
+      if (error) {
+        console.error('Database save error:', error);
+        throw new Error(`Failed to save pit scouting data: ${error.message}`);
+      }
+      
+      console.log('Database save successful!');
 
       setSubmitSuccess(true);
 
@@ -378,15 +369,10 @@ export default function PitScouting() {
       }, 2000);
 
     } catch (error) {
-      console.error('=== SUBMISSION ERROR ===');
-      console.error('Error:', error);
-      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
+      console.error('Form submission error:', error);
       setSubmitError(error instanceof Error ? error.message : 'An unknown error occurred.');
-      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
     } finally {
       setSubmitting(false);
-      console.log('=== FORM SUBMISSION COMPLETED ===');
     }
   };
 
@@ -1003,9 +989,6 @@ export default function PitScouting() {
             ) : (
               <Button
                 onClick={(e) => {
-                  console.log('BUTTON CLICKED!', new Date().toISOString());
-                  console.log('Event:', e);
-                  console.log('submitting state:', submitting);
                   e.preventDefault();
                   e.stopPropagation();
                   handleSubmit();

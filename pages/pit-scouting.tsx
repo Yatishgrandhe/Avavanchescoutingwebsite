@@ -232,10 +232,11 @@ export default function PitScouting() {
 
         // Try to upload if hasFile returns true
         if (hasFile) {
-          console.log('Uploading image before form submission...');
+          console.log('[PitScouting] Uploading image before form submission...');
+          console.log('[PitScouting] Calling uploadImage() method...');
           try {
             const uploadedUrl = await robotImageUploadRef.current.uploadImage();
-            console.log('Image upload completed:', uploadedUrl);
+            console.log('[PitScouting] Image upload completed:', uploadedUrl);
 
             if (uploadedUrl && typeof uploadedUrl === 'string' && uploadedUrl.startsWith('http')) {
               imageUrl = uploadedUrl;
@@ -256,7 +257,8 @@ export default function PitScouting() {
             throw new Error(`Failed to upload image: ${errorMsg}`);
           }
         } else {
-          console.log('No new file to upload, using existing imageUrl:', imageUrl);
+          console.log('[PitScouting] No new file to upload, using existing imageUrl:', imageUrl);
+          console.log('[PitScouting] hasFile() returned false - upload skipped');
         }
       } else {
         console.warn('robotImageUploadRef.current is null - cannot upload image');

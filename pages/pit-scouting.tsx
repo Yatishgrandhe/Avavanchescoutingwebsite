@@ -24,6 +24,7 @@ import { supabase } from '@/lib/supabase';
 import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, ValidationResult } from '@/lib/form-validation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import RobotImageUpload from '@/components/ui/RobotImageUpload';
 
 interface Team {
   team_number: number;
@@ -34,6 +35,7 @@ interface Team {
 interface PitScoutingData {
   teamNumber: number;
   robotName: string;
+  robotImageUrl: string | null;
   driveType: string;
   driveTrainOther?: string;
   autonomousCapabilities: string[];
@@ -69,6 +71,7 @@ export default function PitScouting() {
   const [formData, setFormData] = useState<PitScoutingData>({
     teamNumber: 0,
     robotName: '',
+    robotImageUrl: null,
     driveType: '',
     driveTrainOther: '',
     autonomousCapabilities: [],
@@ -144,6 +147,7 @@ export default function PitScouting() {
             setFormData({
               teamNumber: existingData.team_number,
               robotName: existingData.robot_name || '',
+              robotImageUrl: existingData.robot_image_url || null,
               driveType: existingData.drive_type || '',
               driveTrainOther: existingData.drive_type === 'Other' ? existingData.drive_type : '',
               autonomousCapabilities: existingData.autonomous_capabilities || [],
@@ -254,6 +258,7 @@ export default function PitScouting() {
         camera_count: formData.cameraCount || 0,
         shooting_locations_count: formData.shootingLocationsCount || 0,
         programming_language: formData.programmingLanguage,
+        robot_image_url: formData.robotImageUrl,
         notes: formData.notes,
         strengths: [],
         weaknesses: [],
@@ -291,6 +296,7 @@ export default function PitScouting() {
           setFormData({
             teamNumber: 0,
             robotName: '',
+            robotImageUrl: null,
             driveType: '',
             driveTrainOther: '',
             autonomousCapabilities: [],
@@ -464,6 +470,13 @@ export default function PitScouting() {
                           className="glass-input border-white/10 placeholder:text-muted-foreground/30"
                         />
                       </div>
+
+                      {/* Robot Image Upload */}
+                      <RobotImageUpload
+                        teamNumber={formData.teamNumber}
+                        currentImageUrl={formData.robotImageUrl}
+                        onImageUploaded={(url) => setFormData(prev => ({ ...prev, robotImageUrl: url }))}
+                      />
 
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Programming Language</label>
@@ -715,8 +728,8 @@ export default function PitScouting() {
                           {['Yes', 'No'].map((opt) => (
                             <div
                               key={opt}
-                              onClick={() => setFormData(prev => ({ 
-                                ...prev, 
+                              onClick={() => setFormData(prev => ({
+                                ...prev,
                                 canClimb: opt === 'Yes',
                                 climbLevels: opt === 'No' ? [] : prev.climbLevels
                               }))}
@@ -787,25 +800,25 @@ export default function PitScouting() {
                                       : location === 'Trench' && prev.navigationLocations.includes('Bump')
                                         ? ['Trench', 'Bump']
                                         : location === 'Bump' && prev.navigationLocations.includes('Trench')
-                                        ? ['Trench', 'Bump']
-                                        : [...prev.navigationLocations, location]
+                                          ? ['Trench', 'Bump']
+                                          : [...prev.navigationLocations, location]
                                   }));
                                 }
                               }}
                               className={cn(
                                 "p-3 rounded-lg border cursor-pointer flex items-center gap-3 transition-all",
                                 (location === 'Both' && formData.navigationLocations.includes('Trench') && formData.navigationLocations.includes('Bump')) ||
-                                (location !== 'Both' && formData.navigationLocations.includes(location))
+                                  (location !== 'Both' && formData.navigationLocations.includes(location))
                                   ? "bg-green-500/10 border-green-500/40 text-green-100"
                                   : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
                               )}
                             >
                               <div className={cn("w-4 h-4 rounded border flex items-center justify-center transition-colors",
-                              ((location === 'Both' && formData.navigationLocations.includes('Trench') && formData.navigationLocations.includes('Bump')) ||
-                               (location !== 'Both' && formData.navigationLocations.includes(location)))
-                                ? "bg-green-500 border-green-500" : "border-muted-foreground/50")}>
+                                ((location === 'Both' && formData.navigationLocations.includes('Trench') && formData.navigationLocations.includes('Bump')) ||
+                                  (location !== 'Both' && formData.navigationLocations.includes(location)))
+                                  ? "bg-green-500 border-green-500" : "border-muted-foreground/50")}>
                                 {((location === 'Both' && formData.navigationLocations.includes('Trench') && formData.navigationLocations.includes('Bump')) ||
-                                  (location !== 'Both' && formData.navigationLocations.includes(location))) && 
+                                  (location !== 'Both' && formData.navigationLocations.includes(location))) &&
                                   <CheckCircle size={12} className="text-white" />}
                               </div>
                               <span className="text-sm font-medium">{location}</span>

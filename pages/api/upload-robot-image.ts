@@ -74,6 +74,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
+        // Check if service account credentials are configured
+        if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+            return res.status(500).json({
+                error: 'Google Drive service account credentials are not configured. Please set GOOGLE_SERVICE_ACCOUNT_KEY environment variable.'
+            });
+        }
+
         // Parse the uploaded file
         const { fields, files } = await parseForm(req);
 
@@ -89,7 +96,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // Get Google Drive client
-        const drive = await getDriveClient();
+        let drive;
+        try {
+            drive = await getDriveClient();
+        } catch (authError) {
+            console.error('Failed to initialize Google Drive client:', authError);
+            return res.status(500).json({
+                error: 'Failed to initialize Google Drive client',
+                details: authError instanceof Error ? authError.message : 'Unknown authentication error'
+            });
+        }
 
         // Create filename: team_XXXX_robot_TIMESTAMP.ext
         const timestamp = Date.now();

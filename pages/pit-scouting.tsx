@@ -210,9 +210,14 @@ export default function PitScouting() {
   };
 
   const handleSubmit = async () => {
+    // Add alert for debugging - remove after confirming it works
     console.log('=== FORM SUBMISSION STARTED ===');
     console.log('Form data:', formData);
     console.log('Team number:', formData.teamNumber);
+    console.log('Form submission triggered at:', new Date().toISOString());
+    
+    // Visual indicator
+    alert('Form submission started! Check console for logs.');
     
     setSubmitting(true);
     setSubmitError(null);

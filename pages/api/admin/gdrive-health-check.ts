@@ -94,10 +94,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 fileId: GOOGLE_DRIVE_FOLDER_ID,
                 fields: 'id, name, capabilities'
             });
+            const canWrite = folder.data.capabilities?.canAddChildren || false;
             results.steps.push({
                 name: 'Folder Access',
-                status: 'success',
-                message: `Found folder: "${folder.data.name}" (${folder.data.id}).`
+                status: canWrite ? 'success' : 'warning',
+                message: `Found folder: "${folder.data.name}". Write access: ${canWrite ? 'YES' : 'NO (Check folder sharing)'}`
             });
         } catch (e: any) {
             results.steps.push({
@@ -143,6 +144,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const uploadResponse = await fetch(location, {
                 method: 'PUT',
                 headers: {
+                    'Authorization': `Bearer ${accessToken}`,
                     'Content-Length': Buffer.byteLength(fileContent).toString(),
                     'Content-Type': mimeType
                 },

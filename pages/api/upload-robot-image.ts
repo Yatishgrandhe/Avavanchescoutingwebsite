@@ -170,6 +170,7 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
         const uploadResponse = await fetch(location, {
             method: 'PUT',
             headers: {
+                'Authorization': `Bearer ${accessToken}`,
                 'Content-Length': fileBuffer.length.toString(),
                 'Content-Type': mimeType
             },

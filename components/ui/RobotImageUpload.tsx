@@ -95,9 +95,11 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
         }
     }, [handleFileSelect]);
 
-    const handleUpload = async (): Promise<string | null> => {
+    const handleUpload = useCallback(async (): Promise<string | null> => {
+        // Double-check that we have a file - this prevents stale closure issues
         if (!selectedFile) {
-            console.warn('No file selected for upload');
+            console.error('handleUpload called but selectedFile is null!');
+            console.error('Current state:', { selectedFile, isNewFileSelected });
             setUploadError('No file selected for upload');
             return null;
         }
@@ -165,7 +167,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             // Don't call onImageUploaded(null) here - keep existing URL if any
             throw error; // Re-throw so form submission can catch it
         }
-    };
+    }, [selectedFile, teamNumber, onImageUploaded]);
 
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
@@ -181,7 +183,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             });
             return hasFile;
         },
-    }), [selectedFile, isNewFileSelected]);
+    }), [handleUpload, selectedFile, isNewFileSelected]);
 
     const handleRemove = () => {
         setPreview(null);

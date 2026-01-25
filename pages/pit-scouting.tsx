@@ -224,8 +224,13 @@ export default function PitScouting() {
       // Always try to upload if ref exists and has a file
       if (robotImageUploadRef.current) {
         const hasFile = robotImageUploadRef.current.hasFile();
-        console.log('Form submission - Image upload check:', { hasFile, currentImageUrl: imageUrl });
+        console.log('Form submission - Image upload check:', { 
+          hasFile, 
+          currentImageUrl: imageUrl,
+          formDataRobotImageUrl: formData.robotImageUrl
+        });
         
+        // Try to upload if hasFile returns true
         if (hasFile) {
           console.log('Uploading image before form submission...');
           try {
@@ -236,6 +241,10 @@ export default function PitScouting() {
               imageUrl = uploadedUrl;
               setFormData(prev => ({ ...prev, robotImageUrl: uploadedUrl }));
               console.log('Image URL set for database save:', imageUrl);
+            } else if (uploadedUrl === null) {
+              // Upload returned null - this means no file was selected or upload was skipped
+              console.warn('Upload returned null - no file was uploaded');
+              // Don't throw error, just use existing imageUrl
             } else {
               console.error('Invalid upload URL received:', uploadedUrl);
               throw new Error(`Invalid image URL received: ${uploadedUrl}`);
@@ -243,13 +252,16 @@ export default function PitScouting() {
           } catch (error) {
             console.error('Error uploading image during form submission:', error);
             const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-            throw new Error(`Failed to upload image: ${errorMsg}`);
+            // Only throw if it's a real error, not if upload was skipped
+            if (!errorMsg.includes('No file selected')) {
+              throw new Error(`Failed to upload image: ${errorMsg}`);
+            }
           }
         } else {
           console.log('No new file to upload, using existing imageUrl:', imageUrl);
         }
       } else {
-        console.warn('robotImageUploadRef.current is null');
+        console.warn('robotImageUploadRef.current is null - cannot upload image');
       }
 
       const validation = validatePitScoutingForm(formData);

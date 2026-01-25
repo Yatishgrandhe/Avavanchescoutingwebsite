@@ -109,31 +109,60 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(200).json(results);
         }
 
-        // Step 5: Test Write (Create tiny file)
+        // Step 5: Test Write via Resumable Flow
         let testFileId;
         try {
-            const testFileResponse = await drive.files.create({
-                requestBody: {
-                    name: `health-check-test-${Date.now()}.txt`,
-                    parents: [GOOGLE_DRIVE_FOLDER_ID]
+            const fileName = `health-check-resumable-${Date.now()}.txt`;
+            const mimeType = 'text/plain';
+            const fileContent = 'Google Drive Health Check - Resumable Write Test';
+            const fileMetadata = {
+                name: fileName,
+                parents: [GOOGLE_DRIVE_FOLDER_ID]
+            };
+
+            // 1. Get Token (re-use auth from Step 3)
+            const tokenResponse = await auth.getAccessToken();
+            const accessToken = tokenResponse.token;
+
+            // 2. Initiate
+            const initResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                    'X-Upload-Content-Type': mimeType,
                 },
-                media: {
-                    mimeType: 'text/plain',
-                    body: 'Google Drive Health Check - Write Test'
-                },
-                fields: 'id'
+                body: JSON.stringify(fileMetadata)
             });
-            testFileId = testFileResponse.data.id;
+
+            if (!initResponse.ok) throw new Error(`Initiate failed: ${initResponse.status}`);
+            const location = initResponse.headers.get('Location');
+            if (!location) throw new Error('No Location header');
+
+            // 3. Upload
+            const uploadResponse = await fetch(location, {
+                method: 'PUT',
+                headers: {
+                    'Content-Length': Buffer.byteLength(fileContent).toString(),
+                    'Content-Type': mimeType
+                },
+                body: fileContent
+            });
+
+            if (!uploadResponse.ok) throw new Error(`Upload failed: ${uploadResponse.status}`);
+            const fileData = await uploadResponse.json();
+            testFileId = fileData.id;
+
             results.steps.push({
-                name: 'Write Permission',
+                name: 'Resumable Write Test',
                 status: 'success',
-                message: `Successfully created test file (ID: ${testFileId})`
+                message: `Successfully created test file using Resumable Flow (ID: ${testFileId})`
             });
         } catch (e: any) {
             results.steps.push({
-                name: 'Write Permission',
+                name: 'Resumable Write Test',
                 status: 'error',
-                message: `Failed to create test file: ${e.message}`
+                message: `Resumable upload failed: ${e.message}`
             });
             results.overall = 'error';
             return res.status(200).json(results);

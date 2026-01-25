@@ -3,6 +3,8 @@ import formidable, { Fields, Files, File } from 'formidable';
 import fs from 'fs';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
+import { google } from 'googleapis';
+import { Readable } from 'stream';
 
 // Disable Next.js body parsing for file uploads
 export const config = {
@@ -15,6 +17,10 @@ export const config = {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const STORAGE_BUCKET = 'robot-images';
+
+// Google Drive configuration
+const GOOGLE_SERVICE_ACCOUNT_KEY_RAW = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
 // Initialize Supabase Storage client ONCE (reuse across requests)
 // This prevents memory leaks and connection exhaustion in serverless environments
@@ -86,6 +92,83 @@ async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeT
     }
 
     return publicUrl;
+}
+
+// Upload to Google Drive (Backup Method)
+async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType: string): Promise<string> {
+    if (!GOOGLE_SERVICE_ACCOUNT_KEY_RAW || !GOOGLE_DRIVE_FOLDER_ID) {
+        console.error('[API/upload-robot-image] Google Drive configuration missing');
+        throw new Error('Google Drive configuration is missing in environment variables.');
+    }
+
+    try {
+        console.log(`[API/upload-robot-image] Initializing Google Drive upload to folder: ${GOOGLE_DRIVE_FOLDER_ID}`);
+
+        // Parse credentials
+        let credentials;
+        try {
+            credentials = JSON.parse(GOOGLE_SERVICE_ACCOUNT_KEY_RAW);
+        } catch (e) {
+            throw new Error('Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY. Ensure it is valid JSON.');
+        }
+
+        const auth = new google.auth.JWT(
+            credentials.client_email,
+            undefined,
+            credentials.private_key,
+            ['https://www.googleapis.com/auth/drive.file']
+        );
+
+        const drive = google.drive({ version: 'v3', auth });
+
+        // Create the file in Google Drive
+        const fileMetadata = {
+            name: fileName,
+            parents: [GOOGLE_DRIVE_FOLDER_ID],
+        };
+
+        const media = {
+            mimeType: mimeType,
+            body: fs.createReadStream(filePath),
+        };
+
+        console.log(`[API/upload-robot-image] Uploading file to Google Drive...`);
+        const file = await drive.files.create({
+            requestBody: fileMetadata,
+            media: media,
+            fields: 'id, webViewLink, webContentLink',
+        });
+
+        const fileId = file.data.id;
+        if (!fileId) {
+            throw new Error('Google Drive upload succeeded but no file ID was returned.');
+        }
+
+        console.log(`[API/upload-robot-image] Google Drive upload successful. File ID: ${fileId}`);
+
+        // Set permissions to allow anyone with the link to view the file
+        try {
+            await drive.permissions.create({
+                fileId: fileId,
+                requestBody: {
+                    role: 'reader',
+                    type: 'anyone',
+                },
+            });
+            console.log(`[API/upload-robot-image] Google Drive file permissions set to public-read`);
+        } catch (permError) {
+            console.warn('[API/upload-robot-image] Failed to set public permissions on Google Drive file:', permError);
+            // Don't fail the whole upload if just permissions fail, but the link might not work
+        }
+
+        // Generate the direct view URL
+        // Format: https://drive.google.com/uc?export=view&id=FILE_ID
+        const directUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+        return directUrl;
+    } catch (error) {
+        console.error('[API/upload-robot-image] Google Drive upload function error:', error);
+        throw error;
+    }
 }
 
 // Parse multipart form data
@@ -240,23 +323,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         console.log(`[API/upload-robot-image] Starting upload for team ${teamNumber}, file: ${fileName}, mimeType: ${mimeType}, size: ${imageFile.size} bytes`);
 
-        // Upload to Supabase Storage
-        let imageUrl: string;
-        try {
-            imageUrl = await uploadToSupabaseStorage(filePath, fileName, mimeType);
-            console.log(`[API/upload-robot-image] Upload successful. Image URL: ${imageUrl}`);
-        } catch (supabaseError) {
-            console.error('[API/upload-robot-image] Supabase Storage upload failed:', supabaseError);
-            const supabaseErrorMsg = supabaseError instanceof Error ? supabaseError.message : 'Unknown Supabase Storage error';
+        // Storage attempts
+        let imageUrl: string | null = null;
+        let storageMethodUsed = '';
+        let uploadErrors: string[] = [];
 
-            // Provide more detailed error information
-            if (supabaseErrorMsg.includes('403') || supabaseErrorMsg.includes('Forbidden')) {
-                throw new Error(`Storage upload forbidden (403). Check RLS policies for bucket '${STORAGE_BUCKET}'. Error: ${supabaseErrorMsg}`);
-            } else if (supabaseErrorMsg.includes('404') || supabaseErrorMsg.includes('Not Found')) {
-                throw new Error(`Storage bucket '${STORAGE_BUCKET}' not found (404). Verify bucket exists in Supabase dashboard. Error: ${supabaseErrorMsg}`);
-            } else {
-                throw new Error(`Supabase Storage upload failed: ${supabaseErrorMsg}`);
+        // Attempt 1: Supabase (Main/Primary method as requested by user)
+        try {
+            console.log('[API/upload-robot-image] Attempting Supabase Storage upload...');
+            imageUrl = await uploadToSupabaseStorage(filePath, fileName, mimeType);
+            storageMethodUsed = 'Supabase Storage';
+            console.log(`[API/upload-robot-image] Supabase upload successful: ${imageUrl}`);
+        } catch (supabaseError) {
+            const msg = supabaseError instanceof Error ? supabaseError.message : 'Unknown Supabase error';
+            console.warn('[API/upload-robot-image] Supabase Storage upload failed, trying backup...', msg);
+            uploadErrors.push(`Supabase error: ${msg}`);
+        }
+
+        // Attempt 2: Google Drive (Backup method)
+        if (!imageUrl) {
+            try {
+                console.log('[API/upload-robot-image] Attempting Google Drive upload as backup...');
+                imageUrl = await uploadToGoogleDrive(filePath, fileName, mimeType);
+                storageMethodUsed = 'Google Drive';
+                console.log(`[API/upload-robot-image] Google Drive upload successful: ${imageUrl}`);
+            } catch (driveError) {
+                const msg = driveError instanceof Error ? driveError.message : 'Unknown Google Drive error';
+                console.error('[API/upload-robot-image] Google Drive backup upload also failed:', msg);
+                uploadErrors.push(`Google Drive error: ${msg}`);
             }
+        }
+
+        // If both failed, throw error
+        if (!imageUrl) {
+            const combinedErrors = uploadErrors.join(' | ');
+            return res.status(500).json({
+                error: 'All upload methods failed',
+                details: combinedErrors
+            });
         }
 
         // Clean up the temporary file
@@ -273,8 +377,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             success: true,
             fileName: fileName,
             directViewUrl: imageUrl,
-            storageMethod: 'Supabase Storage',
-            message: 'Image uploaded successfully to Supabase Storage',
+            storageMethod: storageMethodUsed,
+            message: `Image uploaded successfully using ${storageMethodUsed}`,
         });
 
     } catch (error) {

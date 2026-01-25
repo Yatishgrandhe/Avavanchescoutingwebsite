@@ -91,21 +91,42 @@ async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeT
 // Parse multipart form data
 async function parseForm(req: NextApiRequest): Promise<{ fields: Fields; files: Files }> {
     return new Promise((resolve, reject) => {
+        // Create temp directory if it doesn't exist (for Vercel/serverless)
+        const uploadDir = '/tmp';
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
         const form = formidable({
+            uploadDir: uploadDir, // Explicitly set upload directory
             maxFileSize: 10 * 1024 * 1024, // 10MB max
             keepExtensions: true,
+            multiples: false, // Only expect single file
             filter: ({ mimetype }: { mimetype: string | null }) => {
                 // Accept only image files
-                return mimetype ? mimetype.startsWith('image/') : false;
+                const isImage = mimetype ? mimetype.startsWith('image/') : false;
+                console.log('[API/upload-robot-image] File filter check:', { mimetype, isImage });
+                return isImage;
             },
         });
 
         form.parse(req, (err: Error | null, fields: Fields, files: Files) => {
             if (err) {
-                console.error('Form parsing error:', err);
+                console.error('[API/upload-robot-image] Form parsing error:', {
+                    message: err.message,
+                    name: err.name,
+                    stack: err.stack
+                });
                 reject(err);
                 return;
             }
+            console.log('[API/upload-robot-image] Form parsed successfully:', {
+                fieldsCount: Object.keys(fields).length,
+                filesCount: Object.keys(files).length,
+                fieldNames: Object.keys(fields),
+                fileNames: Object.keys(files),
+                uploadDir: uploadDir
+            });
             resolve({ fields, files });
         });
     });

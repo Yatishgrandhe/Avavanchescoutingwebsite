@@ -314,29 +314,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let storageMethodUsed = '';
         let uploadErrors: string[] = [];
 
-        // Attempt 1: Supabase (Main/Primary method as requested by user)
+        // Attempt 1: Google Drive (Main/Primary method as requested by user)
         try {
-            console.log('[API/upload-robot-image] Attempting Supabase Storage upload...');
-            imageUrl = await uploadToSupabaseStorage(filePath, fileName, mimeType);
-            storageMethodUsed = 'Supabase Storage';
-            console.log(`[API/upload-robot-image] Supabase upload successful: ${imageUrl}`);
-        } catch (supabaseError) {
-            const msg = supabaseError instanceof Error ? supabaseError.message : 'Unknown Supabase error';
-            console.warn('[API/upload-robot-image] Supabase Storage upload failed, trying backup...', msg);
-            uploadErrors.push(`Supabase error: ${msg}`);
+            console.log('[API/upload-robot-image] Attempting Google Drive upload...');
+            imageUrl = await uploadToGoogleDrive(filePath, fileName, mimeType);
+            storageMethodUsed = 'Google Drive';
+            console.log(`[API/upload-robot-image] Google Drive upload successful: ${imageUrl}`);
+        } catch (driveError) {
+            const msg = driveError instanceof Error ? driveError.message : 'Unknown Google Drive error';
+            console.warn('[API/upload-robot-image] Google Drive upload failed, trying backup...', msg);
+            uploadErrors.push(`Google Drive error: ${msg}`);
         }
 
-        // Attempt 2: Google Drive (Backup method)
+        // Attempt 2: Supabase (Backup method)
         if (!imageUrl) {
             try {
-                console.log('[API/upload-robot-image] Attempting Google Drive upload as backup...');
-                imageUrl = await uploadToGoogleDrive(filePath, fileName, mimeType);
-                storageMethodUsed = 'Google Drive';
-                console.log(`[API/upload-robot-image] Google Drive upload successful: ${imageUrl}`);
-            } catch (driveError) {
-                const msg = driveError instanceof Error ? driveError.message : 'Unknown Google Drive error';
-                console.error('[API/upload-robot-image] Google Drive backup upload also failed:', msg);
-                uploadErrors.push(`Google Drive error: ${msg}`);
+                console.log('[API/upload-robot-image] Attempting Supabase Storage upload as backup...');
+                imageUrl = await uploadToSupabaseStorage(filePath, fileName, mimeType);
+                storageMethodUsed = 'Supabase Storage';
+                console.log(`[API/upload-robot-image] Supabase upload successful: ${imageUrl}`);
+            } catch (supabaseError) {
+                const msg = supabaseError instanceof Error ? supabaseError.message : 'Unknown Supabase error';
+                console.error('[API/upload-robot-image] Supabase backup upload also failed:', msg);
+                uploadErrors.push(`Supabase error: ${msg}`);
             }
         }
 

@@ -16,12 +16,22 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const STORAGE_BUCKET = 'robot-images';
 
-// Initialize Supabase Storage client
+// Initialize Supabase Storage client ONCE (reuse across requests)
+// This prevents memory leaks and connection exhaustion in serverless environments
+let supabaseClient: ReturnType<typeof createClient> | null = null;
+
 function getSupabaseStorageClient() {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
         throw new Error('Supabase configuration is missing. Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
     }
-    return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    
+    // Reuse existing client if available
+    if (!supabaseClient) {
+        console.log('[API/upload-robot-image] Initializing Supabase client with Service Role Key');
+        supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    }
+    
+    return supabaseClient;
 }
 
 // Upload to Supabase Storage
@@ -31,7 +41,7 @@ async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeT
     // Read file as buffer
     const fileBuffer = fs.readFileSync(filePath);
 
-    console.log(`Uploading ${fileName} (${fileBuffer.length} bytes) to Supabase Storage bucket: ${STORAGE_BUCKET}`);
+    console.log(`[API/upload-robot-image] Uploading ${fileName} (${fileBuffer.length} bytes) to Supabase Storage bucket: ${STORAGE_BUCKET}`);
 
     // Upload file to Supabase Storage
     const { data, error } = await supabase.storage
@@ -42,15 +52,20 @@ async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeT
         });
 
     if (error) {
-        console.error('Supabase Storage upload error:', error);
-        throw new Error(`Failed to upload to Supabase Storage: ${error.message}`);
+        console.error('[API/upload-robot-image] Supabase Storage upload error:', {
+            message: error.message,
+            name: error.name,
+            error: JSON.stringify(error, Object.getOwnPropertyNames(error))
+        });
+        throw error; // Throw the original error to preserve error details
     }
 
     if (!data || !data.path) {
+        console.error('[API/upload-robot-image] Upload succeeded but no path returned');
         throw new Error('Upload succeeded but no path returned from Supabase Storage');
     }
 
-    console.log(`File uploaded successfully. Path: ${data.path}`);
+    console.log(`[API/upload-robot-image] File uploaded successfully. Path: ${data.path}`);
 
     // Get public URL
     const { data: urlData } = supabase.storage
@@ -58,12 +73,12 @@ async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeT
         .getPublicUrl(data.path);
 
     if (!urlData || !urlData.publicUrl) {
-        console.error('Failed to get public URL. urlData:', urlData);
+        console.error('[API/upload-robot-image] Failed to get public URL. urlData:', urlData);
         throw new Error('Failed to get public URL from Supabase Storage');
     }
 
     const publicUrl = urlData.publicUrl;
-    console.log(`Public URL generated: ${publicUrl}`);
+    console.log(`[API/upload-robot-image] Public URL generated: ${publicUrl}`);
 
     // Verify the URL is valid
     if (!publicUrl || typeof publicUrl !== 'string' || !publicUrl.startsWith('http')) {
@@ -130,28 +145,50 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
+        console.log('[API/upload-robot-image] Parsed form data:', {
+            fieldsKeys: Object.keys(fields),
+            filesKeys: Object.keys(files),
+            teamNumberField: fields.teamNumber,
+            imageFileExists: !!files.image
+        });
+
         const imageFile = Array.isArray(files.image) ? files.image[0] : files.image as File | undefined;
         const teamNumber = Array.isArray(fields.teamNumber) ? fields.teamNumber[0] : fields.teamNumber;
 
         if (!imageFile) {
+            console.error('[API/upload-robot-image] No image file found in request');
+            console.error('[API/upload-robot-image] Available files:', Object.keys(files));
             return res.status(400).json({
                 error: 'No image file provided',
-                details: 'Please ensure you are uploading a valid image file'
+                details: 'Please ensure you are uploading a valid image file. Make sure the form field is named "image".'
             });
         }
 
         if (!teamNumber) {
+            console.error('[API/upload-robot-image] No team number found in request');
+            console.error('[API/upload-robot-image] Available fields:', Object.keys(fields));
             return res.status(400).json({
                 error: 'Team number is required',
                 details: 'Please provide a team number in the form data'
             });
         }
 
-        // Validate file path exists
-        if (!imageFile.filepath || !fs.existsSync(imageFile.filepath)) {
+        // Formidable v3 uses 'filepath' property (v2 uses 'path')
+        // Verify file path exists and is accessible
+        const filePath = imageFile.filepath;
+        console.log('[API/upload-robot-image] File details:', {
+            originalFilename: imageFile.originalFilename,
+            mimetype: imageFile.mimetype,
+            size: imageFile.size,
+            filepath: filePath,
+            filepathExists: filePath ? fs.existsSync(filePath) : false
+        });
+
+        if (!filePath || !fs.existsSync(filePath)) {
+            console.error('[API/upload-robot-image] Invalid file path:', filePath);
             return res.status(400).json({
                 error: 'Invalid file path',
-                details: 'The uploaded file could not be accessed'
+                details: `The uploaded file could not be accessed. Path: ${filePath || 'undefined'}`
             });
         }
 
@@ -161,22 +198,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const fileName = `team_${teamNumber}_robot_${timestamp}${extension}`;
         const mimeType = imageFile.mimetype || 'image/jpeg';
 
-        console.log(`Starting upload for team ${teamNumber}, file: ${fileName}, mimeType: ${mimeType}`);
+        console.log(`[API/upload-robot-image] Starting upload for team ${teamNumber}, file: ${fileName}, mimeType: ${mimeType}, size: ${imageFile.size} bytes`);
 
         // Upload to Supabase Storage
         let imageUrl: string;
         try {
-            imageUrl = await uploadToSupabaseStorage(imageFile.filepath, fileName, mimeType);
-            console.log(`Upload successful. Image URL: ${imageUrl}`);
+            imageUrl = await uploadToSupabaseStorage(filePath, fileName, mimeType);
+            console.log(`[API/upload-robot-image] Upload successful. Image URL: ${imageUrl}`);
         } catch (supabaseError) {
-            console.error('Supabase Storage upload failed:', supabaseError);
+            console.error('[API/upload-robot-image] Supabase Storage upload failed:', supabaseError);
             const supabaseErrorMsg = supabaseError instanceof Error ? supabaseError.message : 'Unknown Supabase Storage error';
-            throw new Error(`Supabase Storage upload failed: ${supabaseErrorMsg}`);
+            
+            // Provide more detailed error information
+            if (supabaseErrorMsg.includes('403') || supabaseErrorMsg.includes('Forbidden')) {
+                throw new Error(`Storage upload forbidden (403). Check RLS policies for bucket '${STORAGE_BUCKET}'. Error: ${supabaseErrorMsg}`);
+            } else if (supabaseErrorMsg.includes('404') || supabaseErrorMsg.includes('Not Found')) {
+                throw new Error(`Storage bucket '${STORAGE_BUCKET}' not found (404). Verify bucket exists in Supabase dashboard. Error: ${supabaseErrorMsg}`);
+            } else {
+                throw new Error(`Supabase Storage upload failed: ${supabaseErrorMsg}`);
+            }
         }
 
         // Clean up the temporary file
-        fs.unlink(imageFile.filepath, (unlinkErr) => {
-            if (unlinkErr) console.warn('Failed to clean up temp file:', unlinkErr);
+        fs.unlink(filePath, (unlinkErr) => {
+            if (unlinkErr) {
+                console.warn('[API/upload-robot-image] Failed to clean up temp file:', unlinkErr);
+            } else {
+                console.log('[API/upload-robot-image] Temporary file cleaned up successfully');
+            }
         });
 
         // Return success with the image URL

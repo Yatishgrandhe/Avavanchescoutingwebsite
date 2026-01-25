@@ -24,6 +24,7 @@ interface PitScoutingData {
   id: string;
   team_number: number;
   robot_name: string;
+  robot_image_url?: string | null;
   drive_type: string;
   drive_train_details: {
     type: string;
@@ -90,6 +91,7 @@ export default function PitScoutingDetails() {
           id: pitScoutingData.id,
           team_number: pitScoutingData.team_number,
           robot_name: pitScoutingData.robot_name || 'Unknown Robot',
+          robot_image_url: pitScoutingData.robot_image_url || null,
           drive_type: pitScoutingData.drive_type || 'Unknown',
           drive_train_details: pitScoutingData.drive_train_details || {
             type: pitScoutingData.drive_type || 'Unknown',
@@ -281,6 +283,33 @@ export default function PitScoutingDetails() {
 
             {/* Content */}
             <div className="space-y-8">
+              {/* Robot Image */}
+              {pitData.robot_image_url && (
+                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="bg-blue-600 rounded-full p-2">
+                      <FileText className="h-5 w-5 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white">Robot Image</h3>
+                  </div>
+                  <div className="relative w-full rounded-lg overflow-hidden border border-gray-700 bg-gray-900">
+                    <img
+                      src={pitData.robot_image_url}
+                      alt={`Team ${pitData.team_number} - ${pitData.robot_name}`}
+                      className="w-full h-auto object-contain max-h-96 mx-auto"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.innerHTML = '<div class="p-8 text-center text-gray-400">Failed to load image</div>';
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Basic Information */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">

@@ -117,6 +117,7 @@ export default function PitScoutingData() {
           id: item.id,
           team_number: item.team_number,
           robot_name: item.robot_name || 'Unknown Robot',
+          robot_image_url: item.robot_image_url || null,
           drive_type: item.drive_type || 'Unknown',
           drive_train_details: item.drive_train_details || {
             type: item.drive_type || 'Unknown',
@@ -711,6 +712,28 @@ export default function PitScoutingData() {
                         <XCircle className="h-5 w-5" />
                       </Button>
                     </div>
+
+                    {/* Robot Image */}
+                    {selectedDetailItem.robot_image_url && (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold text-white mb-3">Robot Image</h3>
+                        <div className="relative w-full max-w-2xl mx-auto rounded-lg overflow-hidden border border-gray-700 bg-gray-900">
+                          <img
+                            src={selectedDetailItem.robot_image_url}
+                            alt={`Team ${selectedDetailItem.team_number} - ${selectedDetailItem.robot_name}`}
+                            className="w-full h-auto object-contain max-h-96"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.innerHTML = '<div class="p-8 text-center text-gray-400">Failed to load image</div>';
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {/* Basic Information */}

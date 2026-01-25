@@ -111,7 +111,8 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
         const auth = new google.auth.JWT({
             email: credentials.client_email,
             key: credentials.private_key,
-            scopes: ['https://www.googleapis.com/auth/drive']
+            scopes: ['https://www.googleapis.com/auth/drive'],
+            subject: process.env.GOOGLE_DRIVE_DELEGATED_USER // Your email address
         });
 
         // Use v2 instead of v3

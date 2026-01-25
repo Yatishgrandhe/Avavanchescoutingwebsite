@@ -986,8 +986,16 @@ export default function PitScouting() {
               </Button>
             ) : (
               <Button
-                onClick={handleSubmit}
+                onClick={(e) => {
+                  console.log('BUTTON CLICKED!', new Date().toISOString());
+                  console.log('Event:', e);
+                  console.log('submitting state:', submitting);
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSubmit();
+                }}
                 disabled={submitting}
+                type="button"
                 className={cn("min-w-[140px]", submitting ? "opacity-80" : "hover:scale-105 active:scale-95 transition-transform bg-primary hover:bg-primary/90 text-white")}
               >
                 {submitting ? (

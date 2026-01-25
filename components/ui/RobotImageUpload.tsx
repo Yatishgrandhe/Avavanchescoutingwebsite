@@ -176,16 +176,16 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
         uploadImage: handleUpload,
         hasFile: (): boolean => {
             // Return true if there's a file selected that should be uploaded
-            // If selectedFile exists, it means a file was selected
-            // Upload if: selectedFile exists AND (isNewFileSelected flag is set OR no currentImageUrl exists)
-            // This ensures we upload new files even if the flag gets reset, but don't re-upload already uploaded files
+            // Primary check: selectedFile exists (most reliable indicator)
+            // Secondary checks: isNewFileSelected flag OR data URL preview (for edge cases)
             const hasSelectedFile = selectedFile !== null;
             const hasDataUrlPreview = Boolean(preview && preview.startsWith('data:'));
-            // Upload if we have a selected file and either the flag is set OR there's no existing URL
-            // Also check for data URL preview as a fallback indicator
-            const shouldUpload = hasSelectedFile && (isNewFileSelected || !currentImageUrl || hasDataUrlPreview);
+            
+            // If selectedFile exists, we should upload it (defensive check)
+            // The isNewFileSelected flag helps, but selectedFile is the source of truth
+            const shouldUpload = hasSelectedFile || (hasDataUrlPreview && !currentImageUrl);
 
-            console.log('hasFile() called:', {
+            console.log('[RobotImageUpload] hasFile() called:', {
                 selectedFile: selectedFile?.name || null,
                 fileSize: selectedFile?.size || null,
                 isNewFileSelected,
@@ -193,7 +193,8 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
                 hasDataUrlPreview,
                 currentImageUrl: currentImageUrl ? (currentImageUrl.substring(0, 50) + '...') : null,
                 previewType: preview ? (preview.startsWith('data:') ? 'data-url' : 'http-url') : 'none',
-                result: shouldUpload
+                result: shouldUpload,
+                reasoning: hasSelectedFile ? 'selectedFile exists' : (hasDataUrlPreview ? 'data URL preview exists' : 'no file indicators')
             });
             return shouldUpload;
         },

@@ -150,7 +150,7 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
             });
         } catch (e) { console.warn('Permission error:', e); }
 
-        return `https://drive.google.com/uc?export=view&id=${fileId}`;
+        return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
     } catch (error: any) {
         console.error('[API/upload-robot-image] OAuth error:', error.message);
         throw error;

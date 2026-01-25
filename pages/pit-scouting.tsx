@@ -181,7 +181,7 @@ export default function PitScouting() {
     return validatePitScoutingStep(step, formData);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     setValidationError(null);
     setHasInteracted(true);
 
@@ -189,6 +189,28 @@ export default function PitScouting() {
     setValidationErrors(validation.errors);
 
     if (validation.isValid) {
+      // If we're on step 1 and have a new image to upload, do it now 
+      // before the component unmounts during step transition
+      if (currentStep === 1 && robotImageUploadRef.current?.hasFile()) {
+        try {
+          setSubmitting(true);
+          console.log('[PitScouting] Uploading image during step transition...');
+          const uploadedUrl = await robotImageUploadRef.current.uploadImage();
+          if (uploadedUrl) {
+            // Update formData with the new URL
+            setFormData(prev => ({ ...prev, robotImageUrl: uploadedUrl }));
+            console.log('[PitScouting] Step 1 image upload successful:', uploadedUrl);
+          }
+        } catch (error) {
+          console.error('[PitScouting] Image upload failed during step transition:', error);
+          setValidationError(error instanceof Error ? error.message : 'Failed to upload image. Please try again.');
+          setSubmitting(false);
+          return; // Stay on step 1 if upload fails
+        } finally {
+          setSubmitting(false);
+        }
+      }
+
       if (currentStep < totalSteps) {
         setCurrentStep(currentStep + 1);
         window.scrollTo({ top: 0, behavior: 'smooth' });

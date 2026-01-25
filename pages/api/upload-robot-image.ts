@@ -24,13 +24,13 @@ function getSupabaseStorageClient() {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
         throw new Error('Supabase configuration is missing. Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
     }
-    
+
     // Reuse existing client if available
     if (!supabaseClient) {
         console.log('[API/upload-robot-image] Initializing Supabase client with Service Role Key');
         supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     }
-    
+
     return supabaseClient;
 }
 
@@ -139,7 +139,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const hasKey = !!SUPABASE_SERVICE_ROLE_KEY;
         const keyPrefix = SUPABASE_SERVICE_ROLE_KEY ? SUPABASE_SERVICE_ROLE_KEY.substring(0, 10) : 'missing';
         const keyStartsWithJWT = SUPABASE_SERVICE_ROLE_KEY ? SUPABASE_SERVICE_ROLE_KEY.startsWith('eyJ') : false;
-        
+
         return res.status(200).json({
             configured: hasUrl && hasKey,
             hasSupabaseUrl: hasUrl,
@@ -215,7 +215,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Formidable v3 uses 'filepath' property (v2 uses 'path')
         // Verify file path exists and is accessible
-        const filePath = imageFile.filepath;
+        const filePath = imageFile.filepath || (imageFile as any).path;
         console.log('[API/upload-robot-image] File details:', {
             originalFilename: imageFile.originalFilename,
             mimetype: imageFile.mimetype,
@@ -248,7 +248,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         } catch (supabaseError) {
             console.error('[API/upload-robot-image] Supabase Storage upload failed:', supabaseError);
             const supabaseErrorMsg = supabaseError instanceof Error ? supabaseError.message : 'Unknown Supabase Storage error';
-            
+
             // Provide more detailed error information
             if (supabaseErrorMsg.includes('403') || supabaseErrorMsg.includes('Forbidden')) {
                 throw new Error(`Storage upload forbidden (403). Check RLS policies for bucket '${STORAGE_BUCKET}'. Error: ${supabaseErrorMsg}`);

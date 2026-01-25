@@ -94,7 +94,7 @@ async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeT
     return publicUrl;
 }
 
-// Upload to Google Drive (Resumable Backup Method)
+// Upload to Google Drive (Standard Multipart Method - Better for Service Accounts)
 async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType: string): Promise<string> {
     if (!GOOGLE_SERVICE_ACCOUNT_KEY_RAW || !GOOGLE_DRIVE_FOLDER_ID) {
         console.error('[API/upload-robot-image] Google Drive configuration missing');
@@ -110,106 +110,56 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
             }
         }
 
-        console.log(`[API/upload-robot-image] Initializing Resumable Google Drive upload to folder: ${folderId}`);
+        console.log(`[API/upload-robot-image] Initializing Standard Google Drive upload to folder: ${folderId}`);
 
-        // 1. Get Access Token using the service account key
+        // 1. Setup Auth
         let credentials;
         try {
             credentials = JSON.parse(GOOGLE_SERVICE_ACCOUNT_KEY_RAW);
         } catch (e) {
-            throw new Error('Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY. Ensure it is valid JSON.');
+            throw new Error('Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY.');
         }
 
         const auth = new google.auth.JWT({
             email: credentials.client_email,
             key: credentials.private_key,
-            scopes: ['https://www.googleapis.com/auth/drive'] // Use full drive scope for folder access
+            scopes: ['https://www.googleapis.com/auth/drive']
         });
 
-        // Get the access token
-        const tokenResponse = await auth.getAccessToken();
-        const accessToken = tokenResponse.token;
+        const drive = google.drive({ version: 'v3', auth });
 
-        if (!accessToken) {
-            throw new Error('Failed to obtain Google access token');
-        }
-
-        // 2. Step 2: Initiate Resumable Upload Session
-        const fileMetadata = {
-            name: fileName,
-            parents: [folderId!],
-        };
-
-        console.log('[API/upload-robot-image] Initiating resumable session...');
-        const initResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-                'X-Upload-Content-Type': mimeType,
+        // 2. Upload using the internal library (handles multipart automatically)
+        console.log(`[API/upload-robot-image] Uploading file: ${fileName}...`);
+        const response = await drive.files.create({
+            requestBody: {
+                name: fileName,
+                parents: [folderId!],
             },
-            body: JSON.stringify(fileMetadata)
-        });
-
-        if (!initResponse.ok) {
-            const errorText = await initResponse.text();
-            throw new Error(`Failed to initiate upload session: ${initResponse.status} ${errorText}`);
-        }
-
-        const location = initResponse.headers.get('Location');
-        if (!location) {
-            throw new Error('No upload location received from Google Drive');
-        }
-
-        console.log(`[API/upload-robot-image] Resumable session created. Location: ${location.substring(0, 50)}...`);
-
-        // 3. Step 3: Upload File Content
-        const fileBuffer = fs.readFileSync(filePath);
-
-        console.log(`[API/upload-robot-image] Uploading ${fileBuffer.length} bytes to resumable location...`);
-        const uploadResponse = await fetch(location, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Length': fileBuffer.length.toString(),
-                'Content-Type': mimeType
+            media: {
+                mimeType: mimeType,
+                body: fs.createReadStream(filePath),
             },
-            body: fileBuffer
+            fields: 'id',
         });
 
-        if (!uploadResponse.ok) {
-            const errorText = await uploadResponse.text();
-            console.error(`[API/upload-robot-image] Google Drive content upload failed (${uploadResponse.status}):`, errorText);
-            throw new Error(`Failed to upload file content: ${uploadResponse.status} - ${errorText}`);
-        }
-
-        const fileData = await uploadResponse.json();
-        const fileId = fileData.id;
-
-        if (!fileId) {
-            throw new Error('Upload succeeded but no file ID was returned.');
-        }
+        const fileId = response.data.id;
+        if (!fileId) throw new Error('No file ID returned from Google Drive');
 
         console.log(`[API/upload-robot-image] Google Drive upload successful. File ID: ${fileId}`);
 
-        // 4. Set permissions to public-read (using the drive client for convenience)
-        const drive = google.drive({ version: 'v3', auth });
+        // 3. Set permissions to public
         try {
             await drive.permissions.create({
                 fileId: fileId,
-                requestBody: {
-                    role: 'reader',
-                    type: 'anyone',
-                },
+                requestBody: { role: 'reader', type: 'anyone' },
             });
-            console.log(`[API/upload-robot-image] Google Drive file permissions set to public-read`);
         } catch (permError) {
-            console.warn('[API/upload-robot-image] Failed to set public permissions:', permError);
+            console.warn('[API/upload-robot-image] Could not set public permissions:', permError);
         }
 
         return `https://drive.google.com/uc?export=view&id=${fileId}`;
     } catch (error) {
-        console.error('[API/upload-robot-image] Google Drive upload function error:', error);
+        console.error('[API/upload-robot-image] Google Drive upload error:', error);
         throw error;
     }
 }

@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { google } from 'googleapis';
 import fs from 'fs';
 import path from 'path';
+import { Readable } from 'stream';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     // Basic authorization check could be added here if needed
@@ -110,68 +111,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(200).json(results);
         }
 
-        // Step 5: Test Write via Resumable Flow
+        // Step 5: Test Write via Standard Multipart flow
         let testFileId;
         try {
-            const fileName = `health-check-resumable-${Date.now()}.txt`;
+            const fileName = `health-check-std-${Date.now()}.txt`;
             const mimeType = 'text/plain';
-            const fileContent = 'Google Drive Health Check - Resumable Write Test';
-            const fileMetadata = {
-                name: fileName,
-                parents: [GOOGLE_DRIVE_FOLDER_ID]
-            };
+            const fileContent = 'Google Drive Health Check - Standard Write Test';
 
-            // 1. Get Token (re-use auth from Step 3)
-            const tokenResponse = await auth.getAccessToken();
-            const accessToken = tokenResponse.token;
-
-            // 2. Initiate
-            const initResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json',
-                    'X-Upload-Content-Type': mimeType,
+            const response = await drive.files.create({
+                requestBody: {
+                    name: fileName,
+                    parents: [GOOGLE_DRIVE_FOLDER_ID]
                 },
-                body: JSON.stringify(fileMetadata)
+                media: {
+                    mimeType: mimeType,
+                    body: Readable.from([fileContent])
+                },
+                fields: 'id'
             });
 
-            if (!initResponse.ok) throw new Error(`Initiate failed: ${initResponse.status}`);
-            const location = initResponse.headers.get('Location');
-            if (!location) throw new Error('No Location header');
-
-            // 3. Upload
-            const uploadResponse = await fetch(location, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Length': Buffer.byteLength(fileContent).toString(),
-                    'Content-Type': mimeType
-                },
-                body: fileContent
-            });
-
-            if (!uploadResponse.ok) {
-                const errorText = await uploadResponse.text();
-                console.error(`[API/upload-robot-image] Upload failed (${uploadResponse.status}):`, errorText);
-                throw new Error(`Failed to upload file content: ${uploadResponse.status} - ${errorText}`);
-            }
-
-            const fileData = await uploadResponse.json();
-            testFileId = fileData.id;
+            testFileId = response.data.id;
+            if (!testFileId) throw new Error('No file ID returned');
 
             results.steps.push({
-                name: 'Resumable Write Test',
+                name: 'Standard Write Test',
                 status: 'success',
-                message: `Successfully created test file using Resumable Flow (ID: ${testFileId})`
+                message: `Successfully created test file using Standard Flow (ID: ${testFileId})`
             });
         } catch (e: any) {
-            // Check for specific 403 details
-            const errorMsg = e.message;
             results.steps.push({
-                name: 'Resumable Write Test',
+                name: 'Standard Write Test',
                 status: 'error',
-                message: `Resumable upload failed: ${errorMsg}`
+                message: `Standard upload failed: ${e.message}. Note: Service Accounts on personal drives often fail resumable uploads due to quota limits; standard multipart is preferred.`
             });
             results.overall = 'error';
             return res.status(200).json(results);

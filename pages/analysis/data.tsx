@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSupabase } from '@/pages/_app';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui';
 import { Button } from '../../components/ui';
 import { Input } from '../../components/ui';
 import { Badge } from '../../components/ui/badge';
-import { 
-  Database, 
-  Filter, 
-  Search, 
+import { cn } from '@/lib/utils';
+import {
+  Database,
+  Filter,
+  Search,
   RefreshCw,
   User,
   Calendar,
@@ -17,14 +18,23 @@ import {
   EyeOff,
   Edit,
   Trash2,
-  Shield
+  Shield,
+  Target,
+  Activity,
+  Award,
+  TrendingUp,
+  Users,
+  ArrowRight,
+  CheckCircle,
+  XCircle,
+  ChevronRight
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ScoutingData, Team } from '@/lib/types';
 import { useAdmin } from '@/hooks/use-admin';
 
-interface DataAnalysisProps {}
+interface DataAnalysisProps { }
 
 const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const { supabase, user } = useSupabase();
@@ -66,7 +76,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       // Load scouting data - select all fields including submitted_by_name and submitted_by_email
       // Fetch all data, then sort client-side by submitted_at (or created_at as fallback)
       const { data: scoutingDataResult, error: scoutingError } = await supabase
@@ -174,10 +184,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       const avgDefense = stat.defense_ratings.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
       const avgAutonomousCleansing = stat.autonomous_cleansing.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
       const avgTeleopCleansing = stat.teleop_cleansing.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
-      
+
       const bestScore = Math.max(...stat.total_scores);
       const worstScore = Math.min(...stat.total_scores);
-      
+
       // Calculate consistency (lower standard deviation = higher consistency)
       const variance = stat.total_scores.reduce((sum, score) => sum + Math.pow(score - avgTotal, 2), 0) / stat.total_matches;
       const standardDeviation = Math.sqrt(variance);
@@ -224,14 +234,14 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   // Filter and sort data - using useMemo to prevent recalculation on every render
   const filteredData = useMemo(() => {
     return scoutingData.filter(data => {
-      const matchesSearch = searchTerm === '' || 
+      const matchesSearch = searchTerm === '' ||
         data.team_number.toString().includes(searchTerm) ||
         data.match_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (data.comments && data.comments.toLowerCase().includes(searchTerm.toLowerCase())) ||
         getTeamName(data.team_number).toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const matchesTeam = selectedTeam === null || data.team_number === selectedTeam;
-      
+
       return matchesSearch && matchesTeam;
     });
   }, [scoutingData, searchTerm, selectedTeam, allTeams]);
@@ -240,17 +250,17 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     return [...filteredData].sort((a, b) => {
       const aValue = a[sortField];
       const bValue = b[sortField];
-      
+
       if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc' 
+        return sortDirection === 'asc'
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
-      
+
       if (typeof aValue === 'number' && typeof bValue === 'number') {
         return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
       }
-      
+
       return 0;
     });
   }, [filteredData, sortField, sortDirection]);
@@ -284,10 +294,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
       // Remove from local state
       setScoutingData(prev => prev.filter(item => item.id !== deletingItem.id));
-      
+
       setShowDeleteConfirm(false);
       setDeletingItem(null);
-      
+
       // Reload data to update team stats
       loadData();
     } catch (error) {
@@ -314,7 +324,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const parseFormNotes = (notes: any) => {
     try {
       const parsed = typeof notes === 'string' ? JSON.parse(notes) : notes;
-      
+
       // Handle nested structure (autonomous/teleop keys) or flat structure
       if (parsed.autonomous || parsed.teleop) {
         // Nested structure
@@ -348,7 +358,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         };
       }
     } catch (error) {
-      return { 
+      return {
         autonomous: { auto_fuel_active_hub: 0, auto_tower_level1: false },
         teleop: { teleop_fuel_active_hub: 0, teleop_fuel_shifts: [], teleop_tower_level1: false, teleop_tower_level2: false, teleop_tower_level3: false },
       };
@@ -461,9 +471,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                       Refresh
                     </Button>
                     {viewMode === 'individual' && (
-                      <Button 
-                        onClick={() => setShowUploaderInfo(!showUploaderInfo)} 
-                        variant="outline" 
+                      <Button
+                        onClick={() => setShowUploaderInfo(!showUploaderInfo)}
+                        variant="outline"
                         size="sm"
                         className="flex-1 sm:flex-none"
                       >
@@ -486,7 +496,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                   </div>
                   <div className="text-center">
                     <div className="text-xl md:text-2xl font-bold text-secondary">
-                      {viewMode === 'teams' 
+                      {viewMode === 'teams'
                         ? Math.round(teamStats.reduce((sum, t) => sum + t.avg_total_score, 0) / teamStats.length) || 0
                         : new Set(sortedData.map(d => d.team_number)).size
                       }
@@ -532,8 +542,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileSpreadsheet className="w-5 h-5" />
-                  {viewMode === 'teams' 
-                    ? `Team Statistics (${teamStats.length} teams)` 
+                  {viewMode === 'teams'
+                    ? `Team Statistics (${teamStats.length} teams)`
                     : `Scouting Data (${sortedData.length} records)`
                   }
                 </CardTitle>
@@ -541,200 +551,339 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
               <CardContent>
                 {viewMode === 'teams' ? (
                   // Team Statistics View
-                  <div className="overflow-x-auto scrollbar-hide">
-                    <table className="w-full border-collapse min-w-[800px]">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left p-2 md:p-3 text-xs md:text-sm">Team Name</th>
-                          <th className="text-left p-2 md:p-3 text-xs md:text-sm">Matches</th>
-                          <th className="text-left p-2 md:p-3 text-xs md:text-sm">Avg Score</th>
-                          <th className="text-left p-2 md:p-3 text-xs md:text-sm">Auto</th>
-                          <th className="text-left p-2 md:p-3 text-xs md:text-sm">Teleop</th>
-                          <th className="text-left p-2 md:p-3 text-xs md:text-sm">Auto Cleansing</th>
-                          <th className="text-left p-2 md:p-3 text-xs md:text-sm">Teleop Cleansing</th>
-                          <th className="text-left p-2 md:p-3 text-xs md:text-sm">Defense (/10)</th>
-                          <th className="text-left p-2 md:p-3 text-xs md:text-sm">Best</th>
-                          <th className="text-left p-2 md:p-3 text-xs md:text-sm">Consistency</th>
-                          <th className="text-left p-2 md:p-3 text-xs md:text-sm">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {teamStats
-                          .filter(team => 
-                            searchTerm === '' || 
-                            team.team_number.toString().includes(searchTerm) ||
-                            team.team_name.toLowerCase().includes(searchTerm.toLowerCase())
-                          )
-                          .map((team, index) => (
-                            <motion.tr
-                              key={team.team_number}
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: index * 0.05 }}
-                              className="border-b hover:bg-muted/50 cursor-pointer"
-                              onClick={() => setSelectedTeamDetails(team.team_number)}
-                            >
-                              <td className="p-2 md:p-3">
-                                <div className="flex items-center space-x-2 min-w-0">
-                                  <span className="font-medium text-foreground truncate max-w-[120px] sm:max-w-none">{team.team_name}</span>
-                                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs flex-shrink-0">
-                                    {team.team_number}
-                                  </Badge>
+                  <div className="space-y-4">
+                    {/* Mobile Card View for Team Stats */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:hidden gap-4">
+                      {teamStats
+                        .filter(team =>
+                          searchTerm === '' ||
+                          team.team_number.toString().includes(searchTerm) ||
+                          team.team_name.toLowerCase().includes(searchTerm.toLowerCase())
+                        )
+                        .map((team, index) => (
+                          <motion.div
+                            key={team.team_number}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="glass-card p-5 rounded-2xl border border-white/5 hover:border-primary/20 transition-all cursor-pointer"
+                            onClick={() => setSelectedTeamDetails(team.team_number)}
+                          >
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="flex-1 min-w-0 pr-2">
+                                <h3 className="text-lg font-bold text-foreground truncate">{team.team_name}</h3>
+                                <Badge variant="secondary" className="mt-1 bg-blue-500/10 text-blue-400 border-blue-500/20">
+                                  #{team.team_number}
+                                </Badge>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <span className="text-[10px] text-muted-foreground uppercase tracking-widest block">Avg Score</span>
+                                <span className="text-2xl font-bold text-primary">{team.avg_total_score}</span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 mb-4">
+                              <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Matches</span>
+                                <span className="text-sm font-semibold">{team.total_matches}</span>
+                              </div>
+                              <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Best Score</span>
+                                <span className="text-sm font-semibold text-green-400">{team.best_score}</span>
+                              </div>
+                              <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Auto Avg</span>
+                                <span className="text-sm font-semibold text-blue-400">{team.avg_autonomous_points}</span>
+                              </div>
+                              <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Teleop Avg</span>
+                                <span className="text-sm font-semibold text-orange-400">{team.avg_teleop_points}</span>
+                              </div>
+                            </div>
+
+                            <div className="space-y-3 mb-4">
+                              <div>
+                                <div className="flex justify-between text-[10px] mb-1">
+                                  <span className="text-muted-foreground uppercase tracking-wider">Defense Rating</span>
+                                  <span className="font-bold">{team.avg_defense_rating}/10</span>
                                 </div>
-                              </td>
-                              <td className="p-2 md:p-3 text-foreground">{team.total_matches}</td>
-                              <td className="p-2 md:p-3">
-                                <span className="font-semibold text-primary">{team.avg_total_score}</span>
-                              </td>
-                              <td className="p-2 md:p-3 text-foreground">{team.avg_autonomous_points}</td>
-                              <td className="p-2 md:p-3 text-foreground">{team.avg_teleop_points}</td>
-                              <td className="p-2 md:p-3 text-foreground">{team.avg_autonomous_cleansing}</td>
-                              <td className="p-2 md:p-3 text-foreground">{team.avg_teleop_cleansing}</td>
-                              <td className="p-2 md:p-3">
-                                <span className={`font-semibold ${
-                                  team.avg_defense_rating >= 7 ? 'text-green-600' :
-                                  team.avg_defense_rating >= 5 ? 'text-yellow-600' : 'text-red-600'
-                                }`}>
-                                  {team.avg_defense_rating}/10
-                                </span>
-                              </td>
-                              <td className="p-2 md:p-3">
-                                <span className="font-semibold text-green-600">{team.best_score}</span>
-                              </td>
-                              <td className="p-2 md:p-3">
-                                <span className={`font-semibold ${
-                                  team.consistency_score >= 80 ? 'text-green-600' :
-                                  team.consistency_score >= 60 ? 'text-yellow-600' : 'text-red-600'
-                                }`}>
-                                  {team.consistency_score}%
-                                </span>
-                              </td>
-                              <td className="p-2 md:p-3">
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
+                                <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                                  <div
+                                    className="bg-yellow-500 h-full rounded-full shadow-[0_0_8px_rgba(234,179,8,0.5)]"
+                                    style={{ width: `${(team.avg_defense_rating / 10) * 100}%` }}
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <div className="flex justify-between text-[10px] mb-1">
+                                  <span className="text-muted-foreground uppercase tracking-wider">Consistency</span>
+                                  <span className="font-bold">{team.consistency_score}%</span>
+                                </div>
+                                <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                                  <div
+                                    className="bg-purple-500 h-full rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]"
+                                    style={{ width: `${team.consistency_score}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2 pt-2 border-t border-white/5">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setViewMode('individual');
+                                  setSelectedTeam(team.team_number);
+                                }}
+                                className="flex-1 text-xs glass border-white/10 h-9"
+                              >
+                                View Forms
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(`/team/${team.team_number}`, '_blank');
+                                }}
+                                className="flex-1 text-xs h-9 shadow-lg shadow-primary/20"
+                              >
+                                Team Details
+                              </Button>
+                            </div>
+                          </motion.div>
+                        ))}
+                    </div>
+
+                    {/* Desktop Table View */}
+                    <div className="hidden lg:block overflow-x-auto scrollbar-hide">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="border-b border-white/5 text-muted-foreground font-medium uppercase tracking-wider text-[10px]">
+                            <th className="text-left p-4">Team Name</th>
+                            <th className="text-left p-4">Matches</th>
+                            <th className="text-left p-4">Avg Score</th>
+                            <th className="text-left p-4">Auto</th>
+                            <th className="text-left p-4">Teleop</th>
+                            <th className="text-left p-4 text-[9px]">Auto Cleansing</th>
+                            <th className="text-left p-4 text-[9px]">Teleop Cleansing</th>
+                            <th className="text-left p-4">Defense</th>
+                            <th className="text-left p-4">Best</th>
+                            <th className="text-left p-4">Consistency</th>
+                            <th className="text-right p-4">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {teamStats
+                            .filter(team =>
+                              searchTerm === '' ||
+                              team.team_number.toString().includes(searchTerm) ||
+                              team.team_name.toLowerCase().includes(searchTerm.toLowerCase())
+                            )
+                            .map((team, index) => (
+                              <motion.tr
+                                key={team.team_number}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                                className="border-b border-white/5 hover:bg-white/5 cursor-pointer transition-colors group"
+                                onClick={() => setSelectedTeamDetails(team.team_number)}
+                              >
+                                <td className="p-4">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="bg-blue-500/10 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                                      <Users className="w-4 h-4 text-blue-400" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="font-bold text-foreground">{team.team_name}</span>
+                                      <span className="text-xs text-muted-foreground font-mono">#{team.team_number}</span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="p-4 text-foreground font-medium">{team.total_matches}</td>
+                                <td className="p-4">
+                                  <span className="font-bold text-primary text-lg">{team.avg_total_score}</span>
+                                </td>
+                                <td className="p-4 text-blue-400 font-semibold">{team.avg_autonomous_points}</td>
+                                <td className="p-4 text-orange-400 font-semibold">{team.avg_teleop_points}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{team.avg_autonomous_cleansing}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{team.avg_teleop_cleansing}</td>
+                                <td className="p-4">
+                                  <Badge
                                     variant="outline"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setViewMode('individual');
-                                      setSelectedTeam(team.team_number);
-                                    }}
-                                    className="text-xs"
+                                    className={cn(
+                                      "px-2 py-0.5",
+                                      team.avg_defense_rating >= 7 ? "text-green-400 border-green-500/20 bg-green-500/5 shadow-[0_0_8px_rgba(34,197,94,0.1)]" :
+                                        team.avg_defense_rating >= 5 ? "text-yellow-400 border-yellow-500/20 bg-yellow-500/5" :
+                                          "text-red-400 border-red-500/20 bg-red-500/5"
+                                    )}
                                   >
-                                    View Forms
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      window.open(`/team/${team.team_number}`, '_blank');
-                                    }}
-                                    className="text-xs"
-                                  >
-                                    Team Details
-                                  </Button>
-                                </div>
-                              </td>
-                            </motion.tr>
-                          ))}
-                      </tbody>
-                    </table>
+                                    {team.avg_defense_rating}/10
+                                  </Badge>
+                                </td>
+                                <td className="p-4 text-green-400 font-bold">{team.best_score}</td>
+                                <td className="p-4">
+                                  <div className="flex items-center gap-2">
+                                    <span className={cn(
+                                      "font-bold",
+                                      team.consistency_score >= 80 ? 'text-green-400' :
+                                        team.consistency_score >= 60 ? 'text-yellow-400' : 'text-red-400'
+                                    )}>
+                                      {team.consistency_score}%
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="p-4 text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setViewMode('individual');
+                                        setSelectedTeam(team.team_number);
+                                      }}
+                                      className="h-8 w-8 p-0 hover:bg-white/10"
+                                      title="View Individual Forms"
+                                    >
+                                      <Database className="w-4 h-4 text-muted-foreground" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(`/team/${team.team_number}`, '_blank');
+                                      }}
+                                      className="h-8 w-8 p-0 hover:bg-white/10"
+                                      title="Detailed Analysis"
+                                    >
+                                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </motion.tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 ) : (
                   // Individual Forms View
-                  <div>
-                    <div className="overflow-x-auto scrollbar-hide">
-                      <table className="w-full border-collapse min-w-[800px]">
+                  <div className="space-y-4">
+                    {/* Mobile Card View for Individual Forms */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:hidden gap-4">
+                      {sortedData.map((data, index) => (
+                        <motion.div
+                          key={data.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="glass-card p-5 rounded-2xl border border-white/5 hover:border-primary/20 transition-all"
+                        >
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="flex-1 min-w-0 pr-2">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="text-base font-bold text-foreground truncate">{getTeamName(data.team_number)}</h3>
+                                <Badge variant="outline" className="text-[10px] font-mono">#{data.team_number}</Badge>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant={data.alliance_color === 'red' ? 'destructive' : 'default'}
+                                  className="text-[9px] px-1.5 py-0 uppercase tracking-widest h-4"
+                                >
+                                  {data.alliance_color}
+                                </Badge>
+                                <span className="text-[10px] text-muted-foreground font-mono">Match {data.match_id}</span>
+                              </div>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-widest block">Total</span>
+                              <span className="text-2xl font-bold text-primary">{data.final_score}</span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div className="bg-white/5 p-2 rounded-xl text-center border border-white/5">
+                              <span className="text-[9px] text-muted-foreground uppercase block mb-0.5">Auto</span>
+                              <span className="text-sm font-bold text-blue-400">{data.autonomous_points}</span>
+                            </div>
+                            <div className="bg-white/5 p-2 rounded-xl text-center border border-white/5">
+                              <span className="text-[9px] text-muted-foreground uppercase block mb-0.5">Teleop</span>
+                              <span className="text-sm font-bold text-orange-400">{data.teleop_points}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between mb-4 px-1">
+                            <div className="flex items-center gap-1.5">
+                              <Shield className="w-3 h-3 text-red-400" />
+                              <span className="text-xs font-semibold">{data.defense_rating}/10</span>
+                            </div>
+                            <div className="h-1 flex-1 mx-3 bg-white/5 rounded-full overflow-hidden">
+                              <div
+                                className="bg-red-500 h-full rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]"
+                                style={{ width: `${(data.defense_rating / 10) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {data.comments && (
+                            <div className="bg-white/5 p-3 rounded-xl mb-4 italic text-xs text-muted-foreground border border-white/5 line-clamp-2">
+                              "{data.comments}"
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between pt-3 border-t border-white/5 text-[10px] text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <User className="w-2.5 h-2.5" />
+                              {getUploaderName(data)}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-2.5 h-2.5" />
+                              {new Date(data.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    {/* Desktop Table View */}
+                    <div className="hidden lg:block overflow-x-auto scrollbar-hide">
+                      <table className="w-full border-collapse">
                         <thead>
-                          <tr className="border-b">
-                            <th 
-                              className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
-                              onClick={() => handleSort('team_number')}
-                            >
-                              <div className="flex items-center gap-1 md:gap-2">
-                                Team Name
-                                {sortField === 'team_number' && (
-                                  <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                              </div>
+                          <tr className="border-b border-white/5 text-muted-foreground font-medium uppercase tracking-wider text-[10px]">
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground transition-all" onClick={() => handleSort('team_number')}>
+                              Team {sortField === 'team_number' && (sortDirection === 'asc' ? '↑' : '↓')}
                             </th>
-                            <th 
-                              className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
-                              onClick={() => handleSort('match_id')}
-                            >
-                              <div className="flex items-center gap-1 md:gap-2">
-                                Match
-                                {sortField === 'match_id' && (
-                                  <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                              </div>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground transition-all" onClick={() => handleSort('match_id')}>
+                              Match {sortField === 'match_id' && (sortDirection === 'asc' ? '↑' : '↓')}
                             </th>
-                            <th className="text-left p-2 md:p-3 text-xs md:text-sm">Alliance</th>
-                            <th 
-                              className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
-                              onClick={() => handleSort('autonomous_points')}
-                            >
-                              <div className="flex items-center gap-1 md:gap-2">
-                                Auto
-                                {sortField === 'autonomous_points' && (
-                                  <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                              </div>
+                            <th className="text-left p-4">Alliance</th>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground transition-all" onClick={() => handleSort('autonomous_points')}>
+                              Auto {sortField === 'autonomous_points' && (sortDirection === 'asc' ? '↑' : '↓')}
                             </th>
-                            <th 
-                              className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
-                              onClick={() => handleSort('teleop_points')}
-                            >
-                              <div className="flex items-center gap-1 md:gap-2">
-                                Teleop
-                                {sortField === 'teleop_points' && (
-                                  <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                              </div>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground transition-all" onClick={() => handleSort('teleop_points')}>
+                              Teleop {sortField === 'teleop_points' && (sortDirection === 'asc' ? '↑' : '↓')}
                             </th>
-                            <th 
-                              className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
-                              onClick={() => handleSort('final_score')}
-                            >
-                              <div className="flex items-center gap-1 md:gap-2">
-                                Total
-                                {sortField === 'final_score' && (
-                                  <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                              </div>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground transition-all" onClick={() => handleSort('final_score')}>
+                              Total {sortField === 'final_score' && (sortDirection === 'asc' ? '↑' : '↓')}
                             </th>
-                            <th 
-                              className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
-                              onClick={() => handleSort('defense_rating')}
-                            >
-                              <div className="flex items-center gap-1 md:gap-2">
-                                Defense
-                                {sortField === 'defense_rating' && (
-                                  <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                              </div>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground transition-all" onClick={() => handleSort('defense_rating')}>
+                              Defense {sortField === 'defense_rating' && (sortDirection === 'asc' ? '↑' : '↓')}
                             </th>
                             {showUploaderInfo && (
                               <>
-                                <th className="text-left p-2 md:p-3 text-xs md:text-sm">Uploaded By</th>
-                                <th 
-                                  className="text-left p-2 md:p-3 cursor-pointer hover:bg-muted/50 text-xs md:text-sm"
-                                  onClick={() => handleSort('created_at')}
-                                >
-                                  <div className="flex items-center gap-1 md:gap-2">
-                                    Date
-                                    {sortField === 'created_at' && (
-                                      <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                                    )}
-                                  </div>
+                                <th className="text-left p-4">Uploaded By</th>
+                                <th className="text-left p-4 cursor-pointer hover:text-foreground transition-all" onClick={() => handleSort('created_at')}>
+                                  Date {sortField === 'created_at' && (sortDirection === 'asc' ? '↑' : '↓')}
                                 </th>
                               </>
                             )}
-                            <th className="text-left p-2 md:p-3 text-xs md:text-sm">Comments</th>
-                            <th className="text-left p-2 md:p-3 text-xs md:text-sm">Details</th>
+                            <th className="text-left p-4">Comments</th>
+                            <th className="text-left p-4">Details</th>
                             {isAdmin && (
-                              <th className="text-left p-2 md:p-3 text-xs md:text-sm">
+                              <th className="text-left p-4">
                                 <div className="flex items-center space-x-2">
                                   <span>Actions</span>
                                   <Shield className="w-4 h-4 text-yellow-500" />
@@ -745,206 +894,174 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                         </thead>
                         <tbody>
                           {sortedData.map((data, index) => (
-                            <>
-                            <motion.tr
-                              key={data.id}
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.3, delay: index * 0.05 }}
-                              className="border-b hover:bg-muted/50"
-                            >
-                              <td className="p-2 md:p-3">
-                                <div className="flex items-center gap-1 md:gap-2 min-w-0">
-                                  <span 
-                                    className="font-medium text-xs md:text-sm text-foreground cursor-pointer hover:text-primary transition-colors truncate max-w-[100px] sm:max-w-none"
-                                    onClick={() => window.open(`/team/${data.team_number}`, '_blank')}
-                                  >
-                                    {getTeamName(data.team_number)}
-                                  </span>
-                                  <Badge 
-                                    variant="outline" 
-                                    className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors flex-shrink-0"
-                                    onClick={() => window.open(`/team/${data.team_number}`, '_blank')}
-                                  >
-                                    {data.team_number}
-                                  </Badge>
-                                </div>
-                              </td>
-                              <td className="p-2 md:p-3 font-mono text-xs md:text-sm">{data.match_id}</td>
-                              <td className="p-2 md:p-3">
-                                <Badge 
-                                  variant={data.alliance_color === 'red' ? 'destructive' : 'default'}
-                                  className="text-xs"
-                                >
-                                  {data.alliance_color.toUpperCase()}
-                                </Badge>
-                              </td>
-                              <td className="p-2 md:p-3 font-semibold text-primary text-xs md:text-sm">{data.autonomous_points}</td>
-                              <td className="p-2 md:p-3 font-semibold text-secondary text-xs md:text-sm">{data.teleop_points}</td>
-                              <td className="p-2 md:p-3 font-bold text-sm md:text-lg text-primary">{data.final_score}</td>
-                              <td className="p-2 md:p-3">
-                                <div className="flex items-center gap-1">
-                                  {[...Array(10)].map((_, i) => (
-                                    <div
-                                      key={i}
-                                      className={`w-1 h-1 md:w-1.5 md:h-1.5 rounded-full ${
-                                        i < data.defense_rating ? 'bg-warning' : 'bg-muted'
-                                      }`}
-                                    />
-                                  ))}
-                                  <span className="ml-1 md:ml-2 text-xs md:text-sm">{data.defense_rating}/10</span>
-                                </div>
-                              </td>
-                              {showUploaderInfo && (
-                                <>
-                                  <td className="p-2 md:p-3">
-                                    <div className="flex items-center gap-1 md:gap-2">
-                                      <User className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
-                                      <span className="text-xs md:text-sm font-medium text-foreground">{getUploaderName(data)}</span>
-                                    </div>
-                                  </td>
-                                  <td className="p-2 md:p-3">
-                                    <div className="flex items-center gap-1 md:gap-2">
-                                      <Calendar className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
-                                      <span className="text-xs md:text-sm">
-                                        {new Date(data.created_at).toLocaleDateString()}
-                                      </span>
-                                    </div>
-                                  </td>
-                                </>
-                              )}
-                              <td className="p-2 md:p-3 max-w-[150px] sm:max-w-xs">
-                                <div className="text-xs md:text-sm text-muted-foreground truncate" title={data.comments}>
-                                  {data.comments || '-'}
-                                </div>
-                              </td>
-                              <td className="p-2 md:p-3">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => toggleRowExpansion(data.id)}
-                                  className="text-xs"
-                                >
-                                  <Eye className="h-3 w-3 mr-1" />
-                                  {expandedRows.has(data.id) ? 'Hide' : 'Show'} Details
-                                </Button>
-                              </td>
-                              {isAdmin && (
-                                <td className="p-2 md:p-3">
-                                  <div className="flex items-center space-x-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="bg-red-600 border-red-600 text-white hover:bg-red-700 text-xs"
-                                      onClick={() => handleDelete(data)}
-                                    >
-                                      <Trash2 className="h-3 w-3 mr-1" />
-                                      Delete
-                                    </Button>
+                            <React.Fragment key={data.id}>
+                              <motion.tr
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3, delay: index * 0.05 }}
+                                className="border-b border-white/5 hover:bg-white/5 group transition-colors"
+                              >
+                                <td className="p-4">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-foreground">{getTeamName(data.team_number)}</span>
+                                    <Badge variant="outline" className="font-mono text-[10px]">#{data.team_number}</Badge>
                                   </div>
                                 </td>
-                              )}
-                            </motion.tr>
-                            {/* Expanded Details Row */}
-                            {expandedRows.has(data.id) && (
-                              <motion.tr
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="bg-muted/20"
-                              >
-                                <td colSpan={showUploaderInfo ? (isAdmin ? 12 : 11) : (isAdmin ? 10 : 9)} className="p-4">
-                                  <div className="space-y-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                      <h4 className="font-semibold text-sm">Detailed Form Data</h4>
-                                      {showUploaderInfo && (
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                          <User className="w-3 h-3" />
-                                          <span>Uploaded by: <span className="font-medium text-foreground">{getUploaderName(data)}</span></span>
-                                        </div>
-                                      )}
+                                <td className="p-4 font-mono font-bold text-primary">{data.match_id}</td>
+                                <td className="p-4">
+                                  <Badge
+                                    variant={data.alliance_color === 'red' ? 'destructive' : 'default'}
+                                    className="uppercase text-[9px] tracking-widest"
+                                  >
+                                    {data.alliance_color}
+                                  </Badge>
+                                </td>
+                                <td className="p-4 text-blue-400 font-bold">{data.autonomous_points}</td>
+                                <td className="p-4 text-orange-400 font-bold">{data.teleop_points}</td>
+                                <td className="p-4">
+                                  <span className="text-xl font-black text-foreground">{data.final_score}</span>
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex gap-0.5">
+                                      {[...Array(10)].map((_, i) => (
+                                        <div
+                                          key={i}
+                                          className={cn(
+                                            "w-1 h-3 rounded-full",
+                                            i < data.defense_rating ? 'bg-red-500' : 'bg-white/5'
+                                          )}
+                                        />
+                                      ))}
                                     </div>
-                                    {(() => {
-                                      const formNotes = parseFormNotes(data.notes);
-                                      return (
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                          {/* Autonomous Details */}
-                                          <div className="bg-background p-3 rounded-lg border">
-                                            <h5 className="font-medium text-sm mb-2 text-blue-600">Autonomous Period (First 20 seconds)</h5>
-                                            <div className="space-y-1 text-xs">
-                                              <div className="flex justify-between">
-                                                <span>FUEL in Active HUB:</span>
-                                                <span className="font-medium">{formNotes.autonomous.auto_fuel_active_hub || 0} FUEL</span>
-                                              </div>
-                                              <div className="flex justify-between">
-                                                <span>TOWER LEVEL 1 Climb:</span>
-                                                <span className="font-medium">{formNotes.autonomous.auto_tower_level1 ? 'Yes (15 pts)' : 'No'}</span>
-                                              </div>
-                                            </div>
-                                          </div>
-
-                                          {/* Teleop Details */}
-                                          <div className="bg-background p-3 rounded-lg border">
-                                            <h5 className="font-medium text-sm mb-2 text-green-600">Teleop Period (Last 2:20)</h5>
-                                            <div className="space-y-1 text-xs">
-                                              <div className="flex justify-between">
-                                                <span>Total FUEL:</span>
-                                                <span className="font-medium">{formNotes.teleop.teleop_fuel_active_hub || 0} FUEL</span>
-                                              </div>
-                                              {formNotes.teleop.teleop_fuel_shifts && Array.isArray(formNotes.teleop.teleop_fuel_shifts) && formNotes.teleop.teleop_fuel_shifts.length > 0 && (
-                                                <div className="mt-2 pt-2 border-t border-border">
-                                                  <div className="text-xs font-semibold mb-1">Fuel Shifts:</div>
-                                                  <div className="space-y-1">
-                                                    {formNotes.teleop.teleop_fuel_shifts.map((shiftFuel: number, shiftIndex: number) => (
-                                                      <div key={shiftIndex} className="flex justify-between pl-2">
-                                                        <span>Shift {shiftIndex + 1}:</span>
-                                                        <span className="font-medium">{shiftFuel} FUEL ({shiftFuel} pts)</span>
-                                                      </div>
-                                                    ))}
-                                                  </div>
-                                                </div>
-                                              )}
-                                              <div className="flex justify-between">
-                                                <span>TOWER LEVEL 1:</span>
-                                                <span className="font-medium">{formNotes.teleop.teleop_tower_level1 ? 'Yes (10 pts)' : 'No'}</span>
-                                              </div>
-                                              <div className="flex justify-between">
-                                                <span>TOWER LEVEL 2:</span>
-                                                <span className="font-medium">{formNotes.teleop.teleop_tower_level2 ? 'Yes (20 pts)' : 'No'}</span>
-                                              </div>
-                                              <div className="flex justify-between">
-                                                <span>TOWER LEVEL 3:</span>
-                                                <span className="font-medium">{formNotes.teleop.teleop_tower_level3 ? 'Yes (30 pts)' : 'No'}</span>
-                                              </div>
-                                            </div>
-                                          </div>
-
-                                          {/* Additional Details */}
-                                          <div className="bg-background p-3 rounded-lg border">
-                                            <h5 className="font-medium text-sm mb-2 text-orange-600">Additional Details</h5>
-                                            <div className="space-y-1 text-xs">
-                                              <div className="flex justify-between">
-                                                <span>Defense Rating:</span>
-                                                <span className="font-medium">{data.defense_rating}/10</span>
-                                              </div>
-                                              {data.comments && (
-                                                <div className="mt-2 pt-2 border-t">
-                                                  <div className="text-xs">
-                                                    <span className="font-medium">Comments:</span>
-                                                    <p className="mt-1 text-muted-foreground">{data.comments}</p>
-                                                  </div>
-                                                </div>
-                                              )}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      );
-                                    })()}
+                                    <span className="text-xs font-bold text-muted-foreground">{data.defense_rating}</span>
+                                  </div>
+                                </td>
+                                {showUploaderInfo && (
+                                  <td className="p-4">
+                                    <div className="flex flex-col gap-1">
+                                      <div className="flex items-center gap-2">
+                                        <User className="w-3 h-3 text-primary" />
+                                        <span className="text-xs font-medium text-muted-foreground truncate max-w-[80px]">{getUploaderName(data)}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2 opacity-60">
+                                        <Calendar className="w-3 h-3 text-muted-foreground" />
+                                        <span className="text-[10px] font-medium text-muted-foreground">{new Date(data.created_at).toLocaleDateString()}</span>
+                                      </div>
+                                    </div>
+                                  </td>
+                                )}
+                                <td className="p-4">
+                                  <div className="max-w-[150px] truncate italic text-xs text-muted-foreground" title={data.comments}>
+                                    {data.comments || '-'}
+                                  </div>
+                                </td>
+                                <td className="p-4 text-right">
+                                  <div className="flex justify-end gap-1">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-white/10"
+                                      onClick={() => toggleRowExpansion(data.id)}
+                                    >
+                                      {expandedRows.has(data.id) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </Button>
+                                    {isAdmin && (
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-white/10"
+                                        onClick={() => handleDelete(data)}
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    )}
                                   </div>
                                 </td>
                               </motion.tr>
-                            )}
-                          </>
+                              {/* Expanded Details Row */}
+                              <AnimatePresence>
+                                {expandedRows.has(data.id) && (
+                                  <motion.tr
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="bg-white/[0.02] border-b border-white/5 overflow-hidden"
+                                  >
+                                    <td colSpan={isAdmin ? 12 : 11} className="p-6">
+                                      {(() => {
+                                        const formNotes = parseFormNotes(data.notes);
+                                        return (
+                                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                            <div className="space-y-4">
+                                              <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                                                <Target className="w-3 h-3" /> Autonomous Period
+                                              </h4>
+                                              <div className="grid grid-cols-2 gap-3">
+                                                <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Active Hub</span>
+                                                  <div className="text-xl font-bold text-blue-400">{formNotes.autonomous.auto_fuel_active_hub || 0} FUEL</div>
+                                                </div>
+                                                <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Level 1 Climb</span>
+                                                  <div className="flex items-center gap-2 mt-1">
+                                                    {formNotes.autonomous.auto_tower_level1 ? (
+                                                      <Badge className="bg-green-500/20 text-green-400 border-green-500/20 text-[10px]">SUCCESS</Badge>
+                                                    ) : (
+                                                      <Badge variant="outline" className="text-[10px] opacity-40">NONE</Badge>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                              <h4 className="text-xs font-bold text-orange-400 uppercase tracking-widest flex items-center gap-2">
+                                                <TrendingUp className="w-3 h-3" /> Teleop & Strategy
+                                              </h4>
+                                              <div className="space-y-2">
+                                                <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                  <span className="text-xs text-muted-foreground">Tower Level 1</span>
+                                                  {formNotes.teleop.teleop_tower_level1 ? <CheckCircle className="w-4 h-4 text-green-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/20" />}
+                                                </div>
+                                                <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                  <span className="text-xs text-muted-foreground">Tower Level 2</span>
+                                                  {formNotes.teleop.teleop_tower_level2 ? <CheckCircle className="w-4 h-4 text-green-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/20" />}
+                                                </div>
+                                                <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                  <span className="text-xs text-muted-foreground font-bold text-white">Tower Level 3</span>
+                                                  {formNotes.teleop.teleop_tower_level3 ? <Award className="w-5 h-5 text-yellow-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/20" />}
+                                                </div>
+                                              </div>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                                <Activity className="w-3 h-3" /> Individual Metrics
+                                              </h4>
+                                              <div className="grid grid-cols-1 gap-3">
+                                                <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                                                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block mb-2">Teleop Scoring Intensity</span>
+                                                  <div className="flex flex-wrap gap-1.5">
+                                                    {(formNotes.teleop.teleop_fuel_shifts || []).length > 0 ? (
+                                                      formNotes.teleop.teleop_fuel_shifts.map((shift: number, i: number) => (
+                                                        <Badge key={i} variant="secondary" className="bg-white/10 text-white border-white/10 text-[10px]">{shift} pts</Badge>
+                                                      ))
+                                                    ) : (
+                                                      <span className="text-xs text-muted-foreground opacity-40">No specific scoring intervals recorded</span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        );
+                                      })()}
+                                    </td>
+                                  </motion.tr>
+                                )}
+                              </AnimatePresence>
+                            </React.Fragment>
                           ))}
                         </tbody>
                       </table>
@@ -954,7 +1071,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                         <Database className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-foreground mb-2">No Data Found</h3>
                         <p className="text-muted-foreground">
-                          {searchTerm || selectedTeam 
+                          {searchTerm || selectedTeam
                             ? 'Try adjusting your filters to see more results.'
                             : 'No scouting data has been uploaded yet.'
                           }

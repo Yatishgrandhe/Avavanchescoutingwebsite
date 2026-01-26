@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { supabase } from '@/lib/supabase';
 
 interface PitScoutingData {
   id: string;
@@ -56,7 +55,7 @@ interface PitScoutingData {
 }
 
 export default function PitScoutingDetails() {
-  const { user, loading } = useSupabase();
+  const { user, loading, supabase } = useSupabase();
   const router = useRouter();
   const { id } = router.query;
   const [pitData, setPitData] = useState<PitScoutingData | null>(null);

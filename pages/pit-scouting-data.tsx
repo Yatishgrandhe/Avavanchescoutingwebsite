@@ -32,7 +32,6 @@ import {
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { supabase } from '@/lib/supabase';
 import { useAdmin } from '@/hooks/use-admin';
 
 interface PitScoutingData {
@@ -70,7 +69,7 @@ interface PitScoutingData {
 }
 
 export default function PitScoutingData() {
-  const { user, loading } = useSupabase();
+  const { user, loading, supabase } = useSupabase();
   const { isAdmin } = useAdmin();
   const router = useRouter();
   const [pitData, setPitData] = useState<PitScoutingData[]>([]);

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useSupabase } from '@/pages/_app';
-import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui';
 import { Button } from '../components/ui';
@@ -57,7 +56,7 @@ interface FormData {
 }
 
 export default function MobileScout() {
-  const { user, loading } = useSupabase();
+  const { user, loading, supabase } = useSupabase();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [isSubmitting, setIsSubmitting] = useState(false);

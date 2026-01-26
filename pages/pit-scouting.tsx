@@ -20,7 +20,6 @@ import {
   Ruler,
   Target
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, ValidationResult } from '@/lib/form-validation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -58,7 +57,7 @@ interface PitScoutingData {
 }
 
 export default function PitScouting() {
-  const { user, loading } = useSupabase();
+  const { user, loading, supabase } = useSupabase();
   const router = useRouter();
   const { id, edit } = router.query;
   const [currentStep, setCurrentStep] = useState(1);

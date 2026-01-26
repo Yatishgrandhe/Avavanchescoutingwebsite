@@ -17,7 +17,6 @@ import {
   Home,
   Menu
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/router';
 import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, ValidationResult } from '@/lib/form-validation';
 
@@ -56,7 +55,7 @@ interface PitScoutingData {
 }
 
 export default function PitScoutingMobile() {
-  const { user, loading } = useSupabase();
+  const { user, loading, supabase } = useSupabase();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [teams, setTeams] = useState<Team[]>([]);

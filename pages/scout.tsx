@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useSupabase } from '@/pages/_app';
-import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui';
 import { Button } from '../components/ui';
@@ -59,7 +58,7 @@ interface FormData {
 }
 
 export default function Scout() {
-  const { user, loading } = useSupabase();
+  const { user, loading, supabase } = useSupabase();
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData>({

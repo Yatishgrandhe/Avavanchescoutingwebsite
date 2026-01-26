@@ -265,6 +265,16 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     });
   }, [filteredData, sortField, sortDirection]);
 
+  const filteredTeamStats = useMemo(() => {
+    return teamStats.filter(team => {
+      const matchesSearch = searchTerm === '' ||
+        team.team_number.toString().includes(searchTerm) ||
+        team.team_name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTeam = selectedTeam === null || team.team_number === selectedTeam;
+      return matchesSearch && matchesTeam;
+    });
+  }, [teamStats, searchTerm, selectedTeam]);
+
   const handleSort = (field: keyof ScoutingData) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -488,7 +498,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
                   <div className="text-center">
                     <div className="text-xl md:text-2xl font-bold text-primary">
-                      {viewMode === 'teams' ? teamStats.length : sortedData.length}
+                      {viewMode === 'teams' ? filteredTeamStats.length : sortedData.length}
                     </div>
                     <div className="text-xs md:text-sm text-muted-foreground">
                       {viewMode === 'teams' ? 'Teams with Data' : 'Total Records'}
@@ -497,7 +507,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                   <div className="text-center">
                     <div className="text-xl md:text-2xl font-bold text-secondary">
                       {viewMode === 'teams'
-                        ? Math.round(teamStats.reduce((sum, t) => sum + t.avg_total_score, 0) / teamStats.length) || 0
+                        ? Math.round(filteredTeamStats.reduce((sum, t) => sum + t.avg_total_score, 0) / filteredTeamStats.length) || 0
                         : new Set(sortedData.map(d => d.team_number)).size
                       }
                     </div>
@@ -508,7 +518,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                   <div className="text-center">
                     <div className="text-xl md:text-2xl font-bold text-warning">
                       {viewMode === 'teams'
-                        ? Math.round(teamStats.reduce((sum, t) => sum + t.avg_defense_rating, 0) / teamStats.length) || 0
+                        ? Math.round(filteredTeamStats.reduce((sum, t) => sum + t.avg_defense_rating, 0) / filteredTeamStats.length) || 0
                         : Math.round(sortedData.reduce((sum, d) => sum + d.final_score, 0) / sortedData.length) || 0
                       }
                     </div>
@@ -519,7 +529,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                   <div className="text-center">
                     <div className="text-xl md:text-2xl font-bold text-success">
                       {viewMode === 'teams'
-                        ? Math.round(teamStats.reduce((sum, t) => sum + t.consistency_score, 0) / teamStats.length) || 0
+                        ? Math.round(filteredTeamStats.reduce((sum, t) => sum + t.consistency_score, 0) / filteredTeamStats.length) || 0
                         : Math.round(sortedData.reduce((sum, d) => sum + d.defense_rating, 0) / sortedData.length) || 0
                       }
                     </div>
@@ -543,7 +553,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                 <CardTitle className="flex items-center gap-2">
                   <FileSpreadsheet className="w-5 h-5" />
                   {viewMode === 'teams'
-                    ? `Team Statistics (${teamStats.length} teams)`
+                    ? `Team Statistics (${filteredTeamStats.length} teams)`
                     : `Scouting Data (${sortedData.length} records)`
                   }
                 </CardTitle>
@@ -554,12 +564,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                   <div className="space-y-4">
                     {/* Mobile Card View for Team Stats */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:hidden gap-4">
-                      {teamStats
-                        .filter(team =>
-                          searchTerm === '' ||
-                          team.team_number.toString().includes(searchTerm) ||
-                          team.team_name.toLowerCase().includes(searchTerm.toLowerCase())
-                        )
+                      {filteredTeamStats
                         .map((team, index) => (
                           <motion.div
                             key={team.team_number}
@@ -675,12 +680,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {teamStats
-                            .filter(team =>
-                              searchTerm === '' ||
-                              team.team_number.toString().includes(searchTerm) ||
-                              team.team_name.toLowerCase().includes(searchTerm.toLowerCase())
-                            )
+                          {filteredTeamStats
                             .map((team, index) => (
                               <motion.tr
                                 key={team.team_number}

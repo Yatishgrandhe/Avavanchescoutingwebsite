@@ -559,6 +559,7 @@ export default function PitScouting() {
                       <RobotImageUpload
                         ref={robotImageUploadRef}
                         teamNumber={formData.teamNumber}
+                        teamName={teams.find(t => t.team_number === formData.teamNumber)?.team_name || 'Unknown'}
                         currentImageUrl={formData.robotImageUrl}
                         onImageUploaded={(url) => setFormData(prev => ({ ...prev, robotImageUrl: url }))}
                       />

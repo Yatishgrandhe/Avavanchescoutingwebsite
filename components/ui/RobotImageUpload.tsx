@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 
 interface RobotImageUploadProps {
     teamNumber: number;
+    teamName: string;
     onImageUploaded: (imageUrl: string | null) => void;
     currentImageUrl?: string | null;
     className?: string;
@@ -19,6 +20,7 @@ export interface RobotImageUploadRef {
 
 export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUploadProps>(({
     teamNumber,
+    teamName,
     onImageUploaded,
     currentImageUrl,
     className,
@@ -121,6 +123,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             const formData = new FormData();
             formData.append('image', selectedFile);
             formData.append('teamNumber', teamNumber.toString());
+            formData.append('teamName', teamName);
 
             console.log('[RobotImageUpload] Sending file to /api/upload-robot-image');
             const response = await fetch('/api/upload-robot-image', {
@@ -180,7 +183,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             // Secondary checks: isNewFileSelected flag OR data URL preview (for edge cases)
             const hasSelectedFile = selectedFile !== null;
             const hasDataUrlPreview = Boolean(preview && preview.startsWith('data:'));
-            
+
             // If selectedFile exists, we should upload it (defensive check)
             // The isNewFileSelected flag helps, but selectedFile is the source of truth
             const shouldUpload = hasSelectedFile || (hasDataUrlPreview && !currentImageUrl);

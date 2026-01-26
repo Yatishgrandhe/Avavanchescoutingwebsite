@@ -301,13 +301,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        // Create filename: team_XXXX_robot_TIMESTAMP.ext
+        const teamNameField = Array.isArray(fields.teamName) ? fields.teamName[0] : fields.teamName;
+        const teamName = teamNameField || 'Unknown';
+
+        // Create filename: team_XXXX_TeamName_YYYY-MM-DD_TIMESTAMP.ext
         const timestamp = Date.now();
+        const date = new Date().toISOString().split('T')[0];
+        const sanitizedTeamName = teamName.replace(/[^a-z0-9]/gi, '_');
         const extension = path.extname(imageFile.originalFilename || '.jpg');
-        const fileName = `team_${teamNumber}_robot_${timestamp}${extension}`;
+        const fileName = `team_${teamNumber}_${sanitizedTeamName}_${date}_${timestamp}${extension}`;
         const mimeType = imageFile.mimetype || 'image/jpeg';
 
-        console.log(`[API/upload-robot-image] Starting upload for team ${teamNumber}, file: ${fileName}, mimeType: ${mimeType}, size: ${imageFile.size} bytes`);
+        console.log(`[API/upload-robot-image] Starting upload for team ${teamNumber} (${teamName}), file: ${fileName}, mimeType: ${mimeType}, size: ${imageFile.size} bytes`);
 
         // Storage attempts
         let imageUrl: string | null = null;

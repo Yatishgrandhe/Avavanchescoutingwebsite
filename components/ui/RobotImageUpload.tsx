@@ -33,6 +33,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isNewFileSelected, setIsNewFileSelected] = useState(false); // Track if a new file was selected
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const cameraInputRef = useRef<HTMLInputElement>(null);
 
     // Sync preview with currentImageUrl when it changes (for edit mode)
     useEffect(() => {
@@ -216,15 +217,13 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
     };
 
     const handleCameraCapture = () => {
-        if (fileInputRef.current) {
-            fileInputRef.current.setAttribute('capture', 'environment');
-            fileInputRef.current.click();
+        if (cameraInputRef.current) {
+            cameraInputRef.current.click();
         }
     };
 
     const handleFileUpload = () => {
         if (fileInputRef.current) {
-            fileInputRef.current.removeAttribute('capture');
             fileInputRef.current.click();
         }
     };
@@ -236,11 +235,19 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
                 Robot Photo
             </label>
 
-            {/* Hidden file input */}
+            {/* Hidden inputs */}
             <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                onChange={handleInputChange}
+                className="hidden"
+            />
+            <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
                 onChange={handleInputChange}
                 className="hidden"
             />

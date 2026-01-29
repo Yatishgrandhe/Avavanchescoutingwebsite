@@ -629,7 +629,7 @@ export default function TeamComparison() {
                                 {(team.avg_shifts || [0, 0, 0, 0, 0]).map((avg, i) => (
                                   <div key={i} className="flex flex-col items-center bg-black/20 px-1 py-0.5 rounded border border-white/5 min-w-[24px]">
                                     <span className="text-[6px] text-muted-foreground font-bold">{i === 4 ? 'END' : `S${i + 1}`}</span>
-                                    <span className="text-[9px] font-bold text-blue-400">{avg}</span>
+                                    <span className="text-sm sm:text-lg font-bold text-blue-400">{avg}</span>
                                   </div>
                                 ))}
                               </div>

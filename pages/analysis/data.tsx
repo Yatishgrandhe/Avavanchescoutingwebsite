@@ -666,7 +666,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 {(team.avg_shifts || [0, 0, 0, 0, 0]).map((avg, i) => (
                                   <div key={i} className="flex flex-col items-center bg-black/30 p-1.5 rounded-lg border border-white/5">
                                     <span className="text-[7px] text-muted-foreground font-extrabold">{i === 4 ? 'END' : `S${i + 1}`}</span>
-                                    <span className="text-[11px] font-bold text-blue-400 leading-tight">{avg}</span>
+                                    <span className="text-sm sm:text-base font-bold text-blue-400 leading-tight">{avg}</span>
                                   </div>
                                 ))}
                               </div>
@@ -1097,8 +1097,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                                       <div key={i} className="flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/5 relative overflow-hidden group hover:border-blue-500/30 transition-all">
                                                         <div className="absolute top-0 inset-x-0 h-1 bg-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                         <span className="text-[8px] text-muted-foreground uppercase font-black mb-1.5">{i === 4 ? 'End Game' : `Shift ${i + 1}`}</span>
-                                                        <span className="text-lg font-black text-blue-400 leading-none">{shift}</span>
-                                                        <span className="text-[7px] text-muted-foreground mt-1 font-bold">PTS</span>
+                                                        <span className="text-2xl sm:text-4xl font-black text-blue-400 leading-none">{shift}</span>
+                                                        <span className="text-[10px] text-muted-foreground mt-1 font-bold">PTS</span>
                                                       </div>
                                                     ))}
                                                   </div>

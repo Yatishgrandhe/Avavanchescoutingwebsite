@@ -379,8 +379,8 @@ export default function AdvancedAnalysis() {
                   onChange={(e) => setSelectedTeam(parseInt(e.target.value) || null)}
                   disabled={teamsLoading || loading}
                   className={`flex-1 px-3 py-2 border rounded-md ${isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-background border-border text-foreground'
+                    ? 'bg-gray-700 border-gray-600 text-white'
+                    : 'bg-background border-border text-foreground'
                     } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 >
                   <option value="">
@@ -535,7 +535,7 @@ export default function AdvancedAnalysis() {
                           {teamStats.avg_shifts.map((avg, i) => (
                             <div key={i} className={`flex flex-col items-center p-2 rounded-lg border ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-gray-100 border-gray-200'}`}>
                               <span className="text-[7px] text-muted-foreground font-black mb-1 uppercase">{i === 4 ? 'END' : `S${i + 1}`}</span>
-                              <span className={`text-sm font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{avg}</span>
+                              <span className={`text-xl sm:text-2xl font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{avg}</span>
                             </div>
                           ))}
                         </div>

@@ -325,7 +325,7 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
               {[0, 1, 2, 3, 4].map((i) => (
                 <div key={i} className="flex flex-col items-center p-2 rounded-lg bg-white/5 border border-white/5 group hover:border-orange-500/30 transition-all">
                   <span className="text-[7px] text-muted-foreground uppercase font-black mb-1">{i === 4 ? 'END' : `S${i + 1}`}</span>
-                  <span className="text-sm font-black text-orange-400 leading-none">{shifts[i] || 0}</span>
+                  <span className="text-xl sm:text-2xl font-black text-orange-400 leading-none">{shifts[i] || 0}</span>
                 </div>
               ))}
             </div>

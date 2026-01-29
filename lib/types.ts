@@ -39,7 +39,7 @@ export interface ScoringNotes {
   // Autonomous Period (first 20 seconds)
   auto_fuel_active_hub: number;     // 1 pt per FUEL in active HUB
   auto_tower_level1: boolean;        // 15 pts per robot (LEVEL 1 climb)
-  
+
   // Teleop Period (last 2:20, especially last 0:30)
   teleop_fuel_active_hub: number;    // 1 pt per FUEL in active HUB (total of all shifts)
   teleop_fuel_shifts?: number[];     // Array of fuel counts for each shift
@@ -68,6 +68,7 @@ export interface TeamStats {
   avg_defense_rating: number;
   win_rate: number;
   consistency_score: number;
+  avg_shifts?: number[];
 }
 
 export interface AnalysisFilters {
@@ -80,7 +81,7 @@ export interface AnalysisFilters {
   alliance_color?: 'red' | 'blue';
 }
 
-export type ScoringElement = 
+export type ScoringElement =
   | 'auto_fuel_active_hub'
   | 'auto_tower_level1'
   | 'teleop_fuel_active_hub'

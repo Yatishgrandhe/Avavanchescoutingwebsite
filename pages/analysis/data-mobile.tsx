@@ -5,10 +5,10 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui';
 import { Button } from '../../components/ui';
 import { Input } from '../../components/ui';
 import { Badge } from '../../components/ui/badge';
-import { 
-  Database, 
-  Filter, 
-  Search, 
+import {
+  Database,
+  Filter,
+  Search,
   RefreshCw,
   User,
   Calendar,
@@ -22,7 +22,7 @@ import {
 import { ScoutingData, Team } from '@/lib/types';
 import { useRouter } from 'next/router';
 
-interface DataAnalysisProps {}
+interface DataAnalysisProps { }
 
 const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
   const { supabase, user } = useSupabase();
@@ -45,7 +45,7 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       // Load scouting data - includes submitted_by_name for uploader display
       // Fetch all data, then sort client-side by submitted_at (or created_at as fallback)
       const { data: scoutingDataResult, error: scoutingError } = await supabase
@@ -79,30 +79,30 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
   };
 
   const filteredData = scoutingData.filter(data => {
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch = searchTerm === '' ||
       data.team_number.toString().includes(searchTerm) ||
       data.match_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       data.comments.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesTeam = selectedTeam === null || data.team_number === selectedTeam;
-    
+
     return matchesSearch && matchesTeam;
   });
 
   const sortedData = [...filteredData].sort((a, b) => {
     const aValue = a[sortField];
     const bValue = b[sortField];
-    
+
     if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return sortDirection === 'asc' 
+      return sortDirection === 'asc'
         ? aValue.localeCompare(bValue)
         : bValue.localeCompare(aValue);
     }
-    
+
     if (typeof aValue === 'number' && typeof bValue === 'number') {
       return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
     }
-    
+
     return 0;
   });
 
@@ -129,6 +129,18 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
       return data.submitted_by_email;
     }
     return 'Unknown';
+  };
+
+  const parseFormNotes = (notes: any) => {
+    try {
+      const parsed = typeof notes === 'string' ? JSON.parse(notes) : notes;
+      const teleop = parsed.teleop || (parsed.teleop_fuel_active_hub ? parsed : null);
+      return {
+        teleop_fuel_shifts: teleop?.teleop_fuel_shifts || (teleop?.teleop_fuel_active_hub ? [teleop.teleop_fuel_active_hub] : []),
+      };
+    } catch (error) {
+      return { teleop_fuel_shifts: [] };
+    }
   };
 
   // Pagination
@@ -241,9 +253,9 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Refresh
                 </Button>
-                <Button 
-                  onClick={() => setShowUploaderInfo(!showUploaderInfo)} 
-                  variant="outline" 
+                <Button
+                  onClick={() => setShowUploaderInfo(!showUploaderInfo)}
+                  variant="outline"
                   size="sm"
                   className="flex-1"
                 >
@@ -303,7 +315,7 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
                 <Database className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">No Data Found</h3>
                 <p className="text-muted-foreground">
-                  {searchTerm || selectedTeam 
+                  {searchTerm || selectedTeam
                     ? 'Try adjusting your filters to see more results.'
                     : 'No scouting data has been uploaded yet.'
                   }
@@ -330,7 +342,7 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
                               {getTeamName(data.team_number)}
                             </span>
                           </div>
-                          <Badge 
+                          <Badge
                             variant={data.alliance_color === 'red' ? 'destructive' : 'default'}
                           >
                             {data.alliance_color.toUpperCase()}
@@ -352,7 +364,32 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
                             <div className="text-xs text-muted-foreground">Teleop</div>
                             <div className="font-semibold text-secondary">{data.teleop_points}</div>
                           </div>
+                          <div className="text-center">
+                            <div className="text-xs text-muted-foreground">Defense</div>
+                            <div className="font-semibold text-warning">{data.defense_rating}</div>
+                          </div>
                         </div>
+
+                        {/* Shifts Display */}
+                        {(() => {
+                          const notes = parseFormNotes(data.notes);
+                          const shifts = notes.teleop_fuel_shifts || [];
+                          if (shifts.length === 0) return null;
+
+                          return (
+                            <div className="bg-black/20 p-2 rounded-lg border border-white/5">
+                              <div className="text-[8px] text-muted-foreground uppercase font-bold text-center mb-1 text-orange-400/80">Teleop Scoring Intensity</div>
+                              <div className="grid grid-cols-5 gap-1">
+                                {[0, 1, 2, 3, 4].map((i) => (
+                                  <div key={i} className="flex flex-col items-center bg-black/30 p-1 rounded border border-white/5">
+                                    <span className="text-[6px] text-muted-foreground font-bold">{i === 4 ? 'END' : `S${i + 1}`}</span>
+                                    <span className="text-[10px] font-bold text-blue-400">{shifts[i] || 0}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
 
 
                         {/* Total Score */}
@@ -368,9 +405,8 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
                             {[...Array(10)].map((_, i) => (
                               <div
                                 key={i}
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                  i < data.defense_rating ? 'bg-warning' : 'bg-muted'
-                                }`}
+                                className={`w-1.5 h-1.5 rounded-full ${i < data.defense_rating ? 'bg-warning' : 'bg-muted'
+                                  }`}
                               />
                             ))}
                             <span className="ml-2 text-sm">{data.defense_rating}/10</span>

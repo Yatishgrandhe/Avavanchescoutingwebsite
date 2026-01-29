@@ -249,16 +249,26 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
   };
 
   const renderScoringBreakdown = (notes: any) => {
+    // Handle stringified notes
+    let parsedNotes = notes;
+    try {
+      if (typeof notes === 'string') {
+        parsedNotes = JSON.parse(notes);
+      }
+    } catch (e) {
+      console.error("Failed to parse notes", e);
+    }
+
     // Handle both flat and nested note structures
     const getValue = (path: string) => {
-      if (notes && typeof notes === 'object') {
-        if (notes.autonomous || notes.teleop) {
+      if (parsedNotes && typeof parsedNotes === 'object') {
+        if (parsedNotes.autonomous || parsedNotes.teleop) {
           // Nested structure
-          if (path.startsWith('auto_')) return notes.autonomous?.[path];
-          if (path.startsWith('teleop_')) return notes.teleop?.[path];
+          if (path.startsWith('auto_')) return parsedNotes.autonomous?.[path];
+          if (path.startsWith('teleop_')) return parsedNotes.teleop?.[path];
         }
         // Flat structure
-        return notes[path];
+        return parsedNotes[path];
       }
       return undefined;
     };
@@ -278,24 +288,49 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
       { label: 'FUEL in HUB', value: getValue('endgame_fuel'), points: 1, period: 'Endgame' },
     ];
 
+    const shiftsData = getValue('teleop_fuel_shifts');
+    const singleFuel = getValue('teleop_fuel_active_hub');
+    const shifts = (shiftsData && Array.isArray(shiftsData) && shiftsData.length > 0)
+      ? shiftsData
+      : (singleFuel ? [singleFuel] : []);
+
     const autonomousElements = scoringElements.filter(el => el.period === 'Autonomous');
     const teleopElements = scoringElements.filter(el => el.period === 'Teleop');
     const endgameElements = scoringElements.filter(el => el.period === 'Endgame');
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
-        <div className="space-y-2">
-          <h5 className="text-xs font-semibold text-blue-400 uppercase tracking-widest pl-1">Auto</h5>
-          {autonomousElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+          <div className="space-y-2">
+            <h5 className="text-xs font-semibold text-blue-400 uppercase tracking-widest pl-1">Auto</h5>
+            {autonomousElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
+          </div>
+          <div className="space-y-2">
+            <h5 className="text-xs font-semibold text-orange-400 uppercase tracking-widest pl-1">Teleop</h5>
+            {teleopElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
+          </div>
+          <div className="space-y-2">
+            <h5 className="text-xs font-semibold text-green-400 uppercase tracking-widest pl-1">Endgame</h5>
+            {endgameElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
+          </div>
         </div>
-        <div className="space-y-2">
-          <h5 className="text-xs font-semibold text-orange-400 uppercase tracking-widest pl-1">Teleop</h5>
-          {teleopElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
-        </div>
-        <div className="space-y-2">
-          <h5 className="text-xs font-semibold text-green-400 uppercase tracking-widest pl-1">Endgame</h5>
-          {endgameElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
-        </div>
+
+        {/* Teleop Shifts Grid */}
+        {shifts.length > 0 && (
+          <div className="bg-black/20 p-3 rounded-lg border border-white/5">
+            <h5 className="text-[10px] font-bold text-orange-400/80 uppercase tracking-widest mb-3 flex items-center justify-center gap-2">
+              <Activity className="w-3 h-3" /> Teleop Scoring Intensity
+            </h5>
+            <div className="grid grid-cols-5 gap-2">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex flex-col items-center p-2 rounded-lg bg-white/5 border border-white/5 group hover:border-orange-500/30 transition-all">
+                  <span className="text-[7px] text-muted-foreground uppercase font-black mb-1">{i === 4 ? 'END' : `S${i + 1}`}</span>
+                  <span className="text-sm font-black text-orange-400 leading-none">{shifts[i] || 0}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   };

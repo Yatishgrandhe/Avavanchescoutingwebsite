@@ -5,12 +5,12 @@ import { useRouter } from 'next/router';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui';
 import { Button } from '../../components/ui';
 import { Input } from '../../components/ui';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Target, 
-  Users, 
-  Zap, 
+import {
+  BarChart3,
+  TrendingUp,
+  Target,
+  Users,
+  Zap,
   Shield,
   Award,
   Clock,
@@ -38,6 +38,7 @@ interface TeamStats {
   worst_score: number;
   consistency_score: number;
   win_rate: number;
+  avg_shifts?: number[];
   recent_performance: Array<{
     match_id: string;
     final_score: number;
@@ -67,7 +68,7 @@ export default function AdvancedAnalysis() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [filters, setFilters] = useState<AnalysisFilters>({});
   const [showFilters, setShowFilters] = useState(false);
-  const [availableTeams, setAvailableTeams] = useState<Array<{team_number: number, team_name: string}>>([]);
+  const [availableTeams, setAvailableTeams] = useState<Array<{ team_number: number, team_name: string }>>([]);
   const [teamsLoading, setTeamsLoading] = useState(true);
 
   // Load available teams from Supabase
@@ -102,10 +103,10 @@ export default function AdvancedAnalysis() {
 
   const handleTeamSearch = async () => {
     if (!selectedTeam) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       // Fetch team data
       const { data: teamData, error: teamError } = await supabase
@@ -169,6 +170,27 @@ export default function AdvancedAnalysis() {
       const standardDeviation = Math.sqrt(variance);
       const consistencyScore = Math.max(0, 100 - (standardDeviation / avgTotal) * 100);
 
+      // Calculate average shifts
+      const shiftTotals = [0, 0, 0, 0, 0];
+      const shiftCounts = [0, 0, 0, 0, 0];
+
+      scoutingData.forEach((match: any) => {
+        try {
+          const notes = typeof match.notes === 'string' ? JSON.parse(match.notes) : match.notes;
+          const teleop = notes.teleop || (notes.teleop_fuel_active_hub ? notes : null);
+          const shifts = teleop?.teleop_fuel_shifts || (teleop?.teleop_fuel_active_hub ? [teleop.teleop_fuel_active_hub] : []);
+
+          shifts.slice(0, 5).forEach((val: number, i: number) => {
+            shiftTotals[i] += (val || 0);
+            shiftCounts[i]++;
+          });
+        } catch (e) { }
+      });
+
+      const avgShifts = shiftTotals.map((total, i) =>
+        shiftCounts[i] > 0 ? Math.round((total / shiftCounts[i]) * 10) / 10 : 0
+      );
+
       // Calculate best/worst scores
       const bestScore = Math.max(...scores);
       const worstScore = Math.min(...scores);
@@ -189,6 +211,7 @@ export default function AdvancedAnalysis() {
         worst_score: worstScore,
         consistency_score: Math.round(consistencyScore * 100) / 100,
         win_rate: winRate,
+        avg_shifts: avgShifts,
         recent_performance: scoutingData.slice(0, 10).map((match: any) => ({
           match_id: match.match_id,
           final_score: match.final_score || 0,
@@ -199,7 +222,7 @@ export default function AdvancedAnalysis() {
           created_at: match.created_at
         }))
       });
-      
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch team data');
       setTeamStats(null);
@@ -210,7 +233,7 @@ export default function AdvancedAnalysis() {
 
   const exportData = () => {
     if (!teamStats) return;
-    
+
     const csvContent = [
       ['Metric', 'Value'],
       ['Team Number', teamStats.team_number],
@@ -273,7 +296,7 @@ export default function AdvancedAnalysis() {
                 <Button
                   variant="outline"
                   onClick={() => setShowFilters(!showFilters)}
-                  
+
                 >
                   <Filter className="w-4 h-4 mr-2" />
                   Filters
@@ -281,7 +304,7 @@ export default function AdvancedAnalysis() {
                 {teamStats && (
                   <Button
                     onClick={exportData}
-                    
+
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Export
@@ -303,25 +326,25 @@ export default function AdvancedAnalysis() {
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Input
-                      
+
                       placeholder="e.g., 2026mabos"
                       value={filters.event_key || ''}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters(prev => ({ ...prev, event_key: e.target.value || undefined }))}
-                      
+
                     />
                     <Input
-                      
+
                       type="number"
                       placeholder="Minimum matches"
                       value={filters.min_matches || ''}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters(prev => ({ ...prev, min_matches: parseInt(e.target.value) || undefined }))}
-                      
+
                     />
                     <div className="flex space-x-2">
                       <Button
                         variant="outline"
                         onClick={() => setFilters({})}
-                        
+
                         className="flex-1"
                       >
                         Clear Filters
@@ -355,11 +378,10 @@ export default function AdvancedAnalysis() {
                   value={selectedTeam || ''}
                   onChange={(e) => setSelectedTeam(parseInt(e.target.value) || null)}
                   disabled={teamsLoading || loading}
-                  className={`flex-1 px-3 py-2 border rounded-md ${
-                    isDarkMode 
-                      ? 'bg-gray-700 border-gray-600 text-white' 
+                  className={`flex-1 px-3 py-2 border rounded-md ${isDarkMode
+                      ? 'bg-gray-700 border-gray-600 text-white'
                       : 'bg-background border-border text-foreground'
-                  } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 >
                   <option value="">
                     {teamsLoading ? 'Loading teams...' : 'Select a team to analyze'}
@@ -506,6 +528,19 @@ export default function AdvancedAnalysis() {
                         {teamStats.avg_endgame_points} pts
                       </span>
                     </div>
+                    {teamStats.avg_shifts && (
+                      <div className="pt-4 border-t border-white/10">
+                        <span className={`text-xs font-bold uppercase tracking-widest block mb-3 text-center ${isDarkMode ? 'text-blue-400/80' : 'text-blue-600/80'}`}>Average Points per Shift</span>
+                        <div className="grid grid-cols-5 gap-2">
+                          {teamStats.avg_shifts.map((avg, i) => (
+                            <div key={i} className={`flex flex-col items-center p-2 rounded-lg border ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-gray-100 border-gray-200'}`}>
+                              <span className="text-[7px] text-muted-foreground font-black mb-1 uppercase">{i === 4 ? 'END' : `S${i + 1}`}</span>
+                              <span className={`text-sm font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{avg}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 

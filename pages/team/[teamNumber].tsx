@@ -148,16 +148,26 @@ const TeamDetail: React.FC = () => {
   };
 
   const renderScoringBreakdown = (notes: any) => {
+    // Handle stringified notes
+    let parsedNotes = notes;
+    try {
+      if (typeof notes === 'string') {
+        parsedNotes = JSON.parse(notes);
+      }
+    } catch (e) {
+      console.error("Failed to parse notes", e);
+    }
+
     // Handle both flat and nested note structures
     const getValue = (path: string) => {
-      if (notes && typeof notes === 'object') {
-        if (notes.autonomous || notes.teleop) {
+      if (parsedNotes && typeof parsedNotes === 'object') {
+        if (parsedNotes.autonomous || parsedNotes.teleop) {
           // Nested structure
-          if (path.startsWith('auto_')) return notes.autonomous?.[path];
-          if (path.startsWith('teleop_')) return notes.teleop?.[path];
+          if (path.startsWith('auto_')) return parsedNotes.autonomous?.[path];
+          if (path.startsWith('teleop_')) return parsedNotes.teleop?.[path];
         }
         // Flat structure
-        return notes[path];
+        return parsedNotes[path];
       }
       return undefined;
     };
@@ -177,41 +187,68 @@ const TeamDetail: React.FC = () => {
       { label: 'FUEL in HUB', value: getValue('endgame_fuel'), points: 1, period: 'Endgame' },
     ];
 
+    const shiftsData = getValue('teleop_fuel_shifts');
+    const singleFuel = getValue('teleop_fuel_active_hub');
+    const shifts = (shiftsData && Array.isArray(shiftsData) && shiftsData.length > 0)
+      ? shiftsData
+      : (singleFuel ? [singleFuel] : []);
+
     const autonomousElements = scoringElements.filter(el => el.period === 'Autonomous');
     const teleopElements = scoringElements.filter(el => el.period === 'Teleop');
     const endgameElements = scoringElements.filter(el => el.period === 'Endgame');
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-        {/* Autonomous Column */}
-        <div className="space-y-3">
-          <h4 className="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-            <Clock className="w-4 h-4" /> Autonomous
-          </h4>
-          <div className="space-y-2">
-            {autonomousElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
+      <div className="flex flex-col gap-6 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Autonomous Column */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Clock className="w-4 h-4" /> Autonomous
+            </h4>
+            <div className="space-y-2">
+              {autonomousElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
+            </div>
+          </div>
+
+          {/* Teleop Column */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Zap className="w-4 h-4" /> Teleop
+            </h4>
+            <div className="space-y-2">
+              {teleopElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
+            </div>
+          </div>
+
+          {/* Endgame Column */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-green-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Award className="w-4 h-4" /> Endgame
+            </h4>
+            <div className="space-y-2">
+              {endgameElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
+            </div>
           </div>
         </div>
 
-        {/* Teleop Column */}
-        <div className="space-y-3">
-          <h4 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-            <Zap className="w-4 h-4" /> Teleop
-          </h4>
-          <div className="space-y-2">
-            {teleopElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
+        {/* Teleop Shifts Grid */}
+        {shifts.length > 0 && (
+          <div className="bg-black/20 p-4 rounded-xl border border-white/5 shadow-[inset_0_0_20px_rgba(255,165,0,0.05)]">
+            <h4 className="text-xs font-bold text-orange-400/80 uppercase tracking-widest mb-4 flex items-center justify-center gap-2">
+              <Activity className="w-3 h-3" /> Teleop Scoring Intensity
+            </h4>
+            <div className="grid grid-cols-5 gap-3">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/5 relative overflow-hidden group hover:border-orange-500/30 transition-all">
+                  <div className="absolute top-0 inset-x-0 h-1 bg-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className="text-[8px] text-muted-foreground uppercase font-black mb-1.5">{i === 4 ? 'End Game' : `Shift ${i + 1}`}</span>
+                  <span className="text-xl font-black text-orange-400 leading-none">{shifts[i] || 0}</span>
+                  <span className="text-[7px] text-muted-foreground mt-1 font-bold">PTS</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-
-        {/* Endgame Column */}
-        <div className="space-y-3">
-          <h4 className="text-sm font-semibold text-green-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-            <Award className="w-4 h-4" /> Endgame
-          </h4>
-          <div className="space-y-2">
-            {endgameElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
-          </div>
-        </div>
+        )}
       </div>
     );
   };

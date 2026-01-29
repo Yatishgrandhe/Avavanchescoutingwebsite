@@ -6,12 +6,12 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../..
 import { Button } from '../../components/ui';
 import { Input } from '../../components/ui';
 import { Badge } from '../../components/ui/badge';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Target, 
-  Users, 
-  Zap, 
+import {
+  BarChart3,
+  TrendingUp,
+  Target,
+  Users,
+  Zap,
   Shield,
   Award,
   Clock,
@@ -41,6 +41,7 @@ interface TeamComparison {
   worst_score: number;
   consistency_score: number;
   win_rate: number;
+  avg_shifts?: number[];
 }
 
 export default function TeamComparison() {
@@ -51,7 +52,7 @@ export default function TeamComparison() {
   const [error, setError] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [inputValue, setInputValue] = useState('');
-  const [availableTeams, setAvailableTeams] = useState<Array<{team_number: number, team_name: string}>>([]);
+  const [availableTeams, setAvailableTeams] = useState<Array<{ team_number: number, team_name: string }>>([]);
   const [teamsLoading, setTeamsLoading] = useState(true);
 
   // Load ALL available teams from Supabase (including Avalanche) for comparison
@@ -139,6 +140,27 @@ export default function TeamComparison() {
       const standardDeviation = Math.sqrt(variance);
       const consistencyScore = Math.max(0, 100 - (standardDeviation / avgTotal) * 100);
 
+      // Calculate average shifts
+      const shiftTotals = [0, 0, 0, 0, 0];
+      const shiftCounts = [0, 0, 0, 0, 0];
+
+      scoutingData.forEach((match: any) => {
+        try {
+          const notes = typeof match.notes === 'string' ? JSON.parse(match.notes) : match.notes;
+          const teleop = notes.teleop || (notes.teleop_fuel_active_hub ? notes : null);
+          const shifts = teleop?.teleop_fuel_shifts || (teleop?.teleop_fuel_active_hub ? [teleop.teleop_fuel_active_hub] : []);
+
+          shifts.slice(0, 5).forEach((val: number, i: number) => {
+            shiftTotals[i] += (val || 0);
+            shiftCounts[i]++;
+          });
+        } catch (e) { }
+      });
+
+      const avgShifts = shiftTotals.map((total, i) =>
+        shiftCounts[i] > 0 ? Math.round((total / shiftCounts[i]) * 10) / 10 : 0
+      );
+
       const teamComparison: TeamComparison = {
         team_number: teamNumber,
         team_name: teamData?.team_name || `Team ${teamNumber}`,
@@ -151,7 +173,8 @@ export default function TeamComparison() {
         best_score: Math.max(...scores),
         worst_score: Math.min(...scores),
         consistency_score: Math.round(consistencyScore * 100) / 100,
-        win_rate: 0.75 // Placeholder
+        win_rate: 0.75, // Placeholder
+        avg_shifts: avgShifts
       };
 
       setSelectedTeams(prev => [...prev, teamNumber]);
@@ -208,9 +231,14 @@ export default function TeamComparison() {
 
   const getBestTeam = (metric: keyof TeamComparison) => {
     if (teamComparisons.length === 0) return null;
-    return teamComparisons.reduce((best, current) => 
-      current[metric] > best[metric] ? current : best
-    );
+    return teamComparisons.reduce((best, current) => {
+      const currentVal = current[metric];
+      const bestVal = best[metric];
+      if (typeof currentVal === 'number' && typeof bestVal === 'number') {
+        return currentVal > bestVal ? current : best;
+      }
+      return best;
+    });
   };
 
   if (authLoading) {
@@ -249,7 +277,7 @@ export default function TeamComparison() {
               {teamComparisons.length > 0 && (
                 <Button
                   onClick={exportComparison}
-                  
+
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export Comparison
@@ -280,11 +308,10 @@ export default function TeamComparison() {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   disabled={teamsLoading || loading}
-                  className={`flex-1 px-3 py-3 sm:py-2 border rounded-md text-sm sm:text-base min-h-[44px] ${
-                    isDarkMode 
-                      ? 'bg-gray-700 border-gray-600 text-white' 
-                      : 'bg-background border-border text-foreground'
-                  } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  className={`flex-1 px-3 py-3 sm:py-2 border rounded-md text-sm sm:text-base min-h-[44px] ${isDarkMode
+                    ? 'bg-gray-700 border-gray-600 text-white'
+                    : 'bg-background border-border text-foreground'
+                    } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 >
                   <option value="">
                     {teamsLoading ? 'Loading teams...' : 'Select a team to compare'}
@@ -327,9 +354,8 @@ export default function TeamComparison() {
                       key={team.team_number}
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
-                        isDarkMode ? 'bg-blue-900/30 border border-blue-700' : 'bg-blue-50 border border-blue-200'
-                      }`}
+                      className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${isDarkMode ? 'bg-blue-900/30 border border-blue-700' : 'bg-blue-50 border border-blue-200'
+                        }`}
                     >
                       <span className={`font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
                         {team.team_name}
@@ -497,10 +523,9 @@ export default function TeamComparison() {
                           </div>
                           <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Defense:</span>
-                            <span className={`ml-2 font-semibold ${
-                              team.avg_defense_rating >= 7 ? 'text-green-600' :
+                            <span className={`ml-2 font-semibold ${team.avg_defense_rating >= 7 ? 'text-green-600' :
                               team.avg_defense_rating >= 5 ? 'text-yellow-600' : 'text-red-600'
-                            }`}>
+                              }`}>
                               {team.avg_defense_rating}/10
                             </span>
                           </div>
@@ -510,10 +535,9 @@ export default function TeamComparison() {
                           </div>
                           <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Consistency:</span>
-                            <span className={`ml-2 font-semibold ${
-                              team.consistency_score >= 80 ? 'text-green-600' :
+                            <span className={`ml-2 font-semibold ${team.consistency_score >= 80 ? 'text-green-600' :
                               team.consistency_score >= 60 ? 'text-yellow-600' : 'text-red-600'
-                            }`}>
+                              }`}>
                               {team.consistency_score}%
                             </span>
                           </div>
@@ -553,6 +577,9 @@ export default function TeamComparison() {
                           </th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                             Consistency
+                          </th>
+                          <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Avg Shifts
                           </th>
                         </tr>
                       </thead>
@@ -596,6 +623,16 @@ export default function TeamComparison() {
                             </td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               {team.consistency_score}%
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex gap-1">
+                                {(team.avg_shifts || [0, 0, 0, 0, 0]).map((avg, i) => (
+                                  <div key={i} className="flex flex-col items-center bg-black/20 px-1 py-0.5 rounded border border-white/5 min-w-[24px]">
+                                    <span className="text-[6px] text-muted-foreground font-bold">{i === 4 ? 'END' : `S${i + 1}`}</span>
+                                    <span className="text-[9px] font-bold text-blue-400">{avg}</span>
+                                  </div>
+                                ))}
+                              </div>
                             </td>
                           </motion.tr>
                         ))}

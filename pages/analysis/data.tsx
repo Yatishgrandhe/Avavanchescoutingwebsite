@@ -55,6 +55,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     best_score: number;
     worst_score: number;
     consistency_score: number;
+    avg_shifts?: number[];
   }>>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -127,6 +128,50 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       setLoading(false);
     }
   };
+  // Helper functions - defined before use to avoid temporal dead zone errors
+  const parseFormNotes = (notes: any) => {
+    try {
+      const parsed = typeof notes === 'string' ? JSON.parse(notes) : notes;
+
+      // Handle nested structure (autonomous/teleop keys) or flat structure
+      if (parsed.autonomous || parsed.teleop) {
+        // Nested structure
+        return {
+          autonomous: {
+            auto_fuel_active_hub: parsed.autonomous?.auto_fuel_active_hub || 0,
+            auto_tower_level1: parsed.autonomous?.auto_tower_level1 || false,
+          },
+          teleop: {
+            teleop_fuel_active_hub: parsed.teleop?.teleop_fuel_active_hub || 0,
+            teleop_fuel_shifts: parsed.teleop?.teleop_fuel_shifts || (parsed.teleop?.teleop_fuel_active_hub ? [parsed.teleop.teleop_fuel_active_hub] : []),
+            teleop_tower_level1: parsed.teleop?.teleop_tower_level1 || false,
+            teleop_tower_level2: parsed.teleop?.teleop_tower_level2 || false,
+            teleop_tower_level3: parsed.teleop?.teleop_tower_level3 || false,
+          },
+        };
+      } else {
+        // Flat structure
+        return {
+          autonomous: {
+            auto_fuel_active_hub: parsed.auto_fuel_active_hub || 0,
+            auto_tower_level1: parsed.auto_tower_level1 || false,
+          },
+          teleop: {
+            teleop_fuel_active_hub: parsed.teleop_fuel_active_hub || 0,
+            teleop_fuel_shifts: parsed.teleop_fuel_shifts || (parsed.teleop_fuel_active_hub ? [parsed.teleop_fuel_active_hub] : []),
+            teleop_tower_level1: parsed.teleop_tower_level1 || false,
+            teleop_tower_level2: parsed.teleop_tower_level2 || false,
+            teleop_tower_level3: parsed.teleop_tower_level3 || false,
+          },
+        };
+      }
+    } catch (error) {
+      return {
+        autonomous: { auto_fuel_active_hub: 0, auto_tower_level1: false },
+        teleop: { teleop_fuel_active_hub: 0, teleop_fuel_shifts: [], teleop_tower_level1: false, teleop_tower_level2: false, teleop_tower_level3: false },
+      };
+    }
+  };
 
   const calculateTeamStats = (scoutingData: ScoutingData[], teams: Team[]) => {
     const teamStatsMap = new Map<number, {
@@ -139,6 +184,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       defense_ratings: number[];
       autonomous_cleansing: number[];
       teleop_cleansing: number[];
+      teleop_fuel_shifts: number[][];
     }>();
 
     // Build a map of team_number -> team_name from the teams table
@@ -163,7 +209,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
           total_scores: [],
           defense_ratings: [],
           autonomous_cleansing: [],
-          teleop_cleansing: []
+          teleop_cleansing: [],
+          teleop_fuel_shifts: []
         };
         teamStatsMap.set(data.team_number, teamStat);
       }
@@ -174,6 +221,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       teamStat.defense_ratings.push(data.defense_rating || 0);
       teamStat.autonomous_cleansing.push(data.autonomous_cleansing || 0);
       teamStat.teleop_cleansing.push(data.teleop_cleansing || 0);
+
+      const formNotes = parseFormNotes(data.notes);
+      const shifts = formNotes.teleop?.teleop_fuel_shifts || [];
+      if (shifts.length > 0) {
+        teamStat.teleop_fuel_shifts.push(shifts);
+      }
     });
 
     // Calculate averages and statistics
@@ -205,7 +258,24 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         avg_teleop_cleansing: Math.round(avgTeleopCleansing * 100) / 100,
         best_score: bestScore,
         worst_score: worstScore,
-        consistency_score: Math.round(consistencyScore * 100) / 100
+        consistency_score: Math.round(consistencyScore * 100) / 100,
+        avg_shifts: (() => {
+          const shiftTotals = [0, 0, 0, 0, 0];
+          const shiftCounts = [0, 0, 0, 0, 0];
+
+          stat.teleop_fuel_shifts.forEach(shifts => {
+            shifts.forEach((val, i) => {
+              if (i < 5) {
+                shiftTotals[i] += (val || 0);
+                shiftCounts[i]++;
+              }
+            });
+          });
+
+          return shiftTotals.map((total, i) =>
+            shiftCounts[i] > 0 ? Math.round((total / shiftCounts[i]) * 10) / 10 : 0
+          );
+        })()
       };
     }).filter(stat => stat.total_matches > 0); // Only show teams with scouting data
   };
@@ -331,49 +401,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     setExpandedRows(newExpanded);
   };
 
-  const parseFormNotes = (notes: any) => {
-    try {
-      const parsed = typeof notes === 'string' ? JSON.parse(notes) : notes;
-
-      // Handle nested structure (autonomous/teleop keys) or flat structure
-      if (parsed.autonomous || parsed.teleop) {
-        // Nested structure
-        return {
-          autonomous: {
-            auto_fuel_active_hub: parsed.autonomous?.auto_fuel_active_hub || 0,
-            auto_tower_level1: parsed.autonomous?.auto_tower_level1 || false,
-          },
-          teleop: {
-            teleop_fuel_active_hub: parsed.teleop?.teleop_fuel_active_hub || 0,
-            teleop_fuel_shifts: parsed.teleop?.teleop_fuel_shifts || (parsed.teleop?.teleop_fuel_active_hub ? [parsed.teleop.teleop_fuel_active_hub] : []),
-            teleop_tower_level1: parsed.teleop?.teleop_tower_level1 || false,
-            teleop_tower_level2: parsed.teleop?.teleop_tower_level2 || false,
-            teleop_tower_level3: parsed.teleop?.teleop_tower_level3 || false,
-          },
-        };
-      } else {
-        // Flat structure
-        return {
-          autonomous: {
-            auto_fuel_active_hub: parsed.auto_fuel_active_hub || 0,
-            auto_tower_level1: parsed.auto_tower_level1 || false,
-          },
-          teleop: {
-            teleop_fuel_active_hub: parsed.teleop_fuel_active_hub || 0,
-            teleop_fuel_shifts: parsed.teleop_fuel_shifts || (parsed.teleop_fuel_active_hub ? [parsed.teleop_fuel_active_hub] : []),
-            teleop_tower_level1: parsed.teleop_tower_level1 || false,
-            teleop_tower_level2: parsed.teleop_tower_level2 || false,
-            teleop_tower_level3: parsed.teleop_tower_level3 || false,
-          },
-        };
-      }
-    } catch (error) {
-      return {
-        autonomous: { auto_fuel_active_hub: 0, auto_tower_level1: false },
-        teleop: { teleop_fuel_active_hub: 0, teleop_fuel_shifts: [], teleop_tower_level1: false, teleop_tower_level2: false, teleop_tower_level3: false },
-      };
-    }
-  };
 
   if (loading) {
     return (
@@ -633,6 +660,18 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               </div>
                             </div>
 
+                            <div className="bg-white/5 p-3 rounded-xl border border-white/5 mb-4 shadow-[inset_0_0_12px_rgba(0,0,0,0.2)]">
+                              <span className="text-[9px] text-muted-foreground uppercase font-bold block mb-2 text-center tracking-tighter text-blue-400/80">Avg Points per Shift</span>
+                              <div className="grid grid-cols-5 gap-1.5">
+                                {(team.avg_shifts || [0, 0, 0, 0, 0]).map((avg, i) => (
+                                  <div key={i} className="flex flex-col items-center bg-black/30 p-1.5 rounded-lg border border-white/5">
+                                    <span className="text-[7px] text-muted-foreground font-extrabold">{i === 4 ? 'END' : `S${i + 1}`}</span>
+                                    <span className="text-[11px] font-bold text-blue-400 leading-tight">{avg}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
                             <div className="flex gap-2 pt-2 border-t border-white/5">
                               <Button
                                 size="sm"
@@ -676,6 +715,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4">Defense</th>
                             <th className="text-left p-4">Best</th>
                             <th className="text-left p-4">Consistency</th>
+                            <th className="text-left p-4">Avg Shifts</th>
                             <th className="text-right p-4">Actions</th>
                           </tr>
                         </thead>
@@ -732,6 +772,16 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                     )}>
                                       {team.consistency_score}%
                                     </span>
+                                  </div>
+                                </td>
+                                <td className="p-4">
+                                  <div className="grid grid-cols-5 gap-1 min-w-[120px]">
+                                    {(team.avg_shifts || [0, 0, 0, 0, 0]).map((avg, i) => (
+                                      <div key={i} className="flex flex-col items-center p-1 rounded-sm bg-white/5 border border-white/5">
+                                        <span className="text-[6px] text-muted-foreground font-bold">{i === 4 ? 'E' : `S${i + 1}`}</span>
+                                        <span className="text-[9px] font-bold text-blue-400">{avg}</span>
+                                      </div>
+                                    ))}
                                   </div>
                                 </td>
                                 <td className="p-4 text-right">
@@ -1040,16 +1090,17 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                                 <Activity className="w-3 h-3" /> Individual Metrics
                                               </h4>
                                               <div className="grid grid-cols-1 gap-3">
-                                                <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                                                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block mb-2">Teleop Scoring Intensity</span>
-                                                  <div className="flex flex-wrap gap-1.5">
-                                                    {(formNotes.teleop.teleop_fuel_shifts || []).length > 0 ? (
-                                                      formNotes.teleop.teleop_fuel_shifts.map((shift: number, i: number) => (
-                                                        <Badge key={i} variant="secondary" className="bg-white/10 text-white border-white/10 text-[10px]">{shift} pts</Badge>
-                                                      ))
-                                                    ) : (
-                                                      <span className="text-xs text-muted-foreground opacity-40">No specific scoring intervals recorded</span>
-                                                    )}
+                                                <div className="bg-black/20 p-4 rounded-xl border border-white/10 shadow-[inset_0_0_20px_rgba(0,180,255,0.05)]">
+                                                  <span className="text-[10px] text-muted-foreground uppercase font-bold block mb-3 text-center tracking-widest text-orange-400/80">Teleop Fuel Scoring Intensity (by shift)</span>
+                                                  <div className="grid grid-cols-5 gap-3">
+                                                    {(formNotes.teleop.teleop_fuel_shifts || [0, 0, 0, 0, 0]).slice(0, 5).map((shift: number, i: number) => (
+                                                      <div key={i} className="flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/5 relative overflow-hidden group hover:border-blue-500/30 transition-all">
+                                                        <div className="absolute top-0 inset-x-0 h-1 bg-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                        <span className="text-[8px] text-muted-foreground uppercase font-black mb-1.5">{i === 4 ? 'End Game' : `Shift ${i + 1}`}</span>
+                                                        <span className="text-lg font-black text-blue-400 leading-none">{shift}</span>
+                                                        <span className="text-[7px] text-muted-foreground mt-1 font-bold">PTS</span>
+                                                      </div>
+                                                    ))}
                                                   </div>
                                                 </div>
                                               </div>
@@ -1118,8 +1169,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
             </div>
           )}
         </div>
-      </Layout>
-    </ProtectedRoute>
+      </Layout >
+    </ProtectedRoute >
   );
 };
 

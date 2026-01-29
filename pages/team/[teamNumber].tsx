@@ -242,8 +242,8 @@ const TeamDetail: React.FC = () => {
                 <div key={i} className="flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/5 relative overflow-hidden group hover:border-orange-500/30 transition-all">
                   <div className="absolute top-0 inset-x-0 h-1 bg-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <span className="text-[8px] text-muted-foreground uppercase font-black mb-1.5">{i === 4 ? 'End Game' : `Shift ${i + 1}`}</span>
-                  <span className="text-2xl sm:text-4xl font-black text-orange-400 leading-none">{shifts[i] || 0}</span>
-                  <span className="text-[10px] text-muted-foreground mt-1 font-bold">PTS</span>
+                  <span className="text-2xl sm:text-7xl font-black text-orange-400 leading-none">{shifts[i] || 0}</span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground mt-1 font-bold">PTS</span>
                 </div>
               ))}
             </div>

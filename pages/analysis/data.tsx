@@ -666,7 +666,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 {(team.avg_shifts || [0, 0, 0, 0, 0]).map((avg, i) => (
                                   <div key={i} className="flex flex-col items-center bg-black/30 p-1.5 rounded-lg border border-white/5">
                                     <span className="text-[7px] text-muted-foreground font-extrabold">{i === 4 ? 'END' : `S${i + 1}`}</span>
-                                    <span className="text-sm sm:text-3xl font-bold text-blue-400 leading-tight">{avg}</span>
+                                    <span className="text-xl sm:text-5xl font-black text-blue-400 leading-tight">{avg}</span>
                                   </div>
                                 ))}
                               </div>
@@ -714,9 +714,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 text-[9px]">Teleop Cleansing</th>
                             <th className="text-left p-4">Defense</th>
                             <th className="text-left p-4">Best</th>
-                            <th className="text-left p-4">Consistency</th>
-                            <th className="text-left p-4">Avg Shifts</th>
-                            <th className="text-right p-4">Actions</th>
+                            <th className="text-left p-4 text-[11px]">Consistency</th>
+                            <th className="text-left p-4 min-w-[240px] text-[11px]">Teleop Shifts (Avg Points)</th>
+                            <th className="text-right p-4 text-[11px]">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -775,11 +775,11 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                   </div>
                                 </td>
                                 <td className="p-4">
-                                  <div className="grid grid-cols-5 gap-1 min-w-[120px]">
+                                  <div className="grid grid-cols-5 gap-2 min-w-[220px]">
                                     {(team.avg_shifts || [0, 0, 0, 0, 0]).map((avg, i) => (
-                                      <div key={i} className="flex flex-col items-center p-1 rounded-sm bg-white/5 border border-white/5">
-                                        <span className="text-[6px] text-muted-foreground font-bold">{i === 4 ? 'E' : `S${i + 1}`}</span>
-                                        <span className="text-[9px] font-bold text-blue-400">{avg}</span>
+                                      <div key={i} className="flex flex-col items-center p-2 rounded-lg bg-black/20 border border-white/10 shadow-[0_0_15px_rgba(59,130,246,0.2)] group/shift hover:border-blue-500/50 transition-all">
+                                        <span className="text-[9px] text-muted-foreground font-black mb-1 group-hover/shift:text-blue-300 transition-colors uppercase">{i === 4 ? 'END' : `S${i + 1}`}</span>
+                                        <span className="text-2xl font-black text-blue-400 leading-none drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]">{avg}</span>
                                       </div>
                                     ))}
                                   </div>
@@ -1097,8 +1097,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                                       <div key={i} className="flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/5 relative overflow-hidden group hover:border-blue-500/30 transition-all">
                                                         <div className="absolute top-0 inset-x-0 h-1 bg-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                         <span className="text-[8px] text-muted-foreground uppercase font-black mb-1.5">{i === 4 ? 'End Game' : `Shift ${i + 1}`}</span>
-                                                        <span className="text-2xl sm:text-6xl font-black text-blue-400 leading-none">{shift}</span>
-                                                        <span className="text-[10px] sm:text-xs text-muted-foreground mt-1 font-bold">PTS</span>
+                                                        <span className="text-4xl sm:text-[140px] font-black text-blue-400 leading-none drop-shadow-[0_0_30px_rgba(59,130,246,0.5)]">{shift}</span>
+                                                        <span className="text-xs sm:text-xl text-muted-foreground mt-2 font-black tracking-widest">POINTS</span>
                                                       </div>
                                                     ))}
                                                   </div>

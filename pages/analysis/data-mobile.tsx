@@ -383,7 +383,7 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
                                 {[0, 1, 2, 3, 4].map((i) => (
                                   <div key={i} className="flex flex-col items-center bg-black/30 p-1 rounded border border-white/5">
                                     <span className="text-[6px] text-muted-foreground font-bold">{i === 4 ? 'END' : `S${i + 1}`}</span>
-                                    <span className="text-lg font-bold text-blue-400">{shifts[i] || 0}</span>
+                                    <span className="text-2xl font-black text-blue-400">{shifts[i] || 0}</span>
                                   </div>
                                 ))}
                               </div>

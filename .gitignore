@@ -44,3 +44,9 @@ supabase/logs
 # mobile apps
 # /mobile/
 # /android/
+**/build/
+**/bin/
+**/obj/
+*.hprof
+.gradle/
+.idea/

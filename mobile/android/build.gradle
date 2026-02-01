@@ -1,0 +1,28 @@
+// Ensure SDK path is set from ANDROID_HOME or default location before Android plugin reads local.properties
+def localPropertiesFile = rootProject.file("local.properties")
+def props = localPropertiesFile.exists() ? new Properties().with { it.load(localPropertiesFile.newReader()); it } : null
+def sdkDir = props?.getProperty("sdk.dir")
+def defaultSdk = System.getenv("ANDROID_HOME") ?: (System.getProperty("user.home") + "/Library/Android/sdk")
+def validSdk = sdkDir != null && !sdkDir.isEmpty() && new File(sdkDir).isDirectory()
+if (!validSdk && defaultSdk != null && new File(defaultSdk).isDirectory()) {
+    localPropertiesFile.withWriter("UTF-8") { it.write("sdk.dir=${defaultSdk.replace('\\', '/')}\n") }
+}
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.2'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0"
+        classpath "org.jetbrains.kotlin:kotlin-serialization:1.9.0"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}

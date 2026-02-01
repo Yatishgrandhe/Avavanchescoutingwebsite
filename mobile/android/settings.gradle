@@ -1,0 +1,2 @@
+rootProject.name = "Avalanche Scouting"
+include ':app'

@@ -42,5 +42,5 @@ supabase/.temp
 supabase/logs
 
 # mobile apps
-/mobile/
-/android/
+# /mobile/
+# /android/

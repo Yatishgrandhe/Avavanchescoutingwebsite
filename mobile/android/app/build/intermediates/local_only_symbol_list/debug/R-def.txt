@@ -1,0 +1,12 @@
+R_DEF: Internal format may change without notice
+local
+color avalanche_blue
+color avalanche_navy
+color discord_purple
+color splash_navy
+drawable avalanche_logo
+drawable splash_background
+mipmap ic_launcher
+mipmap ic_launcher_round
+style Theme.AvalancheScouting
+xml file_paths

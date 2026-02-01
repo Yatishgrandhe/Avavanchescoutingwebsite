@@ -42,9 +42,14 @@ private struct WebViewContainer: UIViewRepresentable {
         config.websiteDataStore = .default()
         config.defaultWebpagePreferences.allowsContentJavaScript = true
         config.allowsInlineMediaPlayback = true
+        
+        // Essential for camera access in iOS 15+ WebViews
+        if #available(iOS 15.0, *) {
+            config.allowsAirPlayForMediaPlayback = true
+        }
+        
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
-        // No bottom bezel: don't add safe area insets so content reaches the bottom edge.
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
         webView.isOpaque = false
@@ -94,6 +99,12 @@ private struct WebViewContainer: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             onLoad()
+        }
+
+        // Handle Camera/Microphone permissions for iOS 15+
+        @available(iOS 15.0, *)
+        func webView(_ webView: WKWebView, requestMediaCapturePermissionFor origin: WKSecurityOrigin, initiatedByFrame frame: WKFrameInfo, type: WKMediaCaptureType, decisionHandler: @escaping (WKPermissionDecision) -> Void) {
+            decisionHandler(.grant)
         }
 
         /// Keep OAuth (Supabase → Discord → callback) in the webview so Safari never opens and the logged-in user returns to the app.

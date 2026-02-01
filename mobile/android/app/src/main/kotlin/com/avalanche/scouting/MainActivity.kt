@@ -1,7 +1,9 @@
 package com.avalanche.scouting
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -27,6 +29,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.WindowCompat
 import java.io.File
@@ -41,6 +44,13 @@ class MainActivity : ComponentActivity() {
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
     private var cameraImageUri: Uri? = null
 
+    // Handles permissions
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        // Permission handled
+    }
+
     // Handles the combined Gallery/Camera result
     private val fileChooserLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -50,10 +60,8 @@ class MainActivity : ComponentActivity() {
                 result.resultCode == RESULT_OK -> {
                     val data = result.data?.data
                     if (data != null) {
-                        // User picked a file from gallery
                         arrayOf(data)
                     } else {
-                        // User took a photo with camera
                         cameraImageUri?.let { arrayOf(it) }
                     }
                 }
@@ -67,7 +75,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Edge-to-edge support
+        // Ensure camera permission is granted
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
@@ -85,30 +97,28 @@ class MainActivity : ComponentActivity() {
 
     private fun openChooser(params: WebChromeClient.FileChooserParams) {
         val captureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        if (captureIntent.resolveActivity(packageManager) != null) {
-            val photoFile = try {
-                createImageFile()
-            } catch (ex: Exception) {
-                null
-            }
-            if (photoFile != null) {
-                val photoURI: Uri = FileProvider.getUriForFile(
-                    this,
-                    "${applicationContext.packageName}.fileprovider",
-                    photoFile
-                )
-                cameraImageUri = photoURI
-                captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
-            }
+        
+        val photoFile = try {
+            createImageFile()
+        } catch (ex: Exception) {
+            null
+        }
+        
+        if (photoFile != null) {
+            val photoURI: Uri = FileProvider.getUriForFile(
+                this,
+                "${applicationContext.packageName}.fileprovider",
+                photoFile
+            )
+            cameraImageUri = photoURI
+            captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
         }
 
         val contentSelectionIntent = params.createIntent()
         val chooserIntent = Intent(Intent.ACTION_CHOOSER).apply {
             putExtra(Intent.EXTRA_INTENT, contentSelectionIntent)
             putExtra(Intent.EXTRA_TITLE, "Select Action")
-            if (cameraImageUri != null) {
-                putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(captureIntent))
-            }
+            putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(captureIntent))
         }
 
         try {
@@ -207,6 +217,10 @@ fun AvalancheWebView(
                     }
                     
                     webChromeClient = object : WebChromeClient() {
+                        override fun onPermissionRequest(request: PermissionRequest?) {
+                            request?.grant(request.resources)
+                        }
+
                         override fun onProgressChanged(view: WebView?, newProgress: Int) {
                             if (newProgress >= 90) { isReadyToDisplay = true }
                             canGoBack = view?.canGoBack() ?: false

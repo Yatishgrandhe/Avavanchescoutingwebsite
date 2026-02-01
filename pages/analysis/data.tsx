@@ -27,7 +27,9 @@ import {
   ArrowRight,
   CheckCircle,
   XCircle,
-  ChevronRight
+  ChevronRight,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -830,7 +832,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.05 }}
-                          className="glass-card p-5 rounded-2xl border border-white/5 hover:border-primary/20 transition-all"
+                          className="glass-card p-5 rounded-2xl border border-white/5 hover:border-primary/20 transition-all cursor-pointer"
+                          onClick={() => toggleRowExpansion(data.id)}
                         >
                           <div className="flex justify-between items-start mb-4">
                             <div className="flex-1 min-w-0 pr-2">
@@ -865,16 +868,29 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between mb-4 px-1">
-                            <div className="flex items-center gap-1.5">
-                              <Shield className="w-3 h-3 text-red-400" />
-                              <span className="text-xs font-semibold">{data.defense_rating}/10</span>
+                          <div className="space-y-4 mb-4">
+                            <div className="text-center">
+                              <div className="text-xs text-muted-foreground uppercase text-[8px] tracking-widest mb-1">Defense Rating</div>
+                              <div className="flex items-center gap-2">
+                                <div className="h-1.5 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                  <div
+                                    className="bg-red-500 h-full rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]"
+                                    style={{ width: `${(data.defense_rating / 10) * 100}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs font-bold text-white min-w-[2.5rem] text-right">{data.defense_rating}/10</span>
+                              </div>
                             </div>
-                            <div className="h-1 flex-1 mx-3 bg-white/5 rounded-full overflow-hidden">
-                              <div
-                                className="bg-red-500 h-full rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]"
-                                style={{ width: `${(data.defense_rating / 10) * 100}%` }}
-                              />
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="bg-purple-500/5 p-2 rounded-lg border border-purple-500/10 text-center">
+                                <span className="text-[8px] text-purple-400 uppercase font-bold block mb-0.5">Auto Cleansing</span>
+                                <span className="text-sm font-bold text-white">{data.autonomous_cleansing || 0}</span>
+                              </div>
+                              <div className="bg-purple-500/5 p-2 rounded-lg border border-purple-500/10 text-center">
+                                <span className="text-[8px] text-purple-400 uppercase font-bold block mb-0.5">Teleop Cleansing</span>
+                                <span className="text-sm font-bold text-white">{data.teleop_cleansing || 0}</span>
+                              </div>
                             </div>
                           </div>
 
@@ -885,15 +901,90 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                           )}
 
                           <div className="flex items-center justify-between pt-3 border-t border-white/5 text-[10px] text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <User className="w-2.5 h-2.5" />
-                              {getUploaderName(data)}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-2.5 h-2.5" />
-                              {new Date(data.created_at).toLocaleDateString()}
-                            </span>
+                            <div className="flex items-center gap-3">
+                              <span className="flex items-center gap-1">
+                                <User className="w-2.5 h-2.5" />
+                                {getUploaderName(data)}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-2.5 h-2.5" />
+                                {new Date(data.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="h-6 px-2 text-[10px] bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center gap-1 font-bold uppercase tracking-wider">
+                              {expandedRows.has(data.id) ? (
+                                <>Less <ChevronUp className="w-3 h-3" /></>
+                              ) : (
+                                <>Details <ChevronDown className="w-3 h-3" /></>
+                              )}
+                            </div>
                           </div>
+
+                          {/* Expanded Mobile Content */}
+                          <AnimatePresence>
+                            {expandedRows.has(data.id) && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="mt-4 pt-4 border-t border-white/5 space-y-6"
+                              >
+                                {(() => {
+                                  const formNotes = parseFormNotes(data.notes);
+                                  return (
+                                    <>
+                                      <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-2">
+                                          <h4 className="text-[10px] font-bold text-primary uppercase tracking-widest">Auto Specs</h4>
+                                          <div className="bg-white/5 p-2 rounded-xl border border-white/5">
+                                            <span className="text-[8px] text-muted-foreground uppercase">Hub</span>
+                                            <div className="text-sm font-bold text-blue-400">{formNotes.autonomous.auto_fuel_active_hub || 0} FUEL</div>
+                                          </div>
+                                          <div className="bg-white/5 p-2 rounded-xl border border-white/5">
+                                            <span className="text-[8px] text-muted-foreground uppercase">Climb</span>
+                                            <div className="mt-1">
+                                              {formNotes.autonomous.auto_tower_level1 ? (
+                                                <Badge className="bg-green-500/10 text-green-400 border-green-500/20 text-[9px] h-4">SUCCESS</Badge>
+                                              ) : (
+                                                <Badge variant="outline" className="text-[9px] opacity-40 h-4">NONE</Badge>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                          <h4 className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">Teleop Specs</h4>
+                                          <div className="bg-white/5 p-2 rounded-xl border border-white/5 flex justify-between items-center">
+                                            <span className="text-[8px] text-muted-foreground uppercase">T1</span>
+                                            {formNotes.teleop.teleop_tower_level1 ? <CheckCircle className="w-3 h-3 text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground/20" />}
+                                          </div>
+                                          <div className="bg-white/5 p-2 rounded-xl border border-white/5 flex justify-between items-center">
+                                            <span className="text-[8px] text-muted-foreground uppercase">T2</span>
+                                            {formNotes.teleop.teleop_tower_level2 ? <CheckCircle className="w-3 h-3 text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground/20" />}
+                                          </div>
+                                          <div className="bg-white/5 p-2 rounded-xl border border-white/5 flex justify-between items-center">
+                                            <span className="text-[8px] text-muted-foreground uppercase font-bold text-white">T3</span>
+                                            {formNotes.teleop.teleop_tower_level3 ? <Award className="w-4 h-4 text-yellow-400" /> : <XCircle className="w-3 h-3 text-muted-foreground/20" />}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="space-y-3">
+                                        <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center">Fuel Shifts</h4>
+                                        <div className="grid grid-cols-5 gap-2">
+                                          {(formNotes.teleop.teleop_fuel_shifts || [0, 0, 0, 0, 0]).slice(0, 5).map((shift: number, i: number) => (
+                                            <div key={i} className="flex flex-col items-center p-2 rounded-xl bg-white/5 border border-white/5">
+                                              <span className="text-[7px] text-muted-foreground uppercase font-black mb-1">{i === 4 ? 'END' : `S${i + 1}`}</span>
+                                              <span className="text-2xl font-black text-blue-400">{shift}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </>
+                                  );
+                                })()}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </motion.div>
                       ))}
                     </div>
@@ -1097,10 +1188,21 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                                       <div key={i} className="flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/5 relative overflow-hidden group hover:border-blue-500/30 transition-all">
                                                         <div className="absolute top-0 inset-x-0 h-1 bg-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                         <span className="text-[8px] text-muted-foreground uppercase font-black mb-1.5">{i === 4 ? 'End Game' : `Shift ${i + 1}`}</span>
-                                                        <span className="text-4xl sm:text-[140px] font-black text-blue-400 leading-none drop-shadow-[0_0_30px_rgba(59,130,246,0.5)]">{shift}</span>
-                                                        <span className="text-xs sm:text-xl text-muted-foreground mt-2 font-black tracking-widest">POINTS</span>
+                                                        <span className="text-4xl sm:text-6xl font-black text-blue-400 leading-none drop-shadow-[0_0_30px_rgba(59,130,246,0.5)]">{shift}</span>
+                                                        <span className="text-xs sm:text-sm text-muted-foreground mt-2 font-black tracking-widest uppercase">Points</span>
                                                       </div>
                                                     ))}
+                                                  </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                  <div className="bg-purple-500/10 p-4 rounded-xl border border-purple-500/20 text-center">
+                                                    <span className="text-[10px] text-purple-400 uppercase font-black tracking-widest block mb-1">Auto Cleansing</span>
+                                                    <span className="text-2xl font-black text-white">{data.autonomous_cleansing || 0}</span>
+                                                  </div>
+                                                  <div className="bg-purple-500/10 p-4 rounded-xl border border-purple-500/20 text-center">
+                                                    <span className="text-[10px] text-purple-400 uppercase font-black tracking-widest block mb-1">Teleop Cleansing</span>
+                                                    <span className="text-2xl font-black text-white">{data.teleop_cleansing || 0}</span>
                                                   </div>
                                                 </div>
                                               </div>

@@ -143,7 +143,11 @@ export default function SignIn() {
           description: "Please complete authentication in the new window",
           variant: "default",
         });
-        window.location.href = data.url;
+        // Defer redirect so WebView (iOS/Android) reliably follows the navigation
+        const url = data.url;
+        setTimeout(() => {
+          window.location.assign(url);
+        }, 100);
       } else {
         const errorMessage = 'No authentication URL received from Discord';
         setError(errorMessage);

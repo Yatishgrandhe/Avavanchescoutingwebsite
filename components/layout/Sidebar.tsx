@@ -100,6 +100,11 @@ const AppSidebar: React.FC<SidebarProps> = ({
       title: 'Analysis',
       items: [
         {
+          label: 'Competition History',
+          href: '/history',
+          icon: Archive,
+        },
+        {
           label: 'Data Analysis',
           href: '/analysis/data',
           icon: Database,

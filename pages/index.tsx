@@ -181,11 +181,11 @@ export default function Home() {
 
   useEffect(() => {
     const { message, error, error_code, error_description } = router.query;
-    
+
     // Handle error parameters from Supabase OAuth redirect
     if (error || error_code || error_description) {
       let errorMsg = '';
-      
+
       // Decode error_description if present
       if (error_description && typeof error_description === 'string') {
         const decoded = decodeURIComponent(error_description);
@@ -212,12 +212,12 @@ export default function Home() {
       } else {
         errorMsg = 'An authentication error occurred. Please try again.';
       }
-      
+
       // Redirect to error page with the message
       router.replace(`/auth/error?message=${encodeURIComponent(errorMsg)}&error=${error || error_code || 'unknown'}`);
       return;
     }
-    
+
     // Handle message parameter (legacy)
     if (message && typeof message === 'string') {
       setErrorMessage(message);
@@ -359,9 +359,9 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button 
-                    onClick={() => loadDashboardStats()} 
-                    variant="outline" 
+                  <Button
+                    onClick={() => loadDashboardStats()}
+                    variant="outline"
                     size="sm"
                     disabled={loadingStats}
                   >
@@ -385,31 +385,31 @@ export default function Home() {
             {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {[
-                { 
-                  label: "Total Matches", 
-                  value: dashboardStats.totalMatches, 
-                  icon: Target, 
+                {
+                  label: "Total Matches",
+                  value: dashboardStats.totalMatches,
+                  icon: Target,
                   description: "Matches scouted",
                   trend: "+12%"
                 },
-                { 
-                  label: "Teams Tracked", 
-                  value: dashboardStats.teamsCount, 
-                  icon: Users, 
+                {
+                  label: "Teams Tracked",
+                  value: dashboardStats.teamsCount,
+                  icon: Users,
                   description: "Active teams",
                   trend: "+5"
                 },
-                { 
-                  label: "Data Points", 
-                  value: dashboardStats.dataPoints, 
-                  icon: Database, 
+                {
+                  label: "Data Points",
+                  value: dashboardStats.dataPoints,
+                  icon: Database,
                   description: "Data collected",
                   trend: "+234"
                 },
-                { 
-                  label: "Success Rate", 
-                  value: `${dashboardStats.successRate}%`, 
-                  icon: Activity, 
+                {
+                  label: "Success Rate",
+                  value: `${dashboardStats.successRate}%`,
+                  icon: Activity,
                   description: "Completion rate",
                   trend: dashboardStats.successRate > 80 ? "Excellent" : "Good"
                 }
@@ -445,36 +445,36 @@ export default function Home() {
             {/* Quick Actions */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {[
-                { 
-                  title: "Start Scouting", 
-                  description: "Collect match data", 
-                  icon: Target, 
+                {
+                  title: "Start Scouting",
+                  description: "Collect match data",
+                  icon: Target,
                   path: "/scout",
                   color: "text-blue-600 dark:text-blue-400"
                 },
-                { 
-                  title: "Pit Scouting", 
-                  description: "Robot analysis", 
-                  icon: Settings, 
+                {
+                  title: "Pit Scouting",
+                  description: "Robot analysis",
+                  icon: Settings,
                   path: "/pit-scouting",
                   color: "text-purple-600 dark:text-purple-400"
                 },
-                { 
-                  title: "Data Analysis", 
-                  description: "View reports", 
-                  icon: BarChart3, 
+                {
+                  title: "Data Analysis",
+                  description: "View reports",
+                  icon: BarChart3,
                   path: "/analysis/data",
                   color: "text-emerald-600 dark:text-emerald-400"
                 },
-                { 
-                  title: "Team Comparison", 
-                  description: "Compare stats", 
-                  icon: Users, 
+                {
+                  title: "Team Comparison",
+                  description: "Compare stats",
+                  icon: Users,
                   path: "/analysis/comparison",
                   color: "text-orange-600 dark:text-orange-400"
                 }
               ].map((action, i) => (
-                <Card 
+                <Card
                   key={i}
                   className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
                   onClick={() => router.push(action.path)}
@@ -506,7 +506,7 @@ export default function Home() {
                       <TabsTrigger value="stats">Statistics</TabsTrigger>
                       <TabsTrigger value="insights">Insights</TabsTrigger>
                     </TabsList>
-                    
+
                     <TabsContent value="overview" className="space-y-4 mt-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
@@ -530,7 +530,7 @@ export default function Home() {
                         </div>
                       </div>
                     </TabsContent>
-                    
+
                     <TabsContent value="stats" className="mt-4">
                       <div className="rounded-md border">
                         <Table>
@@ -582,7 +582,7 @@ export default function Home() {
                         </Table>
                       </div>
                     </TabsContent>
-                    
+
                     <TabsContent value="insights" className="mt-4">
                       <div className="space-y-4">
                         <div className="flex items-center gap-2">
@@ -630,11 +630,10 @@ export default function Home() {
                     ) : recentActivity.length > 0 ? (
                       recentActivity.map((activity) => (
                         <div key={activity.id} className="flex gap-3 group">
-                          <div className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            activity.type === 'match' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' :
-                            activity.type === 'pit' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400' : 
-                            'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                          }`}>
+                          <div className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${activity.type === 'match' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' :
+                              activity.type === 'pit' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400' :
+                                'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                            }`}>
                             {activity.type === 'match' ? <CheckCircle className="h-4 w-4" /> :
                               activity.type === 'pit' ? <Settings className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}
                           </div>
@@ -738,8 +737,13 @@ export default function Home() {
           <Button onClick={handleSignIn} size="lg" className="w-full sm:w-auto h-12 px-8 rounded-full bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all font-semibold text-lg">
             System Access <ArrowRight size={20} className="ml-2" />
           </Button>
-          <Button variant="outline" size="lg" className="w-full sm:w-auto h-12 px-8 rounded-full border-white/10 hover:bg-white/5 text-white hover:border-white/20 transition-all font-medium backdrop-blur-sm">
-            Read Documentation
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full sm:w-auto h-12 px-8 rounded-full border-white/10 hover:bg-white/5 text-white hover:border-white/20 transition-all font-medium backdrop-blur-sm"
+            onClick={() => router.push('/history')}
+          >
+            Competition History
           </Button>
         </motion.div>
 

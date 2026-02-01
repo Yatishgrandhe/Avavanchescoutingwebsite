@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../..
 import { useToast } from '../../hooks/use-toast';
 import {
   ArrowRight,
+  ArrowLeft,
   Shield,
   Zap,
   Users,
@@ -18,6 +19,7 @@ import {
   Play
 } from 'lucide-react';
 import Logo from '../../components/ui/Logo';
+import Link from 'next/link';
 
 // Avalanche animation background
 const AvalancheBackground = () => {
@@ -111,10 +113,16 @@ export default function SignIn() {
       const { getSupabaseClient } = await import('@/lib/supabase');
       const supabase = getSupabaseClient();
 
+      const callbackOrigin =
+        typeof window !== 'undefined'
+          ? window.location.origin
+          : (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : null) ?? 'https://avalanchescouting.vercel.app';
+      const redirectTo = `${callbackOrigin}/auth/callback`;
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo,
           scopes: 'identify email guilds',
         },
       });
@@ -167,13 +175,25 @@ export default function SignIn() {
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-20 flex justify-between items-center px-6 py-6 border-b border-white/5 bg-background/20 backdrop-blur-sm">
         <div className="flex items-center space-x-3">
-          <Logo size="md" />
-          <div className="text-foreground font-heading font-bold text-xl tracking-tight">
-            Avalanche Scouting
-          </div>
+          <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+            <Logo size="md" />
+            <div className="text-foreground font-heading font-bold text-xl tracking-tight">
+              Avalanche Scouting
+            </div>
+          </Link>
         </div>
-        <div className="text-muted-foreground text-xs uppercase tracking-widest font-semibold hidden sm:block">
-          FRC 2026 Rebuilt
+        <div className="flex items-center space-x-4">
+          <Link
+            href="/"
+            className="text-muted-foreground hover:text-foreground text-sm flex items-center gap-1.5 transition-colors"
+          >
+            <ArrowLeft size={16} />
+            Back to Home
+          </Link>
+          <div className="h-4 w-[1px] bg-white/10 hidden sm:block" />
+          <div className="text-muted-foreground text-xs uppercase tracking-widest font-semibold hidden sm:block">
+            FRC 2026 Rebuilt
+          </div>
         </div>
       </header>
 

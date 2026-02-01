@@ -8,22 +8,27 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   // Create Supabase client with service role key for server-side operations
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-  
-  // Get the authorization header
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-  }
 
-  const token = authHeader.split(' ')[1];
-  
-  // Verify the JWT token
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-  
-  if (error || !user) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
+  // For GET requests, we allow public access if configured
+  const isGetRequest = req.method === 'GET';
+
+  if (!isGetRequest) {
+    // Get the authorization header for non-GET requests
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    // Verify the JWT token
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
   }
 
   if (req.method === 'GET') {
@@ -114,13 +119,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } else if (req.method === 'POST') {
     try {
-      const { 
-        competition_name, 
-        competition_key, 
-        competition_year, 
+      const {
+        competition_name,
+        competition_key,
+        competition_year,
         competition_location,
         competition_date_start,
-        competition_date_end 
+        competition_date_end
       } = req.body;
 
       if (!competition_name || !competition_key || !competition_year) {

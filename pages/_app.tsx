@@ -5,8 +5,6 @@ import Head from 'next/head';
 import { Toaster } from '@/components/ui/toaster';
 import { handleRefreshResize } from '@/lib/refresh-handler';
 import { getSupabaseClient } from '@/lib/supabase';
-import { App as CapApp } from '@capacitor/app';
-import { isNative } from '@/lib/platform';
 
 import '@/styles/globals.css';
 
@@ -50,24 +48,6 @@ export default function App({ Component, pageProps }: AppProps) {
 
     // Handle refresh and resize
     const cleanup = handleRefreshResize();
-
-    // Handle deep links for native app
-    if (isNative()) {
-      CapApp.addListener('appUrlOpen', ({ url }) => {
-        if (url.includes('access_token')) {
-          const params = new URLSearchParams(url.split('#')[1] || url.split('?')[1]);
-          const accessToken = params.get('access_token');
-          const refreshToken = params.get('refresh_token');
-
-          if (accessToken && refreshToken) {
-            supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-          }
-        }
-      });
-    }
 
     return () => {
       subscription.unsubscribe();

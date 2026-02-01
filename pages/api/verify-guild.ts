@@ -15,88 +15,120 @@ const AVALANCHE_GUILD_ID =
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', 'POST');
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'Missing or invalid Authorization header' });
-    return;
-  }
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Missing or invalid Authorization header' });
+      return;
+    }
 
-  const supabaseJwt = authHeader.split(' ')[1];
-  const { providerToken } = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
+    const supabaseJwt = authHeader.split(' ')[1];
+    const { providerToken } = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
 
-  if (!providerToken || typeof providerToken !== 'string') {
-    res.status(400).json({ error: 'Missing providerToken (Discord OAuth access token)' });
-    return;
-  }
+    if (!providerToken || typeof providerToken !== 'string') {
+      res.status(400).json({ error: 'Missing providerToken (Discord OAuth access token)' });
+      return;
+    }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-  if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-    res.status(500).json({ error: 'Server configuration error' });
-    return;
-  }
+    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+      res.status(500).json({ error: 'Server configuration error' });
+      return;
+    }
 
-  if (!AVALANCHE_GUILD_ID) {
-    res.status(500).json({ error: 'AVALANCHE_GUILD_ID or DISCORD_SERVER_ID must be set' });
-    return;
-  }
+    if (!AVALANCHE_GUILD_ID) {
+      res.status(500).json({ error: 'AVALANCHE_GUILD_ID or DISCORD_SERVER_ID must be set' });
+      return;
+    }
 
-  const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-  const { data: { user }, error: userError } = await supabaseAnon.auth.getUser(supabaseJwt);
+    const { data: { user }, error: userError } = await supabaseAnon.auth.getUser(supabaseJwt);
 
-  if (userError || !user) {
-    res.status(401).json({ error: 'Invalid or expired session' });
-    return;
-  }
+    if (userError || !user) {
+      res.status(401).json({ error: 'Invalid or expired session' });
+      return;
+    }
 
-  const discordTimeoutMs = 10000;
-  const ac = new AbortController();
-  const t = setTimeout(() => ac.abort(), discordTimeoutMs);
-  let guildsRes: Response;
-  try {
-    guildsRes = await fetch('https://discord.com/api/v10/users/@me/guilds', {
-      headers: { Authorization: `Bearer ${providerToken}` },
-      signal: ac.signal,
-    });
-  } catch (e) {
+    const discordTimeoutMs = 15000;
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), discordTimeoutMs);
+
+    const guilds: { id: string; name: string }[] = [];
+    let lastId: string | undefined = undefined;
+    let hasMore = true;
+    let retryCount = 0;
+    const maxRetries = 2;
+
+    while (hasMore && guilds.length < 500) { // Safety limit
+      const url = `https://discord.com/api/v10/users/@me/guilds?limit=100${lastId ? `&after=${lastId}` : ''}`;
+      try {
+        const gRes = await fetch(url, {
+          headers: { Authorization: `Bearer ${providerToken}` },
+          signal: ac.signal,
+        });
+
+        if (gRes.status === 429) { // Rate limited
+          const retryAfter = parseInt(gRes.headers.get('Retry-After') || '1') * 1000;
+          await new Promise(r => setTimeout(r, retryAfter));
+          continue;
+        }
+
+        if (!gRes.ok) {
+          if (retryCount < maxRetries) {
+            retryCount++;
+            await new Promise(r => setTimeout(r, 1000));
+            continue;
+          }
+          res.status(gRes.status).json({ error: `Discord API error: ${gRes.statusText}` });
+          return;
+        }
+
+        const page: { id: string; name: string }[] = await gRes.json();
+        if (page.length === 0) {
+          hasMore = false;
+        } else {
+          guilds.push(...page);
+          lastId = page[page.length - 1].id;
+          if (page.length < 100) hasMore = false;
+        }
+      } catch (e) {
+        if (retryCount < maxRetries) {
+          retryCount++;
+          continue;
+        }
+        throw e;
+      }
+    }
     clearTimeout(t);
-    res.status(504).json({ error: 'Discord API request timed out' });
-    return;
-  }
-  clearTimeout(t);
 
-  if (guildsRes.status === 401 || guildsRes.status === 403) {
-    res.status(400).json({ error: 'Discord token invalid or missing guilds scope' });
-    return;
-  }
+    const inGuild = guilds.some((g) => String(g?.id || '').trim() === AVALANCHE_GUILD_ID);
 
-  if (!guildsRes.ok) {
-    res.status(502).json({ error: 'Discord API error' });
-    return;
-  }
+    if (!inGuild) {
+      // Check if user is the site owner/admin to avoid accidental lockout
+      const adminEmails = ['Yatish.grandhe@gmail.com', 'yatish.grandhe@gmail.com'];
+      if (user.email && adminEmails.includes(user.email)) {
+        console.log('👑 Admin bypass for guild check:', user.email);
+        res.status(200).json({ inGuild: true });
+        return;
+      }
 
-  const guilds: { id: string }[] = await guildsRes.json();
-  const inGuild =
-    Array.isArray(guilds) &&
-    guilds.some((g) => String(g?.id || '').trim() === AVALANCHE_GUILD_ID);
+      console.log(`❌ User ${user.email} not in guild ${AVALANCHE_GUILD_ID}. Found in ${guilds.length} guilds.`);
+      // await supabaseAdmin.auth.admin.deleteUser(user.id); // Disabled aggressive deletion
+      res.status(200).json({ inGuild: false });
+      return;
+    }
 
-  if (!inGuild) {
-    await supabaseAdmin.auth.admin.deleteUser(user.id);
-    res.status(200).json({ inGuild: false });
-    return;
-  }
-
-  res.status(200).json({ inGuild: true });
+    res.status(200).json({ inGuild: true });
   } catch (e) {
     console.error('verify-guild error:', e);
     res.status(500).json({ error: 'Internal server error' });

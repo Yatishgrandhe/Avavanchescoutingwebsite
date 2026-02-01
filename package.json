@@ -8,10 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "build:vercel": "npm run type-check && npm run build",
-    "mobile:build": "next build && npx cap sync",
-    "mobile:ios": "npx cap open ios",
-    "mobile:android": "npx cap open android"
+    "build:vercel": "npm run type-check && npm run build"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.2",

@@ -18,7 +18,6 @@ import {
   Play
 } from 'lucide-react';
 import Logo from '../../components/ui/Logo';
-import { getPlatformRedirectUrl } from '@/lib/platform';
 
 // Avalanche animation background
 const AvalancheBackground = () => {
@@ -115,7 +114,7 @@ export default function SignIn() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
-          redirectTo: getPlatformRedirectUrl(),
+          redirectTo: `${window.location.origin}/auth/callback`,
           scopes: 'identify email guilds',
         },
       });

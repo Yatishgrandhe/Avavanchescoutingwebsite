@@ -806,15 +806,15 @@ export default function PitScoutingMobile() {
                       </div>
                     )}
 
-                    {/* Climb Location */}
+                    {/* Climb Location (Yeti-style) */}
                     <div className="mt-4">
-                      <label className="block text-sm font-medium mb-2 text-foreground">Climb location</label>
+                      <label className="block text-sm font-medium mb-2 text-foreground">Where can the robot climb? <span className="text-muted-foreground font-normal">(climb location)</span></label>
                       <Select
                         value={formData.climbLocation || 'none'}
                         onValueChange={(v) => setFormData(prev => ({ ...prev, climbLocation: v }))}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select climb location" />
+                          <SelectValue placeholder="Select where they can climb" />
                         </SelectTrigger>
                         <SelectContent>
                           {CLIMB_LOCATION_OPTIONS.map((opt) => (
@@ -822,6 +822,7 @@ export default function PitScoutingMobile() {
                           ))}
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-muted-foreground mt-1">Sides, center, left, right, any, or none</p>
                     </div>
                   </div>
 

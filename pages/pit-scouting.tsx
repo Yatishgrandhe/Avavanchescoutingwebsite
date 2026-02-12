@@ -23,7 +23,7 @@ import {
 import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, ValidationResult } from '@/lib/form-validation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import RobotImageUpload, { RobotImageUploadRef } from '@/components/ui/RobotImageUpload';
+import PitPhotosUpload from '@/components/ui/PitPhotosUpload';
 
 interface Team {
   team_number: number;
@@ -31,10 +31,15 @@ interface Team {
   team_color?: string;
 }
 
+const CLIMB_LOCATION_OPTIONS = ['sides', 'center', 'left', 'right', 'any', 'none'] as const;
+export type ClimbLocation = typeof CLIMB_LOCATION_OPTIONS[number];
+
 interface PitScoutingData {
   teamNumber: number;
   robotName: string;
   robotImageUrl: string | null;
+  photos: (string | null)[];
+  climbLocation: string;
   driveType: string;
   driveTrainOther?: string;
   autonomousCapabilities: string[];
@@ -70,6 +75,8 @@ export default function PitScouting() {
     teamNumber: 0,
     robotName: '',
     robotImageUrl: null,
+    photos: [],
+    climbLocation: '',
     driveType: '',
     driveTrainOther: '',
     autonomousCapabilities: [],
@@ -93,7 +100,6 @@ export default function PitScouting() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const [scoutedTeamNumbers, setScoutedTeamNumbers] = useState<Set<number>>(new Set());
-  const robotImageUploadRef = React.useRef<RobotImageUploadRef>(null);
 
   const totalSteps = 3;
 
@@ -142,10 +148,15 @@ export default function PitScouting() {
           if (error) throw new Error('Failed to load existing data');
 
           if (existingData) {
+            const photoArr = Array.isArray(existingData.photos) ? existingData.photos : (existingData.robot_image_url ? [existingData.robot_image_url] : []);
+            const photosPadded: (string | null)[] = [...photoArr.slice(0, 6)];
+            while (photosPadded.length < 6) photosPadded.push(null);
             setFormData({
               teamNumber: existingData.team_number,
               robotName: existingData.robot_name || '',
               robotImageUrl: existingData.robot_image_url || null,
+              photos: photosPadded,
+              climbLocation: existingData.climb_location || '',
               driveType: existingData.drive_type || '',
               driveTrainOther: existingData.drive_type === 'Other' ? existingData.drive_type : '',
               autonomousCapabilities: existingData.autonomous_capabilities || [],
@@ -185,28 +196,6 @@ export default function PitScouting() {
     setValidationErrors(validation.errors);
 
     if (validation.isValid) {
-      // If we're on step 1 and have a new image to upload, do it now 
-      // before the component unmounts during step transition
-      if (currentStep === 1 && robotImageUploadRef.current?.hasFile()) {
-        try {
-          setSubmitting(true);
-          console.log('[PitScouting] Uploading image during step transition...');
-          const uploadedUrl = await robotImageUploadRef.current.uploadImage();
-          if (uploadedUrl) {
-            // Update formData with the new URL
-            setFormData(prev => ({ ...prev, robotImageUrl: uploadedUrl }));
-            console.log('[PitScouting] Step 1 image upload successful:', uploadedUrl);
-          }
-        } catch (error) {
-          console.error('[PitScouting] Image upload failed during step transition:', error);
-          setValidationError(error instanceof Error ? error.message : 'Failed to upload image. Please try again.');
-          setSubmitting(false);
-          return; // Stay on step 1 if upload fails
-        } finally {
-          setSubmitting(false);
-        }
-      }
-
       if (currentStep < totalSteps) {
         setCurrentStep(currentStep + 1);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -236,51 +225,8 @@ export default function PitScouting() {
 
       if (!user) throw new Error('User not authenticated. Please sign in and try again.');
 
-      // Upload image if a file is selected (always upload new files)
-      let imageUrl = formData.robotImageUrl;
-
-      // Always try to upload if ref exists and has a file
-      if (robotImageUploadRef.current) {
-        const hasFile = robotImageUploadRef.current.hasFile();
-        console.log('Form submission - Image upload check:', {
-          hasFile,
-          currentImageUrl: imageUrl,
-          formDataRobotImageUrl: formData.robotImageUrl
-        });
-
-        // Try to upload if hasFile returns true
-        if (hasFile) {
-          console.log('[PitScouting] Uploading image before form submission...');
-          console.log('[PitScouting] Calling uploadImage() method...');
-          try {
-            const uploadedUrl = await robotImageUploadRef.current.uploadImage();
-            console.log('[PitScouting] Image upload completed:', uploadedUrl);
-
-            if (uploadedUrl && typeof uploadedUrl === 'string' && uploadedUrl.startsWith('http')) {
-              imageUrl = uploadedUrl;
-              setFormData(prev => ({ ...prev, robotImageUrl: uploadedUrl }));
-              console.log('Image URL set for database save:', imageUrl);
-            } else if (uploadedUrl === null) {
-              // Upload returned null - this means no file was selected or upload was skipped
-              console.warn('Upload returned null - no file was uploaded');
-              // Don't throw error, just use existing imageUrl
-            } else {
-              console.error('Invalid upload URL received:', uploadedUrl);
-              throw new Error(`Invalid image URL received: ${uploadedUrl}`);
-            }
-          } catch (error) {
-            console.error('Error uploading image during form submission:', error);
-            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-            // Always throw upload errors - they should be shown to the user
-            throw new Error(`Failed to upload image: ${errorMsg}`);
-          }
-        } else {
-          console.log('[PitScouting] No new file to upload, using existing imageUrl:', imageUrl);
-          console.log('[PitScouting] hasFile() returned false - upload skipped');
-        }
-      } else {
-        console.warn('robotImageUploadRef.current is null - cannot upload image');
-      }
+      const photoUrls = (formData.photos || []).filter((p): p is string => Boolean(p)).slice(0, 6);
+      const imageUrl = photoUrls[0] || formData.robotImageUrl || null;
 
       const validation = validatePitScoutingForm(formData);
 
@@ -307,6 +253,7 @@ export default function PitScouting() {
         },
         autonomous_capabilities: formData.autonomousCapabilities,
         teleop_capabilities: formData.teleopCapabilities,
+        climb_location: formData.climbLocation || null,
         robot_dimensions: (() => {
           const dims: { length?: number; width?: number; height?: number } = {};
           if (formData.robotDimensions.length !== undefined && formData.robotDimensions.length !== null) {
@@ -325,7 +272,7 @@ export default function PitScouting() {
         shooting_locations: formData.shootingLocations,
         programming_language: formData.programmingLanguage,
         robot_image_url: imageUrl,
-        photos: imageUrl ? [imageUrl] : [],
+        photos: photoUrls,
         notes: formData.notes,
         strengths: [],
         weaknesses: [],
@@ -337,6 +284,7 @@ export default function PitScouting() {
 
       console.log('[PitScouting] Final submission data:', {
         team: submissionData.team_number,
+        climb_location: submissionData.climb_location,
         imageUrl: submissionData.robot_image_url,
         photos: submissionData.photos
       });
@@ -382,6 +330,8 @@ export default function PitScouting() {
             teamNumber: 0,
             robotName: '',
             robotImageUrl: null,
+            photos: [],
+            climbLocation: '',
             driveType: '',
             driveTrainOther: '',
             autonomousCapabilities: [],
@@ -555,13 +505,12 @@ export default function PitScouting() {
                         />
                       </div>
 
-                      {/* Robot Image Upload */}
-                      <RobotImageUpload
-                        ref={robotImageUploadRef}
+                      {/* Pit Photos (up to 6) */}
+                      <PitPhotosUpload
                         teamNumber={formData.teamNumber}
                         teamName={teams.find(t => t.team_number === formData.teamNumber)?.team_name || 'Unknown'}
-                        currentImageUrl={formData.robotImageUrl}
-                        onImageUploaded={(url) => setFormData(prev => ({ ...prev, robotImageUrl: url }))}
+                        photos={formData.photos}
+                        onPhotosChange={(photos) => setFormData(prev => ({ ...prev, photos, robotImageUrl: (photos.filter(Boolean)[0] as string) || prev.robotImageUrl }))}
                       />
 
                       <div className="space-y-2">
@@ -887,6 +836,27 @@ export default function PitScouting() {
                           </div>
                         </div>
                       )}
+
+                      {/* Climb Location (Yeti-style) */}
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium">Climb location</label>
+                        <Select
+                          value={formData.climbLocation || 'none'}
+                          onValueChange={(v) => setFormData(prev => ({ ...prev, climbLocation: v }))}
+                        >
+                          <SelectTrigger className="glass-input border-white/10">
+                            <SelectValue placeholder="Select climb location" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CLIMB_LOCATION_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt} className="capitalize focus:bg-white/10">
+                                {opt}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">Where the robot can climb: sides, center, left, right, any, or none</p>
+                      </div>
 
                       {/* Navigation Locations */}
                       <div className="space-y-3">

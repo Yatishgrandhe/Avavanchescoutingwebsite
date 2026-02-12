@@ -19,12 +19,15 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/router';
 import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, ValidationResult } from '@/lib/form-validation';
+import PitPhotosUpload from '@/components/ui/PitPhotosUpload';
 
 interface Team {
   team_number: number;
   team_name: string;
   team_color?: string;
 }
+
+const CLIMB_LOCATION_OPTIONS = ['sides', 'center', 'left', 'right', 'any', 'none'] as const;
 
 interface PitScoutingData {
   teamNumber: number;
@@ -35,6 +38,7 @@ interface PitScoutingData {
   teleopCapabilities: string[];
   canClimb: boolean;
   climbLevels: string[];
+  climbLocation: string;
   navigationLocations: string[];
   ballHoldAmount?: number;
   downtimeStrategy: string[];
@@ -70,6 +74,7 @@ export default function PitScoutingMobile() {
     teleopCapabilities: [],
     canClimb: false,
     climbLevels: [],
+    climbLocation: '',
     navigationLocations: [],
     ballHoldAmount: 0,
     downtimeStrategy: [],
@@ -197,6 +202,7 @@ export default function PitScoutingMobile() {
           ball_hold_amount: formData.ballHoldAmount || 0,
           downtime_strategy: formData.downtimeStrategy,
         },
+        climb_location: formData.climbLocation || null,
         autonomous_capabilities: formData.autonomousCapabilities,
         teleop_capabilities: formData.teleopCapabilities,
         robot_dimensions: (() => {
@@ -217,7 +223,8 @@ export default function PitScoutingMobile() {
         shooting_locations_count: formData.shootingLocationsCount || 0,
         programming_language: formData.programmingLanguage,
         notes: formData.notes,
-        photos: formData.photos,
+        photos: (formData.photos || []).slice(0, 6),
+        robot_image_url: (formData.photos || [])[0] || null,
         strengths: formData.strengths,
         weaknesses: formData.weaknesses,
         overall_rating: formData.overallRating || 0,
@@ -255,6 +262,7 @@ export default function PitScoutingMobile() {
           teleopCapabilities: [],
           canClimb: false,
           climbLevels: [],
+          climbLocation: '',
           navigationLocations: [],
           ballHoldAmount: 0,
           downtimeStrategy: [],
@@ -430,6 +438,18 @@ export default function PitScoutingMobile() {
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, robotName: e.target.value }))}
                       />
                     </div>
+
+                    {/* Pit Photos (up to 6) */}
+                    <PitPhotosUpload
+                      teamNumber={formData.teamNumber}
+                      teamName={teams.find(t => t.team_number === formData.teamNumber)?.team_name || 'Unknown'}
+                      photos={(() => {
+                        const p: (string | null)[] = [...(formData.photos || [])].slice(0, 6);
+                        while (p.length < 6) p.push(null);
+                        return p;
+                      })()}
+                      onPhotosChange={(arr) => setFormData(prev => ({ ...prev, photos: arr.filter((x): x is string => Boolean(x)) }))}
+                    />
                   </div>
                   
                   <div className="space-y-4">
@@ -785,6 +805,24 @@ export default function PitScoutingMobile() {
                         </div>
                       </div>
                     )}
+
+                    {/* Climb Location */}
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium mb-2 text-foreground">Climb location</label>
+                      <Select
+                        value={formData.climbLocation || 'none'}
+                        onValueChange={(v) => setFormData(prev => ({ ...prev, climbLocation: v }))}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select climb location" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CLIMB_LOCATION_OPTIONS.map((opt) => (
+                            <SelectItem key={opt} value={opt} className="capitalize">{opt}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   {/* Navigation Locations */}
@@ -1072,6 +1110,12 @@ export default function PitScoutingMobile() {
                               {formData.climbLevels.map((level, index) => (
                                 <p key={index} className="text-sm text-muted-foreground">• {level}</p>
                               ))}
+                            </div>
+                          )}
+                          {formData.climbLocation && (
+                            <div className="mt-1">
+                              <p className="text-sm text-muted-foreground font-medium">Climb location:</p>
+                              <p className="text-sm text-muted-foreground capitalize">• {formData.climbLocation}</p>
                             </div>
                           )}
                         </div>

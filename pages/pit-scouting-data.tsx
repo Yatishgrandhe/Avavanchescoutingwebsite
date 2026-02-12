@@ -39,6 +39,8 @@ interface PitScoutingData {
   team_number: number;
   robot_name: string;
   robot_image_url?: string | null;
+  photos?: string[];
+  climb_location?: string | null;
   drive_type: string;
   drive_train_details: {
     type: string;
@@ -116,6 +118,8 @@ export default function PitScoutingData() {
           team_number: item.team_number,
           robot_name: item.robot_name || 'Unknown Robot',
           robot_image_url: item.robot_image_url || null,
+          photos: Array.isArray(item.photos) ? item.photos : (item.robot_image_url ? [item.robot_image_url] : []),
+          climb_location: item.climb_location ?? null,
           drive_type: item.drive_type || 'Unknown',
           drive_train_details: item.drive_train_details || {
             type: item.drive_type || 'Unknown',
@@ -247,6 +251,8 @@ export default function PitScoutingData() {
         team_number: item.team_number,
         robot_name: item.robot_name || 'Unknown Robot',
         robot_image_url: item.robot_image_url || null,
+        photos: Array.isArray(item.photos) ? item.photos : (item.robot_image_url ? [item.robot_image_url] : []),
+        climb_location: item.climb_location ?? null,
         drive_type: item.drive_type || 'Unknown',
         drive_train_details: item.drive_train_details || {
           type: item.drive_type || 'Unknown',
@@ -552,11 +558,11 @@ export default function PitScoutingData() {
                       <p className="text-gray-400">{item.robot_name}</p>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {/* Robot Image Preview */}
-                      {item.robot_image_url && (
+                      {/* Robot Image Preview (first of photos or robot_image_url) */}
+                      {(item.photos?.[0] || item.robot_image_url) && (
                         <div className="relative w-full rounded-lg overflow-hidden border border-gray-700 bg-gray-900 aspect-video">
                           <img
-                            src={item.robot_image_url}
+                            src={item.photos?.[0] || item.robot_image_url || ''}
                             alt={`Team ${item.team_number} - ${item.robot_name}`}
                             className="w-full h-full object-contain"
                             onError={(e) => {
@@ -568,6 +574,17 @@ export default function PitScoutingData() {
                               }
                             }}
                           />
+                          {item.photos && item.photos.length > 1 && (
+                            <span className="absolute bottom-1 right-1 bg-black/70 text-xs text-white px-2 py-0.5 rounded">
+                              +{item.photos.length - 1} more
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {item.climb_location && (
+                        <div>
+                          <p className="text-sm text-gray-400">Climb location</p>
+                          <p className="text-white capitalize">{item.climb_location}</p>
                         </div>
                       )}
                       <div>
@@ -713,24 +730,39 @@ export default function PitScoutingData() {
                       </Button>
                     </div>
 
-                    {/* Robot Image */}
+                    {/* Climb location */}
+                    {selectedDetailItem.climb_location && (
+                      <div className="mb-4">
+                        <h3 className="text-sm font-medium text-gray-400">Climb location</h3>
+                        <p className="text-white capitalize">{selectedDetailItem.climb_location}</p>
+                      </div>
+                    )}
+
+                    {/* Robot / Pit Photos (up to 6) */}
                     <div className="mb-6">
-                      <h3 className="text-lg font-semibold text-white mb-3">Robot Image</h3>
-                      {selectedDetailItem.robot_image_url ? (
-                        <div className="relative w-full max-w-2xl mx-auto rounded-lg overflow-hidden border border-gray-700 bg-gray-900">
-                          <img
-                            src={selectedDetailItem.robot_image_url}
-                            alt={`Team ${selectedDetailItem.team_number} - ${selectedDetailItem.robot_name}`}
-                            className="w-full h-auto object-contain max-h-96"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const parent = target.parentElement;
-                              if (parent) {
-                                parent.innerHTML = '<div class="p-8 text-center text-gray-400">Failed to load image</div>';
-                              }
-                            }}
-                          />
+                      <h3 className="text-lg font-semibold text-white mb-3">
+                        {((selectedDetailItem.photos?.length ?? 0) > 1) ? 'Pit Photos' : 'Robot Image'}
+                      </h3>
+                      {(selectedDetailItem.photos?.length ?? 0) > 0 || selectedDetailItem.robot_image_url ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {(selectedDetailItem.photos && selectedDetailItem.photos.length > 0
+                            ? selectedDetailItem.photos
+                            : selectedDetailItem.robot_image_url
+                              ? [selectedDetailItem.robot_image_url]
+                              : []
+                          ).map((url, i) => (
+                            <div key={i} className="relative rounded-lg overflow-hidden border border-gray-700 bg-gray-900 aspect-square">
+                              <img
+                                src={url}
+                                alt={`Team ${selectedDetailItem.team_number} photo ${i + 1}`}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          ))}
                         </div>
                       ) : (
                         <div className="relative w-full max-w-2xl mx-auto rounded-lg overflow-hidden border border-gray-700 bg-gray-900 p-8 text-center">

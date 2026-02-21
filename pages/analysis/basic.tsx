@@ -51,6 +51,8 @@ interface TeamData {
   avg_teleop_points: number;
   avg_total_score: number;
   avg_defense_rating: number;
+  avg_downtime?: number | null;
+  broke_rate?: number;
 }
 
 interface MatchData {
@@ -63,6 +65,8 @@ interface MatchData {
   teleop_points: number;
   final_score: number;
   defense_rating: number;
+  average_downtime?: number | null;
+  broke?: boolean | null;
   comments?: string;
   created_at: string;
   submitted_by_name?: string;
@@ -139,6 +143,8 @@ export default function BasicAnalysis() {
         teleop_points: sd.teleop_points || 0,
         final_score: sd.final_score || 0,
         defense_rating: sd.defense_rating || 0,
+        average_downtime: sd.average_downtime ?? null,
+        broke: sd.broke ?? null,
         comments: sd.comments || '',
         created_at: sd.created_at,
         submitted_by_name: sd.submitted_by_name,
@@ -166,6 +172,8 @@ export default function BasicAnalysis() {
             avg_teleop_points: 0,
             avg_total_score: 0,
             avg_defense_rating: 0,
+            avg_downtime: null,
+            broke_rate: 0,
           };
         }
         
@@ -173,6 +181,12 @@ export default function BasicAnalysis() {
         const avgTeleop = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.teleop_points || 0), 0) / totalMatches;
         const avgTotal = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.final_score || 0), 0) / totalMatches;
         const avgDefense = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.defense_rating || 0), 0) / totalMatches;
+        const downtimeValues = teamScoutingData.map((sd: any) => sd.average_downtime).filter((v: any) => v != null && !Number.isNaN(Number(v)));
+        const avgDowntime = downtimeValues.length > 0
+          ? downtimeValues.reduce((s: number, v: number) => s + Number(v), 0) / downtimeValues.length
+          : null;
+        const brokeCount = teamScoutingData.filter((sd: any) => sd.broke === true).length;
+        const brokeRate = totalMatches > 0 ? Math.round((brokeCount / totalMatches) * 100) : 0;
         
         return {
           team_number: team.team_number,
@@ -182,6 +196,8 @@ export default function BasicAnalysis() {
           avg_teleop_points: avgTeleop,
           avg_total_score: avgTotal,
           avg_defense_rating: avgDefense,
+          avg_downtime: avgDowntime,
+          broke_rate: brokeRate,
         };
       });
       
@@ -440,6 +456,8 @@ export default function BasicAnalysis() {
                         <TableHead>Avg Teleop</TableHead>
                         <TableHead>Total Score</TableHead>
                         <TableHead>Defense</TableHead>
+                        <TableHead>Avg Downtime</TableHead>
+                        <TableHead>Broke %</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -466,6 +484,8 @@ export default function BasicAnalysis() {
                                <span className="text-sm">{(team.avg_defense_rating || 0).toFixed(1)}</span>
                             </div>
                           </TableCell>
+                          <TableCell>{team.avg_downtime != null ? `${Number(team.avg_downtime).toFixed(1)}s` : '—'}</TableCell>
+                          <TableCell>{team.broke_rate != null ? `${team.broke_rate}%` : '—'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -490,6 +510,8 @@ export default function BasicAnalysis() {
                         <TableHead>Teleop</TableHead>
                         <TableHead>Total</TableHead>
                         <TableHead>Defense</TableHead>
+                        <TableHead>Downtime</TableHead>
+                        <TableHead>Broke</TableHead>
                         <TableHead>Comments</TableHead>
                         <TableHead>Uploaded By</TableHead>
                         <TableHead>Date</TableHead>
@@ -498,7 +520,7 @@ export default function BasicAnalysis() {
                     <TableBody>
                       {(matches || []).length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={11} className="text-center text-muted-foreground">
+                          <TableCell colSpan={13} className="text-center text-muted-foreground">
                             No matches recorded yet
                           </TableCell>
                         </TableRow>
@@ -531,6 +553,8 @@ export default function BasicAnalysis() {
                                 <span className="text-sm">{match.defense_rating || 0}</span>
                               </div>
                             </TableCell>
+                            <TableCell>{match.average_downtime != null ? `${Number(match.average_downtime).toFixed(1)}s` : '—'}</TableCell>
+                            <TableCell>{match.broke === true ? 'Yes' : match.broke === false ? 'No' : '—'}</TableCell>
                             <TableCell className="max-w-xs truncate text-muted-foreground">
                               {match.comments || '-'}
                             </TableCell>

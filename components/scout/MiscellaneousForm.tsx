@@ -3,11 +3,11 @@ import { motion } from 'framer-motion';
 import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Counter } from '../ui';
 
 interface MiscellaneousFormProps {
-  onNext: (miscData: { defense_rating: number; comments: string }) => void;
+  onNext: (miscData: { defense_rating: number; comments: string; average_downtime: number | null; broke: boolean | null }) => void;
   onBack: () => void;
   currentStep: number;
   totalSteps: number;
-  initialData?: { defense_rating: number; comments: string };
+  initialData?: { defense_rating: number; comments: string; average_downtime?: number | null; broke?: boolean | null };
 }
 
 const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
@@ -20,6 +20,8 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
   const [formData, setFormData] = useState({
     defense_rating: (initialData?.defense_rating as number) ?? 0,
     comments: initialData?.comments || '',
+    average_downtime: initialData?.average_downtime ?? null as number | null,
+    broke: initialData?.broke ?? null as boolean | null,
   });
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -29,11 +31,13 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
       setFormData({
         defense_rating: (initialData.defense_rating as number) ?? 0,
         comments: initialData.comments || '',
+        average_downtime: initialData.average_downtime ?? null,
+        broke: initialData.broke ?? null,
       });
     }
   }, [initialData]);
 
-  const handleInputChange = (field: keyof typeof formData, value: string | number) => {
+  const handleInputChange = (field: keyof typeof formData, value: string | number | boolean | null) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
@@ -113,6 +117,66 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
             />
           </div>
 
+          {/* Average Downtime */}
+          <div className="space-y-2 sm:space-y-4">
+            <h3 className="text-foreground font-semibold text-base sm:text-lg">Average Downtime (seconds)</h3>
+            <input
+              type="number"
+              min={0}
+              step={0.5}
+              value={formData.average_downtime ?? ''}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const v = e.target.value;
+                handleInputChange('average_downtime', v === '' ? null : parseFloat(v));
+              }}
+              className="w-full max-w-xs bg-background border border-border text-foreground rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary text-sm sm:text-base"
+              placeholder="e.g. 15 (leave blank if none)"
+            />
+            <p className="text-muted-foreground text-xs sm:text-sm">
+              Estimated average time the robot was disabled or not operating (in seconds). Leave blank if no significant downtime.
+            </p>
+          </div>
+
+          {/* Broke or Not */}
+          <div className="space-y-2 sm:space-y-4">
+            <h3 className="text-foreground font-semibold text-base sm:text-lg">Robot Broke?</h3>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="broke"
+                  checked={formData.broke === true}
+                  onChange={() => handleInputChange('broke', true)}
+                  className="rounded-full border-border text-primary focus:ring-primary"
+                />
+                <span className="text-foreground">Yes</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="broke"
+                  checked={formData.broke === false}
+                  onChange={() => handleInputChange('broke', false)}
+                  className="rounded-full border-border text-primary focus:ring-primary"
+                />
+                <span className="text-foreground">No</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="broke"
+                  checked={formData.broke === null}
+                  onChange={() => handleInputChange('broke', null)}
+                  className="rounded-full border-border text-primary focus:ring-primary"
+                />
+                <span className="text-muted-foreground">Unknown / N/A</span>
+              </label>
+            </div>
+            <p className="text-muted-foreground text-xs sm:text-sm">
+              Did the robot break or stop working during the match?
+            </p>
+          </div>
+
           {/* Game Mechanics Notes */}
           <div className="space-y-2 sm:space-y-4">
             <h3 className="text-foreground font-semibold text-base sm:text-lg">Important Game Mechanics Notes</h3>
@@ -154,7 +218,9 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
 
               onNext({
                 defense_rating: defenseRating,
-                comments: comments
+                comments: comments,
+                average_downtime: formData.average_downtime,
+                broke: formData.broke,
               });
             }}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"

@@ -34,6 +34,8 @@ interface TeamStats {
   avg_endgame_points: number;
   avg_total_score: number;
   avg_defense_rating: number;
+  avg_downtime?: number | null;
+  broke_rate?: number;
   best_score: number;
   worst_score: number;
   consistency_score: number;
@@ -46,6 +48,8 @@ interface TeamStats {
     teleop_points: number;
     endgame_points: number;
     defense_rating: number;
+    average_downtime?: number | null;
+    broke?: boolean | null;
     created_at: string;
   }>;
 }
@@ -164,6 +168,12 @@ export default function AdvancedAnalysis() {
       const avgEndgame = endgameScores.reduce((sum: number, score: number) => sum + score, 0) / totalMatches;
       const avgTotal = scores.reduce((sum: number, score: number) => sum + score, 0) / totalMatches;
       const avgDefense = defenseRatings.reduce((sum: number, rating: number) => sum + rating, 0) / totalMatches;
+      const downtimeValues = scoutingData.map((m: any) => m.average_downtime).filter((v: any) => v != null && !Number.isNaN(Number(v)));
+      const avgDowntime = downtimeValues.length > 0
+        ? downtimeValues.reduce((s: number, v: number) => s + Number(v), 0) / downtimeValues.length
+        : null;
+      const brokeCount = scoutingData.filter((m: any) => m.broke === true).length;
+      const brokeRate = totalMatches > 0 ? Math.round((brokeCount / totalMatches) * 100) : 0;
 
       // Calculate consistency (standard deviation)
       const variance = scores.reduce((sum: number, score: number) => sum + Math.pow(score - avgTotal, 2), 0) / totalMatches;
@@ -207,6 +217,8 @@ export default function AdvancedAnalysis() {
         avg_endgame_points: Math.round(avgEndgame * 100) / 100,
         avg_total_score: Math.round(avgTotal * 100) / 100,
         avg_defense_rating: Math.round(avgDefense * 100) / 100,
+        avg_downtime: avgDowntime != null ? Math.round(avgDowntime * 100) / 100 : null,
+        broke_rate: brokeRate,
         best_score: bestScore,
         worst_score: worstScore,
         consistency_score: Math.round(consistencyScore * 100) / 100,
@@ -217,8 +229,10 @@ export default function AdvancedAnalysis() {
           final_score: match.final_score || 0,
           autonomous_points: match.autonomous_points || 0,
           teleop_points: match.teleop_points || 0,
-          endgame_points: 0, // endgame_points not in database schema
+          endgame_points: 0,
           defense_rating: match.defense_rating || 0,
+          average_downtime: match.average_downtime ?? null,
+          broke: match.broke ?? null,
           created_at: match.created_at
         }))
       });
@@ -244,6 +258,8 @@ export default function AdvancedAnalysis() {
       ['Average Endgame Points', teamStats.avg_endgame_points],
       ['Average Total Score', teamStats.avg_total_score],
       ['Average Defense Rating', teamStats.avg_defense_rating],
+      ['Average Downtime (s)', teamStats.avg_downtime ?? ''],
+      ['Broke Rate (%)', teamStats.broke_rate ?? ''],
       ['Best Score', teamStats.best_score],
       ['Worst Score', teamStats.worst_score],
       ['Consistency Score', teamStats.consistency_score],
@@ -499,6 +515,38 @@ export default function AdvancedAnalysis() {
                     </div>
                   </CardContent>
                 </Card>
+
+                <Card className="bg-card border-border">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Avg Downtime
+                        </p>
+                        <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {teamStats.avg_downtime != null ? `${teamStats.avg_downtime}s` : '—'}
+                        </p>
+                      </div>
+                      <Clock className={`w-8 h-8 ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`} />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card border-border">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Broke Rate
+                        </p>
+                        <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {teamStats.broke_rate != null ? `${teamStats.broke_rate}%` : '—'}
+                        </p>
+                      </div>
+                      <AlertCircle className={`w-8 h-8 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Detailed Metrics */}
@@ -606,6 +654,12 @@ export default function AdvancedAnalysis() {
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                             Defense
                           </th>
+                          <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Downtime
+                          </th>
+                          <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Broke
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -634,6 +688,12 @@ export default function AdvancedAnalysis() {
                             </td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               {match.defense_rating}/10
+                            </td>
+                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                              {match.average_downtime != null ? `${match.average_downtime}s` : '—'}
+                            </td>
+                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                              {match.broke === true ? 'Yes' : match.broke === false ? 'No' : '—'}
                             </td>
                           </motion.tr>
                         ))}

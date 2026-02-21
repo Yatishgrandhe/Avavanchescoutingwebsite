@@ -52,6 +52,8 @@ interface FormData {
   miscellaneous: {
     defense_rating: number;
     comments: string;
+    average_downtime: number | null;
+    broke: boolean | null;
   };
 }
 
@@ -76,6 +78,8 @@ export default function MobileScout() {
     miscellaneous: {
       defense_rating: 0,
       comments: '',
+      average_downtime: null,
+      broke: null,
     },
   });
 
@@ -120,6 +124,8 @@ export default function MobileScout() {
         final_score: finalScore,
         defense_rating: formData.miscellaneous.defense_rating,
         comments: formData.miscellaneous.comments,
+        average_downtime: formData.miscellaneous.average_downtime ?? undefined,
+        broke: formData.miscellaneous.broke ?? undefined,
         scout_id: user?.id,
         submitted_by_email: user?.email,
         // Use username from user_metadata: full_name, username (Discord), or name
@@ -166,6 +172,8 @@ export default function MobileScout() {
           miscellaneous: {
             defense_rating: 0,
             comments: '',
+            average_downtime: null,
+            broke: null,
           },
         });
         router.push('/');

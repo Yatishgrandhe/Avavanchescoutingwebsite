@@ -54,6 +54,8 @@ interface FormData {
   miscellaneous: {
     defense_rating: number;
     comments: string;
+    average_downtime: number | null;
+    broke: boolean | null;
   };
 }
 
@@ -77,6 +79,8 @@ export default function Scout() {
     miscellaneous: {
       defense_rating: 0,
       comments: '',
+      average_downtime: null,
+      broke: null,
     },
   });
 
@@ -115,6 +119,8 @@ export default function Scout() {
         final_score: finalScore,
         defense_rating: formData.miscellaneous.defense_rating,
         comments: formData.miscellaneous.comments,
+        average_downtime: formData.miscellaneous.average_downtime ?? undefined,
+        broke: formData.miscellaneous.broke ?? undefined,
         scout_id: user?.id,
         submitted_by_email: user?.email,
         // Use username from user_metadata: full_name, username (Discord), or name
@@ -157,6 +163,8 @@ export default function Scout() {
           miscellaneous: {
             defense_rating: 0,
             comments: '',
+            average_downtime: null,
+            broke: null,
           },
         });
         // Scroll to top
@@ -428,6 +436,20 @@ export default function Scout() {
                                 calculateScore(formData.autonomous).final_score +
                                 calculateScore(formData.teleop).final_score
                               }</span>
+                            </div>
+                            <div className="border-t border-white/10 pt-2 mt-2 space-y-1 text-sm">
+                              <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">Defense</span>
+                                <span>{formData.miscellaneous.defense_rating}/10</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">Avg Downtime</span>
+                                <span>{formData.miscellaneous.average_downtime != null ? `${formData.miscellaneous.average_downtime}s` : '—'}</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">Broke</span>
+                                <span>{formData.miscellaneous.broke === true ? 'Yes' : formData.miscellaneous.broke === false ? 'No' : '—'}</span>
+                              </div>
                             </div>
                           </div>
                         </div>

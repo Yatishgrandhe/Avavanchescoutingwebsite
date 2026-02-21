@@ -29,6 +29,8 @@ export interface ScoutingData {
   notes: ScoringNotes | { autonomous?: Partial<ScoringNotes>; teleop?: Partial<ScoringNotes> };
   defense_rating: number;
   comments: string;
+  average_downtime?: number | null;
+  broke?: boolean | null;
   created_at: string;
   submitted_by_name?: string;
   submitted_by_email?: string;
@@ -66,6 +68,9 @@ export interface TeamStats {
   avg_endgame_points: number;
   avg_total_score: number;
   avg_defense_rating: number;
+  avg_downtime?: number | null;
+  broke_count?: number;
+  broke_rate?: number;
   win_rate: number;
   consistency_score: number;
   avg_shifts?: number[];

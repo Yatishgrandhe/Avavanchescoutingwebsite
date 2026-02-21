@@ -413,6 +413,12 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
                           </div>
                         </div>
 
+                        {/* Downtime & Broke */}
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Downtime: {data.average_downtime != null ? `${Number(data.average_downtime).toFixed(1)}s` : '—'}</span>
+                          <span>Broke: {data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}</span>
+                        </div>
+
                         {/* Uploader Info */}
                         {showUploaderInfo && (
                           <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">

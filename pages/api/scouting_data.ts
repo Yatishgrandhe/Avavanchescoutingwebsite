@@ -64,6 +64,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         teleop_cleansing,
         defense_rating,
         comments,
+        average_downtime,
+        broke,
         scout_id,
         submitted_by_name: requestSubmittedByName,
         submitted_by_email: requestSubmittedByEmail,
@@ -147,6 +149,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         notes: finalNotes,
         defense_rating: defense_rating || miscellaneous?.defense_rating || 0,
         comments: comments || miscellaneous?.comments || '',
+        average_downtime: average_downtime ?? miscellaneous?.average_downtime ?? null,
+        broke: broke !== undefined ? broke : (miscellaneous?.broke ?? null),
         // Use submitted_by_name from request if provided, otherwise get from user metadata
         // For Discord: full_name, username, or name may be set in user_metadata
         submitted_by_name: requestSubmittedByName?.trim() 

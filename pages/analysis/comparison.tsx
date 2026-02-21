@@ -37,6 +37,8 @@ interface TeamComparison {
   avg_endgame_points: number;
   avg_total_score: number;
   avg_defense_rating: number;
+  avg_downtime?: number | null;
+  broke_rate?: number;
   best_score: number;
   worst_score: number;
   consistency_score: number;
@@ -127,6 +129,12 @@ export default function TeamComparison() {
       const teleopScores = scoutingData.map((match: any) => match.teleop_points || 0);
       const endgameScores = scoutingData.map((match: any) => 0); // endgame_points not in database schema
       const defenseRatings = scoutingData.map((match: any) => match.defense_rating || 0);
+      const downtimeValues = scoutingData.map((m: any) => m.average_downtime).filter((v: any) => v != null && !Number.isNaN(Number(v)));
+      const avgDowntime = downtimeValues.length > 0
+        ? downtimeValues.reduce((s: number, v: number) => s + Number(v), 0) / downtimeValues.length
+        : null;
+      const brokeCount = scoutingData.filter((m: any) => m.broke === true).length;
+      const brokeRate = totalMatches > 0 ? Math.round((brokeCount / totalMatches) * 100) : 0;
 
       // Calculate averages
       const avgAutonomous = autonomousScores.reduce((sum: number, score: number) => sum + score, 0) / totalMatches;
@@ -170,6 +178,8 @@ export default function TeamComparison() {
         avg_endgame_points: Math.round(avgEndgame * 100) / 100,
         avg_total_score: Math.round(avgTotal * 100) / 100,
         avg_defense_rating: Math.round(avgDefense * 100) / 100,
+        avg_downtime: avgDowntime != null ? Math.round(avgDowntime * 100) / 100 : null,
+        broke_rate: brokeRate,
         best_score: Math.max(...scores),
         worst_score: Math.min(...scores),
         consistency_score: Math.round(consistencyScore * 100) / 100,
@@ -204,7 +214,7 @@ export default function TeamComparison() {
     if (teamComparisons.length === 0) return;
 
     const csvContent = [
-      ['Team Number', 'Team Name', 'Total Matches', 'Avg Autonomous', 'Avg Teleop', 'Avg Endgame', 'Avg Total Score', 'Avg Defense', 'Best Score', 'Worst Score', 'Consistency Score'],
+      ['Team Number', 'Team Name', 'Total Matches', 'Avg Autonomous', 'Avg Teleop', 'Avg Endgame', 'Avg Total Score', 'Avg Defense', 'Avg Downtime', 'Broke %', 'Best Score', 'Worst Score', 'Consistency Score'],
       ...teamComparisons.map(team => [
         team.team_number,
         team.team_name,
@@ -214,6 +224,8 @@ export default function TeamComparison() {
         team.avg_endgame_points,
         team.avg_total_score,
         team.avg_defense_rating,
+        team.avg_downtime ?? '',
+        team.broke_rate ?? '',
         team.best_score,
         team.worst_score,
         team.consistency_score
@@ -530,6 +542,18 @@ export default function TeamComparison() {
                             </span>
                           </div>
                           <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Avg Downtime:</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                              {team.avg_downtime != null ? `${team.avg_downtime}s` : '—'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Broke %:</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                              {team.broke_rate != null ? `${team.broke_rate}%` : '—'}
+                            </span>
+                          </div>
+                          <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Best:</span>
                             <span className={`ml-2 font-semibold text-green-600`}>{team.best_score}</span>
                           </div>
@@ -571,6 +595,12 @@ export default function TeamComparison() {
                           </th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                             Defense
+                          </th>
+                          <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Downtime
+                          </th>
+                          <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Broke %
                           </th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                             Best
@@ -617,6 +647,12 @@ export default function TeamComparison() {
                             </td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               {team.avg_defense_rating}/10
+                            </td>
+                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                              {team.avg_downtime != null ? `${team.avg_downtime}s` : '—'}
+                            </td>
+                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                              {team.broke_rate != null ? `${team.broke_rate}%` : '—'}
                             </td>
                             <td className={`py-3 px-4 font-semibold text-green-400`}>
                               {team.best_score}

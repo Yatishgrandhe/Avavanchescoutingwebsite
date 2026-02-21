@@ -54,6 +54,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     avg_defense_rating: number;
     avg_autonomous_cleansing: number;
     avg_teleop_cleansing: number;
+    avg_downtime?: number | null;
+    broke_count?: number;
+    broke_rate?: number;
     best_score: number;
     worst_score: number;
     consistency_score: number;
@@ -186,6 +189,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       defense_ratings: number[];
       autonomous_cleansing: number[];
       teleop_cleansing: number[];
+      downtime_values: (number | null)[];
+      broke_count: number;
       teleop_fuel_shifts: number[][];
     }>();
 
@@ -212,6 +217,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
           defense_ratings: [],
           autonomous_cleansing: [],
           teleop_cleansing: [],
+          downtime_values: [],
+          broke_count: 0,
           teleop_fuel_shifts: []
         };
         teamStatsMap.set(data.team_number, teamStat);
@@ -223,6 +230,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       teamStat.defense_ratings.push(data.defense_rating || 0);
       teamStat.autonomous_cleansing.push(data.autonomous_cleansing || 0);
       teamStat.teleop_cleansing.push(data.teleop_cleansing || 0);
+      if (data.average_downtime != null && !Number.isNaN(Number(data.average_downtime))) {
+        teamStat.downtime_values.push(Number(data.average_downtime));
+      }
+      if (data.broke === true) teamStat.broke_count++;
 
       const formNotes = parseFormNotes(data.notes);
       const shifts = formNotes.teleop?.teleop_fuel_shifts || [];
@@ -239,6 +250,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       const avgDefense = stat.defense_ratings.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
       const avgAutonomousCleansing = stat.autonomous_cleansing.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
       const avgTeleopCleansing = stat.teleop_cleansing.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
+      const avgDowntime = stat.downtime_values.length > 0
+        ? stat.downtime_values.reduce((s, v) => s + (v ?? 0), 0) / stat.downtime_values.length
+        : null;
+      const brokeRate = stat.total_matches > 0 ? Math.round((stat.broke_count / stat.total_matches) * 100) : 0;
 
       const bestScore = Math.max(...stat.total_scores);
       const worstScore = Math.min(...stat.total_scores);
@@ -258,6 +273,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         avg_defense_rating: Math.round(avgDefense * 100) / 100,
         avg_autonomous_cleansing: Math.round(avgAutonomousCleansing * 100) / 100,
         avg_teleop_cleansing: Math.round(avgTeleopCleansing * 100) / 100,
+        avg_downtime: avgDowntime != null ? Math.round(avgDowntime * 100) / 100 : null,
+        broke_count: stat.broke_count,
+        broke_rate: brokeRate,
         best_score: bestScore,
         worst_score: worstScore,
         consistency_score: Math.round(consistencyScore * 100) / 100,
@@ -715,6 +733,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 text-[9px]">Auto Cleansing</th>
                             <th className="text-left p-4 text-[9px]">Teleop Cleansing</th>
                             <th className="text-left p-4">Defense</th>
+                            <th className="text-left p-4 text-[10px]">Avg Downtime</th>
+                            <th className="text-left p-4 text-[10px]">Broke %</th>
                             <th className="text-left p-4">Best</th>
                             <th className="text-left p-4 text-[11px]">Consistency</th>
                             <th className="text-left p-4 min-w-[240px] text-[11px]">Teleop Shifts (Avg Points)</th>
@@ -764,6 +784,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                     {team.avg_defense_rating}/10
                                   </Badge>
                                 </td>
+                                <td className="p-4 text-muted-foreground text-sm">{team.avg_downtime != null ? `${team.avg_downtime}s` : '—'}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{team.broke_rate != null ? `${team.broke_rate}%` : '—'}</td>
                                 <td className="p-4 text-green-400 font-bold">{team.best_score}</td>
                                 <td className="p-4">
                                   <div className="flex items-center gap-2">
@@ -1013,6 +1035,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 cursor-pointer hover:text-foreground transition-all" onClick={() => handleSort('defense_rating')}>
                               Defense {sortField === 'defense_rating' && (sortDirection === 'asc' ? '↑' : '↓')}
                             </th>
+                            <th className="text-left p-4">Downtime</th>
+                            <th className="text-left p-4">Broke</th>
                             {showUploaderInfo && (
                               <>
                                 <th className="text-left p-4">Uploaded By</th>
@@ -1078,6 +1102,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                     <span className="text-xs font-bold text-muted-foreground">{data.defense_rating}</span>
                                   </div>
                                 </td>
+                                <td className="p-4 text-muted-foreground text-sm">{data.average_downtime != null ? `${Number(data.average_downtime).toFixed(1)}s` : '—'}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}</td>
                                 {showUploaderInfo && (
                                   <td className="p-4">
                                     <div className="flex flex-col gap-1">

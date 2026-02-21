@@ -1,5 +1,28 @@
 {
   "mcpServers": {
+    "avalanche-scouting-supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase"
+      ],
+      "env": {
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsemFoeGtmbWtsd2Nna29nZWZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyOTI1NTUsImV4cCI6MjA3MTg2ODU1NX0._szu1412tQglLNtGXBNP_dnjz59rTZiX3wvaw6IjDUE",
+        "NEXT_PUBLIC_SUPABASE_URL": "https://ylzahxkfmklwcgkogeff.supabase.co",
+        "POSTGRES_DATABASE": "postgres",
+        "POSTGRES_HOST": "db.ylzahxkfmklwcgkogeff.supabase.co",
+        "POSTGRES_PASSWORD": "KmWARlCx0POpZ5ap",
+        "POSTGRES_PRISMA_URL": "postgres://postgres.ylzahxkfmklwcgkogeff:KmWARlCx0POpZ5ap@aws-1-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true",
+        "POSTGRES_URL": "postgres://postgres.ylzahxkfmklwcgkogeff:KmWARlCx0POpZ5ap@aws-1-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require&supa=base-pooler.x",
+        "POSTGRES_URL_NON_POOLING": "postgres://postgres.ylzahxkfmklwcgkogeff:KmWARlCx0POpZ5ap@aws-1-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require",
+        "POSTGRES_USER": "postgres",
+        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsemFoeGtmbWtsd2Nna29nZWZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyOTI1NTUsImV4cCI6MjA3MTg2ODU1NX0._szu1412tQglLNtGXBNP_dnjz59rTZiX3wvaw6IjDUE",
+        "SUPABASE_JWT_SECRET": "NK/EVRd8U8ZKIwmhYV0ESRmjgpBpERCimMEo63zUqXeNvmwc1ptCCoBEkdO/fFxnuvfeSkTggDwaz3Afthw9GA==",
+        "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsemFoeGtmbWtsd2Nna29nZWZmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NjI5MjU1NSwiZXhwIjoyMDcxODY4NTU1fQ.yk0g0T6cSknpUFLhsGkTdh4uL_0hYZZaTjECDawB-wk",
+        "SUPABASE_URL": "https://ylzahxkfmklwcgkogeff.supabase.co",
+        "SUPABASE_ACCESS_TOKEN": "sbp_361610df835734dd7f5207a609a5446e877ac273"
+      }
+    },
     "shadcn": {
       "command": "npx",
       "args": [

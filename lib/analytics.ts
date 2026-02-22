@@ -27,6 +27,7 @@ export interface ParsedNotes {
     teleop_tower_level1: boolean;
     teleop_tower_level2: boolean;
     teleop_tower_level3: boolean;
+    climb_sec?: number | null;
     runs?: RunRecord[];
     duration_sec?: number | null;
     balls_0_15?: number;
@@ -93,6 +94,7 @@ export function parseNotes(notes: any): ParsedNotes {
       teleop_tower_level1: Boolean(teleop.teleop_tower_level1),
       teleop_tower_level2: Boolean(teleop.teleop_tower_level2),
       teleop_tower_level3: Boolean(teleop.teleop_tower_level3),
+      climb_sec: teleop.climb_sec != null && !Number.isNaN(Number(teleop.climb_sec)) ? Number(teleop.climb_sec) : undefined,
       runs: teleopRuns.length ? teleopRuns : undefined,
       duration_sec: teleop.duration_sec != null ? Number(teleop.duration_sec) : undefined,
       balls_0_15: Number(teleop.balls_0_15) || 0,
@@ -168,6 +170,21 @@ export function getClimbAchieved(notes: any): { label: string; points: number } 
   return null;
 }
 
+/** Climb pts adjusted for speed: +2 for ≤3s, -2 for >6s (for CLANK). */
+function getClimbSpeedAdjustment(notes: any): number {
+  const p = parseNotes(notes);
+  const sec = p.teleop.climb_sec;
+  if (sec == null || Number.isNaN(sec)) return 0;
+  if (sec <= 3) return 2;
+  if (sec > 6) return -2;
+  return 0;
+}
+
+/** Climb points + speed adjustment for one match (used for CLANK average). */
+export function getClimbPointsAdjusted(notes: any): number {
+  return getClimbPoints(notes) + getClimbSpeedAdjustment(notes);
+}
+
 /** Uptime % from average_downtime (seconds). Match = 165s. */
 export function getUptimePct(averageDowntimeSec: number | null | undefined): number | null {
   if (averageDowntimeSec == null || Number.isNaN(averageDowntimeSec)) return null;
@@ -226,6 +243,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
   let totalClimbPts = 0;
   let totalAutoClimbPts = 0;
   let totalTeleopClimbPts = 0;
+  let totalClimbAdjusted = 0;
   let climbSuccesses = 0;
   let climbAttempts = n;
   let downtimeSum = 0;
@@ -241,6 +259,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     totalClimbPts += climbPts;
     totalAutoClimbPts += getAutoClimbPoints(notes);
     totalTeleopClimbPts += getTeleopClimbPoints(notes);
+    totalClimbAdjusted += getClimbPointsAdjusted(notes);
     if (hadClimbSuccess(notes)) climbSuccesses += 1;
     if (row.average_downtime != null && !Number.isNaN(row.average_downtime)) {
       downtimeSum += Number(row.average_downtime);
@@ -259,21 +278,26 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     downtimeCount > 0 ? Math.round((downtimeSum / downtimeCount) * 100) / 100 : null;
 
   const avgScore = scores.reduce((a, b) => a + b, 0) / n;
-  const variance =
-    scores.reduce((sum, s) => sum + (s - avgScore) ** 2, 0) / n;
-  const stdDev = Math.sqrt(variance);
+  const totalSum = scores.reduce((a, b) => a + b, 0);
 
-  // CLANK: successful climbs / attempted (all matches count as attempt)
-  const clank = climbAttempts > 0 ? Math.round((climbSuccesses / climbAttempts) * 1000) / 10 : 0;
+  // CLANK: Climb Level Accuracy & No-Knockdown. Avg of (climb pts + speed adj): +2 for ≤3s, -2 for >6s.
+  const clank = n > 0 ? Math.round((totalClimbAdjusted / n) * 10) / 10 : 0;
 
-  // RPMAGIC: simplified – ranking points potential from avg score + climb consistency
-  const rpmagic = Math.round((avgScore * 0.4 + (clank / 100) * 40) * 10) / 10;
+  // RPMAGIC: Marginal probability of earning an RP from this team's scoring contribution per match (0–1).
+  const climbRate = climbAttempts > 0 ? climbSuccesses / climbAttempts : 0;
+  const rpmagicRaw = (avgScore / 200) * 0.5 + climbRate * 0.4;
+  const rpmagic = Math.round(Math.min(1, Math.max(0, rpmagicRaw)) * 1000) / 1000;
 
-  // GOBLIN: inverse of coefficient of variation (lower variance = less “luck”)
-  const goblin =
-    avgScore > 0
-      ? Math.round(Math.max(0, 100 - (stdDev / avgScore) * 100) * 10) / 10
-      : 0;
+  // GOBLIN: Difference between actual match margin and expected margin. Positive = luckier than expected.
+  let goblin = 0;
+  if (n > 1) {
+    const diffs = scores.map((score_i) => {
+      const expected_i = (totalSum - score_i) / (n - 1);
+      return score_i - expected_i;
+    });
+    goblin = diffs.reduce((a, b) => a + b, 0) / n;
+  }
+  goblin = Math.round(goblin * 10) / 10;
 
   return {
     avg_auto_fuel: Math.round((totalAutoFuel / n) * 100) / 100,

@@ -6,12 +6,12 @@ import { TrendingUp, CheckCircle, Award } from 'lucide-react';
 import StopwatchBallTracking from './StopwatchBallTracking';
 
 interface TeleopFormProps {
-  onNext: (teleopData: Partial<ScoringNotes> & BallTrackingPhase) => void;
+  onNext: (teleopData: Partial<ScoringNotes> & BallTrackingPhase & { climb_sec?: number }) => void;
   onBack: () => void;
   currentStep: number;
   totalSteps: number;
   isDarkMode?: boolean;
-  initialData?: Partial<ScoringNotes> & Partial<BallTrackingPhase>;
+  initialData?: Partial<ScoringNotes> & Partial<BallTrackingPhase> & { climb_sec?: number | null };
 }
 
 const TeleopForm: React.FC<TeleopFormProps> = ({
@@ -22,9 +22,9 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   isDarkMode = true,
   initialData,
 }) => {
-  const [towerLevel1, setTowerLevel1] = useState(!!initialData?.teleop_tower_level1);
   const [towerLevel2, setTowerLevel2] = useState(!!initialData?.teleop_tower_level2);
   const [towerLevel3, setTowerLevel3] = useState(!!initialData?.teleop_tower_level3);
+  const [climbSec, setClimbSec] = useState<number | ''>(initialData?.climb_sec != null ? Number(initialData.climb_sec) : '');
 
   const progressPercentage = (currentStep / totalSteps) * 100;
 
@@ -37,9 +37,10 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
       ...data,
       teleop_fuel_active_hub: Math.round(totalFuel * 10) / 10,
       teleop_fuel_shifts: (data.runs ?? []).map(r => BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0),
-      teleop_tower_level1: towerLevel1,
+      teleop_tower_level1: false,
       teleop_tower_level2: towerLevel2,
       teleop_tower_level3: towerLevel3,
+      climb_sec: climbSec !== '' && !Number.isNaN(Number(climbSec)) ? Number(climbSec) : undefined,
     });
   };
 
@@ -69,9 +70,9 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
               <TrendingUp className={`w-5 h-5 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
               <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-foreground'}`}>TOWER Climb (optional)</h3>
             </div>
+            <p className="text-xs text-muted-foreground mt-2">Only L2 and L3 (no L1 in teleop). One climb per match.</p>
             <div className="grid grid-cols-1 gap-2 mt-3">
               {[
-                { id: 'teleop_tower_level1', label: 'LEVEL 1', pts: SCORING_VALUES.teleop_tower_level1, set: setTowerLevel1, val: towerLevel1 },
                 { id: 'teleop_tower_level2', label: 'LEVEL 2', pts: SCORING_VALUES.teleop_tower_level2, set: setTowerLevel2, val: towerLevel2 },
                 { id: 'teleop_tower_level3', label: 'LEVEL 3', pts: SCORING_VALUES.teleop_tower_level3, set: setTowerLevel3, val: towerLevel3 },
               ].map((level) => (
@@ -89,15 +90,28 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                     onChange={(e) => {
                       level.set(e.target.checked);
                       if (e.target.checked) {
-                        if (level.id === 'teleop_tower_level1') { setTowerLevel2(false); setTowerLevel3(false); }
-                        if (level.id === 'teleop_tower_level2') { setTowerLevel1(false); setTowerLevel3(false); }
-                        if (level.id === 'teleop_tower_level3') { setTowerLevel1(false); setTowerLevel2(false); }
+                        if (level.id === 'teleop_tower_level2') setTowerLevel3(false);
+                        if (level.id === 'teleop_tower_level3') setTowerLevel2(false);
                       }
                     }}
                     className="rounded"
                   />
                 </label>
               ))}
+            </div>
+            <div className="mt-3 pt-3 border-t border-border/50">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Climb time (sec) — for CLANK speed adjustment</label>
+              <input
+                type="number"
+                min={0}
+                max={30}
+                step={0.5}
+                placeholder="e.g. 3"
+                value={climbSec === '' ? '' : climbSec}
+                onChange={(e) => setClimbSec(e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                className={`w-24 px-2 py-1.5 rounded border text-sm ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-muted/30 border-border'}`}
+              />
+              <span className="text-[10px] text-muted-foreground ml-2">+2 if ≤3s, -2 if &gt;6s</span>
             </div>
           </div>
 

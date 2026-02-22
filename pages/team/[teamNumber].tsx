@@ -319,6 +319,45 @@ const TeamDetail: React.FC = () => {
                   <div className="text-xs text-red-400 font-mono">WORST: {teamStats.worstScore}</div>
                 </div>
               </div>
+
+              {/* REBUILT KPIs: CLANK, RPMAGIC, GOBLIN with explanations */}
+              <div className="rounded-xl border border-white/10 bg-card/50 p-4 sm:p-6 space-y-6">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">REBUILT advanced metrics</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="rounded-lg border border-white/5 bg-white/5 p-4 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-foreground">CLANK</span>
+                      <span className="text-2xl font-bold tabular-nums text-primary">{teamStats.clank}</span>
+                    </div>
+                    <p className="text-xs font-medium text-muted-foreground">Climb Level Accuracy & No-Knockdown</p>
+                    <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
+                      Climb pts adjusted for speed: +2 for ≤3s, -2 for &gt;6s. Pure avg climb pts (no time = no adjustment).
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-white/5 bg-white/5 p-4 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-foreground">RPMAGIC</span>
+                      <span className="text-2xl font-bold tabular-nums text-primary">{teamStats.rpmagic.toFixed(3)}</span>
+                    </div>
+                    <p className="text-xs font-medium text-muted-foreground">Ranking Points — Match Advantage Generated In Cycles</p>
+                    <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
+                      Marginal probability of earning an RP attributable to this team&apos;s scoring contribution per match.
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-white/5 bg-white/5 p-4 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-foreground">GOBLIN</span>
+                      <span className={cn("text-2xl font-bold tabular-nums", teamStats.goblin >= 0 ? "text-green-500" : "text-red-500")}>
+                        {teamStats.goblin >= 0 ? `+${teamStats.goblin}` : teamStats.goblin}
+                      </span>
+                    </div>
+                    <p className="text-xs font-medium text-muted-foreground">Game Outcome Boost from Luck, In Numbers</p>
+                    <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
+                      Difference between actual match margin and expected margin based on scouted performance. Positive = luckier than expected.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           )}
 

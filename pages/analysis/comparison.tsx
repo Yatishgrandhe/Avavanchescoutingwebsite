@@ -39,10 +39,14 @@ interface TeamComparison {
   avg_total_score: number;
   avg_defense_rating: number;
   avg_downtime?: number | null;
+  avg_downtime_sec?: number | null;
+  broke_count?: number;
   broke_rate?: number;
   avg_auto_fuel?: number;
   avg_teleop_fuel?: number;
   avg_climb_pts?: number;
+  avg_auto_climb_pts?: number;
+  avg_teleop_climb_pts?: number;
   avg_uptime_pct?: number | null;
   clank?: number;
   rpmagic?: number;
@@ -166,10 +170,14 @@ export default function TeamComparison() {
         avg_total_score: Math.round(avgTotal * 100) / 100,
         avg_defense_rating: Math.round(avgDefense * 100) / 100,
         avg_downtime: avgDowntime != null ? Math.round(avgDowntime * 100) / 100 : null,
+        avg_downtime_sec: rebuilt.avg_downtime_sec,
+        broke_count: rebuilt.broke_count,
         broke_rate: brokeRate,
         avg_auto_fuel: rebuilt.avg_auto_fuel,
         avg_teleop_fuel: rebuilt.avg_teleop_fuel,
         avg_climb_pts: rebuilt.avg_climb_pts,
+        avg_auto_climb_pts: rebuilt.avg_auto_climb_pts,
+        avg_teleop_climb_pts: rebuilt.avg_teleop_climb_pts,
         avg_uptime_pct: rebuilt.avg_uptime_pct,
         clank: rebuilt.clank,
         rpmagic: rebuilt.rpmagic,

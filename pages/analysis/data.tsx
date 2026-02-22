@@ -1023,8 +1023,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                         <div className="space-y-2">
                                           <h4 className="text-[10px] font-bold text-primary uppercase tracking-widest">Auto</h4>
                                           <div className="bg-white/5 p-2 rounded-xl border border-white/5">
-                                            <span className="text-[8px] text-muted-foreground uppercase">Total fuel</span>
+                                            <span className="text-[8px] text-muted-foreground uppercase">AVG AUTO (fuel)</span>
                                             <div className="text-sm font-bold text-blue-400">{formNotes.autonomous.auto_fuel_active_hub ?? 0}</div>
+                                          </div>
+                                          <div className="bg-white/5 p-2 rounded-xl border border-white/5">
+                                            <span className="text-[8px] text-muted-foreground uppercase">Climb pts</span>
+                                            <div className="text-sm font-bold">{getClimbPoints(data.notes)}</div>
                                           </div>
                                           {autoRuns.length > 0 && (
                                             <div className="bg-white/5 p-2 rounded-xl border border-white/5">
@@ -1050,7 +1054,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                         <div className="space-y-2">
                                           <h4 className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">Teleop</h4>
                                           <div className="bg-white/5 p-2 rounded-xl border border-white/5">
-                                            <span className="text-[8px] text-muted-foreground uppercase">Total fuel</span>
+                                            <span className="text-[8px] text-muted-foreground uppercase">AVG TELEOP (fuel)</span>
                                             <div className="text-sm font-bold text-orange-400">{formNotes.teleop.teleop_fuel_active_hub ?? 0}</div>
                                           </div>
                                           {teleopRuns.length > 0 && (
@@ -1075,6 +1079,24 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                             <span className="text-[8px] text-muted-foreground uppercase font-bold text-white">T3</span>
                                             {formNotes.teleop.teleop_tower_level3 ? <Award className="w-4 h-4 text-yellow-400" /> : <XCircle className="w-3 h-3 text-muted-foreground/20" />}
                                           </div>
+                                        </div>
+                                      </div>
+                                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-white/5">
+                                        <div className="bg-white/5 p-2 rounded-lg border border-white/5 text-center">
+                                          <span className="text-[8px] text-muted-foreground uppercase block">Downtime</span>
+                                          <span className="text-xs font-bold">{data.average_downtime != null ? `${Number(data.average_downtime).toFixed(1)}s` : '—'}</span>
+                                        </div>
+                                        <div className="bg-white/5 p-2 rounded-lg border border-white/5 text-center">
+                                          <span className="text-[8px] text-muted-foreground uppercase block">Uptime</span>
+                                          <span className="text-xs font-bold">{getUptimePct(data.average_downtime) != null ? `${getUptimePct(data.average_downtime)}%` : '—'}</span>
+                                        </div>
+                                        <div className="bg-white/5 p-2 rounded-lg border border-white/5 text-center">
+                                          <span className="text-[8px] text-muted-foreground uppercase block">Broke</span>
+                                          <span className="text-xs font-bold">{data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}</span>
+                                        </div>
+                                        <div className="bg-white/5 p-2 rounded-lg border border-white/5 text-center">
+                                          <span className="text-[8px] text-muted-foreground uppercase block">Climb pts</span>
+                                          <span className="text-xs font-bold">{getClimbPoints(data.notes)}</span>
                                         </div>
                                       </div>
 
@@ -1248,8 +1270,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                               </h4>
                                               <div className="grid grid-cols-2 gap-3">
                                                 <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Total fuel</span>
+                                                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">AVG AUTO (fuel)</span>
                                                   <div className="text-xl font-bold text-blue-400">{formNotes.autonomous.auto_fuel_active_hub ?? 0}</div>
+                                                </div>
+                                                <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Climb pts</span>
+                                                  <div className="text-lg font-bold">{getClimbPoints(data.notes)}</div>
                                                 </div>
                                                 <div className="bg-white/5 p-3 rounded-xl border border-white/5 col-span-2">
                                                   <span className="text-[10px] text-muted-foreground uppercase font-semibold">Level 1 Climb</span>
@@ -1280,7 +1306,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                               </h4>
                                               <div className="space-y-2">
                                                 <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                                  <span className="text-xs text-muted-foreground">Total fuel</span>
+                                                  <span className="text-xs text-muted-foreground">AVG TELEOP (fuel)</span>
                                                   <span className="text-sm font-bold text-orange-400">{formNotes.teleop.teleop_fuel_active_hub ?? 0}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
@@ -1310,8 +1336,26 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
                                             <div className="space-y-4">
                                               <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                                <Activity className="w-3 h-3" /> Cleansing
+                                                <Activity className="w-3 h-3" /> Match reliability
                                               </h4>
+                                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                                <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                  <span className="text-xs text-muted-foreground">Downtime</span>
+                                                  <span className="text-sm font-medium">{data.average_downtime != null ? `${Number(data.average_downtime).toFixed(1)}s` : '—'}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                  <span className="text-xs text-muted-foreground">Uptime</span>
+                                                  <span className="text-sm font-medium">{getUptimePct(data.average_downtime) != null ? `${getUptimePct(data.average_downtime)}%` : '—'}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                  <span className="text-xs text-muted-foreground">Broke</span>
+                                                  <span className="text-sm font-medium">{data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                  <span className="text-xs text-muted-foreground">Climb pts</span>
+                                                  <span className="text-sm font-medium">{getClimbPoints(data.notes)}</span>
+                                                </div>
+                                              </div>
                                             </div>
                                             <div className="grid grid-cols-2 gap-4 mt-6 col-span-full">
                                               <div className="bg-purple-500/10 p-4 rounded-xl border border-purple-500/20 text-center">

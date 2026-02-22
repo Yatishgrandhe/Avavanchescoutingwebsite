@@ -38,7 +38,9 @@ export interface ScoutingData {
 }
 
 export interface ScoringNotes {
-  // Ball tracking (stopwatch + 6 x 15-second buckets) – used for auto/teleop
+  // Multiple runs per phase: each run = stopwatch duration + one multiple-choice (ball count)
+  runs?: RunRecord[];
+  // Legacy / derived
   duration_sec?: number | null;
   balls_0_15?: number;
   balls_15_30?: number;
@@ -46,36 +48,35 @@ export interface ScoringNotes {
   balls_45_60?: number;
   balls_60_75?: number;
   balls_75_90?: number;
-  // Autonomous Period (first 20 seconds)
-  auto_fuel_active_hub: number;     // 1 pt per FUEL in active HUB
-  auto_tower_level1: boolean;        // 15 pts per robot (LEVEL 1 climb)
-  // Teleop Period (last 2:20, especially last 0:30)
-  teleop_fuel_active_hub: number;    // 1 pt per FUEL in active HUB (total of all shifts)
-  teleop_fuel_shifts?: number[];     // Array of fuel counts for each shift
-  teleop_tower_level1: boolean;      // 10 pts per robot (LEVEL 1 climb)
-  teleop_tower_level2: boolean;      // 20 pts per robot (LEVEL 2 - above LOW RUNG)
-  teleop_tower_level3: boolean;      // 30 pts per robot (LEVEL 3 - above MID RUNG)
+  auto_fuel_active_hub: number;
+  auto_tower_level1: boolean;
+  teleop_fuel_active_hub: number;
+  teleop_fuel_shifts?: number[];
+  teleop_tower_level1: boolean;
+  teleop_tower_level2: boolean;
+  teleop_tower_level3: boolean;
 }
 
-/** One phase (auto or teleop) ball tracking: stopwatch duration + 6 ball buckets (15s each). */
-export interface BallTrackingPhase {
-  duration_sec: number | null;
-  balls_0_15: number;
-  balls_15_30: number;
-  balls_30_45: number;
-  balls_45_60: number;
-  balls_60_75: number;
-  balls_75_90: number;
+/** One recorded run: stopwatch stopped → user picked one ball-count option. */
+export interface RunRecord {
+  duration_sec: number;
+  ball_choice: number; // index into BALL_CHOICE_OPTIONS
 }
 
-export const BALL_RANGES = [
-  { key: 'balls_0_15', label: '0-15s' },
-  { key: 'balls_15_30', label: '15-30s' },
-  { key: 'balls_30_45', label: '30-45s' },
-  { key: 'balls_45_60', label: '45-60s' },
-  { key: 'balls_60_75', label: '60-75s' },
-  { key: 'balls_75_90', label: '75-90s' },
+/** Multiple choice after each stopwatch run: "How many balls in this run?" */
+export const BALL_CHOICE_OPTIONS = [
+  { label: '0', value: 0 },
+  { label: '1-5', value: 3 },
+  { label: '5-10', value: 7.5 },
+  { label: '10-15', value: 12.5 },
+  { label: '15-20', value: 17.5 },
+  { label: '20+', value: 22.5 },
 ] as const;
+
+/** One phase (auto or teleop) can have multiple runs. */
+export interface BallTrackingPhase {
+  runs: RunRecord[];
+}
 
 export interface User {
   id: string;

@@ -3,12 +3,16 @@
  * Match length 2:45 = 165 seconds for UPTIME calculation.
  */
 
+import type { RunRecord } from '@/lib/types';
+import { BALL_CHOICE_OPTIONS } from '@/lib/types';
+
 const MATCH_LENGTH_SEC = 165;
 
 export interface ParsedNotes {
   autonomous: {
     auto_fuel_active_hub: number;
     auto_tower_level1: boolean;
+    runs?: RunRecord[];
     duration_sec?: number | null;
     balls_0_15?: number;
     balls_15_30?: number;
@@ -23,6 +27,7 @@ export interface ParsedNotes {
     teleop_tower_level1: boolean;
     teleop_tower_level2: boolean;
     teleop_tower_level3: boolean;
+    runs?: RunRecord[];
     duration_sec?: number | null;
     balls_0_15?: number;
     balls_15_30?: number;
@@ -39,25 +44,41 @@ function sumBalls(phase: Record<string, unknown>): number {
   return BALL_KEYS.reduce((s, k) => s + (Number(phase[k]) || 0), 0);
 }
 
+function fuelFromRuns(runs: RunRecord[] | undefined): number {
+  if (!runs?.length) return 0;
+  return runs.reduce((sum, r) => sum + (BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0), 0);
+}
+
 export function parseNotes(notes: any): ParsedNotes {
   const parsed = typeof notes === 'string' ? (JSON.parse(notes || '{}') || {}) : notes || {};
   const auto = parsed.autonomous || (parsed.auto_fuel_active_hub !== undefined ? parsed : {});
   const teleop = parsed.teleop || (parsed.teleop_fuel_active_hub !== undefined ? parsed : {});
 
+  const autoRuns = Array.isArray(auto.runs) ? auto.runs : [];
+  const teleopRuns = Array.isArray(teleop.runs) ? teleop.runs : [];
+  const autoFuelFromRuns = fuelFromRuns(autoRuns);
+  const teleopFuelFromRuns = fuelFromRuns(teleopRuns);
+
   const autoFuelFromBalls = sumBalls(auto);
   const teleopFuelFromBalls = sumBalls(teleop);
   const teleopShifts = Array.isArray(teleop.teleop_fuel_shifts)
     ? teleop.teleop_fuel_shifts
-    : teleopFuelFromBalls > 0
-      ? [Number(teleop.balls_0_15) || 0, Number(teleop.balls_15_30) || 0, Number(teleop.balls_30_45) || 0, Number(teleop.balls_45_60) || 0, Number(teleop.balls_60_75) || 0, Number(teleop.balls_75_90) || 0]
-      : teleop.teleop_fuel_active_hub != null
-        ? [teleop.teleop_fuel_active_hub]
-        : [];
+    : teleopRuns.length > 0
+      ? teleopRuns.map((r: RunRecord) => BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0)
+      : teleopFuelFromBalls > 0
+        ? [Number(teleop.balls_0_15) || 0, Number(teleop.balls_15_30) || 0, Number(teleop.balls_30_45) || 0, Number(teleop.balls_45_60) || 0, Number(teleop.balls_60_75) || 0, Number(teleop.balls_75_90) || 0]
+        : teleop.teleop_fuel_active_hub != null
+          ? [teleop.teleop_fuel_active_hub]
+          : [];
+
+  const autoFuel = autoFuelFromRuns > 0 ? autoFuelFromRuns : (autoFuelFromBalls > 0 ? autoFuelFromBalls : (Number(auto.auto_fuel_active_hub) || 0));
+  const teleopFuel = teleopFuelFromRuns > 0 ? teleopFuelFromRuns : (teleopFuelFromBalls > 0 ? teleopFuelFromBalls : (Number(teleop.teleop_fuel_active_hub) || 0));
 
   return {
     autonomous: {
-      auto_fuel_active_hub: autoFuelFromBalls > 0 ? autoFuelFromBalls : (Number(auto.auto_fuel_active_hub) || 0),
+      auto_fuel_active_hub: autoFuel,
       auto_tower_level1: Boolean(auto.auto_tower_level1),
+      runs: autoRuns.length ? autoRuns : undefined,
       duration_sec: auto.duration_sec != null ? Number(auto.duration_sec) : undefined,
       balls_0_15: Number(auto.balls_0_15) || 0,
       balls_15_30: Number(auto.balls_15_30) || 0,
@@ -67,11 +88,12 @@ export function parseNotes(notes: any): ParsedNotes {
       balls_75_90: Number(auto.balls_75_90) || 0,
     },
     teleop: {
-      teleop_fuel_active_hub: teleopFuelFromBalls > 0 ? teleopFuelFromBalls : (Number(teleop.teleop_fuel_active_hub) || 0),
+      teleop_fuel_active_hub: teleopFuel,
       teleop_fuel_shifts: teleopShifts.map((n: number) => Number(n) || 0),
       teleop_tower_level1: Boolean(teleop.teleop_tower_level1),
       teleop_tower_level2: Boolean(teleop.teleop_tower_level2),
       teleop_tower_level3: Boolean(teleop.teleop_tower_level3),
+      runs: teleopRuns.length ? teleopRuns : undefined,
       duration_sec: teleop.duration_sec != null ? Number(teleop.duration_sec) : undefined,
       balls_0_15: Number(teleop.balls_0_15) || 0,
       balls_15_30: Number(teleop.balls_15_30) || 0,

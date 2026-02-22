@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui';
-import { BallTrackingPhase, BALL_RANGES, SCORING_VALUES, type ScoringNotes } from '@/lib/types';
-import { Fuel, TrendingUp, CheckCircle, ArrowLeft, ArrowRight, Trophy } from 'lucide-react';
+import { Button, Card, CardContent } from '../ui';
+import { BallTrackingPhase, BALL_CHOICE_OPTIONS, SCORING_VALUES, type ScoringNotes } from '@/lib/types';
+import { TrendingUp, CheckCircle, Award } from 'lucide-react';
 import StopwatchBallTracking from './StopwatchBallTracking';
 
 interface TeleopFormProps {
-  onNext: (teleopData: Partial<ScoringNotes> & Partial<BallTrackingPhase>) => void;
+  onNext: (teleopData: Partial<ScoringNotes> & BallTrackingPhase) => void;
   onBack: () => void;
   currentStep: number;
   totalSteps: number;
@@ -29,18 +29,14 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   const progressPercentage = (currentStep / totalSteps) * 100;
 
   const handleComplete = (data: BallTrackingPhase) => {
-    const totalBalls = data.balls_0_15 + data.balls_15_30 + data.balls_30_45
-      + data.balls_45_60 + data.balls_60_75 + data.balls_75_90;
-    const shifts = [data.balls_0_15, data.balls_15_30, data.balls_30_45, data.balls_45_60, data.balls_60_75, data.balls_75_90];
-    let climbPoints = 0;
-    if (towerLevel3) climbPoints = SCORING_VALUES.teleop_tower_level3;
-    else if (towerLevel2) climbPoints = SCORING_VALUES.teleop_tower_level2;
-    else if (towerLevel1) climbPoints = SCORING_VALUES.teleop_tower_level1;
-
+    const totalFuel = (data.runs ?? []).reduce(
+      (sum, r) => sum + (BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0),
+      0
+    );
     onNext({
       ...data,
-      teleop_fuel_active_hub: totalBalls,
-      teleop_fuel_shifts: shifts,
+      teleop_fuel_active_hub: Math.round(totalFuel * 10) / 10,
+      teleop_fuel_shifts: (data.runs ?? []).map(r => BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0),
       teleop_tower_level1: towerLevel1,
       teleop_tower_level2: towerLevel2,
       teleop_tower_level3: towerLevel3,
@@ -107,12 +103,11 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
 
           <StopwatchBallTracking
             phaseLabel="Teleop Period"
-            phaseDescription="Start when teleop begins; stop when it ends. Then enter balls scored in each 15-second range."
+            phaseDescription="Start the stopwatch for each run; stop when it ends. Pick how many balls scored in that run. You can add multiple runs."
             initialData={initialData}
             onComplete={handleComplete}
             onBack={onBack}
             isDarkMode={isDarkMode}
-            requireBallsAfterStop={true}
           />
         </CardContent>
       </Card>

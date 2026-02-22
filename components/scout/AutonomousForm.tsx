@@ -1,12 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '../ui';
-import { BallTrackingPhase } from '@/lib/types';
-import { Play } from 'lucide-react';
+import { BallTrackingPhase, BALL_CHOICE_OPTIONS } from '@/lib/types';
 import StopwatchBallTracking from './StopwatchBallTracking';
 
 interface AutonomousFormProps {
-  onNext: (autonomousData: Partial<BallTrackingPhase> & { auto_fuel_active_hub?: number }) => void;
+  onNext: (autonomousData: BallTrackingPhase & { auto_fuel_active_hub?: number }) => void;
   onBack: () => void;
   currentStep: number;
   totalSteps: number;
@@ -25,11 +24,13 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
   const progressPercentage = (currentStep / totalSteps) * 100;
 
   const handleComplete = (data: BallTrackingPhase) => {
-    const totalBalls = data.balls_0_15 + data.balls_15_30 + data.balls_30_45
-      + data.balls_45_60 + data.balls_60_75 + data.balls_75_90;
+    const totalFuel = (data.runs ?? []).reduce(
+      (sum, r) => sum + (BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0),
+      0
+    );
     onNext({
       ...data,
-      auto_fuel_active_hub: totalBalls,
+      auto_fuel_active_hub: Math.round(totalFuel * 10) / 10,
     });
   };
 
@@ -62,12 +63,11 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
 
         <StopwatchBallTracking
           phaseLabel="Autonomous Period"
-          phaseDescription="Start the stopwatch when auto begins; stop when it ends. Then enter balls scored in each 15-second range."
+          phaseDescription="Start the stopwatch when a run begins; stop when it ends. Pick how many balls scored in that run. You can add multiple runs."
           initialData={initialData}
           onComplete={handleComplete}
           onBack={onBack}
           isDarkMode={isDarkMode}
-          requireBallsAfterStop={true}
         />
       </Card>
     </motion.div>

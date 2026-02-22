@@ -123,7 +123,7 @@ export default function StopwatchBallTracking({
                 Run ended at <strong>{pendingDuration}s</strong>. Pick the ball count for this run.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 py-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 py-2">
               {BALL_CHOICE_OPTIONS.map((opt, index) => (
                 <button
                   key={index}

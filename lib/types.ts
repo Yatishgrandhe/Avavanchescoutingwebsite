@@ -63,14 +63,16 @@ export interface RunRecord {
   ball_choice: number; // index into BALL_CHOICE_OPTIONS
 }
 
-/** Multiple choice after each stopwatch run: "How many balls in this run?" */
+/** Multiple choice after each stopwatch run: "How many balls in this run?" — 8 options in 15-ball increments */
 export const BALL_CHOICE_OPTIONS = [
   { label: '0', value: 0 },
-  { label: '1-5', value: 3 },
-  { label: '5-10', value: 7.5 },
-  { label: '10-15', value: 12.5 },
-  { label: '15-20', value: 17.5 },
-  { label: '20+', value: 22.5 },
+  { label: '1–15', value: 8 },
+  { label: '16–30', value: 23 },
+  { label: '31–45', value: 38 },
+  { label: '46–60', value: 53 },
+  { label: '61–75', value: 68 },
+  { label: '76–90', value: 83 },
+  { label: '91+', value: 95 },
 ] as const;
 
 /** One phase (auto or teleop) can have multiple runs. */

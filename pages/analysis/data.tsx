@@ -35,7 +35,8 @@ import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ScoutingData, Team } from '@/lib/types';
 import { useAdmin } from '@/hooks/use-admin';
-import { computeRebuiltMetrics } from '@/lib/analytics';
+import { computeRebuiltMetrics, parseNotes } from '@/lib/analytics';
+import { BALL_RANGES } from '@/lib/types';
 
 interface DataAnalysisProps { }
 
@@ -68,7 +69,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     best_score: number;
     worst_score: number;
     consistency_score: number;
-    avg_shifts?: number[];
+    avg_ball_ranges?: number[]; // 6 elements: 0-15s .. 75-90s (was avg_shifts)
   }>>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -82,6 +83,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [deletingItem, setDeletingItem] = useState<ScoutingData | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [clearingData, setClearingData] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -153,6 +156,13 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
           autonomous: {
             auto_fuel_active_hub: parsed.autonomous?.auto_fuel_active_hub || 0,
             auto_tower_level1: parsed.autonomous?.auto_tower_level1 || false,
+            duration_sec: parsed.autonomous?.duration_sec,
+            balls_0_15: parsed.autonomous?.balls_0_15 ?? 0,
+            balls_15_30: parsed.autonomous?.balls_15_30 ?? 0,
+            balls_30_45: parsed.autonomous?.balls_30_45 ?? 0,
+            balls_45_60: parsed.autonomous?.balls_45_60 ?? 0,
+            balls_60_75: parsed.autonomous?.balls_60_75 ?? 0,
+            balls_75_90: parsed.autonomous?.balls_75_90 ?? 0,
           },
           teleop: {
             teleop_fuel_active_hub: parsed.teleop?.teleop_fuel_active_hub || 0,
@@ -160,6 +170,13 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
             teleop_tower_level1: parsed.teleop?.teleop_tower_level1 || false,
             teleop_tower_level2: parsed.teleop?.teleop_tower_level2 || false,
             teleop_tower_level3: parsed.teleop?.teleop_tower_level3 || false,
+            duration_sec: parsed.teleop?.duration_sec,
+            balls_0_15: parsed.teleop?.balls_0_15 ?? 0,
+            balls_15_30: parsed.teleop?.balls_15_30 ?? 0,
+            balls_30_45: parsed.teleop?.balls_30_45 ?? 0,
+            balls_45_60: parsed.teleop?.balls_45_60 ?? 0,
+            balls_60_75: parsed.teleop?.balls_60_75 ?? 0,
+            balls_75_90: parsed.teleop?.balls_75_90 ?? 0,
           },
         };
       } else {
@@ -168,6 +185,13 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
           autonomous: {
             auto_fuel_active_hub: parsed.auto_fuel_active_hub || 0,
             auto_tower_level1: parsed.auto_tower_level1 || false,
+            duration_sec: parsed.autonomous?.duration_sec ?? parsed.duration_sec,
+            balls_0_15: parsed.autonomous?.balls_0_15 ?? parsed.balls_0_15 ?? 0,
+            balls_15_30: parsed.autonomous?.balls_15_30 ?? parsed.balls_15_30 ?? 0,
+            balls_30_45: parsed.autonomous?.balls_30_45 ?? parsed.balls_30_45 ?? 0,
+            balls_45_60: parsed.autonomous?.balls_45_60 ?? parsed.balls_45_60 ?? 0,
+            balls_60_75: parsed.autonomous?.balls_60_75 ?? parsed.balls_60_75 ?? 0,
+            balls_75_90: parsed.autonomous?.balls_75_90 ?? parsed.balls_75_90 ?? 0,
           },
           teleop: {
             teleop_fuel_active_hub: parsed.teleop_fuel_active_hub || 0,
@@ -175,6 +199,13 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
             teleop_tower_level1: parsed.teleop_tower_level1 || false,
             teleop_tower_level2: parsed.teleop_tower_level2 || false,
             teleop_tower_level3: parsed.teleop_tower_level3 || false,
+            duration_sec: parsed.teleop?.duration_sec,
+            balls_0_15: parsed.teleop?.balls_0_15 ?? 0,
+            balls_15_30: parsed.teleop?.balls_15_30 ?? 0,
+            balls_30_45: parsed.teleop?.balls_30_45 ?? 0,
+            balls_45_60: parsed.teleop?.balls_45_60 ?? 0,
+            balls_60_75: parsed.teleop?.balls_60_75 ?? 0,
+            balls_75_90: parsed.teleop?.balls_75_90 ?? 0,
           },
         };
       }
@@ -287,21 +318,21 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         best_score: bestScore,
         worst_score: worstScore,
         consistency_score: Math.round(consistencyScore * 100) / 100,
-        avg_shifts: (() => {
-          const shiftTotals = [0, 0, 0, 0, 0];
-          const shiftCounts = [0, 0, 0, 0, 0];
+        avg_ball_ranges: (() => {
+          const rangeTotals = [0, 0, 0, 0, 0, 0];
+          const rangeCounts = [0, 0, 0, 0, 0, 0];
 
-          stat.teleop_fuel_shifts.forEach(shifts => {
-            shifts.forEach((val, i) => {
-              if (i < 5) {
-                shiftTotals[i] += (val || 0);
-                shiftCounts[i]++;
+          stat.teleop_fuel_shifts.forEach(ranges => {
+            ranges.forEach((val, i) => {
+              if (i < 6) {
+                rangeTotals[i] += (val || 0);
+                rangeCounts[i]++;
               }
             });
           });
 
-          return shiftTotals.map((total, i) =>
-            shiftCounts[i] > 0 ? Math.round((total / shiftCounts[i]) * 10) / 10 : 0
+          return rangeTotals.map((total, i) =>
+            rangeCounts[i] > 0 ? Math.round((total / rangeCounts[i]) * 10) / 10 : 0
           );
         })(),
         ...computeRebuiltMetrics(
@@ -414,6 +445,32 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     } catch (error) {
       console.error('Delete error:', error);
       alert('Failed to delete scouting data. Please try again.');
+    }
+  };
+
+  const clearAllMatchData = async () => {
+    setClearingData(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert('Not signed in.');
+        return;
+      }
+      const res = await fetch('/api/admin/clear-scouting-data', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json.error || json.details || 'Failed to clear data');
+      }
+      setShowClearConfirm(false);
+      await loadData();
+    } catch (e) {
+      console.error(e);
+      alert(e instanceof Error ? e.message : 'Failed to clear match data.');
+    } finally {
+      setClearingData(false);
     }
   };
 
@@ -547,6 +604,17 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                       >
                         {showUploaderInfo ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
                         {showUploaderInfo ? 'Hide' : 'Show'} Uploader
+                      </Button>
+                    )}
+                    {isAdmin && (
+                      <Button
+                        onClick={() => setShowClearConfirm(true)}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 sm:flex-none border-destructive/50 text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Clear All Data
                       </Button>
                     )}
                   </div>
@@ -692,11 +760,11 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             </div>
 
                             <div className="bg-white/5 p-3 rounded-xl border border-white/5 mb-4 shadow-[inset_0_0_12px_rgba(0,0,0,0.2)]">
-                              <span className="text-[9px] text-muted-foreground uppercase font-bold block mb-2 text-center tracking-tighter text-blue-400/80">Avg Points per Shift</span>
-                              <div className="grid grid-cols-5 gap-1.5">
-                                {(team.avg_shifts || [0, 0, 0, 0, 0]).map((avg, i) => (
+                              <span className="text-[9px] text-muted-foreground uppercase font-bold block mb-2 text-center tracking-tighter text-blue-400/80">Avg Balls per Time Range</span>
+                              <div className="grid grid-cols-6 gap-1.5">
+                                {(team.avg_ball_ranges || [0, 0, 0, 0, 0, 0]).map((avg, i) => (
                                   <div key={i} className="flex flex-col items-center bg-black/30 p-1.5 rounded-lg border border-white/5">
-                                    <span className="text-[7px] text-muted-foreground font-extrabold">{i === 4 ? 'END' : `S${i + 1}`}</span>
+                                    <span className="text-[7px] text-muted-foreground font-extrabold">{BALL_RANGES[i]?.label ?? `${i * 15}-${(i + 1) * 15}s`}</span>
                                     <span className="text-xl sm:text-5xl font-black text-blue-400 leading-tight">{avg}</span>
                                   </div>
                                 ))}
@@ -755,7 +823,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 text-[9px]">GOBLIN</th>
                             <th className="text-left p-4">Best</th>
                             <th className="text-left p-4 text-[11px]">Consistency</th>
-                            <th className="text-left p-4 min-w-[240px] text-[11px]">Teleop Shifts (Avg Points)</th>
+                            <th className="text-left p-4 min-w-[240px] text-[11px]">Ball Ranges (Avg)</th>
                             <th className="text-right p-4 text-[11px]">Actions</th>
                           </tr>
                         </thead>
@@ -824,10 +892,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                   </div>
                                 </td>
                                 <td className="p-4">
-                                  <div className="grid grid-cols-5 gap-2 min-w-[220px]">
-                                    {(team.avg_shifts || [0, 0, 0, 0, 0]).map((avg, i) => (
+                                  <div className="grid grid-cols-6 gap-2 min-w-[220px]">
+                                    {(team.avg_ball_ranges || [0, 0, 0, 0, 0, 0]).map((avg, i) => (
                                       <div key={i} className="flex flex-col items-center p-2 rounded-lg bg-black/20 border border-white/10 shadow-[0_0_15px_rgba(59,130,246,0.2)] group/shift hover:border-blue-500/50 transition-all">
-                                        <span className="text-[9px] text-muted-foreground font-black mb-1 group-hover/shift:text-blue-300 transition-colors uppercase">{i === 4 ? 'END' : `S${i + 1}`}</span>
+                                        <span className="text-[9px] text-muted-foreground font-black mb-1 group-hover/shift:text-blue-300 transition-colors uppercase">{BALL_RANGES[i]?.label ?? `${i * 15}-${(i + 1) * 15}s`}</span>
                                         <span className="text-2xl font-black text-blue-400 leading-none drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]">{avg}</span>
                                       </div>
                                     ))}
@@ -977,15 +1045,22 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 className="mt-4 pt-4 border-t border-white/5 space-y-6"
                               >
                                 {(() => {
-                                  const formNotes = parseFormNotes(data.notes);
+                                  const formNotes = parseNotes(data.notes);
+                                  const teleopBalls = (formNotes.teleop.teleop_fuel_shifts || []).length >= 6
+                                    ? formNotes.teleop.teleop_fuel_shifts!.slice(0, 6)
+                                    : [formNotes.teleop.balls_0_15 ?? 0, formNotes.teleop.balls_15_30 ?? 0, formNotes.teleop.balls_30_45 ?? 0, formNotes.teleop.balls_45_60 ?? 0, formNotes.teleop.balls_60_75 ?? 0, formNotes.teleop.balls_75_90 ?? 0];
                                   return (
                                     <>
                                       <div className="grid grid-cols-2 gap-3">
                                         <div className="space-y-2">
-                                          <h4 className="text-[10px] font-bold text-primary uppercase tracking-widest">Auto Specs</h4>
+                                          <h4 className="text-[10px] font-bold text-primary uppercase tracking-widest">Auto</h4>
                                           <div className="bg-white/5 p-2 rounded-xl border border-white/5">
-                                            <span className="text-[8px] text-muted-foreground uppercase">Hub</span>
-                                            <div className="text-sm font-bold text-blue-400">{formNotes.autonomous.auto_fuel_active_hub || 0} FUEL</div>
+                                            <span className="text-[8px] text-muted-foreground uppercase">Duration</span>
+                                            <div className="text-sm font-bold text-blue-400">{formNotes.autonomous.duration_sec != null ? `${formNotes.autonomous.duration_sec}s` : '—'}</div>
+                                          </div>
+                                          <div className="bg-white/5 p-2 rounded-xl border border-white/5">
+                                            <span className="text-[8px] text-muted-foreground uppercase">Balls</span>
+                                            <div className="text-sm font-bold text-blue-400">{formNotes.autonomous.auto_fuel_active_hub || 0}</div>
                                           </div>
                                           <div className="bg-white/5 p-2 rounded-xl border border-white/5">
                                             <span className="text-[8px] text-muted-foreground uppercase">Climb</span>
@@ -999,7 +1074,11 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                           </div>
                                         </div>
                                         <div className="space-y-2">
-                                          <h4 className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">Teleop Specs</h4>
+                                          <h4 className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">Teleop</h4>
+                                          <div className="bg-white/5 p-2 rounded-xl border border-white/5">
+                                            <span className="text-[8px] text-muted-foreground uppercase">Duration</span>
+                                            <div className="text-sm font-bold text-orange-400">{formNotes.teleop.duration_sec != null ? `${formNotes.teleop.duration_sec}s` : '—'}</div>
+                                          </div>
                                           <div className="bg-white/5 p-2 rounded-xl border border-white/5 flex justify-between items-center">
                                             <span className="text-[8px] text-muted-foreground uppercase">T1</span>
                                             {formNotes.teleop.teleop_tower_level1 ? <CheckCircle className="w-3 h-3 text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground/20" />}
@@ -1016,12 +1095,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                       </div>
 
                                       <div className="space-y-3">
-                                        <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center">Fuel Shifts</h4>
-                                        <div className="grid grid-cols-5 gap-2">
-                                          {(formNotes.teleop.teleop_fuel_shifts || [0, 0, 0, 0, 0]).slice(0, 5).map((shift: number, i: number) => (
-                                            <div key={i} className="flex flex-col items-center p-2 rounded-xl bg-white/5 border border-white/5">
-                                              <span className="text-[7px] text-muted-foreground uppercase font-black mb-1">{i === 4 ? 'END' : `S${i + 1}`}</span>
-                                              <span className="text-2xl font-black text-blue-400">{shift}</span>
+                                        <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center">Ball ranges (0–15s … 75–90s)</h4>
+                                        <div className="grid grid-cols-6 gap-2">
+                                          {BALL_RANGES.map((r, i) => (
+                                            <div key={r.key} className="flex flex-col items-center p-2 rounded-xl bg-white/5 border border-white/5">
+                                              <span className="text-[7px] text-muted-foreground uppercase font-black mb-1">{r.label}</span>
+                                              <span className="text-2xl font-black text-blue-400">{(teleopBalls[i] ?? 0)}</span>
                                             </div>
                                           ))}
                                         </div>
@@ -1182,19 +1261,26 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                   >
                                     <td colSpan={isAdmin ? 12 : 11} className="p-6">
                                       {(() => {
-                                        const formNotes = parseFormNotes(data.notes);
+                                        const formNotes = parseNotes(data.notes);
+                                        const teleopBalls = (formNotes.teleop.teleop_fuel_shifts || []).length >= 6
+                                          ? formNotes.teleop.teleop_fuel_shifts!.slice(0, 6)
+                                          : [formNotes.teleop.balls_0_15 ?? 0, formNotes.teleop.balls_15_30 ?? 0, formNotes.teleop.balls_30_45 ?? 0, formNotes.teleop.balls_45_60 ?? 0, formNotes.teleop.balls_60_75 ?? 0, formNotes.teleop.balls_75_90 ?? 0];
                                         return (
                                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                             <div className="space-y-4">
                                               <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                                                <Target className="w-3 h-3" /> Autonomous Period
+                                                <Target className="w-3 h-3" /> Autonomous
                                               </h4>
                                               <div className="grid grid-cols-2 gap-3">
                                                 <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Active Hub</span>
-                                                  <div className="text-xl font-bold text-blue-400">{formNotes.autonomous.auto_fuel_active_hub || 0} FUEL</div>
+                                                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Duration</span>
+                                                  <div className="text-xl font-bold text-blue-400">{formNotes.autonomous.duration_sec != null ? `${formNotes.autonomous.duration_sec}s` : '—'}</div>
                                                 </div>
                                                 <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Balls</span>
+                                                  <div className="text-xl font-bold text-blue-400">{formNotes.autonomous.auto_fuel_active_hub || 0}</div>
+                                                </div>
+                                                <div className="bg-white/5 p-3 rounded-xl border border-white/5 col-span-2">
                                                   <span className="text-[10px] text-muted-foreground uppercase font-semibold">Level 1 Climb</span>
                                                   <div className="flex items-center gap-2 mt-1">
                                                     {formNotes.autonomous.auto_tower_level1 ? (
@@ -1209,9 +1295,13 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
                                             <div className="space-y-4">
                                               <h4 className="text-xs font-bold text-orange-400 uppercase tracking-widest flex items-center gap-2">
-                                                <TrendingUp className="w-3 h-3" /> Teleop & Strategy
+                                                <TrendingUp className="w-3 h-3" /> Teleop
                                               </h4>
                                               <div className="space-y-2">
+                                                <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                  <span className="text-xs text-muted-foreground">Duration</span>
+                                                  <span className="text-sm font-bold text-orange-400">{formNotes.teleop.duration_sec != null ? `${formNotes.teleop.duration_sec}s` : '—'}</span>
+                                                </div>
                                                 <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
                                                   <span className="text-xs text-muted-foreground">Tower Level 1</span>
                                                   {formNotes.teleop.teleop_tower_level1 ? <CheckCircle className="w-4 h-4 text-green-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/20" />}
@@ -1229,33 +1319,25 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
                                             <div className="space-y-4">
                                               <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                                <Activity className="w-3 h-3" /> Individual Metrics
+                                                <Activity className="w-3 h-3" /> Ball Ranges
                                               </h4>
-                                              <div className="grid grid-cols-1 gap-3">
-                                                <div className="bg-black/20 p-4 rounded-xl border border-white/10 shadow-[inset_0_0_20px_rgba(0,180,255,0.05)]">
-                                                  <span className="text-[10px] text-muted-foreground uppercase font-bold block mb-3 text-center tracking-widest text-orange-400/80">Teleop Fuel Scoring Intensity (by shift)</span>
-                                                  <div className="grid grid-cols-5 gap-3">
-                                                    {(formNotes.teleop.teleop_fuel_shifts || [0, 0, 0, 0, 0]).slice(0, 5).map((shift: number, i: number) => (
-                                                      <div key={i} className="flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/5 relative overflow-hidden group hover:border-blue-500/30 transition-all">
-                                                        <div className="absolute top-0 inset-x-0 h-1 bg-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                        <span className="text-[8px] text-muted-foreground uppercase font-black mb-1.5">{i === 4 ? 'End Game' : `Shift ${i + 1}`}</span>
-                                                        <span className="text-4xl sm:text-6xl font-black text-blue-400 leading-none drop-shadow-[0_0_30px_rgba(59,130,246,0.5)]">{shift}</span>
-                                                        <span className="text-xs sm:text-sm text-muted-foreground mt-2 font-black tracking-widest uppercase">Points</span>
-                                                      </div>
-                                                    ))}
+                                              <div className="grid grid-cols-2 gap-3">
+                                                {BALL_RANGES.map((r, i) => (
+                                                  <div key={r.key} className="flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/5">
+                                                    <span className="text-[8px] text-muted-foreground uppercase font-black mb-1.5">{r.label}</span>
+                                                    <span className="text-4xl sm:text-6xl font-black text-blue-400 leading-none">{(teleopBalls[i] ?? 0)}</span>
                                                   </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-4">
-                                                  <div className="bg-purple-500/10 p-4 rounded-xl border border-purple-500/20 text-center">
-                                                    <span className="text-[10px] text-purple-400 uppercase font-black tracking-widest block mb-1">Auto Cleansing</span>
-                                                    <span className="text-2xl font-black text-white">{data.autonomous_cleansing || 0}</span>
-                                                  </div>
-                                                  <div className="bg-purple-500/10 p-4 rounded-xl border border-purple-500/20 text-center">
-                                                    <span className="text-[10px] text-purple-400 uppercase font-black tracking-widest block mb-1">Teleop Cleansing</span>
-                                                    <span className="text-2xl font-black text-white">{data.teleop_cleansing || 0}</span>
-                                                  </div>
-                                                </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4 mt-6 col-span-full">
+                                              <div className="bg-purple-500/10 p-4 rounded-xl border border-purple-500/20 text-center">
+                                                <span className="text-[10px] text-purple-400 uppercase font-black tracking-widest block mb-1">Auto Cleansing</span>
+                                                <span className="text-2xl font-black text-white">{data.autonomous_cleansing || 0}</span>
+                                              </div>
+                                              <div className="bg-purple-500/10 p-4 rounded-xl border border-purple-500/20 text-center">
+                                                <span className="text-[10px] text-purple-400 uppercase font-black tracking-widest block mb-1">Teleop Cleansing</span>
+                                                <span className="text-2xl font-black text-white">{data.teleop_cleansing || 0}</span>
                                               </div>
                                             </div>
                                           </div>
@@ -1316,6 +1398,40 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Clear all data confirmation (admin) */}
+          {showClearConfirm && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="bg-red-600 rounded-full p-2">
+                    <Trash2 className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white">Clear All Match Data</h3>
+                </div>
+                <p className="text-gray-300 mb-6">
+                  Permanently delete all match scouting records? This cannot be undone.
+                </p>
+                <div className="flex space-x-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowClearConfirm(false)}
+                    disabled={clearingData}
+                    className="flex-1 bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={clearAllMatchData}
+                    disabled={clearingData}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    {clearingData ? 'Clearing...' : 'Clear All'}
                   </Button>
                 </div>
               </div>

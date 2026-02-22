@@ -38,10 +38,17 @@ export interface ScoutingData {
 }
 
 export interface ScoringNotes {
+  // Ball tracking (stopwatch + 6 x 15-second buckets) – used for auto/teleop
+  duration_sec?: number | null;
+  balls_0_15?: number;
+  balls_15_30?: number;
+  balls_30_45?: number;
+  balls_45_60?: number;
+  balls_60_75?: number;
+  balls_75_90?: number;
   // Autonomous Period (first 20 seconds)
   auto_fuel_active_hub: number;     // 1 pt per FUEL in active HUB
   auto_tower_level1: boolean;        // 15 pts per robot (LEVEL 1 climb)
-
   // Teleop Period (last 2:20, especially last 0:30)
   teleop_fuel_active_hub: number;    // 1 pt per FUEL in active HUB (total of all shifts)
   teleop_fuel_shifts?: number[];     // Array of fuel counts for each shift
@@ -49,6 +56,26 @@ export interface ScoringNotes {
   teleop_tower_level2: boolean;      // 20 pts per robot (LEVEL 2 - above LOW RUNG)
   teleop_tower_level3: boolean;      // 30 pts per robot (LEVEL 3 - above MID RUNG)
 }
+
+/** One phase (auto or teleop) ball tracking: stopwatch duration + 6 ball buckets (15s each). */
+export interface BallTrackingPhase {
+  duration_sec: number | null;
+  balls_0_15: number;
+  balls_15_30: number;
+  balls_30_45: number;
+  balls_45_60: number;
+  balls_60_75: number;
+  balls_75_90: number;
+}
+
+export const BALL_RANGES = [
+  { key: 'balls_0_15', label: '0-15s' },
+  { key: 'balls_15_30', label: '15-30s' },
+  { key: 'balls_30_45', label: '30-45s' },
+  { key: 'balls_45_60', label: '45-60s' },
+  { key: 'balls_60_75', label: '60-75s' },
+  { key: 'balls_75_90', label: '75-90s' },
+] as const;
 
 export interface User {
   id: string;

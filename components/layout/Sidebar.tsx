@@ -105,24 +105,14 @@ const AppSidebar: React.FC<SidebarProps> = ({
           icon: Archive,
         },
         {
-          label: 'Data Analysis',
+          label: 'All Data',
           href: '/analysis/data',
           icon: Database,
         },
         {
-          label: 'Basic Analysis',
-          href: '/analysis/basic',
+          label: 'Team Analysis',
+          href: '/analysis',
           icon: BarChart3,
-        },
-        {
-          label: 'Advanced',
-          href: '/analysis/advanced',
-          icon: TrendingUp,
-        },
-        {
-          label: 'Comparison',
-          href: '/analysis/comparison',
-          icon: ArrowLeftRight,
         },
       ],
     },

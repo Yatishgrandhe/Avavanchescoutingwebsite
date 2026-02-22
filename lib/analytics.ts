@@ -9,6 +9,13 @@ export interface ParsedNotes {
   autonomous: {
     auto_fuel_active_hub: number;
     auto_tower_level1: boolean;
+    duration_sec?: number | null;
+    balls_0_15?: number;
+    balls_15_30?: number;
+    balls_30_45?: number;
+    balls_45_60?: number;
+    balls_60_75?: number;
+    balls_75_90?: number;
   };
   teleop: {
     teleop_fuel_active_hub: number;
@@ -16,7 +23,20 @@ export interface ParsedNotes {
     teleop_tower_level1: boolean;
     teleop_tower_level2: boolean;
     teleop_tower_level3: boolean;
+    duration_sec?: number | null;
+    balls_0_15?: number;
+    balls_15_30?: number;
+    balls_30_45?: number;
+    balls_45_60?: number;
+    balls_60_75?: number;
+    balls_75_90?: number;
   };
+}
+
+const BALL_KEYS = ['balls_0_15', 'balls_15_30', 'balls_30_45', 'balls_45_60', 'balls_60_75', 'balls_75_90'] as const;
+
+function sumBalls(phase: Record<string, unknown>): number {
+  return BALL_KEYS.reduce((s, k) => s + (Number(phase[k]) || 0), 0);
 }
 
 export function parseNotes(notes: any): ParsedNotes {
@@ -24,23 +44,41 @@ export function parseNotes(notes: any): ParsedNotes {
   const auto = parsed.autonomous || (parsed.auto_fuel_active_hub !== undefined ? parsed : {});
   const teleop = parsed.teleop || (parsed.teleop_fuel_active_hub !== undefined ? parsed : {});
 
+  const autoFuelFromBalls = sumBalls(auto);
+  const teleopFuelFromBalls = sumBalls(teleop);
   const teleopShifts = Array.isArray(teleop.teleop_fuel_shifts)
     ? teleop.teleop_fuel_shifts
-    : teleop.teleop_fuel_active_hub != null
-      ? [teleop.teleop_fuel_active_hub]
-      : [];
+    : teleopFuelFromBalls > 0
+      ? [Number(teleop.balls_0_15) || 0, Number(teleop.balls_15_30) || 0, Number(teleop.balls_30_45) || 0, Number(teleop.balls_45_60) || 0, Number(teleop.balls_60_75) || 0, Number(teleop.balls_75_90) || 0]
+      : teleop.teleop_fuel_active_hub != null
+        ? [teleop.teleop_fuel_active_hub]
+        : [];
 
   return {
     autonomous: {
-      auto_fuel_active_hub: Number(auto.auto_fuel_active_hub) || 0,
+      auto_fuel_active_hub: autoFuelFromBalls > 0 ? autoFuelFromBalls : (Number(auto.auto_fuel_active_hub) || 0),
       auto_tower_level1: Boolean(auto.auto_tower_level1),
+      duration_sec: auto.duration_sec != null ? Number(auto.duration_sec) : undefined,
+      balls_0_15: Number(auto.balls_0_15) || 0,
+      balls_15_30: Number(auto.balls_15_30) || 0,
+      balls_30_45: Number(auto.balls_30_45) || 0,
+      balls_45_60: Number(auto.balls_45_60) || 0,
+      balls_60_75: Number(auto.balls_60_75) || 0,
+      balls_75_90: Number(auto.balls_75_90) || 0,
     },
     teleop: {
-      teleop_fuel_active_hub: Number(teleop.teleop_fuel_active_hub) || 0,
+      teleop_fuel_active_hub: teleopFuelFromBalls > 0 ? teleopFuelFromBalls : (Number(teleop.teleop_fuel_active_hub) || 0),
       teleop_fuel_shifts: teleopShifts.map((n: number) => Number(n) || 0),
       teleop_tower_level1: Boolean(teleop.teleop_tower_level1),
       teleop_tower_level2: Boolean(teleop.teleop_tower_level2),
       teleop_tower_level3: Boolean(teleop.teleop_tower_level3),
+      duration_sec: teleop.duration_sec != null ? Number(teleop.duration_sec) : undefined,
+      balls_0_15: Number(teleop.balls_0_15) || 0,
+      balls_15_30: Number(teleop.balls_15_30) || 0,
+      balls_30_45: Number(teleop.balls_30_45) || 0,
+      balls_45_60: Number(teleop.balls_45_60) || 0,
+      balls_60_75: Number(teleop.balls_60_75) || 0,
+      balls_75_90: Number(teleop.balls_75_90) || 0,
     },
   };
 }

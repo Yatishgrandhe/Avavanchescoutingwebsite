@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Counter, Badge } from '../ui';
-import { SCORING_VALUES, ScoringNotes } from '@/lib/types';
-import { Fuel, TrendingUp, CheckCircle, Plus, X, ArrowLeft, ArrowRight, Trophy } from 'lucide-react';
+import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui';
+import { BallTrackingPhase, BALL_RANGES, SCORING_VALUES, type ScoringNotes } from '@/lib/types';
+import { Fuel, TrendingUp, CheckCircle, ArrowLeft, ArrowRight, Trophy } from 'lucide-react';
+import StopwatchBallTracking from './StopwatchBallTracking';
 
 interface TeleopFormProps {
-  onNext: (teleopData: Partial<ScoringNotes>) => void;
+  onNext: (teleopData: Partial<ScoringNotes> & Partial<BallTrackingPhase>) => void;
   onBack: () => void;
   currentStep: number;
   totalSteps: number;
   isDarkMode?: boolean;
-  initialData?: Partial<ScoringNotes>;
+  initialData?: Partial<ScoringNotes> & Partial<BallTrackingPhase>;
 }
 
 const TeleopForm: React.FC<TeleopFormProps> = ({
@@ -21,68 +22,30 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   isDarkMode = true,
   initialData,
 }) => {
-  // Initialize fuel shifts - exactly 5 shifts as requested
-  const [fuelShifts, setFuelShifts] = useState<number[]>([0, 0, 0, 0, 0]);
-
-  const [formData, setFormData] = useState({
-    teleop_tower_level1: (initialData?.teleop_tower_level1 as boolean) || false,
-    teleop_tower_level2: (initialData?.teleop_tower_level2 as boolean) || false,
-    teleop_tower_level3: (initialData?.teleop_tower_level3 as boolean) || false,
-  });
-
-  // Sync initialData with state when it changes
-  useEffect(() => {
-    if (initialData) {
-      if (initialData.teleop_fuel_shifts && Array.isArray(initialData.teleop_fuel_shifts)) {
-        const shifts = [...initialData.teleop_fuel_shifts];
-        // Ensure we have exactly 5 values
-        while (shifts.length < 5) shifts.push(0);
-        setFuelShifts(shifts.slice(0, 5));
-      } else if (initialData.teleop_fuel_active_hub) {
-        // Fallback if only total is provided
-        setFuelShifts([initialData.teleop_fuel_active_hub as number, 0, 0, 0, 0]);
-      }
-
-      setFormData({
-        teleop_tower_level1: (initialData.teleop_tower_level1 as boolean) || false,
-        teleop_tower_level2: (initialData.teleop_tower_level2 as boolean) || false,
-        teleop_tower_level3: (initialData.teleop_tower_level3 as boolean) || false,
-      });
-    }
-  }, [initialData]);
-
-  const handleShiftChange = (index: number, value: number) => {
-    const newShifts = [...fuelShifts];
-    newShifts[index] = value;
-    setFuelShifts(newShifts);
-  };
-
-  const getTotalFuel = () => {
-    return fuelShifts.reduce((sum, fuel) => sum + fuel, 0);
-  };
-
-  const handleInputChange = (field: keyof typeof formData, value: number | boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const calculateTotal = () => {
-    const totalFuel = getTotalFuel();
-    let total = totalFuel * SCORING_VALUES.teleop_fuel_active_hub;
-    // TOWER: Only highest level counts (mutually exclusive)
-    if (formData.teleop_tower_level3) {
-      total += SCORING_VALUES.teleop_tower_level3;
-    } else if (formData.teleop_tower_level2) {
-      total += SCORING_VALUES.teleop_tower_level2;
-    } else if (formData.teleop_tower_level1) {
-      total += SCORING_VALUES.teleop_tower_level1;
-    }
-    return total;
-  };
+  const [towerLevel1, setTowerLevel1] = useState(!!initialData?.teleop_tower_level1);
+  const [towerLevel2, setTowerLevel2] = useState(!!initialData?.teleop_tower_level2);
+  const [towerLevel3, setTowerLevel3] = useState(!!initialData?.teleop_tower_level3);
 
   const progressPercentage = (currentStep / totalSteps) * 100;
+
+  const handleComplete = (data: BallTrackingPhase) => {
+    const totalBalls = data.balls_0_15 + data.balls_15_30 + data.balls_30_45
+      + data.balls_45_60 + data.balls_60_75 + data.balls_75_90;
+    const shifts = [data.balls_0_15, data.balls_15_30, data.balls_30_45, data.balls_45_60, data.balls_60_75, data.balls_75_90];
+    let climbPoints = 0;
+    if (towerLevel3) climbPoints = SCORING_VALUES.teleop_tower_level3;
+    else if (towerLevel2) climbPoints = SCORING_VALUES.teleop_tower_level2;
+    else if (towerLevel1) climbPoints = SCORING_VALUES.teleop_tower_level1;
+
+    onNext({
+      ...data,
+      teleop_fuel_active_hub: totalBalls,
+      teleop_fuel_shifts: shifts,
+      teleop_tower_level1: towerLevel1,
+      teleop_tower_level2: towerLevel2,
+      teleop_tower_level3: towerLevel3,
+    });
+  };
 
   return (
     <motion.div
@@ -92,7 +55,6 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
       className="max-w-6xl mx-auto min-h-[500px]"
     >
       <Card className="bg-card border-border shadow-lg">
-        {/* Progress Bar */}
         <div className="px-6 pt-6">
           <div className="w-full bg-muted rounded-full h-2">
             <motion.div
@@ -104,164 +66,55 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
           </div>
         </div>
 
-        <CardHeader className="text-center">
-          <CardTitle className="text-foreground text-2xl font-bold">
-            Teleop Period
-          </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Scoring for fuel (exactly 5 shifts) and tower climb
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-8">
-          {/* FUEL Scoring Section */}
-          <div className="space-y-6">
+        <CardContent className="space-y-6">
+          {/* TOWER Climb (optional) – first so user can set before clicking Next */}
+          <div className={`rounded-xl p-4 border ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-muted/30 border-border'}`}>
             <div className="flex items-center space-x-3 pb-2 border-b border-border/50">
-              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
-                <Fuel className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-              </div>
-              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                FUEL Scoring (5 Shifts)
-              </h3>
+              <TrendingUp className={`w-5 h-5 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
+              <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-foreground'}`}>TOWER Climb (optional)</h3>
             </div>
-
-            {/* 5 Fixed Shifts Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              {fuelShifts.map((fuel, index) => (
-                <div key={`shift-${index}`} className="relative group">
-                  <div className={`absolute -top-3 left-3 px-2 text-[10px] font-bold uppercase rounded-md z-10 ${isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'
-                    }`}>
-                    {index === 4 ? 'End Game' : `Shift ${index + 1}`}
-                  </div>
-                  <Counter
-                    value={fuel}
-                    onChange={(value: number) => handleShiftChange(index, value)}
-                    min={0}
-                    max={100}
-                    label=""
-                    points={SCORING_VALUES.teleop_fuel_active_hub}
-                    isDarkMode={isDarkMode}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className={`flex items-center justify-between p-4 rounded-xl ${isDarkMode ? 'bg-blue-900/20 border border-blue-800' : 'bg-blue-50 border border-blue-200'
-              }`}>
-              <div className="flex items-center gap-2">
-                <span className={`text-sm font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-                  Total Teleop Fuel Sum:
-                </span>
-                <span className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-blue-900'}`}>
-                  {getTotalFuel()}
-                </span>
-              </div>
-              <Badge variant="outline" className={`${isDarkMode ? 'border-blue-700 text-blue-400' : 'border-blue-300 text-blue-600'}`}>
-                {getTotalFuel()} points
-              </Badge>
-            </div>
-          </div>
-
-          {/* TOWER Scoring Section */}
-          <div className="space-y-6">
-            <div className="flex items-center space-x-3 pb-2 border-b border-border/50">
-              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-orange-900/30' : 'bg-orange-100'}`}>
-                <TrendingUp className={`w-6 h-6 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
-              </div>
-              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                TOWER Climb
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-2 mt-3">
               {[
-                { id: 'teleop_tower_level1', label: 'TOWER LEVEL 1', sub: 'Simple climb per robot', pts: SCORING_VALUES.teleop_tower_level1, color: 'blue' },
-                { id: 'teleop_tower_level2', label: 'TOWER LEVEL 2', sub: 'BUMPERS above LOW RUNG', pts: SCORING_VALUES.teleop_tower_level2, color: 'green' },
-                { id: 'teleop_tower_level3', label: 'TOWER LEVEL 3', sub: 'BUMPERS above MID RUNG', pts: SCORING_VALUES.teleop_tower_level3, color: 'purple' },
+                { id: 'teleop_tower_level1', label: 'LEVEL 1', pts: SCORING_VALUES.teleop_tower_level1, set: setTowerLevel1, val: towerLevel1 },
+                { id: 'teleop_tower_level2', label: 'LEVEL 2', pts: SCORING_VALUES.teleop_tower_level2, set: setTowerLevel2, val: towerLevel2 },
+                { id: 'teleop_tower_level3', label: 'LEVEL 3', pts: SCORING_VALUES.teleop_tower_level3, set: setTowerLevel3, val: towerLevel3 },
               ].map((level) => (
-                <motion.div
+                <label
                   key={level.id}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  onClick={() => {
-                    const isCurrentlyChecked = formData[level.id as keyof typeof formData] as boolean;
-                    if (!isCurrentlyChecked) {
-                      handleInputChange('teleop_tower_level1', level.id === 'teleop_tower_level1');
-                      handleInputChange('teleop_tower_level2', level.id === 'teleop_tower_level2');
-                      handleInputChange('teleop_tower_level3', level.id === 'teleop_tower_level3');
-                    } else {
-                      handleInputChange(level.id as keyof typeof formData, false);
-                    }
-                  }}
-                  className={`flex items-center justify-between p-5 rounded-2xl cursor-pointer transition-all border-2 ${formData[level.id as keyof typeof formData]
-                    ? `bg-${level.color}-500/10 border-${level.color}-500/50`
-                    : 'bg-muted/30 border-transparent hover:bg-muted/50'
-                    }`}
+                  className={`flex items-center justify-between p-3 rounded-lg cursor-pointer border-2 transition-colors ${
+                    level.val ? 'bg-primary/20 border-primary/50' : isDarkMode ? 'bg-white/5 border-transparent' : 'bg-muted/30 border-transparent'
+                  }`}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${formData[level.id as keyof typeof formData]
-                      ? `bg-${level.color}-500 text-white`
-                      : 'bg-muted text-muted-foreground'
-                      }`}>
-                      <CheckCircle className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold">{level.label}</h4>
-                      <p className="text-xs text-muted-foreground">{level.sub}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className={`text-lg font-bold ${formData[level.id as keyof typeof formData] ? `text-${level.color}-500` : 'text-muted-foreground'
-                      }`}>
-                      +{level.pts} pts
-                    </span>
-                  </div>
-                </motion.div>
+                  <span className="font-medium">{level.label}</span>
+                  <span className="text-sm text-muted-foreground">+{level.pts} pts</span>
+                  <input
+                    type="checkbox"
+                    checked={level.val}
+                    onChange={(e) => {
+                      level.set(e.target.checked);
+                      if (e.target.checked) {
+                        if (level.id === 'teleop_tower_level1') { setTowerLevel2(false); setTowerLevel3(false); }
+                        if (level.id === 'teleop_tower_level2') { setTowerLevel1(false); setTowerLevel3(false); }
+                        if (level.id === 'teleop_tower_level3') { setTowerLevel1(false); setTowerLevel2(false); }
+                      }
+                    }}
+                    className="rounded"
+                  />
+                </label>
               ))}
             </div>
           </div>
 
-          {/* Final Summary Card */}
-          <div className="relative overflow-hidden p-6 bg-primary/10 border border-primary/30 rounded-2xl">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <Trophy size={80} className="text-primary" />
-            </div>
-            <div className="flex justify-between items-center relative z-10">
-              <div>
-                <p className="text-sm font-medium text-primary/80 uppercase tracking-wider">Estimated Score</p>
-                <h3 className="text-foreground text-xl font-bold">Total Teleop Segment</h3>
-              </div>
-              <div className="text-4xl font-extrabold text-primary animate-pulse">
-                {calculateTotal()}
-              </div>
-            </div>
-          </div>
+          <StopwatchBallTracking
+            phaseLabel="Teleop Period"
+            phaseDescription="Start when teleop begins; stop when it ends. Then enter balls scored in each 15-second range."
+            initialData={initialData}
+            onComplete={handleComplete}
+            onBack={onBack}
+            isDarkMode={isDarkMode}
+            requireBallsAfterStop={true}
+          />
         </CardContent>
-
-        <CardFooter className="flex justify-between p-6 bg-muted/20">
-          <Button
-            variant="ghost"
-            onClick={onBack}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Previous
-          </Button>
-
-          <Button
-            onClick={() => {
-              onNext({
-                ...formData,
-                teleop_fuel_active_hub: getTotalFuel(),
-                teleop_fuel_shifts: fuelShifts,
-              });
-            }}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-8 shadow-md"
-          >
-            Next Section
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </CardFooter>
       </Card>
     </motion.div>
   );

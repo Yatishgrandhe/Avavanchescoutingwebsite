@@ -35,7 +35,7 @@ import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ScoutingData, Team } from '@/lib/types';
 import { useAdmin } from '@/hooks/use-admin';
-import { computeRebuiltMetrics, parseNotes } from '@/lib/analytics';
+import { computeRebuiltMetrics, parseNotes, getUptimePct, getClimbPoints } from '@/lib/analytics';
 import { BALL_CHOICE_OPTIONS } from '@/lib/types';
 
 interface DataAnalysisProps { }
@@ -62,7 +62,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     avg_auto_fuel?: number;
     avg_teleop_fuel?: number;
     avg_climb_pts?: number;
+    avg_auto_climb_pts?: number;
+    avg_teleop_climb_pts?: number;
     avg_uptime_pct?: number | null;
+    avg_downtime_sec?: number | null;
     clank?: number;
     rpmagic?: number;
     goblin?: number;
@@ -321,7 +324,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         avg_autonomous_cleansing: Math.round(avgAutonomousCleansing * 100) / 100,
         avg_teleop_cleansing: Math.round(avgTeleopCleansing * 100) / 100,
         avg_downtime: avgDowntime != null ? Math.round(avgDowntime * 100) / 100 : null,
-        broke_count: stat.broke_count,
         best_score: bestScore,
         worst_score: worstScore,
         consistency_score: Math.round(consistencyScore * 100) / 100,
@@ -847,8 +849,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                     {team.avg_defense_rating}/10
                                   </Badge>
                                 </td>
-                                <td className="p-4 text-muted-foreground text-sm">{team.avg_downtime != null ? `${team.avg_downtime}s` : '—'}</td>
-                                <td className="p-4 text-muted-foreground text-sm">{team.broke_rate != null ? `${team.broke_rate}%` : '—'}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{team.avg_downtime_sec != null ? `${team.avg_downtime_sec}s` : (team.avg_downtime != null ? `${team.avg_downtime}s` : '—')}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{team.total_matches ? `${team.broke_count ?? 0}/${team.total_matches}` : (team.broke_rate != null ? `${team.broke_rate}%` : '—')}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_auto_fuel ?? '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_teleop_fuel ?? '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_climb_pts ?? '—'}</td>

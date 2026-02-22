@@ -53,10 +53,14 @@ interface TeamData {
   avg_total_score: number;
   avg_defense_rating: number;
   avg_downtime?: number | null;
+  avg_downtime_sec?: number | null;
+  broke_count?: number;
   broke_rate?: number;
   avg_auto_fuel?: number;
   avg_teleop_fuel?: number;
   avg_climb_pts?: number;
+  avg_auto_climb_pts?: number;
+  avg_teleop_climb_pts?: number;
   avg_uptime_pct?: number | null;
   clank?: number;
   rpmagic?: number;
@@ -206,10 +210,14 @@ export default function BasicAnalysis() {
           avg_total_score: avgTotal,
           avg_defense_rating: avgDefense,
           avg_downtime: avgDowntime,
+          avg_downtime_sec: rebuilt.avg_downtime_sec,
+          broke_count: rebuilt.broke_count,
           broke_rate: brokeRate,
           avg_auto_fuel: rebuilt.avg_auto_fuel,
           avg_teleop_fuel: rebuilt.avg_teleop_fuel,
           avg_climb_pts: rebuilt.avg_climb_pts,
+          avg_auto_climb_pts: rebuilt.avg_auto_climb_pts,
+          avg_teleop_climb_pts: rebuilt.avg_teleop_climb_pts,
           avg_uptime_pct: rebuilt.avg_uptime_pct,
           clank: rebuilt.clank,
           rpmagic: rebuilt.rpmagic,
@@ -398,6 +406,23 @@ export default function BasicAnalysis() {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4">
+              {/* Metric definitions (Overview) */}
+              <Card className="bg-muted/30 border-primary/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base text-white">Overview metrics — how they are calculated</CardTitle>
+                </CardHeader>
+                <CardContent className="text-xs text-slate-300 space-y-1">
+                  <p><strong className="text-white">AVG AUTO</strong> — Average fuel (game pieces) scored during the 15-second autonomous period.</p>
+                  <p><strong className="text-white">AVG TELEOP</strong> — Average fuel scored during the 2:15 teleop period.</p>
+                  <p><strong className="text-white">MATCHES SCOUTED</strong> — Total count of matches for which scouting data has been submitted.</p>
+                  <p><strong className="text-white">AVG CLIMB</strong> — Average point value earned from climbing at end of match.</p>
+                  <p><strong className="text-white">AUTO CLIMB</strong> — Points earned for climbing/moving during autonomous.</p>
+                  <p><strong className="text-white">TELEOP CLIMB</strong> — Points earned for climbing during end-game/teleop.</p>
+                  <p><strong className="text-white">AVG UPTIME</strong> — Average % of match time the robot was functional and active.</p>
+                  <p><strong className="text-white">AVG DOWNTIME</strong> — Average time (seconds) per match robot was disabled.</p>
+                  <p><strong className="text-white">BROKE</strong> — Count of matches where robot suffered failure (e.g. X/N or rate).</p>
+                </CardContent>
+              </Card>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
@@ -467,17 +492,17 @@ export default function BasicAnalysis() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Team</TableHead>
-                        <TableHead>Matches</TableHead>
-                        <TableHead>Avg Autonomous</TableHead>
-                        <TableHead>Avg Teleop</TableHead>
+                        <TableHead className="text-[9px]">AVG AUTO</TableHead>
+                        <TableHead className="text-[9px]">AVG TELEOP</TableHead>
+                        <TableHead className="text-[9px]">Matches Scouted</TableHead>
+                        <TableHead className="text-[9px]">AVG CLIMB</TableHead>
+                        <TableHead className="text-[9px]">AUTO CLIMB</TableHead>
+                        <TableHead className="text-[9px]">TELEOP CLIMB</TableHead>
+                        <TableHead className="text-[9px]">AVG UPTIME</TableHead>
+                        <TableHead className="text-[9px]">AVG DOWNTIME</TableHead>
+                        <TableHead className="text-[9px]">BROKE</TableHead>
                         <TableHead>Total Score</TableHead>
                         <TableHead>Defense</TableHead>
-                        <TableHead>Avg Downtime</TableHead>
-                        <TableHead>Broke %</TableHead>
-                        <TableHead className="text-[9px]">Auto Fuel</TableHead>
-                        <TableHead className="text-[9px]">Teleop Fuel</TableHead>
-                        <TableHead className="text-[9px]">Climb Pts</TableHead>
-                        <TableHead className="text-[9px]">Uptime %</TableHead>
                         <TableHead className="text-[9px]">CLANK</TableHead>
                         <TableHead className="text-[9px]">RPMAGIC</TableHead>
                         <TableHead className="text-[9px]">GOBLIN</TableHead>
@@ -492,10 +517,16 @@ export default function BasicAnalysis() {
                               <span className="text-sm text-muted-foreground">{team.team_name}</span>
                             </div>
                           </TableCell>
+                          <TableCell className="text-sm">{team.avg_auto_fuel ?? '—'}</TableCell>
+                          <TableCell className="text-sm">{team.avg_teleop_fuel ?? '—'}</TableCell>
                           <TableCell>{team.total_matches}</TableCell>
-                           <TableCell>{(team.avg_autonomous_points || 0).toFixed(1)}</TableCell>
-                           <TableCell>{(team.avg_teleop_points || 0).toFixed(1)}</TableCell>
-                           <TableCell className="font-medium">{(team.avg_total_score || 0).toFixed(1)}</TableCell>
+                          <TableCell className="text-sm">{team.avg_climb_pts ?? '—'}</TableCell>
+                          <TableCell className="text-sm">{team.avg_auto_climb_pts ?? '—'}</TableCell>
+                          <TableCell className="text-sm">{team.avg_teleop_climb_pts ?? '—'}</TableCell>
+                          <TableCell className="text-sm">{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</TableCell>
+                          <TableCell className="text-sm">{team.avg_downtime_sec != null ? `${team.avg_downtime_sec}s` : (team.avg_downtime != null ? `${Number(team.avg_downtime).toFixed(1)}s` : '—')}</TableCell>
+                          <TableCell className="text-sm">{team.total_matches ? `${team.broke_count ?? 0}/${team.total_matches}` : '—'}</TableCell>
+                          <TableCell className="font-medium">{(team.avg_total_score || 0).toFixed(1)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <div className="w-16 bg-muted rounded-full h-2">
@@ -504,15 +535,9 @@ export default function BasicAnalysis() {
                                   style={{ width: `${((team.avg_defense_rating || 0) / 10) * 100}%` }}
                                 />
                               </div>
-                               <span className="text-sm">{(team.avg_defense_rating || 0).toFixed(1)}</span>
+                              <span className="text-sm">{(team.avg_defense_rating || 0).toFixed(1)}</span>
                             </div>
                           </TableCell>
-                          <TableCell>{team.avg_downtime != null ? `${Number(team.avg_downtime).toFixed(1)}s` : '—'}</TableCell>
-                          <TableCell>{team.broke_rate != null ? `${team.broke_rate}%` : '—'}</TableCell>
-                          <TableCell className="text-sm">{team.avg_auto_fuel ?? '—'}</TableCell>
-                          <TableCell className="text-sm">{team.avg_teleop_fuel ?? '—'}</TableCell>
-                          <TableCell className="text-sm">{team.avg_climb_pts ?? '—'}</TableCell>
-                          <TableCell className="text-sm">{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</TableCell>
                           <TableCell className="text-sm">{team.clank != null ? `${team.clank}%` : '—'}</TableCell>
                           <TableCell className="text-sm">{team.rpmagic ?? '—'}</TableCell>
                           <TableCell className="text-sm">{team.goblin ?? '—'}</TableCell>

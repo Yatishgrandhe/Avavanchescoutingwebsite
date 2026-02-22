@@ -132,6 +132,21 @@ export function getClimbPoints(notes: any): number {
   return pts;
 }
 
+/** Auto climb points only (15 if L1, else 0). */
+export function getAutoClimbPoints(notes: any): number {
+  const p = parseNotes(notes);
+  return p.autonomous.auto_tower_level1 ? 15 : 0;
+}
+
+/** Teleop/endgame climb points only (10/20/30 for L1/L2/L3). */
+export function getTeleopClimbPoints(notes: any): number {
+  const p = parseNotes(notes);
+  if (p.teleop.teleop_tower_level3) return 30;
+  if (p.teleop.teleop_tower_level2) return 20;
+  if (p.teleop.teleop_tower_level1) return 10;
+  return 0;
+}
+
 /** Whether the robot achieved any climb (auto or teleop tower). */
 export function hadClimbSuccess(notes: any): boolean {
   const p = parseNotes(notes);
@@ -154,7 +169,11 @@ export interface RebuiltTeamMetrics {
   avg_auto_fuel: number;
   avg_teleop_fuel: number;
   avg_climb_pts: number;
+  avg_auto_climb_pts: number;
+  avg_teleop_climb_pts: number;
   avg_uptime_pct: number | null;
+  avg_downtime_sec: number | null;
+  broke_count: number;
   broke_rate: number;
   clank: number;
   rpmagic: number;
@@ -180,7 +199,11 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
       avg_auto_fuel: 0,
       avg_teleop_fuel: 0,
       avg_climb_pts: 0,
+      avg_auto_climb_pts: 0,
+      avg_teleop_climb_pts: 0,
       avg_uptime_pct: null,
+      avg_downtime_sec: null,
+      broke_count: 0,
       broke_rate: 0,
       clank: 0,
       rpmagic: 0,
@@ -191,6 +214,8 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
   let totalAutoFuel = 0;
   let totalTeleopFuel = 0;
   let totalClimbPts = 0;
+  let totalAutoClimbPts = 0;
+  let totalTeleopClimbPts = 0;
   let climbSuccesses = 0;
   let climbAttempts = n;
   let downtimeSum = 0;
@@ -204,6 +229,8 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     totalTeleopFuel += getTeleopFuelCount(notes);
     const climbPts = getClimbPoints(notes);
     totalClimbPts += climbPts;
+    totalAutoClimbPts += getAutoClimbPoints(notes);
+    totalTeleopClimbPts += getTeleopClimbPoints(notes);
     if (hadClimbSuccess(notes)) climbSuccesses += 1;
     if (row.average_downtime != null && !Number.isNaN(row.average_downtime)) {
       downtimeSum += Number(row.average_downtime);
@@ -218,6 +245,8 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     downtimeCount > 0
       ? getUptimePct(downtimeSum / downtimeCount)
       : null;
+  const avgDowntimeSec =
+    downtimeCount > 0 ? Math.round((downtimeSum / downtimeCount) * 100) / 100 : null;
 
   const avgScore = scores.reduce((a, b) => a + b, 0) / n;
   const variance =
@@ -240,7 +269,11 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     avg_auto_fuel: Math.round((totalAutoFuel / n) * 100) / 100,
     avg_teleop_fuel: Math.round((totalTeleopFuel / n) * 100) / 100,
     avg_climb_pts: Math.round((totalClimbPts / n) * 100) / 100,
+    avg_auto_climb_pts: Math.round((totalAutoClimbPts / n) * 100) / 100,
+    avg_teleop_climb_pts: Math.round((totalTeleopClimbPts / n) * 100) / 100,
     avg_uptime_pct: avgUptime,
+    avg_downtime_sec: avgDowntimeSec,
+    broke_count: brokeCount,
     broke_rate: Math.round((brokeCount / n) * 100),
     clank,
     rpmagic,

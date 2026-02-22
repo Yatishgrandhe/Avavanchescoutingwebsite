@@ -51,7 +51,6 @@ interface TeamComparison {
   worst_score: number;
   consistency_score: number;
   win_rate: number;
-  avg_shifts?: number[];
 }
 
 export default function TeamComparison() {
@@ -157,27 +156,6 @@ export default function TeamComparison() {
       const standardDeviation = Math.sqrt(variance);
       const consistencyScore = Math.max(0, 100 - (standardDeviation / avgTotal) * 100);
 
-      // Calculate average shifts
-      const shiftTotals = [0, 0, 0, 0, 0];
-      const shiftCounts = [0, 0, 0, 0, 0];
-
-      scoutingData.forEach((match: any) => {
-        try {
-          const notes = typeof match.notes === 'string' ? JSON.parse(match.notes) : match.notes;
-          const teleop = notes.teleop || (notes.teleop_fuel_active_hub ? notes : null);
-          const shifts = teleop?.teleop_fuel_shifts || (teleop?.teleop_fuel_active_hub ? [teleop.teleop_fuel_active_hub] : []);
-
-          shifts.slice(0, 5).forEach((val: number, i: number) => {
-            shiftTotals[i] += (val || 0);
-            shiftCounts[i]++;
-          });
-        } catch (e) { }
-      });
-
-      const avgShifts = shiftTotals.map((total, i) =>
-        shiftCounts[i] > 0 ? Math.round((total / shiftCounts[i]) * 10) / 10 : 0
-      );
-
       const teamComparison: TeamComparison = {
         team_number: teamNumber,
         team_name: teamData?.team_name || `Team ${teamNumber}`,
@@ -200,7 +178,6 @@ export default function TeamComparison() {
         worst_score: Math.min(...scores),
         consistency_score: Math.round(consistencyScore * 100) / 100,
         win_rate: 0.75, // Placeholder
-        avg_shifts: avgShifts
       };
 
       setSelectedTeams(prev => [...prev, teamNumber]);
@@ -659,9 +636,6 @@ export default function TeamComparison() {
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                             Consistency
                           </th>
-                          <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            Avg Shifts
-                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -717,16 +691,6 @@ export default function TeamComparison() {
                             </td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               {team.consistency_score}%
-                            </td>
-                            <td className="py-3 px-4">
-                              <div className="flex gap-1">
-                                {(team.avg_shifts || [0, 0, 0, 0, 0]).map((avg, i) => (
-                                  <div key={i} className="flex flex-col items-center bg-black/20 px-1 py-0.5 rounded border border-white/5 min-w-[24px]">
-                                    <span className="text-[6px] text-muted-foreground font-bold">{i === 4 ? 'END' : `S${i + 1}`}</span>
-                                    <span className="text-sm sm:text-3xl font-bold text-blue-400">{avg}</span>
-                                  </div>
-                                ))}
-                              </div>
                             </td>
                           </motion.tr>
                         ))}

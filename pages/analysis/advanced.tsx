@@ -25,6 +25,15 @@ import {
 import Layout from '@/components/layout/Layout';
 import { supabase } from '@/lib/supabase';
 import { computeRebuiltMetrics } from '@/lib/analytics';
+import {
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  ResponsiveContainer,
+  Tooltip,
+} from 'recharts';
 
 interface TeamStats {
   team_number: number;
@@ -40,7 +49,11 @@ interface TeamStats {
   avg_auto_fuel?: number;
   avg_teleop_fuel?: number;
   avg_climb_pts?: number;
+  avg_auto_climb_pts?: number;
+  avg_teleop_climb_pts?: number;
   avg_uptime_pct?: number | null;
+  avg_downtime_sec?: number | null;
+  broke_count?: number;
   clank?: number;
   rpmagic?: number;
   goblin?: number;
@@ -48,7 +61,6 @@ interface TeamStats {
   worst_score: number;
   consistency_score: number;
   win_rate: number;
-  avg_shifts?: number[];
   recent_performance: Array<{
     match_id: string;
     final_score: number;
@@ -189,27 +201,6 @@ export default function AdvancedAnalysis() {
       const standardDeviation = Math.sqrt(variance);
       const consistencyScore = Math.max(0, 100 - (standardDeviation / avgTotal) * 100);
 
-      // Calculate average shifts
-      const shiftTotals = [0, 0, 0, 0, 0];
-      const shiftCounts = [0, 0, 0, 0, 0];
-
-      scoutingData.forEach((match: any) => {
-        try {
-          const notes = typeof match.notes === 'string' ? JSON.parse(match.notes) : match.notes;
-          const teleop = notes.teleop || (notes.teleop_fuel_active_hub ? notes : null);
-          const shifts = teleop?.teleop_fuel_shifts || (teleop?.teleop_fuel_active_hub ? [teleop.teleop_fuel_active_hub] : []);
-
-          shifts.slice(0, 5).forEach((val: number, i: number) => {
-            shiftTotals[i] += (val || 0);
-            shiftCounts[i]++;
-          });
-        } catch (e) { }
-      });
-
-      const avgShifts = shiftTotals.map((total, i) =>
-        shiftCounts[i] > 0 ? Math.round((total / shiftCounts[i]) * 10) / 10 : 0
-      );
-
       // Calculate best/worst scores
       const bestScore = Math.max(...scores);
       const worstScore = Math.min(...scores);
@@ -231,7 +222,11 @@ export default function AdvancedAnalysis() {
         avg_auto_fuel: rebuilt.avg_auto_fuel,
         avg_teleop_fuel: rebuilt.avg_teleop_fuel,
         avg_climb_pts: rebuilt.avg_climb_pts,
+        avg_auto_climb_pts: rebuilt.avg_auto_climb_pts,
+        avg_teleop_climb_pts: rebuilt.avg_teleop_climb_pts,
         avg_uptime_pct: rebuilt.avg_uptime_pct,
+        avg_downtime_sec: rebuilt.avg_downtime_sec,
+        broke_count: rebuilt.broke_count,
         clank: rebuilt.clank,
         rpmagic: rebuilt.rpmagic,
         goblin: rebuilt.goblin,
@@ -239,7 +234,6 @@ export default function AdvancedAnalysis() {
         worst_score: worstScore,
         consistency_score: Math.round(consistencyScore * 100) / 100,
         win_rate: winRate,
-        avg_shifts: avgShifts,
         recent_performance: scoutingData.slice(0, 10).map((match: any) => ({
           match_id: match.match_id,
           final_score: match.final_score || 0,
@@ -611,6 +605,124 @@ export default function AdvancedAnalysis() {
                 </Card>
               </div>
 
+              {/* CLANK, RPMAGIC, GOBLIN descriptions */}
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className={`text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>KPI Descriptions</CardTitle>
+                </CardHeader>
+                <CardContent className="text-xs space-y-2">
+                  <p><strong className={isDarkMode ? 'text-blue-400' : 'text-blue-600'}>CLANK</strong> — Climb Level Accuracy &amp; No-Knockdown. Points adjusted for speed (+2 ≤3s, -2 &gt;6s).</p>
+                  <p><strong className={isDarkMode ? 'text-green-400' : 'text-green-600'}>RPMAGIC</strong> — Ranking Points — Match Advantage Generated In Cycles. Probability of earning an RP from scoring.</p>
+                  <p><strong className={isDarkMode ? 'text-amber-400' : 'text-amber-600'}>GOBLIN</strong> — Game Outcome Boost from Luck, In Numbers. Difference between actual match margin and expected margin.</p>
+                </CardContent>
+              </Card>
+
+              {/* Radar Chart: 5 axes 0–100 */}
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className={`${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Performance Radar</CardTitle>
+                  <CardDescription className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                    Blue area = team&apos;s actual performance; balanced shape = well-rounded robot. Scale 0–100.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={340}>
+                    <RadarChart
+                      cx="50%"
+                      cy="50%"
+                      outerRadius="70%"
+                      data={(() => {
+                        const autoCap = 30;
+                        const teleopCap = 50;
+                        const climbMax = 45;
+                        const autoScore = Math.min(100, ((teamStats.avg_auto_fuel ?? 0) / autoCap) * 100);
+                        const teleopScore = Math.min(100, ((teamStats.avg_teleop_fuel ?? 0) / teleopCap) * 100);
+                        const climbScore = Math.min(100, ((teamStats.avg_climb_pts ?? 0) / climbMax) * 100);
+                        const consistency = Math.min(100, Math.max(0, teamStats.goblin ?? 0));
+                        const reliability = teamStats.avg_uptime_pct != null
+                          ? (teamStats.avg_uptime_pct + (100 - (teamStats.broke_rate ?? 0))) / 2
+                          : Math.max(0, 100 - (teamStats.broke_rate ?? 0));
+                        return [
+                          { subject: 'Auto Scoring', value: Math.round(autoScore), fullMark: 100 },
+                          { subject: 'Teleop Scoring', value: Math.round(teleopScore), fullMark: 100 },
+                          { subject: 'Climb Points', value: Math.round(climbScore), fullMark: 100 },
+                          { subject: 'Consistency', value: Math.round(consistency), fullMark: 100 },
+                          { subject: 'Reliability', value: Math.round(reliability), fullMark: 100 },
+                        ];
+                      })()}
+                    >
+                      <PolarGrid stroke={isDarkMode ? '#374151' : '#e5e7eb'} />
+                      <PolarAngleAxis
+                        dataKey="subject"
+                        tick={{ fill: isDarkMode ? '#9ca3af' : '#6b7280', fontSize: 11 }}
+                      />
+                      <PolarRadiusAxis
+                        angle={90}
+                        domain={[0, 100]}
+                        tick={{ fill: isDarkMode ? '#9ca3af' : '#6b7280', fontSize: 10 }}
+                      />
+                      <Radar
+                        name="Team"
+                        dataKey="value"
+                        stroke="#3b82f6"
+                        fill="#3b82f6"
+                        fillOpacity={0.4}
+                        strokeWidth={2}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: isDarkMode ? '#1f2937' : '#fff', border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}` }}
+                        labelStyle={{ color: isDarkMode ? '#fff' : '#111' }}
+                        formatter={(value: number) => [value, 'Score (0–100)']}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Radar Chart: Auto Scoring, Teleop Scoring, Climb Points, Consistency, Reliability */}
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className={`${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Performance radar
+                  </CardTitle>
+                  <CardDescription className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                    Auto Scoring (fuel in auto), Teleop Scoring (fuel in teleop), Climb Points, Consistency (score stability), Reliability (uptime / no breakdowns). Blue area = this team.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={340}>
+                    <RadarChart
+                      data={[
+                        { subject: 'Auto Scoring', value: Math.min(100, ((teamStats.avg_auto_fuel ?? 0) / 50) * 100), fullMark: 100 },
+                        { subject: 'Teleop Scoring', value: Math.min(100, ((teamStats.avg_teleop_fuel ?? 0) / 150) * 100), fullMark: 100 },
+                        { subject: 'Climb Pts', value: Math.min(100, ((teamStats.avg_climb_pts ?? 0) / 30) * 100), fullMark: 100 },
+                        { subject: 'Consistency', value: Math.min(100, teamStats.consistency_score ?? 0), fullMark: 100 },
+                        { subject: 'Reliability', value: teamStats.avg_uptime_pct != null ? teamStats.avg_uptime_pct : Math.max(0, 100 - (teamStats.broke_rate ?? 0)), fullMark: 100 },
+                      ]}
+                      margin={{ top: 20, right: 30, bottom: 20, left: 30 }}
+                    >
+                      <PolarGrid stroke={isDarkMode ? '#374151' : '#e5e7eb'} />
+                      <PolarAngleAxis dataKey="subject" tick={{ fill: isDarkMode ? '#9ca3af' : '#4b5563', fontSize: 11 }} />
+                      <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: isDarkMode ? '#9ca3af' : '#6b7280' }} />
+                      <Radar name="Team" dataKey="value" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.4} strokeWidth={2} />
+                      <Tooltip contentStyle={{ background: isDarkMode ? '#1f2937' : '#fff', border: '1px solid #374151' }} formatter={(value: number) => [value.toFixed(1), 'Score (0–100)']} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Advanced metric descriptions */}
+              <Card className="bg-card border-border bg-muted/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className={`text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Advanced metrics — how they are calculated</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm space-y-2">
+                  <p><strong className={isDarkMode ? 'text-blue-400' : 'text-blue-600'}>CLANK</strong> — Climb Level Accuracy &amp; No-Knockdown. Success rate of climbs; points can be adjusted for speed (+2 for ≤3s, -2 for &gt;6s) when climb time is collected.</p>
+                  <p><strong className={isDarkMode ? 'text-green-400' : 'text-green-600'}>RPMAGIC</strong> — Ranking Points — Match Advantage Generated In Cycles. The probability of a team earning an RP based on their scoring and climb consistency.</p>
+                  <p><strong className={isDarkMode ? 'text-amber-400' : 'text-amber-600'}>GOBLIN</strong> — Game Outcome Boost from Luck, In Numbers. The difference between actual match margin and expected margin; higher = more consistent (less luck-dependent).</p>
+                </CardContent>
+              </Card>
+
               {/* Detailed Metrics */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="bg-card border-border">
@@ -638,19 +750,6 @@ export default function AdvancedAnalysis() {
                         {teamStats.avg_endgame_points} pts
                       </span>
                     </div>
-                    {teamStats.avg_shifts && (
-                      <div className="pt-4 border-t border-white/10">
-                        <span className={`text-xs font-bold uppercase tracking-widest block mb-3 text-center ${isDarkMode ? 'text-blue-400/80' : 'text-blue-600/80'}`}>Average Points per Shift</span>
-                        <div className="grid grid-cols-5 gap-2">
-                          {teamStats.avg_shifts.map((avg, i) => (
-                            <div key={i} className={`flex flex-col items-center p-2 rounded-lg border ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-gray-100 border-gray-200'}`}>
-                              <span className="text-[7px] text-muted-foreground font-black mb-1 uppercase">{i === 4 ? 'END' : `S${i + 1}`}</span>
-                              <span className={`text-xl sm:text-6xl font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{avg}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
 

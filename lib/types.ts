@@ -71,6 +71,20 @@ export interface TeamStats {
   avg_downtime?: number | null;
   broke_count?: number;
   broke_rate?: number;
+  /** REBUILT: average auto fuel (game pieces) per match */
+  avg_auto_fuel?: number;
+  /** REBUILT: average teleop fuel per match */
+  avg_teleop_fuel?: number;
+  /** REBUILT: average climb points per match */
+  avg_climb_pts?: number;
+  /** REBUILT: uptime % (100 - downtime/match_length) */
+  avg_uptime_pct?: number | null;
+  /** REBUILT: CLANK – climb success rate % */
+  clank?: number;
+  /** REBUILT: RPMAGIC – ranking points potential */
+  rpmagic?: number;
+  /** REBUILT: GOBLIN – consistency (inverse luck) */
+  goblin?: number;
   win_rate: number;
   consistency_score: number;
   avg_shifts?: number[];

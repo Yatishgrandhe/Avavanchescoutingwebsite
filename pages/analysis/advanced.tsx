@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { supabase } from '@/lib/supabase';
+import { computeRebuiltMetrics } from '@/lib/analytics';
 
 interface TeamStats {
   team_number: number;
@@ -36,6 +37,13 @@ interface TeamStats {
   avg_defense_rating: number;
   avg_downtime?: number | null;
   broke_rate?: number;
+  avg_auto_fuel?: number;
+  avg_teleop_fuel?: number;
+  avg_climb_pts?: number;
+  avg_uptime_pct?: number | null;
+  clank?: number;
+  rpmagic?: number;
+  goblin?: number;
   best_score: number;
   worst_score: number;
   consistency_score: number;
@@ -174,6 +182,7 @@ export default function AdvancedAnalysis() {
         : null;
       const brokeCount = scoutingData.filter((m: any) => m.broke === true).length;
       const brokeRate = totalMatches > 0 ? Math.round((brokeCount / totalMatches) * 100) : 0;
+      const rebuilt = computeRebuiltMetrics(scoutingData);
 
       // Calculate consistency (standard deviation)
       const variance = scores.reduce((sum: number, score: number) => sum + Math.pow(score - avgTotal, 2), 0) / totalMatches;
@@ -219,6 +228,13 @@ export default function AdvancedAnalysis() {
         avg_defense_rating: Math.round(avgDefense * 100) / 100,
         avg_downtime: avgDowntime != null ? Math.round(avgDowntime * 100) / 100 : null,
         broke_rate: brokeRate,
+        avg_auto_fuel: rebuilt.avg_auto_fuel,
+        avg_teleop_fuel: rebuilt.avg_teleop_fuel,
+        avg_climb_pts: rebuilt.avg_climb_pts,
+        avg_uptime_pct: rebuilt.avg_uptime_pct,
+        clank: rebuilt.clank,
+        rpmagic: rebuilt.rpmagic,
+        goblin: rebuilt.goblin,
         best_score: bestScore,
         worst_score: worstScore,
         consistency_score: Math.round(consistencyScore * 100) / 100,
@@ -545,6 +561,52 @@ export default function AdvancedAnalysis() {
                       </div>
                       <AlertCircle className={`w-8 h-8 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
                     </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* REBUILT 2026 KPIs */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mt-4">
+                <Card className="bg-card border-border">
+                  <CardContent className="p-3">
+                    <p className={`text-[10px] font-medium uppercase ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Auto Fuel</p>
+                    <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{teamStats.avg_auto_fuel ?? '—'}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-card border-border">
+                  <CardContent className="p-3">
+                    <p className={`text-[10px] font-medium uppercase ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Teleop Fuel</p>
+                    <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{teamStats.avg_teleop_fuel ?? '—'}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-card border-border">
+                  <CardContent className="p-3">
+                    <p className={`text-[10px] font-medium uppercase ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Climb Pts</p>
+                    <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{teamStats.avg_climb_pts ?? '—'}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-card border-border">
+                  <CardContent className="p-3">
+                    <p className={`text-[10px] font-medium uppercase ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Uptime %</p>
+                    <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{teamStats.avg_uptime_pct != null ? `${teamStats.avg_uptime_pct}%` : '—'}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-card border-border">
+                  <CardContent className="p-3">
+                    <p className={`text-[10px] font-medium uppercase ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>CLANK</p>
+                    <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{teamStats.clank != null ? `${teamStats.clank}%` : '—'}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-card border-border">
+                  <CardContent className="p-3">
+                    <p className={`text-[10px] font-medium uppercase ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>RPMAGIC</p>
+                    <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{teamStats.rpmagic ?? '—'}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-card border-border">
+                  <CardContent className="p-3">
+                    <p className={`text-[10px] font-medium uppercase ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>GOBLIN</p>
+                    <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{teamStats.goblin ?? '—'}</p>
                   </CardContent>
                 </Card>
               </div>

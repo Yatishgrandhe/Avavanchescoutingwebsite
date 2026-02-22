@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { supabase } from '@/lib/supabase';
+import { computeRebuiltMetrics } from '@/lib/analytics';
 
 interface TeamComparison {
   team_number: number;
@@ -39,6 +40,13 @@ interface TeamComparison {
   avg_defense_rating: number;
   avg_downtime?: number | null;
   broke_rate?: number;
+  avg_auto_fuel?: number;
+  avg_teleop_fuel?: number;
+  avg_climb_pts?: number;
+  avg_uptime_pct?: number | null;
+  clank?: number;
+  rpmagic?: number;
+  goblin?: number;
   best_score: number;
   worst_score: number;
   consistency_score: number;
@@ -135,6 +143,7 @@ export default function TeamComparison() {
         : null;
       const brokeCount = scoutingData.filter((m: any) => m.broke === true).length;
       const brokeRate = totalMatches > 0 ? Math.round((brokeCount / totalMatches) * 100) : 0;
+      const rebuilt = computeRebuiltMetrics(scoutingData);
 
       // Calculate averages
       const avgAutonomous = autonomousScores.reduce((sum: number, score: number) => sum + score, 0) / totalMatches;
@@ -180,6 +189,13 @@ export default function TeamComparison() {
         avg_defense_rating: Math.round(avgDefense * 100) / 100,
         avg_downtime: avgDowntime != null ? Math.round(avgDowntime * 100) / 100 : null,
         broke_rate: brokeRate,
+        avg_auto_fuel: rebuilt.avg_auto_fuel,
+        avg_teleop_fuel: rebuilt.avg_teleop_fuel,
+        avg_climb_pts: rebuilt.avg_climb_pts,
+        avg_uptime_pct: rebuilt.avg_uptime_pct,
+        clank: rebuilt.clank,
+        rpmagic: rebuilt.rpmagic,
+        goblin: rebuilt.goblin,
         best_score: Math.max(...scores),
         worst_score: Math.min(...scores),
         consistency_score: Math.round(consistencyScore * 100) / 100,
@@ -554,6 +570,34 @@ export default function TeamComparison() {
                             </span>
                           </div>
                           <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Auto Fuel:</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.avg_auto_fuel ?? '—'}</span>
+                          </div>
+                          <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Teleop Fuel:</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.avg_teleop_fuel ?? '—'}</span>
+                          </div>
+                          <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Climb Pts:</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.avg_climb_pts ?? '—'}</span>
+                          </div>
+                          <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Uptime %:</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</span>
+                          </div>
+                          <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>CLANK:</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.clank != null ? `${team.clank}%` : '—'}</span>
+                          </div>
+                          <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>RPMAGIC:</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.rpmagic ?? '—'}</span>
+                          </div>
+                          <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>GOBLIN:</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.goblin ?? '—'}</span>
+                          </div>
+                          <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Best:</span>
                             <span className={`ml-2 font-semibold text-green-600`}>{team.best_score}</span>
                           </div>
@@ -602,6 +646,13 @@ export default function TeamComparison() {
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                             Broke %
                           </th>
+                          <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Auto Fuel</th>
+                          <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Teleop Fuel</th>
+                          <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Climb</th>
+                          <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Uptime %</th>
+                          <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>CLANK</th>
+                          <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>RPMAGIC</th>
+                          <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>GOBLIN</th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                             Best
                           </th>
@@ -654,6 +705,13 @@ export default function TeamComparison() {
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               {team.broke_rate != null ? `${team.broke_rate}%` : '—'}
                             </td>
+                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_auto_fuel ?? '—'}</td>
+                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_teleop_fuel ?? '—'}</td>
+                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_climb_pts ?? '—'}</td>
+                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</td>
+                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.clank != null ? `${team.clank}%` : '—'}</td>
+                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.rpmagic ?? '—'}</td>
+                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.goblin ?? '—'}</td>
                             <td className={`py-3 px-4 font-semibold text-green-400`}>
                               {team.best_score}
                             </td>

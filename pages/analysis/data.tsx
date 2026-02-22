@@ -35,6 +35,7 @@ import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ScoutingData, Team } from '@/lib/types';
 import { useAdmin } from '@/hooks/use-admin';
+import { computeRebuiltMetrics } from '@/lib/analytics';
 
 interface DataAnalysisProps { }
 
@@ -57,6 +58,13 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     avg_downtime?: number | null;
     broke_count?: number;
     broke_rate?: number;
+    avg_auto_fuel?: number;
+    avg_teleop_fuel?: number;
+    avg_climb_pts?: number;
+    avg_uptime_pct?: number | null;
+    clank?: number;
+    rpmagic?: number;
+    goblin?: number;
     best_score: number;
     worst_score: number;
     consistency_score: number;
@@ -250,8 +258,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       const avgDefense = stat.defense_ratings.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
       const avgAutonomousCleansing = stat.autonomous_cleansing.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
       const avgTeleopCleansing = stat.teleop_cleansing.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
-      const avgDowntime = stat.downtime_values.length > 0
-        ? stat.downtime_values.reduce((s, v) => s + (v ?? 0), 0) / stat.downtime_values.length
+      const downtimeVals = stat.downtime_values.filter((v): v is number => v != null);
+      const avgDowntime = downtimeVals.length > 0
+        ? downtimeVals.reduce((s, v) => s + v, 0) / downtimeVals.length
         : null;
       const brokeRate = stat.total_matches > 0 ? Math.round((stat.broke_count / stat.total_matches) * 100) : 0;
 
@@ -275,7 +284,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         avg_teleop_cleansing: Math.round(avgTeleopCleansing * 100) / 100,
         avg_downtime: avgDowntime != null ? Math.round(avgDowntime * 100) / 100 : null,
         broke_count: stat.broke_count,
-        broke_rate: brokeRate,
         best_score: bestScore,
         worst_score: worstScore,
         consistency_score: Math.round(consistencyScore * 100) / 100,
@@ -295,7 +303,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
           return shiftTotals.map((total, i) =>
             shiftCounts[i] > 0 ? Math.round((total / shiftCounts[i]) * 10) / 10 : 0
           );
-        })()
+        })(),
+        ...computeRebuiltMetrics(
+          scoutingData.filter(d => d.team_number === stat.team_number)
+        )
       };
     }).filter(stat => stat.total_matches > 0); // Only show teams with scouting data
   };
@@ -735,6 +746,13 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4">Defense</th>
                             <th className="text-left p-4 text-[10px]">Avg Downtime</th>
                             <th className="text-left p-4 text-[10px]">Broke %</th>
+                            <th className="text-left p-4 text-[9px]">Auto Fuel</th>
+                            <th className="text-left p-4 text-[9px]">Teleop Fuel</th>
+                            <th className="text-left p-4 text-[9px]">Climb Pts</th>
+                            <th className="text-left p-4 text-[9px]">Uptime %</th>
+                            <th className="text-left p-4 text-[9px]">CLANK</th>
+                            <th className="text-left p-4 text-[9px]">RPMAGIC</th>
+                            <th className="text-left p-4 text-[9px]">GOBLIN</th>
                             <th className="text-left p-4">Best</th>
                             <th className="text-left p-4 text-[11px]">Consistency</th>
                             <th className="text-left p-4 min-w-[240px] text-[11px]">Teleop Shifts (Avg Points)</th>
@@ -786,6 +804,13 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 </td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_downtime != null ? `${team.avg_downtime}s` : '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.broke_rate != null ? `${team.broke_rate}%` : '—'}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{team.avg_auto_fuel ?? '—'}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{team.avg_teleop_fuel ?? '—'}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{team.avg_climb_pts ?? '—'}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{team.clank != null ? `${team.clank}%` : '—'}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{team.rpmagic ?? '—'}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{team.goblin ?? '—'}</td>
                                 <td className="p-4 text-green-400 font-bold">{team.best_score}</td>
                                 <td className="p-4">
                                   <div className="flex items-center gap-2">

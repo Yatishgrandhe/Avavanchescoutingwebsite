@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { ScoutingData, Team } from '@/lib/types';
 import { useRouter } from 'next/router';
+import { getAutoFuelCount, getTeleopFuelCount, getClimbPoints } from '@/lib/analytics';
 
 interface DataAnalysisProps { }
 
@@ -417,6 +418,22 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span>Downtime: {data.average_downtime != null ? `${Number(data.average_downtime).toFixed(1)}s` : '—'}</span>
                           <span>Broke: {data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}</span>
+                        </div>
+
+                        {/* REBUILT fuel & climb (per match) */}
+                        <div className="grid grid-cols-3 gap-2 text-xs text-center text-muted-foreground border-t pt-2">
+                          <div>
+                            <div className="font-medium text-foreground">Auto Fuel</div>
+                            <div>{getAutoFuelCount(data.notes)}</div>
+                          </div>
+                          <div>
+                            <div className="font-medium text-foreground">Teleop Fuel</div>
+                            <div>{getTeleopFuelCount(data.notes)}</div>
+                          </div>
+                          <div>
+                            <div className="font-medium text-foreground">Climb Pts</div>
+                            <div>{getClimbPoints(data.notes)}</div>
+                          </div>
                         </div>
 
                         {/* Uploader Info */}

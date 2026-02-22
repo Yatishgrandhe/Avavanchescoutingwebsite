@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { computeRebuiltMetrics } from '@/lib/analytics';
 
 interface TeamData {
   team_number: number;
@@ -53,6 +54,13 @@ interface TeamData {
   avg_defense_rating: number;
   avg_downtime?: number | null;
   broke_rate?: number;
+  avg_auto_fuel?: number;
+  avg_teleop_fuel?: number;
+  avg_climb_pts?: number;
+  avg_uptime_pct?: number | null;
+  clank?: number;
+  rpmagic?: number;
+  goblin?: number;
 }
 
 interface MatchData {
@@ -187,6 +195,7 @@ export default function BasicAnalysis() {
           : null;
         const brokeCount = teamScoutingData.filter((sd: any) => sd.broke === true).length;
         const brokeRate = totalMatches > 0 ? Math.round((brokeCount / totalMatches) * 100) : 0;
+        const rebuilt = computeRebuiltMetrics(teamScoutingData);
         
         return {
           team_number: team.team_number,
@@ -198,6 +207,13 @@ export default function BasicAnalysis() {
           avg_defense_rating: avgDefense,
           avg_downtime: avgDowntime,
           broke_rate: brokeRate,
+          avg_auto_fuel: rebuilt.avg_auto_fuel,
+          avg_teleop_fuel: rebuilt.avg_teleop_fuel,
+          avg_climb_pts: rebuilt.avg_climb_pts,
+          avg_uptime_pct: rebuilt.avg_uptime_pct,
+          clank: rebuilt.clank,
+          rpmagic: rebuilt.rpmagic,
+          goblin: rebuilt.goblin,
         };
       });
       
@@ -458,6 +474,13 @@ export default function BasicAnalysis() {
                         <TableHead>Defense</TableHead>
                         <TableHead>Avg Downtime</TableHead>
                         <TableHead>Broke %</TableHead>
+                        <TableHead className="text-[9px]">Auto Fuel</TableHead>
+                        <TableHead className="text-[9px]">Teleop Fuel</TableHead>
+                        <TableHead className="text-[9px]">Climb Pts</TableHead>
+                        <TableHead className="text-[9px]">Uptime %</TableHead>
+                        <TableHead className="text-[9px]">CLANK</TableHead>
+                        <TableHead className="text-[9px]">RPMAGIC</TableHead>
+                        <TableHead className="text-[9px]">GOBLIN</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -486,6 +509,13 @@ export default function BasicAnalysis() {
                           </TableCell>
                           <TableCell>{team.avg_downtime != null ? `${Number(team.avg_downtime).toFixed(1)}s` : '—'}</TableCell>
                           <TableCell>{team.broke_rate != null ? `${team.broke_rate}%` : '—'}</TableCell>
+                          <TableCell className="text-sm">{team.avg_auto_fuel ?? '—'}</TableCell>
+                          <TableCell className="text-sm">{team.avg_teleop_fuel ?? '—'}</TableCell>
+                          <TableCell className="text-sm">{team.avg_climb_pts ?? '—'}</TableCell>
+                          <TableCell className="text-sm">{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</TableCell>
+                          <TableCell className="text-sm">{team.clank != null ? `${team.clank}%` : '—'}</TableCell>
+                          <TableCell className="text-sm">{team.rpmagic ?? '—'}</TableCell>
+                          <TableCell className="text-sm">{team.goblin ?? '—'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

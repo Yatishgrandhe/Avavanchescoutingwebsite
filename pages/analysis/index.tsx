@@ -2,8 +2,8 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui';
-import { BarChart3, TrendingUp, ArrowLeftRight } from 'lucide-react';
+import { Card, CardDescription, CardHeader, CardTitle, CardContent } from '@/components/ui';
+import { BarChart3, TrendingUp, ArrowLeftRight, Info } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
@@ -11,13 +11,13 @@ const analysisModules = [
   {
     title: 'Overview',
     href: '/analysis/basic',
-    description: 'Team list, charts, and basic stats.',
+    description: 'Team list, charts, and basic stats (AVG AUTO Fuel, AVG TELEOP Fuel, etc.).',
     icon: BarChart3,
   },
   {
     title: 'Advanced',
     href: '/analysis/advanced',
-    description: 'REBUILT KPIs, radar charts, and deep dive.',
+    description: 'REBUILT KPIs, radar charts, and deep dive (CLANK, RPMAGIC, GOBLIN, climb, uptime).',
     icon: TrendingUp,
   },
   {
@@ -26,6 +26,15 @@ const analysisModules = [
     description: 'Side-by-side team comparison.',
     icon: ArrowLeftRight,
   },
+];
+
+const metricLocations = [
+  { metric: 'AVG AUTO Fuel / AVG TELEOP Fuel', where: 'Overview & Advanced; also in Data Analysis table and per-team page.' },
+  { metric: 'AVG CLIMB Pts', where: 'Advanced (single team) and Compare.' },
+  { metric: 'AVG UPTIME %', where: 'Advanced and Compare.' },
+  { metric: 'BROKE (reliability)', where: 'Overview, Advanced, Compare, and per-team page.' },
+  { metric: 'CLANK, RPMAGIC, GOBLIN', where: 'Advanced (single team) and Compare.' },
+  { metric: 'Per-team when scouted', where: 'Data Analysis → expand a row or click team number to open /team/[number]. Team Analysis → Advanced → search team.' },
 ];
 
 export default function AnalysisIndex() {
@@ -67,6 +76,31 @@ export default function AnalysisIndex() {
               );
             })}
           </div>
+
+          <Card className="border-primary/20 bg-card/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Info className="w-4 h-4 text-primary" />
+                Where to find REBUILT metrics (per team)
+              </CardTitle>
+              <CardDescription className="text-sm">
+                Based on Polar Edge–style analytics for 2026 REBUILT. All metrics use data from match scouting.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <ul className="space-y-2 text-sm">
+                {metricLocations.map((item, i) => (
+                  <li key={i} className="flex flex-col sm:flex-row sm:gap-2 sm:items-baseline">
+                    <span className="font-medium text-foreground shrink-0">{item.metric}</span>
+                    <span className="text-muted-foreground">{item.where}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-muted-foreground mt-3">
+                <strong>Data Analysis</strong> (sidebar) = full table of all scouted matches; expand rows for runs/fuel. Click a team number to open that team’s page. <strong>Team Analysis → Advanced</strong> = search by team number for CLANK, RPMAGIC, GOBLIN, climb, and radar chart.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </Layout>
     </ProtectedRoute>

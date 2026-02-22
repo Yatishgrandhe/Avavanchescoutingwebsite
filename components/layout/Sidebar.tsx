@@ -105,7 +105,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
           icon: Archive,
         },
         {
-          label: 'All Data',
+          label: 'Data Analysis',
           href: '/analysis/data',
           icon: Database,
         },

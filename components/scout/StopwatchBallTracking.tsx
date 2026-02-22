@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '../ui/dialog';
 import { RunRecord, BALL_CHOICE_OPTIONS, type BallTrackingPhase } from '@/lib/types';
 import { Play, Square, Clock, Plus, List } from 'lucide-react';
 
@@ -25,6 +33,8 @@ export default function StopwatchBallTracking({
   const [running, setRunning] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
+  const [showBallChoicePopup, setShowBallChoicePopup] = useState(false);
+  const [pendingDuration, setPendingDuration] = useState(0);
 
   useEffect(() => {
     if (!running) return;
@@ -38,18 +48,31 @@ export default function StopwatchBallTracking({
   const handleStart = useCallback(() => {
     setRunning(true);
     setSelectedChoice(null);
+    setShowBallChoicePopup(false);
   }, []);
 
   const handleStop = useCallback(() => {
     setRunning(false);
-  }, []);
+    setPendingDuration(elapsedSec);
+    setSelectedChoice(null);
+    setShowBallChoicePopup(true);
+  }, [elapsedSec]);
 
   const handleSaveRun = useCallback(() => {
     if (selectedChoice == null || selectedChoice < 0 || selectedChoice >= BALL_CHOICE_OPTIONS.length) return;
-    setRuns(prev => [...prev, { duration_sec: elapsedSec, ball_choice: selectedChoice }]);
+    setRuns(prev => [...prev, { duration_sec: pendingDuration, ball_choice: selectedChoice }]);
     setElapsedSec(0);
+    setPendingDuration(0);
     setSelectedChoice(null);
-  }, [elapsedSec, selectedChoice]);
+    setShowBallChoicePopup(false);
+  }, [pendingDuration, selectedChoice]);
+
+  const handleClosePopup = useCallback(() => {
+    setShowBallChoicePopup(false);
+    setSelectedChoice(null);
+    setPendingDuration(0);
+    setElapsedSec(0);
+  }, []);
 
   const handleRemoveRun = useCallback((index: number) => {
     setRuns(prev => prev.filter((_, i) => i !== index));
@@ -60,7 +83,6 @@ export default function StopwatchBallTracking({
   }, [runs, onComplete]);
 
   const duration = running ? elapsedSec : 0;
-  const stoppedWithNoChoice = !running && elapsedSec > 0 && selectedChoice === null;
 
   return (
     <Card className="bg-card border-border">
@@ -92,17 +114,16 @@ export default function StopwatchBallTracking({
           </div>
         </div>
 
-        {/* After stop: multiple choice for "How many balls in this run?" */}
-        {!running && elapsedSec > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-4"
-          >
-            <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-foreground'}`}>
-              How many balls in this run? (pick one)
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {/* Popup: multiple choice for ball count when run ends */}
+        <Dialog open={showBallChoicePopup} onOpenChange={(open) => !open && handleClosePopup()}>
+          <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle>How many balls scored?</DialogTitle>
+              <DialogDescription>
+                Run ended at <strong>{pendingDuration}s</strong>. Pick the ball count for this run.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 py-2">
               {BALL_CHOICE_OPTIONS.map((opt, index) => (
                 <button
                   key={index}
@@ -111,28 +132,23 @@ export default function StopwatchBallTracking({
                   className={`rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all ${
                     selectedChoice === index
                       ? 'border-primary bg-primary/20 text-primary'
-                      : isDarkMode
-                        ? 'border-white/20 bg-white/5 text-white hover:border-white/40'
-                        : 'border-border bg-muted/50 hover:border-primary/50'
+                      : 'border-border bg-muted/50 hover:border-primary/50'
                   }`}
                 >
                   {opt.label}
                 </button>
               ))}
             </div>
-            <Button
-              type="button"
-              onClick={handleSaveRun}
-              disabled={selectedChoice === null}
-              className="w-full gap-2"
-            >
-              <Plus className="w-4 h-4" /> Save this run
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              After saving you can start another run, or click Next below when done.
-            </p>
-          </motion.div>
-        )}
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button type="button" variant="outline" onClick={handleClosePopup}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={handleSaveRun} disabled={selectedChoice === null} className="gap-2">
+                <Plus className="w-4 h-4" /> Save this run
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* List of saved runs */}
         {runs.length > 0 && (

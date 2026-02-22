@@ -20,7 +20,6 @@ import {
   AlertCircle,
   BarChart3,
   TrendingUp,
-  Target,
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -308,9 +307,6 @@ const TeamDetail: React.FC = () => {
                 <StatCard label="AVG UPTIME" value={teamStats.avg_uptime_pct != null ? `${teamStats.avg_uptime_pct}%` : '—'} color="green" icon={Activity} />
                 <StatCard label="AVG DOWNTIME" value={teamStats.avg_downtime_sec != null ? `${teamStats.avg_downtime_sec}s` : '—'} color="red" icon={Clock} />
                 <StatCard label="BROKE" value={`${teamStats.broke_count}/${teamStats.totalMatches}`} color="red" icon={AlertCircle} subLabel={teamStats.broke_rate ? `${teamStats.broke_rate}%` : ''} />
-                <StatCard label="CLANK" value={teamStats.clank} color="purple" icon={Award} subLabel="climb %" />
-                <StatCard label="RPMAGIC" value={teamStats.rpmagic} color="primary" icon={BarChart3} subLabel="RP potential" />
-                <StatCard label="GOBLIN" value={teamStats.goblin} color="purple" icon={Target} subLabel="consistency" />
               </div>
               <div className="flex flex-wrap gap-3">
                 <div className="glass-card p-4 rounded-xl flex flex-col justify-center items-center text-center border border-white/5 min-w-[120px]">

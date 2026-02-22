@@ -20,12 +20,20 @@ import {
   AlertCircle,
   BarChart3,
   TrendingUp,
-  Target
+  Target,
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { ScoutingData, Team, ScoringNotes } from '@/lib/types';
+import { ScoutingData, Team } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import {
+  computeRebuiltMetrics,
+  getClimbAchieved,
+  getAutoFuelCount,
+  getTeleopFuelCount,
+  getUptimePct,
+  parseNotes,
+} from '@/lib/analytics';
 
 // Helper component for stat cards
 const StatCard = ({ label, value, color, icon: Icon, subLabel }: any) => (
@@ -119,136 +127,91 @@ const TeamDetail: React.FC = () => {
     if (scoutingData.length === 0) return null;
 
     const totalMatches = scoutingData.length;
-    const avgAutonomous = scoutingData.reduce((sum, data) => sum + (data.autonomous_points || 0), 0) / totalMatches;
-    const avgTeleop = scoutingData.reduce((sum, data) => sum + (data.teleop_points || 0), 0) / totalMatches;
-    const avgEndgame = 0; // endgame_points not in database schema
+    const rows = scoutingData.map((d) => ({
+      notes: d.notes,
+      average_downtime: d.average_downtime ?? null,
+      broke: d.broke ?? false,
+      final_score: d.final_score ?? 0,
+      autonomous_points: d.autonomous_points ?? 0,
+      teleop_points: d.teleop_points ?? 0,
+    }));
+    const rebuilt = computeRebuiltMetrics(rows);
+
     const avgTotal = scoutingData.reduce((sum, data) => sum + (data.final_score || 0), 0) / totalMatches;
     const avgDefense = scoutingData.reduce((sum, data) => sum + (data.defense_rating || 0), 0) / totalMatches;
-
     const bestScore = Math.max(...scoutingData.map(data => data.final_score || 0));
     const worstScore = Math.min(...scoutingData.map(data => data.final_score || 0));
 
-    // Calculate consistency
-    const scores = scoutingData.map(data => data.final_score || 0);
-    const variance = scores.reduce((sum, score) => sum + Math.pow(score - avgTotal, 2), 0) / totalMatches;
-    const standardDeviation = Math.sqrt(variance);
-    const consistencyScore = Math.max(0, 100 - (standardDeviation / avgTotal) * 100);
-
     return {
       totalMatches,
-      avgAutonomous: Math.round(avgAutonomous * 10),
-      avgTeleop: Math.round(avgTeleop * 10),
-      avgEndgame: Math.round(avgEndgame * 10),
+      avgAutonomous: scoutingData.reduce((sum, d) => sum + (d.autonomous_points || 0), 0) / totalMatches,
+      avgTeleop: scoutingData.reduce((sum, d) => sum + (d.teleop_points || 0), 0) / totalMatches,
       avgTotal: Math.round(avgTotal * 10) / 10,
       avgDefense: Math.round(avgDefense * 10) / 10,
       bestScore,
       worstScore,
-      consistencyScore: Math.round(consistencyScore)
+      consistencyScore: Math.round(rebuilt.goblin),
+      // REBUILT + EPA
+      avg_auto_fuel: rebuilt.avg_auto_fuel,
+      avg_teleop_fuel: rebuilt.avg_teleop_fuel,
+      avg_climb_pts: rebuilt.avg_climb_pts,
+      avg_uptime_pct: rebuilt.avg_uptime_pct,
+      avg_downtime_sec: rebuilt.avg_downtime_sec,
+      broke_count: rebuilt.broke_count,
+      broke_rate: rebuilt.broke_rate,
+      clank: rebuilt.clank,
+      rpmagic: rebuilt.rpmagic,
+      goblin: rebuilt.goblin,
+      epa: Math.round(avgTotal * 10) / 10, // Expected Points Added = avg score
     };
   };
 
   const renderScoringBreakdown = (notes: any) => {
-    // Handle stringified notes
-    let parsedNotes = notes;
-    try {
-      if (typeof notes === 'string') {
-        parsedNotes = JSON.parse(notes);
-      }
-    } catch (e) {
-      console.error("Failed to parse notes", e);
-    }
-
-    // Handle both flat and nested note structures
-    const getValue = (path: string) => {
-      if (parsedNotes && typeof parsedNotes === 'object') {
-        if (parsedNotes.autonomous || parsedNotes.teleop) {
-          // Nested structure
-          if (path.startsWith('auto_')) return parsedNotes.autonomous?.[path];
-          if (path.startsWith('teleop_')) return parsedNotes.teleop?.[path];
-        }
-        // Flat structure
-        return parsedNotes[path];
-      }
-      return undefined;
-    };
-
-    const scoringElements = [
-      // Autonomous (First 20 seconds)
-      { label: 'FUEL in Active HUB', value: getValue('auto_fuel_active_hub'), points: 1, period: 'Autonomous' },
-      { label: 'TOWER LEVEL 1 Climb', value: getValue('auto_tower_level1'), points: 15, period: 'Autonomous', isBoolean: true },
-
-      // Teleop (Last 2:20)
-      { label: 'FUEL in Active HUB', value: getValue('teleop_fuel_active_hub'), points: 1, period: 'Teleop' },
-      { label: 'TOWER LEVEL 1', value: getValue('teleop_tower_level1'), points: 10, period: 'Teleop', isBoolean: true },
-      { label: 'TOWER LEVEL 2', value: getValue('teleop_tower_level2'), points: 20, period: 'Teleop', isBoolean: true },
-      { label: 'TOWER LEVEL 3', value: getValue('teleop_tower_level3'), points: 30, period: 'Teleop', isBoolean: true },
-
-      // Endgame (Last 30 seconds)
-      { label: 'FUEL in HUB', value: getValue('endgame_fuel'), points: 1, period: 'Endgame' },
-    ];
-
-    const shiftsData = getValue('teleop_fuel_shifts');
-    const singleFuel = getValue('teleop_fuel_active_hub');
-    const shifts = (shiftsData && Array.isArray(shiftsData) && shiftsData.length > 0)
-      ? shiftsData
-      : (singleFuel ? [singleFuel] : []);
-
-    const autonomousElements = scoringElements.filter(el => el.period === 'Autonomous');
-    const teleopElements = scoringElements.filter(el => el.period === 'Teleop');
-    const endgameElements = scoringElements.filter(el => el.period === 'Endgame');
+    const p = parseNotes(notes);
+    const autoFuel = getAutoFuelCount(notes);
+    const teleopFuel = getTeleopFuelCount(notes);
+    const climb = getClimbAchieved(notes); // One climb per robot
 
     return (
       <div className="flex flex-col gap-6 mt-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Autonomous Column */}
+          {/* Autonomous */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-2">
               <Clock className="w-4 h-4" /> Autonomous
             </h4>
             <div className="space-y-2">
-              {autonomousElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
+              <BreakdownItem label="FUEL (game pieces)" value={autoFuel} points={1} />
             </div>
           </div>
 
-          {/* Teleop Column */}
+          {/* Teleop */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-2 flex items-center gap-2">
               <Zap className="w-4 h-4" /> Teleop
             </h4>
             <div className="space-y-2">
-              {teleopElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
+              <BreakdownItem label="FUEL (game pieces)" value={teleopFuel} points={1} />
             </div>
           </div>
 
-          {/* Endgame Column */}
+          {/* Climb — one per robot */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold text-green-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-              <Award className="w-4 h-4" /> Endgame
+              <Award className="w-4 h-4" /> Climb
             </h4>
             <div className="space-y-2">
-              {endgameElements.map((el, i) => <BreakdownItem key={i} {...el} />)}
+              {climb ? (
+                <BreakdownItem label={`Climb ${climb.label}`} value={climb.label} points={climb.points} />
+              ) : (
+                <div className="flex items-center justify-between p-3 rounded-lg border bg-card/30 border-white/5">
+                  <span className="text-sm font-medium text-muted-foreground">Climb</span>
+                  <span className="text-sm text-muted-foreground">No climb</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
-
-        {/* Teleop Shifts Grid */}
-        {shifts.length > 0 && (
-          <div className="bg-black/20 p-4 rounded-xl border border-white/5 shadow-[inset_0_0_20px_rgba(255,165,0,0.05)]">
-            <h4 className="text-xs font-bold text-orange-400/80 uppercase tracking-widest mb-4 flex items-center justify-center gap-2">
-              <Activity className="w-3 h-3" /> Teleop Scoring Intensity
-            </h4>
-            <div className="grid grid-cols-5 gap-3">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/5 relative overflow-hidden group hover:border-orange-500/30 transition-all">
-                  <div className="absolute top-0 inset-x-0 h-1 bg-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <span className="text-[8px] text-muted-foreground uppercase font-black mb-1.5">{i === 4 ? 'End Game' : `Shift ${i + 1}`}</span>
-                  <span className="text-2xl sm:text-7xl font-black text-orange-400 leading-none">{shifts[i] || 0}</span>
-                  <span className="text-[10px] sm:text-xs text-muted-foreground mt-1 font-bold">PTS</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     );
   };
@@ -325,25 +288,36 @@ const TeamDetail: React.FC = () => {
             </div>
           </motion.div>
 
-          {/* Stats Overview Grid */}
+          {/* Stats Overview Grid — REBUILT + EPA */}
           {teamStats && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4"
+              className="space-y-4"
             >
-              <StatCard label="Matches" value={teamStats.totalMatches} color="blue" icon={Database} />
-              <StatCard label="Avg Score" value={teamStats.avgTotal} color="primary" icon={BarChart3} />
-              <StatCard label="Auto Avg" value={teamStats.avgAutonomous} color="blue" icon={Clock} />
-              <StatCard label="Teleop Avg" value={teamStats.avgTeleop} color="orange" icon={Zap} />
-              <StatCard label="Endgame Avg" value={teamStats.avgEndgame} color="green" icon={Award} />
-              <StatCard label="Defense" value={teamStats.avgDefense} color="red" icon={Shield} subLabel="OUT OF 10" />
-              <StatCard label="Consistency" value={`${teamStats.consistencyScore}%`} color="purple" icon={Activity} />
-              <div className="glass-card p-4 rounded-xl flex flex-col justify-center items-center text-center border border-white/5 space-y-2">
-                <div className="text-xs text-green-400 font-mono">BEST: {teamStats.bestScore}</div>
-                <div className="w-full h-px bg-white/10" />
-                <div className="text-xs text-red-400 font-mono">WORST: {teamStats.worstScore}</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+                <StatCard label="Matches Scouted" value={teamStats.totalMatches} color="blue" icon={Database} />
+                <StatCard label="EPA" value={teamStats.epa} color="primary" icon={TrendingUp} subLabel="Expected Pts" />
+                <StatCard label="AVG AUTO" value={teamStats.avg_auto_fuel} color="blue" icon={Clock} subLabel="fuel" />
+                <StatCard label="AVG TELEOP" value={teamStats.avg_teleop_fuel} color="orange" icon={Zap} subLabel="fuel" />
+                <StatCard label="AVG CLIMB" value={teamStats.avg_climb_pts} color="green" icon={Award} subLabel="pts" />
+                <StatCard label="Defense" value={teamStats.avgDefense} color="red" icon={Shield} subLabel="/10" />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+                <StatCard label="AVG UPTIME" value={teamStats.avg_uptime_pct != null ? `${teamStats.avg_uptime_pct}%` : '—'} color="green" icon={Activity} />
+                <StatCard label="AVG DOWNTIME" value={teamStats.avg_downtime_sec != null ? `${teamStats.avg_downtime_sec}s` : '—'} color="red" icon={Clock} />
+                <StatCard label="BROKE" value={`${teamStats.broke_count}/${teamStats.totalMatches}`} color="red" icon={AlertCircle} subLabel={teamStats.broke_rate ? `${teamStats.broke_rate}%` : ''} />
+                <StatCard label="CLANK" value={teamStats.clank} color="purple" icon={Award} subLabel="climb %" />
+                <StatCard label="RPMAGIC" value={teamStats.rpmagic} color="primary" icon={BarChart3} subLabel="RP potential" />
+                <StatCard label="GOBLIN" value={teamStats.goblin} color="purple" icon={Target} subLabel="consistency" />
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <div className="glass-card p-4 rounded-xl flex flex-col justify-center items-center text-center border border-white/5 min-w-[120px]">
+                  <div className="text-xs text-green-400 font-mono">BEST: {teamStats.bestScore}</div>
+                  <div className="w-full h-px bg-white/10 my-1" />
+                  <div className="text-xs text-red-400 font-mono">WORST: {teamStats.worstScore}</div>
+                </div>
               </div>
             </motion.div>
           )}
@@ -414,18 +388,27 @@ const TeamDetail: React.FC = () => {
                       </div>
 
                       <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto">
-                        <div className="grid grid-cols-3 gap-6 text-center">
+                        <div className="grid grid-cols-4 gap-4 sm:gap-6 text-center">
                           <div>
                             <div className="text-xs text-muted-foreground uppercase">Auto</div>
-                            <div className="font-bold text-blue-400">{data.autonomous_points}</div>
+                            <div className="font-bold text-blue-400">{data.autonomous_points ?? 0}</div>
                           </div>
                           <div>
                             <div className="text-xs text-muted-foreground uppercase">Tele</div>
-                            <div className="font-bold text-orange-400">{data.teleop_points}</div>
+                            <div className="font-bold text-orange-400">{data.teleop_points ?? 0}</div>
                           </div>
                           <div>
-                            <div className="text-xs text-muted-foreground uppercase">End</div>
-                            <div className="font-bold text-green-400">0</div>
+                            <div className="text-xs text-muted-foreground uppercase">Climb</div>
+                            <div className="font-bold text-green-400">
+                              {(() => {
+                                const c = getClimbAchieved(data.notes);
+                                return c ? `${c.label} (${c.points})` : '—';
+                              })()}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground uppercase">Broke</div>
+                            <div className="font-bold">{data.broke ? 'Yes' : 'No'}</div>
                           </div>
                         </div>
 
@@ -451,6 +434,28 @@ const TeamDetail: React.FC = () => {
                           className="bg-black/20 border-t border-white/5"
                         >
                           <div className="p-4 md:p-6">
+                            {/* Match reliability: downtime, uptime, broke */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                              <div className="p-3 rounded-lg bg-white/5 border border-white/5">
+                                <span className="text-[10px] text-muted-foreground uppercase block">Downtime</span>
+                                <span className="text-sm font-bold">{data.average_downtime != null ? `${Number(data.average_downtime)}s` : '—'}</span>
+                              </div>
+                              <div className="p-3 rounded-lg bg-white/5 border border-white/5">
+                                <span className="text-[10px] text-muted-foreground uppercase block">Uptime</span>
+                                <span className="text-sm font-bold">{getUptimePct(data.average_downtime ?? null) != null ? `${getUptimePct(data.average_downtime ?? null)}%` : '—'}</span>
+                              </div>
+                              <div className="p-3 rounded-lg bg-white/5 border border-white/5">
+                                <span className="text-[10px] text-muted-foreground uppercase block">Broke</span>
+                                <span className="text-sm font-bold">{data.broke ? 'Yes' : 'No'}</span>
+                              </div>
+                              <div className="p-3 rounded-lg bg-white/5 border border-white/5">
+                                <span className="text-[10px] text-muted-foreground uppercase block">Climb</span>
+                                <span className="text-sm font-bold">
+                                  {(() => { const c = getClimbAchieved(data.notes); return c ? `${c.label} (${c.points} pts)` : 'None'; })()}
+                                </span>
+                              </div>
+                            </div>
+
                             {/* Defense & Comments Row */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                               <div className="glass-card p-4 rounded-lg bg-white/5">

@@ -158,6 +158,16 @@ export function hadClimbSuccess(notes: any): boolean {
   );
 }
 
+/** Single climb achieved per match (robot can only do one). Returns label and points; highest level wins. */
+export function getClimbAchieved(notes: any): { label: string; points: number } | null {
+  const p = parseNotes(notes);
+  if (p.teleop.teleop_tower_level3) return { label: 'L3', points: 30 };
+  if (p.teleop.teleop_tower_level2) return { label: 'L2', points: 20 };
+  if (p.teleop.teleop_tower_level1) return { label: 'L1', points: 10 };
+  if (p.autonomous.auto_tower_level1) return { label: 'Auto L1', points: 15 };
+  return null;
+}
+
 /** Uptime % from average_downtime (seconds). Match = 165s. */
 export function getUptimePct(averageDowntimeSec: number | null | undefined): number | null {
   if (averageDowntimeSec == null || Number.isNaN(averageDowntimeSec)) return null;

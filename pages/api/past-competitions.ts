@@ -9,7 +9,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Create Supabase client with service role key for server-side operations
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-  // For GET requests, we allow public access if configured
+  // For GET requests, allow public access (no auth required)
   const isGetRequest = req.method === 'GET';
 
   if (!isGetRequest) {
@@ -89,7 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           pickLists: pickLists || []
         });
       } else {
-        // Get all competitions with optional filtering
+        // Get all past competitions with optional filtering
         let query = supabaseAdmin
           .from('past_competitions')
           .select('*')
@@ -111,7 +111,53 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(500).json({ error: 'Failed to fetch competitions' });
         }
 
-        res.status(200).json({ competitions: competitions || [] });
+        // Build live events: event_keys from matches that are NOT in past_competitions
+        const pastKeys = (competitions || []).map((c: { competition_key: string }) => c.competition_key);
+        const { data: allMatches, error: matchesErr } = await supabaseAdmin
+          .from('matches')
+          .select('match_id, event_key, red_teams, blue_teams');
+
+        let live: Array<{
+          event_key: string;
+          competition_name: string;
+          total_teams: number;
+          total_matches: number;
+          scouting_count: number;
+        }> = [];
+
+        if (!matchesErr && allMatches && allMatches.length > 0) {
+          const eventKeys = Array.from(new Set((allMatches as { event_key: string }[]).map(m => m.event_key)));
+          const liveEventKeys = eventKeys.filter(ek => !pastKeys.includes(ek));
+
+          for (const eventKey of liveEventKeys) {
+            const eventMatches = (allMatches as { match_id: string; event_key: string; red_teams: number[]; blue_teams: number[] }[]).filter(m => m.event_key === eventKey);
+            const matchIds = eventMatches.map(m => m.match_id);
+            const teamSet = new Set<number>();
+            eventMatches.forEach(m => {
+              (m.red_teams || []).forEach((t: number) => teamSet.add(t));
+              (m.blue_teams || []).forEach((t: number) => teamSet.add(t));
+            });
+
+            const { count: scoutingCount } = await supabaseAdmin
+              .from('scouting_data')
+              .select('*', { count: 'exact', head: true })
+              .in('match_id', matchIds);
+
+            live.push({
+              event_key: eventKey,
+              competition_name: eventKey,
+              total_teams: teamSet.size,
+              total_matches: eventMatches.length,
+              scouting_count: scoutingCount ?? 0,
+            });
+          }
+          live.sort((a, b) => (b.scouting_count || 0) - (a.scouting_count || 0));
+        }
+
+        res.status(200).json({
+          competitions: competitions || [],
+          live: live,
+        });
       }
     } catch (error) {
       console.error('Error fetching past competitions:', error);

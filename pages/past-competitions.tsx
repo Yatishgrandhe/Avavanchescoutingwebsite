@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/layout/Layout';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -20,7 +19,8 @@ import {
   MapPin,
   ChevronRight,
   Database,
-  Archive
+  Archive,
+  Radio
 } from 'lucide-react';
 
 interface PastCompetition {
@@ -46,11 +46,20 @@ interface CompetitionDetails {
   pickLists: any[];
 }
 
+interface LiveEvent {
+  event_key: string;
+  competition_name: string;
+  total_teams: number;
+  total_matches: number;
+  scouting_count: number;
+}
+
 export default function PastCompetitionsPage() {
   const router = useRouter();
   const { supabase, user, session } = useSupabase();
   const { isAdmin, loading: adminLoading } = useAdmin();
   const [competitions, setCompetitions] = useState<PastCompetition[]>([]);
+  const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
   const [selectedCompetition, setSelectedCompetition] = useState<CompetitionDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -58,20 +67,12 @@ export default function PastCompetitionsPage() {
   const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
-    if (session && isAdmin) {
-      loadCompetitions();
-    }
-  }, [session, isAdmin]);
+    loadCompetitions();
+  }, []);
 
   const loadCompetitions = async () => {
-    if (!session) return;
-    
     try {
-      const response = await fetch('/api/past-competitions', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
+      const response = await fetch('/api/past-competitions');
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -79,6 +80,7 @@ export default function PastCompetitionsPage() {
       
       const data = await response.json();
       setCompetitions(data.competitions || []);
+      setLiveEvents(data.live || []);
     } catch (error) {
       console.error('Error loading competitions:', error);
     } finally {
@@ -87,14 +89,9 @@ export default function PastCompetitionsPage() {
   };
 
   const loadCompetitionDetails = async (competitionId: string) => {
-    if (!session) return;
-    
     try {
-      const response = await fetch(`/api/past-competitions?id=${competitionId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
+      const headers: HeadersInit = session ? { 'Authorization': `Bearer ${session.access_token}` } : {};
+      const response = await fetch(`/api/past-competitions?id=${competitionId}`, { headers });
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -118,44 +115,13 @@ export default function PastCompetitionsPage() {
 
   const uniqueYears = Array.from(new Set(competitions.map(comp => comp.competition_year))).sort((a, b) => b - a);
 
-  // Check if user is admin
-  if (adminLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-            <p className="text-gray-600">Checking permissions...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <Archive className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
-            <p className="text-gray-600 mb-4">You need admin privileges to access past competitions.</p>
-            <Button onClick={() => router.push('/')} className="bg-blue-500 hover:bg-blue-600">
-              Go to Dashboard
-            </Button>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
   if (isLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-            <p className="text-gray-600">Loading past competitions...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+            <p className="text-muted-foreground">Loading competition history...</p>
           </div>
         </div>
       </Layout>
@@ -163,8 +129,7 @@ export default function PastCompetitionsPage() {
   }
 
   return (
-    <ProtectedRoute>
-      <Layout>
+    <Layout>
         <div className="min-h-screen bg-background">
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             {/* Header Section */}
@@ -172,20 +137,76 @@ export default function PastCompetitionsPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-1 sm:mb-2">
-                    Past Competitions
+                    Competition History
                   </h1>
                   <p className="text-sm sm:text-base text-muted-foreground">
-                    View and analyze historical competition data
+                    Live data being scouted and archived past competitions
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Database className="h-5 w-5 text-primary" />
                   <span className="text-sm text-muted-foreground">
-                    {competitions.length} competitions archived
+                    {liveEvents.length > 0 && `${liveEvents.length} live · `}
+                    {competitions.length} past archived
                   </span>
                 </div>
               </div>
             </div>
+
+            {/* Live section: current data being collected */}
+            {liveEvents.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Radio className="h-5 w-5 text-emerald-500" />
+                  Live — current data being scouted
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  {liveEvents.map((ev) => (
+                    <Card
+                      key={ev.event_key}
+                      className="p-4 sm:p-6 rounded-lg shadow-sm border border-emerald-500/30 bg-emerald-500/5 hover:shadow-md transition-shadow duration-200 cursor-pointer"
+                      onClick={() => router.push(`/analysis/data?event_key=${encodeURIComponent(ev.event_key)}`)}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mb-2 block">
+                            Live
+                          </span>
+                          <h3 className="text-lg font-semibold text-foreground">{ev.competition_name}</h3>
+                          <p className="text-xs text-muted-foreground font-mono mt-1">{ev.event_key}</p>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-center">
+                          <div className="flex items-center justify-center mb-1">
+                            <Users className="h-4 w-4 text-emerald-500 mr-1" />
+                            <span className="text-sm font-medium text-foreground">{ev.total_teams}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Teams</p>
+                        </div>
+                        <div className="text-center">
+                          <div className="flex items-center justify-center mb-1">
+                            <Target className="h-4 w-4 text-emerald-500 mr-1" />
+                            <span className="text-sm font-medium text-foreground">{ev.total_matches}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Matches</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
+                        {ev.scouting_count} scouting records · Click to view analysis
+                      </p>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Past Competitions — only archived */}
+            <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Archive className="h-5 w-5 text-primary" />
+              Past competitions
+            </h2>
 
             {/* Filters */}
             <Card className="p-4 sm:p-6 mb-6 rounded-lg shadow-sm border">
@@ -539,9 +560,8 @@ export default function PastCompetitionsPage() {
                 </div>
               </div>
             )}
-          </div>
         </div>
-      </Layout>
-    </ProtectedRoute>
+      </div>
+    </Layout>
   );
 }

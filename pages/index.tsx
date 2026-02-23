@@ -741,7 +741,7 @@ export default function Home() {
             variant="outline"
             size="lg"
             className="w-full sm:w-auto h-12 px-8 rounded-full border-white/10 hover:bg-white/5 text-white hover:border-white/20 transition-all font-medium backdrop-blur-sm"
-            onClick={() => router.push('/history')}
+            onClick={() => router.push('/past-competitions')}
           >
             Competition History
           </Button>

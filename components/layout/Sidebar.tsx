@@ -89,19 +89,14 @@ const AppSidebar: React.FC<SidebarProps> = ({
           href: '/pick-list',
           icon: List,
         },
-        {
-          label: 'Past Competitions',
-          href: '/past-competitions',
-          icon: Archive,
-        },
       ],
     }] : []),
     {
       title: 'Analysis',
       items: [
         {
-          label: 'Competition History',
-          href: '/history',
+          label: 'Past Competitions',
+          href: '/past-competitions',
           icon: Archive,
         },
         {

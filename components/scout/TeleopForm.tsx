@@ -22,6 +22,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   isDarkMode = true,
   initialData,
 }) => {
+  const [towerLevel1, setTowerLevel1] = useState(!!initialData?.teleop_tower_level1);
   const [towerLevel2, setTowerLevel2] = useState(!!initialData?.teleop_tower_level2);
   const [towerLevel3, setTowerLevel3] = useState(!!initialData?.teleop_tower_level3);
   const [climbSec, setClimbSec] = useState<number | ''>(initialData?.climb_sec != null ? Number(initialData.climb_sec) : '');
@@ -37,7 +38,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
       ...data,
       teleop_fuel_active_hub: Math.round(totalFuel * 10) / 10,
       teleop_fuel_shifts: (data.runs ?? []).map(r => BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0),
-      teleop_tower_level1: false,
+      teleop_tower_level1: towerLevel1,
       teleop_tower_level2: towerLevel2,
       teleop_tower_level3: towerLevel3,
       climb_sec: climbSec !== '' && !Number.isNaN(Number(climbSec)) ? Number(climbSec) : undefined,
@@ -70,9 +71,10 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
               <TrendingUp className={`w-5 h-5 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
               <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-foreground'}`}>TOWER Climb (optional)</h3>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">Only L2 and L3 (no L1 in teleop). One climb per match.</p>
+            <p className="text-xs text-muted-foreground mt-2">L1 = 10 pts, L2 = 20 pts, L3 = 30 pts. One climb per match (select at most one).</p>
             <div className="grid grid-cols-1 gap-2 mt-3">
               {[
+                { id: 'teleop_tower_level1', label: 'LEVEL 1', pts: SCORING_VALUES.teleop_tower_level1, set: setTowerLevel1, val: towerLevel1 },
                 { id: 'teleop_tower_level2', label: 'LEVEL 2', pts: SCORING_VALUES.teleop_tower_level2, set: setTowerLevel2, val: towerLevel2 },
                 { id: 'teleop_tower_level3', label: 'LEVEL 3', pts: SCORING_VALUES.teleop_tower_level3, set: setTowerLevel3, val: towerLevel3 },
               ].map((level) => (
@@ -88,10 +90,12 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                     type="checkbox"
                     checked={level.val}
                     onChange={(e) => {
-                      level.set(e.target.checked);
-                      if (e.target.checked) {
-                        if (level.id === 'teleop_tower_level2') setTowerLevel3(false);
-                        if (level.id === 'teleop_tower_level3') setTowerLevel2(false);
+                      const checked = e.target.checked;
+                      level.set(checked);
+                      if (checked) {
+                        if (level.id === 'teleop_tower_level1') { setTowerLevel2(false); setTowerLevel3(false); }
+                        if (level.id === 'teleop_tower_level2') { setTowerLevel1(false); setTowerLevel3(false); }
+                        if (level.id === 'teleop_tower_level3') { setTowerLevel1(false); setTowerLevel2(false); }
                       }
                     }}
                     className="rounded"

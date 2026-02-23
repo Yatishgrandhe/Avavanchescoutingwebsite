@@ -42,7 +42,67 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!error && user) isGuest = false;
       }
 
-      const { id, competition_key, year } = req.query;
+      const { id, competition_key, year, event_key } = req.query;
+
+      if (event_key && !id) {
+        // Live event detail: public, no auth required (for guests to view live data)
+        const eventKeyStr = event_key as string;
+        const { data: matches, error: matchesErr } = await supabaseAdmin
+          .from('matches')
+          .select('match_id, event_key, match_number, red_teams, blue_teams')
+          .eq('event_key', eventKeyStr)
+          .order('match_number');
+
+        if (matchesErr || !matches || matches.length === 0) {
+          return res.status(404).json({ error: 'Live event not found or no matches' });
+        }
+
+        const matchIds = matches.map((m: { match_id: string }) => m.match_id);
+        const teamNumbers = new Set<number>();
+        matches.forEach((m: { red_teams?: number[]; blue_teams?: number[] }) => {
+          (m.red_teams || []).forEach((t: number) => teamNumbers.add(t));
+          (m.blue_teams || []).forEach((t: number) => teamNumbers.add(t));
+        });
+
+        const { data: teamRows } = await supabaseAdmin
+          .from('teams')
+          .select('team_number, team_name')
+          .in('team_number', Array.from(teamNumbers));
+
+        const teamMap = new Map((teamRows || []).map((t: { team_number: number; team_name: string }) => [t.team_number, t.team_name]));
+        const teams = Array.from(teamNumbers).sort((a, b) => a - b).map(tn => ({
+          team_number: tn,
+          team_name: teamMap.get(tn) || '',
+        }));
+
+        const { data: scoutingData } = await supabaseAdmin
+          .from('scouting_data')
+          .select('*')
+          .in('match_id', matchIds);
+
+        const competition = {
+          id: eventKeyStr,
+          competition_name: eventKeyStr,
+          competition_key: eventKeyStr,
+          competition_year: new Date().getFullYear(),
+          total_teams: teams.length,
+          total_matches: matches.length,
+        };
+
+        return res.status(200).json({
+          competition,
+          teams,
+          matches: matches.map((m: { match_id: string; match_number: number; red_teams?: number[]; blue_teams?: number[] }) => ({
+            match_id: m.match_id,
+            match_number: m.match_number,
+            red_teams: m.red_teams || [],
+            blue_teams: m.blue_teams || [],
+          })),
+          scoutingData: scoutingData || [],
+          pitScoutingData: [],
+          pickLists: [],
+        });
+      }
 
       if (id) {
         // Get specific competition with all related data

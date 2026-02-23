@@ -99,6 +99,18 @@ export default function PublicCompetitionHistoryPage() {
     }
   };
 
+  const loadLiveEventDetails = async (eventKey: string) => {
+    try {
+      const response = await fetch(`/api/past-competitions?event_key=${encodeURIComponent(eventKey)}`);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      setSelectedCompetition(data);
+      setShowDetails(true);
+    } catch (error) {
+      console.error('Error loading live event details:', error);
+    }
+  };
+
   const filteredCompetitions = competitions.filter(comp => {
     const matchesSearch = comp.competition_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          comp.competition_key.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -191,7 +203,8 @@ export default function PublicCompetitionHistoryPage() {
               {liveEvents.map((ev) => (
                 <Card
                   key={ev.event_key}
-                  className="p-4 sm:p-6 rounded-lg shadow-sm border border-emerald-500/30 bg-emerald-500/5 transition-shadow duration-200"
+                  className="p-4 sm:p-6 rounded-lg shadow-sm border border-emerald-500/30 bg-emerald-500/5 hover:shadow-md transition-shadow duration-200 cursor-pointer"
+                  onClick={() => loadLiveEventDetails(ev.event_key)}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
@@ -220,7 +233,7 @@ export default function PublicCompetitionHistoryPage() {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
-                    {ev.scouting_count} scouting records
+                    {ev.scouting_count} scouting records · Click to view
                   </p>
                 </Card>
               ))}

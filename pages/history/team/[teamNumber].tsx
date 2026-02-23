@@ -27,6 +27,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui';
 import Logo from '@/components/ui/Logo';
+import GuestLayout from '@/components/layout/GuestLayout';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 
@@ -158,46 +159,40 @@ export default function PublicTeamHistoryPage() {
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-                <Logo size="md" className="animate-pulse" />
-                <div className="h-1 w-48 bg-white/5 rounded-full overflow-hidden">
-                    <motion.div
-                        className="h-full bg-primary"
-                        initial={{ width: 0 }}
-                        animate={{ width: '100%' }}
-                        transition={{ duration: 1, repeat: Infinity }}
-                    />
+        <GuestLayout backLink={{ href: '/history', label: 'Back to Archive' }} forceShowNavbar>
+            <div className="flex-1 flex items-center justify-center min-h-[60vh]">
+                <div className="flex flex-col items-center gap-4">
+                    <Logo size="md" className="animate-pulse" />
+                    <div className="h-1 w-48 bg-white/5 rounded-full overflow-hidden">
+                        <motion.div
+                            className="h-full bg-primary"
+                            initial={{ width: 0 }}
+                            animate={{ width: '100%' }}
+                            transition={{ duration: 1, repeat: Infinity }}
+                        />
+                    </div>
                 </div>
             </div>
-        </div>
+        </GuestLayout>
     );
 
     if (!team) return (
-        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
-            <Archive className="h-16 w-16 text-muted-foreground/20 mb-6" />
-            <h1 className="text-2xl font-bold mb-2">Team History Not Found</h1>
-            <p className="text-muted-foreground mb-8">This team has no publicly archived records.</p>
-            <Link href="/history">
-                <Button>Back to Archive</Button>
-            </Link>
-        </div>
+        <GuestLayout backLink={{ href: '/history', label: 'Back to Archive' }} forceShowNavbar>
+            <div className="flex-1 flex flex-col items-center justify-center p-8 min-h-[60vh]">
+                <Archive className="h-16 w-16 text-muted-foreground/20 mb-6" />
+                <h1 className="text-2xl font-bold mb-2">Team History Not Found</h1>
+                <p className="text-muted-foreground mb-8">This team has no publicly archived records.</p>
+                <Link href="/history">
+                    <Button>Back to Archive</Button>
+                </Link>
+            </div>
+        </GuestLayout>
     );
 
     return (
-        <div className="min-h-screen bg-background relative transition-colors duration-500">
+        <GuestLayout backLink={{ href: '/history', label: 'Back to Archive' }} forceShowNavbar>
+            <div className="min-h-screen relative transition-colors duration-500">
             <HistoryBackground />
-
-            <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/60 backdrop-blur-xl">
-                <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-                    <Link href="/history" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group">
-                        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-                        <span className="text-sm font-medium">Back to Archive</span>
-                    </Link>
-                    <Logo size="sm" />
-                    <div className="w-24 hidden sm:block" />
-                </div>
-            </header>
 
             <main className="max-w-5xl mx-auto px-4 py-16">
                 {/* Team Hero */}
@@ -338,5 +333,6 @@ export default function PublicTeamHistoryPage() {
                 </div>
             </footer>
         </div>
+        </GuestLayout>
     );
 }

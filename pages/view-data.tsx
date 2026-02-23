@@ -1,6 +1,7 @@
 /**
  * Competition data in Data Analysis format — for guests and logged-in users.
  * Query: ?event_key=XXX (live) or ?id=XXX (past). No auth required for viewing.
+ * When guest: shows sidebar with Overview, Comparison, Data Analysis (Teams) and Back to Competition History.
  */
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -12,7 +13,6 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import {
   Database,
-  ArrowLeft,
   Target,
   Activity,
   Award,
@@ -21,9 +21,14 @@ import {
   XCircle,
   Eye,
   EyeOff,
+  Users,
+  BarChart3,
+  GitCompare,
+  LayoutDashboard,
 } from 'lucide-react';
-import Logo from '@/components/ui/Logo';
 import Layout from '@/components/layout/Layout';
+import CompetitionDataLayout from '@/components/layout/CompetitionDataLayout';
+import type { CompetitionViewTab } from '@/components/layout/CompetitionDataSidebar';
 import { useSupabase } from '@/pages/_app';
 import { parseNotes, getClimbPoints, getUptimePct } from '@/lib/analytics';
 import { BALL_CHOICE_OPTIONS } from '@/lib/types';
@@ -68,6 +73,7 @@ export default function ViewDataPage() {
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<string>('match_id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [activeTab, setActiveTab] = useState<CompetitionViewTab>('teams');
 
   useEffect(() => {
     if (!event_key && !id) return;
@@ -133,58 +139,43 @@ export default function ViewDataPage() {
     return sortDirection === 'asc' ? cmp : -cmp;
   });
 
-  const header = (
-    <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
-          <Logo size="sm" />
-          <span className="font-semibold">Avalanche Scouting</span>
-        </Link>
-        <div className="flex items-center gap-3">
-          <Link href="/competition-history">
-            <Button variant="ghost" size="sm" className="gap-2">
-              <ArrowLeft className="h-4 w-4" /> Back to Competition History
-            </Button>
-          </Link>
-          {user && (
-            <Link href="/">
-              <Button size="sm" className="gap-2">Dashboard</Button>
-            </Link>
-          )}
-        </div>
-      </div>
-    </header>
-  );
+  const guestBackLink = { href: '/competition-history', label: 'Back to Competition History' };
+  const queryString = id ? `id=${encodeURIComponent(id as string)}` : event_key ? `event_key=${encodeURIComponent(event_key as string)}` : '';
+  const queryPrefix = queryString ? '?' + queryString : '';
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
-        {!user && header}
-        {user && <Layout><div className="flex-1" /></Layout>}
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2" />
-            <p className="text-muted-foreground">Loading competition data...</p>
+      user ? (
+        <Layout><div className="flex-1" /></Layout>
+      ) : (
+        <CompetitionDataLayout activeTab="teams" onTabChange={() => {}} backHref="/competition-history" queryString={queryString}>
+          <div className="flex-1 flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2" />
+              <p className="text-muted-foreground">Loading competition data...</p>
+            </div>
           </div>
-        </div>
-      </div>
+        </CompetitionDataLayout>
+      )
     );
   }
 
   if (error || !competition) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
-        {!user && header}
-        {user && <Layout><div className="flex-1" /></Layout>}
-        <div className="flex-1 flex items-center justify-center p-4">
-          <Card className="max-w-md w-full p-6">
-            <p className="text-destructive mb-4">{error || 'Competition not found.'}</p>
-            <Link href="/competition-history">
-              <Button variant="outline">Back to Competition History</Button>
-            </Link>
-          </Card>
-        </div>
-      </div>
+      user ? (
+        <Layout><div className="flex-1" /></Layout>
+      ) : (
+        <CompetitionDataLayout activeTab="teams" onTabChange={() => {}} backHref="/competition-history" queryString={queryString}>
+          <div className="flex-1 flex items-center justify-center p-4 min-h-[60vh]">
+            <Card className="max-w-md w-full p-6">
+              <p className="text-destructive mb-4">{error || 'Competition not found.'}</p>
+              <Link href="/competition-history">
+                <Button variant="outline">Back to Competition History</Button>
+              </Link>
+            </Card>
+          </div>
+        </CompetitionDataLayout>
+      )
     );
   }
 
@@ -212,36 +203,36 @@ export default function ViewDataPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto scrollbar-hide">
-            <table className="w-full border-collapse table-fixed min-w-[900px]">
+            <table className="w-full border-collapse min-w-[880px]">
               <thead>
                 <tr className="border-b border-white/5 text-muted-foreground font-medium uppercase tracking-wider text-[10px]">
-                  <th className="text-left p-2 sm:p-3 w-[140px] cursor-pointer hover:text-foreground" onClick={() => handleSort('team_number')}>
+                  <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('team_number')}>
                     Team {sortField === 'team_number' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left p-2 sm:p-3 w-[72px] cursor-pointer hover:text-foreground" onClick={() => handleSort('match_id')}>
+                  <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('match_id')}>
                     Match {sortField === 'match_id' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left p-2 sm:p-3 w-[70px]">Alliance</th>
-                  <th className="text-left p-2 sm:p-3 w-[56px] cursor-pointer hover:text-foreground" onClick={() => handleSort('autonomous_points')}>
+                  <th className="text-left py-3 px-4 whitespace-nowrap">Alliance</th>
+                  <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('autonomous_points')}>
                     Auto {sortField === 'autonomous_points' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left p-2 sm:p-3 w-[65px] cursor-pointer hover:text-foreground" onClick={() => handleSort('autonomous_cleansing')}>
+                  <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('autonomous_cleansing')}>
                     Auto Cln {sortField === 'autonomous_cleansing' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left p-2 sm:p-3 w-[60px] cursor-pointer hover:text-foreground" onClick={() => handleSort('teleop_points')}>
+                  <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('teleop_points')}>
                     Teleop {sortField === 'teleop_points' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left p-2 sm:p-3 w-[65px] cursor-pointer hover:text-foreground" onClick={() => handleSort('teleop_cleansing')}>
+                  <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('teleop_cleansing')}>
                     Tele Cln {sortField === 'teleop_cleansing' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left p-2 sm:p-3 w-[56px] cursor-pointer hover:text-foreground" onClick={() => handleSort('final_score')}>
+                  <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('final_score')}>
                     Total {sortField === 'final_score' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left p-2 sm:p-3 w-[70px]">Defense</th>
-                  <th className="text-left p-2 sm:p-3 w-[72px]">Downtime</th>
-                  <th className="text-left p-2 sm:p-3 w-[52px]">Broke</th>
-                  <th className="text-left p-2 sm:p-3 min-w-[120px]">Comments</th>
-                  <th className="text-right p-2 sm:p-3 w-[80px]">Action</th>
+                  <th className="text-left py-3 px-4 whitespace-nowrap">Defense</th>
+                  <th className="text-left py-3 px-4 whitespace-nowrap">Downtime</th>
+                  <th className="text-left py-3 px-4 whitespace-nowrap">Broke</th>
+                  <th className="text-left py-3 px-4 min-w-[120px]">Comments</th>
+                  <th className="text-right py-3 px-4 whitespace-nowrap">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -260,17 +251,17 @@ export default function ViewDataPage() {
                       transition={{ duration: 0.2, delay: index * 0.02 }}
                       className="border-b border-white/5 hover:bg-white/5 transition-colors"
                     >
-                      <td className="p-2 sm:p-3">
+                      <td className="py-3 px-4 align-middle">
                         <Link
                           href={teamUrl}
                           className="flex items-center gap-2 group"
                         >
-                          <span className="font-bold text-foreground group-hover:text-primary transition-colors truncate max-w-[100px] sm:max-w-[120px]">{getTeamName(data.team_number)}</span>
+                          <span className="font-bold text-foreground group-hover:text-primary transition-colors truncate max-w-[110px] sm:max-w-[140px]">{getTeamName(data.team_number)}</span>
                           <Badge variant="outline" className="font-mono text-[10px] shrink-0">#{data.team_number}</Badge>
                         </Link>
                       </td>
-                      <td className="p-2 sm:p-3 font-mono font-bold text-primary text-sm">{matchDisplay}</td>
-                      <td className="p-2 sm:p-3">
+                      <td className="py-3 px-4 font-mono font-bold text-primary align-middle">{matchDisplay}</td>
+                      <td className="py-3 px-4 align-middle">
                         <Badge
                           variant={data.alliance_color === 'red' ? 'destructive' : 'default'}
                           className="uppercase text-[9px] tracking-widest"
@@ -278,15 +269,15 @@ export default function ViewDataPage() {
                           {data.alliance_color || '—'}
                         </Badge>
                       </td>
-                      <td className="p-2 sm:p-3 text-blue-400 font-bold text-sm">{data.autonomous_points ?? '—'}</td>
-                      <td className="p-2 sm:p-3 text-purple-400 font-bold text-sm">{data.autonomous_cleansing ?? 0}</td>
-                      <td className="p-2 sm:p-3 text-orange-400 font-bold text-sm">{data.teleop_points ?? '—'}</td>
-                      <td className="p-2 sm:p-3 text-purple-400 font-bold text-sm">{data.teleop_cleansing ?? 0}</td>
-                      <td className="p-2 sm:p-3">
+                      <td className="py-3 px-4 text-blue-400 font-bold align-middle">{data.autonomous_points ?? '—'}</td>
+                      <td className="py-3 px-4 text-purple-400 font-bold align-middle">{data.autonomous_cleansing ?? 0}</td>
+                      <td className="py-3 px-4 text-orange-400 font-bold align-middle">{data.teleop_points ?? '—'}</td>
+                      <td className="py-3 px-4 text-purple-400 font-bold align-middle">{data.teleop_cleansing ?? 0}</td>
+                      <td className="py-3 px-4 align-middle">
                         <span className="text-lg font-black text-foreground">{data.final_score ?? '—'}</span>
                       </td>
-                      <td className="p-2 sm:p-3">
-                        <div className="flex items-center gap-1.5">
+                      <td className="py-3 px-4 align-middle">
+                        <div className="flex items-center gap-2">
                           {data.defense_rating != null ? (
                             <>
                               <div className="flex gap-0.5">
@@ -294,7 +285,7 @@ export default function ViewDataPage() {
                                   <div
                                     key={i}
                                     className={cn(
-                                      'w-1 h-3 rounded-full',
+                                      'w-1.5 h-3 rounded-full',
                                       i < data.defense_rating! ? 'bg-red-500' : 'bg-white/5'
                                     )}
                                   />
@@ -307,23 +298,23 @@ export default function ViewDataPage() {
                           )}
                         </div>
                       </td>
-                      <td className="p-2 sm:p-3 text-muted-foreground text-xs">
+                      <td className="py-3 px-4 text-muted-foreground text-sm align-middle">
                         {data.average_downtime != null ? `${Number(data.average_downtime).toFixed(1)}s` : '—'}
                       </td>
-                      <td className="p-2 sm:p-3 text-muted-foreground text-xs">
+                      <td className="py-3 px-4 text-muted-foreground text-sm align-middle">
                         {data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}
                       </td>
-                      <td className="p-2 sm:p-3">
-                        <div className="max-w-[160px] truncate italic text-xs text-muted-foreground" title={data.comments}>
+                      <td className="py-3 px-4 align-middle">
+                        <div className="max-w-[180px] truncate italic text-sm text-muted-foreground" title={data.comments}>
                           {data.comments || '—'}
                         </div>
                       </td>
-                      <td className="p-2 sm:p-3 text-right">
+                      <td className="py-3 px-4 text-right align-middle">
                         <Link href={teamUrl}>
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-7 text-[10px] uppercase font-bold tracking-tight px-2 hover:bg-primary/10 hover:text-primary border-white/5"
+                            className="h-8 text-[10px] uppercase font-bold tracking-tight px-3 hover:bg-primary/10 hover:text-primary border-white/10"
                           >
                             Team
                           </Button>
@@ -343,7 +334,7 @@ export default function ViewDataPage() {
             </div>
           )}
           <div className="p-4 border-t border-white/5 bg-black/20">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center">2026 Rebuilt · Scoring from fuel, tower, climb & cleansing</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center">2026 Rebuilt · Scoring from fuel, tower, climb &amp; cleansing</p>
           </div>
         </CardContent>
       </Card>
@@ -354,10 +345,69 @@ export default function ViewDataPage() {
     return <Layout>{mainContent}</Layout>;
   }
 
+  const overviewContent = (
+    <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-1">{competition.competition_name}</h1>
+        <p className="text-muted-foreground text-sm">
+          {competition.competition_key} · {competition.competition_year}
+          {competition.total_teams != null && ` · ${competition.total_teams} teams · ${competition.total_matches ?? 0} matches`}
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-6 border border-white/10 bg-card/50">
+          <Users className="h-8 w-8 text-primary mb-2" />
+          <p className="text-2xl font-bold text-foreground">{teams.length}</p>
+          <p className="text-sm text-muted-foreground">Teams</p>
+        </Card>
+        <Card className="p-6 border border-white/10 bg-card/50">
+          <Database className="h-8 w-8 text-primary mb-2" />
+          <p className="text-2xl font-bold text-foreground">{scoutingData.length}</p>
+          <p className="text-sm text-muted-foreground">Scouting records</p>
+        </Card>
+        <Card className="p-6 border border-white/10 bg-card/50">
+          <Target className="h-8 w-8 text-primary mb-2" />
+          <p className="text-2xl font-bold text-foreground">
+            {scoutingData.length ? Math.round(scoutingData.reduce((s, r) => s + (r.final_score ?? 0), 0) / scoutingData.length) : 0}
+          </p>
+          <p className="text-sm text-muted-foreground">Avg score</p>
+        </Card>
+        <Card className="p-6 border border-white/10 bg-card/50">
+          <TrendingUp className="h-8 w-8 text-primary mb-2" />
+          <p className="text-2xl font-bold text-foreground">
+            {scoutingData.length ? Math.max(...scoutingData.map(r => r.final_score ?? 0)) : '—'}
+          </p>
+          <p className="text-sm text-muted-foreground">Best score</p>
+        </Card>
+      </div>
+      <p className="text-sm text-muted-foreground mt-6">Use the sidebar to switch to Comparison or Data Analysis (Teams).</p>
+    </main>
+  );
+
+  const comparisonContent = (
+    <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-1">Comparison</h1>
+        <p className="text-muted-foreground text-sm">Compare teams and matches for {competition.competition_name}.</p>
+      </div>
+      <Card className="p-12 border border-white/10 bg-card/50 text-center">
+        <GitCompare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-foreground mb-2">Comparison view</h3>
+        <p className="text-muted-foreground text-sm max-w-md mx-auto">Compare team performance across matches. Use Data Analysis to see the full table and open individual teams.</p>
+      </Card>
+    </main>
+  );
+
+  const tabContent = activeTab === 'overview' ? overviewContent : activeTab === 'comparison' ? comparisonContent : mainContent;
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {header}
-      {mainContent}
-    </div>
+    <CompetitionDataLayout
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      backHref="/competition-history"
+      queryString={queryPrefix}
+    >
+      {tabContent}
+    </CompetitionDataLayout>
   );
 }

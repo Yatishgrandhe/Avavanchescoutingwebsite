@@ -24,6 +24,7 @@ import {
   Target,
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
+import GuestLayout from '@/components/layout/GuestLayout';
 import { ScoutingData, Team } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
@@ -119,7 +120,7 @@ const TeamDetail: React.FC = () => {
     if (teamNumber) {
       loadTeamData();
     }
-  }, [teamNumber, user]);
+  }, [teamNumber, user, router.query.competition_id, router.query.event_key]);
 
   const loadTeamData = async () => {
     try {
@@ -127,7 +128,34 @@ const TeamDetail: React.FC = () => {
       const teamNum = parseInt(teamNumber as string);
       if (!teamNum) return;
 
-      // Guest users: load via public API (no auth required)
+      const competitionId = router.query.competition_id as string | undefined;
+      const eventKey = router.query.event_key as string | undefined;
+
+      // When coming from view-data (competition or event context), load that competition's data and filter by team
+      if (!user && (competitionId || eventKey)) {
+        const params = eventKey
+          ? `event_key=${encodeURIComponent(eventKey)}`
+          : `id=${encodeURIComponent(competitionId!)}`;
+        const res = await fetch(`/api/past-competitions?${params}`);
+        if (!res.ok) {
+          setLoading(false);
+          return;
+        }
+        const data = await res.json();
+        const teamsList = data.teams || [];
+        const allScouting = data.scoutingData || [];
+        const teamScouting = allScouting.filter((r: any) => r.team_number === teamNum);
+        const teamInfo = teamsList.find((t: any) => t.team_number === teamNum);
+        const pitList = data.pitScoutingData || [];
+        const teamPit = pitList.find((p: any) => p.team_number === teamNum) || null;
+        setTeam(teamInfo ? { ...teamInfo } : { team_number: teamNum, team_name: `Team ${teamNum}` });
+        setScoutingData(teamScouting);
+        setPitData(teamPit);
+        setLoading(false);
+        return;
+      }
+
+      // Guest users (no context): load via public team API
       if (!user) {
         const res = await fetch(`/api/team/${teamNum}`);
         if (!res.ok) {
@@ -298,91 +326,106 @@ const TeamDetail: React.FC = () => {
 
   const teamStats = calculateTeamStats();
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="min-h-[50vh] flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (!team) {
-    const backUrl = router.query.competition_id
-      ? `/view-data?id=${router.query.competition_id}`
-      : router.query.event_key
-        ? `/view-data?event_key=${encodeURIComponent(router.query.event_key as string)}`
-        : '/competition-history';
-    return (
-      <Layout>
-        <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6 glass-card rounded-2xl mx-4">
-          <AlertCircle className="w-16 h-16 text-muted-foreground mb-4" />
-          <h3 className="text-xl font-bold text-foreground mb-2">Team Not Found</h3>
-          <p className="text-muted-foreground mb-6 max-w-md">The requested team number could not be found in our database.</p>
-          <Button onClick={() => router.push(backUrl)} variant="outline" className="border-white/10 hover:bg-white/5">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-        </div>
-      </Layout>
-    );
-  }
-
   const backUrl = router.query.competition_id
     ? `/view-data?id=${router.query.competition_id}`
     : router.query.event_key
       ? `/view-data?event_key=${encodeURIComponent(router.query.event_key as string)}`
       : null;
+  const guestBackLink = backUrl
+    ? { href: backUrl, label: 'Back to Data' }
+    : { href: '/competition-history', label: 'Back to Competition History' };
 
-  return (
-    <Layout>
-      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 pb-10 px-4">
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mt-2">
-          <div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">Team Analysis</Badge>
-              <span>•</span>
-              <span className="font-mono">Season 2026</span>
-            </div>
-            <h1 className="text-4xl md:text-6xl font-heading font-black tracking-tight text-foreground flex items-baseline gap-4">
-              <span className="text-primary">{team.team_number}</span>
-              <span className="text-2xl md:text-4xl font-bold opacity-90">{team.team_name}</span>
-            </h1>
-          </div>
+  if (loading) {
+    return user ? (
+      <Layout>
+        <div className="min-h-[50vh] flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </Layout>
+    ) : (
+      <GuestLayout backLink={guestBackLink}>
+        <div className="flex-1 flex items-center justify-center min-h-[50vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </GuestLayout>
+    );
+  }
 
-          <div className="flex items-center gap-2">
-            {backUrl ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push(backUrl)}
-                className="glass border-white/10"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Data
-              </Button>
-            ) : user ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push('/analysis/data')}
-                className="glass border-white/10"
-              >
-                Switch Team
-              </Button>
-            ) : null}
-            {user && (
-              <Button size="sm" className="shadow-lg shadow-primary/20">
-                Compare
-              </Button>
-            )}
+  if (!team) {
+    return user ? (
+      <Layout>
+        <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6 glass-card rounded-2xl mx-4">
+          <AlertCircle className="w-16 h-16 text-muted-foreground mb-4" />
+          <h3 className="text-xl font-bold text-foreground mb-2">Team Not Found</h3>
+          <p className="text-muted-foreground mb-6 max-w-md">The requested team number could not be found in our database.</p>
+          <Button onClick={() => router.push(backUrl || '/competition-history')} variant="outline" className="border-white/10 hover:bg-white/5">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+        </div>
+      </Layout>
+    ) : (
+      <GuestLayout backLink={guestBackLink}>
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-6 glass-card rounded-2xl mx-4 min-h-[50vh]">
+          <AlertCircle className="w-16 h-16 text-muted-foreground mb-4" />
+          <h3 className="text-xl font-bold text-foreground mb-2">Team Not Found</h3>
+          <p className="text-muted-foreground mb-6 max-w-md">The requested team number could not be found in our database.</p>
+          <Button onClick={() => router.push(backUrl || '/competition-history')} variant="outline" className="border-white/10 hover:bg-white/5">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+        </div>
+      </GuestLayout>
+    );
+  }
+
+  const mainContent = (
+    <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 pb-10 px-4">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mt-2">
+        <div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">Team Analysis</Badge>
+            <span>•</span>
+            <span className="font-mono">Season 2026</span>
           </div>
+          <h1 className="text-4xl md:text-6xl font-heading font-black tracking-tight text-foreground flex items-baseline gap-4">
+            <span className="text-primary">{team.team_number}</span>
+            <span className="text-2xl md:text-4xl font-bold opacity-90">{team.team_name}</span>
+          </h1>
         </div>
 
-        {(
-          <Tabs defaultValue={teamStats ? 'overview' : 'pit'} className="w-full">
+        <div className="flex items-center gap-2">
+          {backUrl ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(backUrl)}
+              className="glass border-white/10"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Data
+            </Button>
+          ) : user ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/analysis/data')}
+              className="glass border-white/10"
+            >
+              Switch Team
+            </Button>
+          ) : null}
+          {user && (
+            <Button size="sm" className="shadow-lg shadow-primary/20">
+              Compare
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {(
+          <Tabs defaultValue={teamStats ? 'overview' : (user ? 'pit' : 'matches')} className="w-full">
             <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-px overflow-x-auto">
               <TabsList className="bg-transparent h-12 p-0 gap-8 justify-start">
                 <TabsTrigger
@@ -397,12 +440,14 @@ const TeamDetail: React.FC = () => {
                 >
                   ADVANCED
                 </TabsTrigger>
+                {user && (
                 <TabsTrigger
                   value="pit"
                   className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 font-bold transition-all text-muted-foreground data-[state=active]:text-foreground"
                 >
                   PIT SCOUTING
                 </TabsTrigger>
+                )}
                 <TabsTrigger
                   value="matches"
                   className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 font-bold transition-all text-muted-foreground data-[state=active]:text-foreground"
@@ -543,6 +588,7 @@ const TeamDetail: React.FC = () => {
               )}
             </TabsContent>
 
+            {user && (
             <TabsContent value="pit" className="outline-none">
               {pitData ? (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -642,6 +688,7 @@ const TeamDetail: React.FC = () => {
                 </div>
               )}
             </TabsContent>
+            )}
 
             <TabsContent value="matches" className="outline-none space-y-4">
               <div className="flex items-center justify-between">
@@ -801,7 +848,14 @@ const TeamDetail: React.FC = () => {
           </Tabs>
         )}
       </div>
-    </Layout>
+  );
+
+  return user ? (
+    <Layout>{mainContent}</Layout>
+  ) : (
+    <GuestLayout backLink={guestBackLink}>
+      {mainContent}
+    </GuestLayout>
   );
 };
 

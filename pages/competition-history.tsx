@@ -22,9 +22,9 @@ import {
   Database,
   Archive,
   Radio,
-  ArrowLeft,
 } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
+import CompetitionHistoryHeader from '@/components/layout/CompetitionHistoryHeader';
 import { useSupabase } from '@/pages/_app';
 
 interface PastCompetition {
@@ -124,15 +124,8 @@ export default function PublicCompetitionHistoryPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-          <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
-              <Logo size="sm" />
-              <span className="font-semibold">Avalanche Scouting</span>
-            </Link>
-          </div>
-        </header>
-        <div className="flex-1 flex items-center justify-center">
+        <CompetitionHistoryHeader />
+        <div className="flex-1 flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2" />
             <p className="text-muted-foreground">Loading competition history...</p>
@@ -144,32 +137,7 @@ export default function PublicCompetitionHistoryPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Public header — no sidebar; guests see Back to Home only, logged-in see Sign In only */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
-            <Logo size="sm" />
-            <span className="font-semibold">Avalanche Scouting</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            {!user && (
-              <Link href="/">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft className="h-4 w-4" /> Back to Home
-                </Button>
-              </Link>
-            )}
-            {user && (
-              <Link href="/">
-                <Button size="sm" className="gap-2">
-                  <ArrowLeft className="h-4 w-4" /> Dashboard
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
-      </header>
-
+      <CompetitionHistoryHeader />
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Title */}
         <div className="mb-6 sm:mb-8">

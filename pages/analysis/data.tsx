@@ -321,8 +321,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         avg_teleop_points: Math.round(avgTeleop * 100) / 100,
         avg_total_score: Math.round(avgTotal * 100) / 100,
         avg_defense_rating: Math.round(avgDefense * 100) / 100,
-        avg_autonomous_cleansing: Math.round(avgAutonomousCleansing * 100) / 100,
-        avg_teleop_cleansing: Math.round(avgTeleopCleansing * 100) / 100,
         avg_downtime: avgDowntime != null ? Math.round(avgDowntime * 100) / 100 : null,
         best_score: bestScore,
         worst_score: worstScore,

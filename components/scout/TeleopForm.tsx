@@ -10,16 +10,16 @@ import {
   DialogFooter,
 } from '../ui/dialog';
 import { BallTrackingPhase, BALL_CHOICE_OPTIONS, SCORING_VALUES, type ScoringNotes } from '@/lib/types';
-import { TrendingUp, Award, Play, Square, Clock, Trash2 } from 'lucide-react';
+import { TrendingUp, Award, Play, Square, Clock, Trash2, Zap } from 'lucide-react';
 import StopwatchBallTracking from './StopwatchBallTracking';
 
 interface TeleopFormProps {
-  onNext: (teleopData: Partial<ScoringNotes> & BallTrackingPhase & { climb_sec?: number }) => void;
+  onNext: (teleopData: Partial<ScoringNotes> & BallTrackingPhase & { climb_sec?: number; teleop_cleansing?: number }) => void;
   onBack: () => void;
   currentStep: number;
   totalSteps: number;
   isDarkMode?: boolean;
-  initialData?: Partial<ScoringNotes> & Partial<BallTrackingPhase> & { climb_sec?: number | null };
+  initialData?: Partial<ScoringNotes> & Partial<BallTrackingPhase> & { climb_sec?: number | null; teleop_cleansing?: number };
 }
 
 const TeleopForm: React.FC<TeleopFormProps> = ({
@@ -33,6 +33,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   const [towerLevel1, setTowerLevel1] = useState(!!initialData?.teleop_tower_level1);
   const [towerLevel2, setTowerLevel2] = useState(!!initialData?.teleop_tower_level2);
   const [towerLevel3, setTowerLevel3] = useState(!!initialData?.teleop_tower_level3);
+  const [teleCleansing, setTeleCleansing] = useState(initialData?.teleop_cleansing || 0);
   const [climbSec, setClimbSec] = useState<number | ''>(initialData?.climb_sec != null ? Number(initialData.climb_sec) : '');
   const [climbTimerRunning, setClimbTimerRunning] = useState(false);
   const [climbElapsedMs, setClimbElapsedMs] = useState(0);
@@ -91,6 +92,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
       teleop_tower_level1: towerLevel1,
       teleop_tower_level2: towerLevel2,
       teleop_tower_level3: towerLevel3,
+      teleop_cleansing: teleCleansing,
       climb_sec: climbSec !== '' && !Number.isNaN(Number(climbSec)) ? Number(climbSec) : undefined,
     });
   };
@@ -214,6 +216,38 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+          </div>
+
+          <div className={`rounded-xl p-3 sm:p-4 border ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-muted/30 border-border'}`}>
+            <div className="flex items-center space-x-2 pb-2 border-b border-border/50">
+              <Zap className="w-4 h-4 text-purple-400" />
+              <h3 className="text-sm font-bold uppercase tracking-wider">Teleop Cleansing</h3>
+            </div>
+            <div className="flex items-center justify-between mt-3">
+              <div className="flex flex-col">
+                <span className="text-sm font-bold">CLEANSED PIECES</span>
+                <span className="text-[10px] text-muted-foreground uppercase">+5 points each</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 rounded-full border-white/10"
+                  onClick={() => setTeleCleansing(Math.max(0, teleCleansing - 1))}
+                >
+                  -
+                </Button>
+                <span className="text-xl font-black w-8 text-center">{teleCleansing}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 rounded-full border-white/10"
+                  onClick={() => setTeleCleansing(teleCleansing + 1)}
+                >
+                  +
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div className="pt-2">

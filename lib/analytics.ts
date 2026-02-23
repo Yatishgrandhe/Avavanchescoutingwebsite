@@ -20,6 +20,7 @@ export interface ParsedNotes {
     balls_45_60?: number;
     balls_60_75?: number;
     balls_75_90?: number;
+    autonomous_cleansing?: number;
   };
   teleop: {
     teleop_fuel_active_hub: number;
@@ -36,6 +37,7 @@ export interface ParsedNotes {
     balls_45_60?: number;
     balls_60_75?: number;
     balls_75_90?: number;
+    teleop_cleansing?: number;
   };
 }
 
@@ -87,6 +89,7 @@ export function parseNotes(notes: any): ParsedNotes {
       balls_45_60: Number(auto.balls_45_60) || 0,
       balls_60_75: Number(auto.balls_60_75) || 0,
       balls_75_90: Number(auto.balls_75_90) || 0,
+      autonomous_cleansing: Number(auto.autonomous_cleansing) || 0,
     },
     teleop: {
       teleop_fuel_active_hub: teleopFuel,
@@ -103,6 +106,7 @@ export function parseNotes(notes: any): ParsedNotes {
       balls_45_60: Number(teleop.balls_45_60) || 0,
       balls_60_75: Number(teleop.balls_60_75) || 0,
       balls_75_90: Number(teleop.balls_75_90) || 0,
+      teleop_cleansing: Number(teleop.teleop_cleansing) || 0,
     },
   };
 }
@@ -202,6 +206,8 @@ export interface RebuiltTeamMetrics {
   avg_downtime_sec: number | null;
   broke_count: number;
   broke_rate: number;
+  avg_autonomous_cleansing: number;
+  avg_teleop_cleansing: number;
   clank: number;
   rpmagic: number;
   goblin: number;
@@ -214,6 +220,8 @@ export interface ScoutingRowForAnalytics {
   final_score?: number;
   autonomous_points?: number;
   teleop_points?: number;
+  autonomous_cleansing?: number;
+  teleop_cleansing?: number;
 }
 
 /**
@@ -232,6 +240,8 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
       avg_downtime_sec: null,
       broke_count: 0,
       broke_rate: 0,
+      avg_autonomous_cleansing: 0,
+      avg_teleop_cleansing: 0,
       clank: 0,
       rpmagic: 0,
       goblin: 0,
@@ -249,6 +259,8 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
   let downtimeSum = 0;
   let downtimeCount = 0;
   let brokeCount = 0;
+  let totalAutoCleansing = 0;
+  let totalTeleopCleansing = 0;
   const scores: number[] = [];
 
   rows.forEach((row) => {
@@ -266,6 +278,8 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
       downtimeCount += 1;
     }
     if (row.broke === true) brokeCount += 1;
+    totalAutoCleansing += row.autonomous_cleansing || 0;
+    totalTeleopCleansing += row.teleop_cleansing || 0;
     const score = row.final_score ?? 0;
     scores.push(score);
   });
@@ -309,6 +323,8 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     avg_downtime_sec: avgDowntimeSec,
     broke_count: brokeCount,
     broke_rate: Math.round((brokeCount / n) * 100),
+    avg_autonomous_cleansing: Math.round((totalAutoCleansing / n) * 100) / 100,
+    avg_teleop_cleansing: Math.round((totalTeleopCleansing / n) * 100) / 100,
     clank,
     rpmagic,
     goblin,

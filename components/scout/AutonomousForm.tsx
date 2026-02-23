@@ -2,16 +2,17 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '../ui';
 import { BallTrackingPhase, BALL_CHOICE_OPTIONS } from '@/lib/types';
-import { Award } from 'lucide-react';
+import { Award, Zap } from 'lucide-react';
+import { Button } from '../ui/Button';
 import StopwatchBallTracking from './StopwatchBallTracking';
 
 interface AutonomousFormProps {
-  onNext: (autonomousData: BallTrackingPhase & { auto_fuel_active_hub?: number; auto_tower_level1?: boolean }) => void;
+  onNext: (autonomousData: BallTrackingPhase & { auto_fuel_active_hub?: number; auto_tower_level1?: boolean; autonomous_cleansing?: number }) => void;
   onBack: () => void;
   currentStep: number;
   totalSteps: number;
   isDarkMode?: boolean;
-  initialData?: Partial<BallTrackingPhase> & { auto_fuel_active_hub?: number; auto_tower_level1?: boolean };
+  initialData?: Partial<BallTrackingPhase> & { auto_fuel_active_hub?: number; auto_tower_level1?: boolean; autonomous_cleansing?: number };
 }
 
 const AutonomousForm: React.FC<AutonomousFormProps> = ({
@@ -23,6 +24,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
   initialData,
 }) => {
   const [autoTowerLevel1, setAutoTowerLevel1] = useState(!!initialData?.auto_tower_level1);
+  const [autoCleansing, setAutoCleansing] = useState(initialData?.autonomous_cleansing || 0);
   const progressPercentage = (currentStep / totalSteps) * 100;
 
   const handleComplete = (data: BallTrackingPhase) => {
@@ -34,6 +36,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
       ...data,
       auto_fuel_active_hub: Math.round(totalFuel * 10) / 10,
       auto_tower_level1: autoTowerLevel1,
+      autonomous_cleansing: autoCleansing,
     });
   };
 
@@ -66,6 +69,38 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                 className="w-5 h-5 rounded border-white/20 bg-white/5 text-primary focus:ring-primary"
               />
             </label>
+          </div>
+
+          <div className={`rounded-xl p-3 sm:p-4 border ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-muted/30 border-border'}`}>
+            <div className="flex items-center space-x-2 pb-2 border-b border-border/50">
+              <Zap className="w-4 h-4 text-purple-400" />
+              <h3 className="text-sm font-bold uppercase tracking-wider">Auto Cleansing</h3>
+            </div>
+            <div className="flex items-center justify-between mt-3">
+              <div className="flex flex-col">
+                <span className="text-sm font-bold">CLEANSED PIECES</span>
+                <span className="text-[10px] text-muted-foreground uppercase">+5 points each</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 rounded-full border-white/10"
+                  onClick={() => setAutoCleansing(Math.max(0, autoCleansing - 1))}
+                >
+                  -
+                </Button>
+                <span className="text-xl font-black w-8 text-center">{autoCleansing}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 rounded-full border-white/10"
+                  onClick={() => setAutoCleansing(autoCleansing + 1)}
+                >
+                  +
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div className="pt-2">

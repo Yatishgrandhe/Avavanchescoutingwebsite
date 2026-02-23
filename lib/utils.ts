@@ -26,6 +26,7 @@ export function calculateScore(data: any) {
     );
     score += fuel * 1;
     if (data.auto_tower_level1) score += 15;
+    if (data.autonomous_cleansing) score += Number(data.autonomous_cleansing) * 5;
   } else {
     let teleopFuel = 0;
     if (data.runs?.length) {
@@ -42,6 +43,7 @@ export function calculateScore(data: any) {
     if (data.teleop_tower_level3) score += 30;
     else if (data.teleop_tower_level2) score += 20;
     else if (data.teleop_tower_level1) score += 10;
+    if (data.teleop_cleansing) score += Number(data.teleop_cleansing) * 5;
   }
 
   return { final_score: score };

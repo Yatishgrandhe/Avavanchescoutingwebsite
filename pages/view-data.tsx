@@ -66,7 +66,6 @@ export default function ViewDataPage() {
   const [teams, setTeams] = useState<Array<{ team_number: number; team_name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<string>('match_id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -106,18 +105,6 @@ export default function ViewDataPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getRowKey = (row: ViewDataRow, index: number) =>
-    row.id ?? `${row.match_id ?? row.match_number}-${row.team_number}-${row.alliance_color}-${index}`;
-
-  const toggleRowExpansion = (key: string) => {
-    setExpandedRows((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
   };
 
   const getTeamName = (teamNumber: number) => {
@@ -220,7 +207,7 @@ export default function ViewDataPage() {
             Individual forms — Data Analysis view
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            {scoutingData.length} scouting record{scoutingData.length !== 1 ? 's' : ''}. Click Details to expand form notes. 2026 Rebuilt format.
+            {scoutingData.length} scouting record{scoutingData.length !== 1 ? 's' : ''}. Click Team to view full analysis. 2026 Rebuilt format.
           </p>
         </CardHeader>
         <CardContent className="p-0">
@@ -238,8 +225,14 @@ export default function ViewDataPage() {
                   <th className="text-left p-2 sm:p-3 w-[56px] cursor-pointer hover:text-foreground" onClick={() => handleSort('autonomous_points')}>
                     Auto {sortField === 'autonomous_points' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
+                  <th className="text-left p-2 sm:p-3 w-[65px] cursor-pointer hover:text-foreground" onClick={() => handleSort('autonomous_cleansing')}>
+                    Auto Cln {sortField === 'autonomous_cleansing' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
                   <th className="text-left p-2 sm:p-3 w-[60px] cursor-pointer hover:text-foreground" onClick={() => handleSort('teleop_points')}>
                     Teleop {sortField === 'teleop_points' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th className="text-left p-2 sm:p-3 w-[65px] cursor-pointer hover:text-foreground" onClick={() => handleSort('teleop_cleansing')}>
+                    Tele Cln {sortField === 'teleop_cleansing' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
                   <th className="text-left p-2 sm:p-3 w-[56px] cursor-pointer hover:text-foreground" onClick={() => handleSort('final_score')}>
                     Total {sortField === 'final_score' && (sortDirection === 'asc' ? '↑' : '↓')}
@@ -247,220 +240,96 @@ export default function ViewDataPage() {
                   <th className="text-left p-2 sm:p-3 w-[70px]">Defense</th>
                   <th className="text-left p-2 sm:p-3 w-[72px]">Downtime</th>
                   <th className="text-left p-2 sm:p-3 w-[52px]">Broke</th>
-                  <th className="text-left p-2 sm:p-3 min-w-[100px] max-w-[180px]">Comments</th>
-                  <th className="text-right p-2 sm:p-3 w-[72px]">Details</th>
+                  <th className="text-left p-2 sm:p-3 min-w-[120px]">Comments</th>
+                  <th className="text-right p-2 sm:p-3 w-[80px]">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {sortedData.map((data, index) => {
-                  const rowKey = getRowKey(data, index);
-                  const formNotes = parseNotes(data.notes);
-                  const autoRuns = formNotes.autonomous.runs || [];
-                  const teleopRuns = formNotes.teleop.runs || [];
+                  const teamUrl = id
+                    ? `/team/${data.team_number}?competition_id=${encodeURIComponent(id as string)}`
+                    : event_key
+                      ? `/team/${data.team_number}?event_key=${encodeURIComponent(event_key as string)}`
+                      : `/team/${data.team_number}`;
                   const matchDisplay = data.match_id ?? data.match_number ?? '—';
                   return (
-                    <React.Fragment key={rowKey}>
-                      <motion.tr
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.2, delay: index * 0.02 }}
-                        className="border-b border-white/5 hover:bg-white/5 transition-colors"
-                      >
-                        <td className="p-2 sm:p-3">
-                          <Link
-                            href={
-                              id
-                                ? `/team/${data.team_number}?competition_id=${encodeURIComponent(id as string)}`
-                                : event_key
-                                  ? `/team/${data.team_number}?event_key=${encodeURIComponent(event_key as string)}`
-                                  : `/team/${data.team_number}`
-                            }
-                            className="flex items-center gap-2 group"
-                          >
-                            <span className="font-bold text-foreground group-hover:text-primary transition-colors truncate max-w-[100px] sm:max-w-[120px]">{getTeamName(data.team_number)}</span>
-                            <Badge variant="outline" className="font-mono text-[10px] shrink-0">#{data.team_number}</Badge>
-                          </Link>
-                        </td>
-                        <td className="p-2 sm:p-3 font-mono font-bold text-primary text-sm">{matchDisplay}</td>
-                        <td className="p-2 sm:p-3">
-                          <Badge
-                            variant={data.alliance_color === 'red' ? 'destructive' : 'default'}
-                            className="uppercase text-[9px] tracking-widest"
-                          >
-                            {data.alliance_color || '—'}
-                          </Badge>
-                        </td>
-                        <td className="p-2 sm:p-3 text-blue-400 font-bold text-sm">{data.autonomous_points ?? '—'}</td>
-                        <td className="p-2 sm:p-3 text-orange-400 font-bold text-sm">{data.teleop_points ?? '—'}</td>
-                        <td className="p-2 sm:p-3">
-                          <span className="text-lg font-black text-foreground">{data.final_score ?? '—'}</span>
-                        </td>
-                        <td className="p-2 sm:p-3">
-                          <div className="flex items-center gap-1.5">
-                            {data.defense_rating != null ? (
-                              <>
-                                <div className="flex gap-0.5">
-                                  {[...Array(10)].map((_, i) => (
-                                    <div
-                                      key={i}
-                                      className={cn(
-                                        'w-1 h-3 rounded-full',
-                                        i < data.defense_rating! ? 'bg-red-500' : 'bg-white/5'
-                                      )}
-                                    />
-                                  ))}
-                                </div>
-                                <span className="text-xs font-bold text-muted-foreground">{data.defense_rating}</span>
-                              </>
-                            ) : (
-                              '—'
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-2 sm:p-3 text-muted-foreground text-xs">
-                          {data.average_downtime != null ? `${Number(data.average_downtime).toFixed(1)}s` : '—'}
-                        </td>
-                        <td className="p-2 sm:p-3 text-muted-foreground text-xs">
-                          {data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}
-                        </td>
-                        <td className="p-2 sm:p-3">
-                          <div className="max-w-[160px] truncate italic text-xs text-muted-foreground" title={data.comments}>
-                            {data.comments || '—'}
-                          </div>
-                        </td>
-                        <td className="p-2 sm:p-3 text-right">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-white/10"
-                            onClick={() => toggleRowExpansion(rowKey)}
-                          >
-                            {expandedRows.has(rowKey) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </Button>
-                        </td>
-                      </motion.tr>
-                      <AnimatePresence>
-                        {expandedRows.has(rowKey) && (
-                          <motion.tr
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="bg-white/[0.02] border-b border-white/5 overflow-hidden"
-                          >
-                            <td colSpan={11} className="p-6">
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                <div className="space-y-4">
-                                  <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                                    <Target className="w-3 h-3" /> Autonomous
-                                  </h4>
-                                  <div className="grid grid-cols-2 gap-3">
-                                    <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                      <span className="text-[10px] text-muted-foreground uppercase font-semibold">AVG AUTO (fuel)</span>
-                                      <div className="text-xl font-bold text-blue-400">{formNotes.autonomous.auto_fuel_active_hub ?? 0}</div>
-                                    </div>
-                                    <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                      <span className="text-[10px] text-muted-foreground uppercase font-semibold">Climb pts</span>
-                                      <div className="text-lg font-bold">{getClimbPoints(data.notes)}</div>
-                                    </div>
-                                    <div className="bg-white/5 p-3 rounded-xl border border-white/5 col-span-2">
-                                      <span className="text-[10px] text-muted-foreground uppercase font-semibold">Level 1 Climb</span>
-                                      <div className="flex items-center gap-2 mt-1">
-                                        {formNotes.autonomous.auto_tower_level1 ? (
-                                          <Badge className="bg-green-500/20 text-green-400 border-green-500/20 text-[10px]">SUCCESS</Badge>
-                                        ) : (
-                                          <Badge variant="outline" className="text-[10px] opacity-40">NONE</Badge>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  {autoRuns.length > 0 && (
-                                    <div className="space-y-1">
-                                      <span className="text-[10px] text-muted-foreground uppercase font-semibold">Runs ({autoRuns.length})</span>
-                                      <ul className="text-sm space-y-1">
-                                        {autoRuns.map((r: any, i: number) => (
-                                          <li key={i} className="flex justify-between">
-                                            <span>Run {i + 1}: {r.duration_sec}s</span>
-                                            <span>{BALL_CHOICE_OPTIONS[r.ball_choice]?.label ?? r.ball_choice} balls</span>
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="space-y-4">
-                                  <h4 className="text-xs font-bold text-orange-400 uppercase tracking-widest flex items-center gap-2">
-                                    <TrendingUp className="w-3 h-3" /> Teleop
-                                  </h4>
-                                  <div className="space-y-2">
-                                    <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                      <span className="text-xs text-muted-foreground">AVG TELEOP (fuel)</span>
-                                      <span className="text-sm font-bold text-orange-400">{formNotes.teleop.teleop_fuel_active_hub ?? 0}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                      <span className="text-xs text-muted-foreground">Tower Level 1</span>
-                                      {formNotes.teleop.teleop_tower_level1 ? <CheckCircle className="w-4 h-4 text-green-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/20" />}
-                                    </div>
-                                    <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                      <span className="text-xs text-muted-foreground">Tower Level 2</span>
-                                      {formNotes.teleop.teleop_tower_level2 ? <CheckCircle className="w-4 h-4 text-green-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/20" />}
-                                    </div>
-                                    <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                      <span className="text-xs text-muted-foreground font-bold text-white">Tower Level 3</span>
-                                      {formNotes.teleop.teleop_tower_level3 ? <Award className="w-5 h-5 text-yellow-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/20" />}
-                                    </div>
-                                  </div>
-                                  {teleopRuns.length > 0 && (
-                                    <div className="space-y-1">
-                                      <span className="text-[10px] text-muted-foreground uppercase font-semibold">Runs ({teleopRuns.length})</span>
-                                      <ul className="text-sm space-y-1">
-                                        {teleopRuns.map((r: any, i: number) => (
-                                          <li key={i} className="flex justify-between">
-                                            <span>Run {i + 1}: {r.duration_sec}s</span>
-                                            <span>{BALL_CHOICE_OPTIONS[r.ball_choice]?.label ?? r.ball_choice} balls</span>
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="space-y-4">
-                                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                    <Activity className="w-3 h-3" /> Match reliability
-                                  </h4>
-                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                    <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                      <span className="text-xs text-muted-foreground">Downtime</span>
-                                      <span className="text-sm font-medium">{data.average_downtime != null ? `${Number(data.average_downtime).toFixed(1)}s` : '—'}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                      <span className="text-xs text-muted-foreground">Uptime</span>
-                                      <span className="text-sm font-medium">{getUptimePct(data.average_downtime) != null ? `${getUptimePct(data.average_downtime)}%` : '—'}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                      <span className="text-xs text-muted-foreground">Broke</span>
-                                      <span className="text-sm font-medium">{data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                      <span className="text-xs text-muted-foreground">Climb pts</span>
-                                      <span className="text-sm font-medium">{getClimbPoints(data.notes)}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                                {autoRuns.length === 0 && teleopRuns.length === 0 && (
-                                  <div className="text-xs text-muted-foreground text-center py-2 col-span-full">No runs recorded (legacy data)</div>
-                                )}
-                                {/* 2026 Rebuilt: Cleansing not used — score from fuel/tower/climb only */}
-                                <div className="mt-4 pt-4 border-t border-white/5 col-span-full">
-                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center">2026 Rebuilt · Cleansing N/A (score from fuel, tower &amp; climb only)</p>
-                                </div>
+                    <motion.tr
+                      key={data.id || `${matchDisplay}-${data.team_number}-${index}`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: index * 0.02 }}
+                      className="border-b border-white/5 hover:bg-white/5 transition-colors"
+                    >
+                      <td className="p-2 sm:p-3">
+                        <Link
+                          href={teamUrl}
+                          className="flex items-center gap-2 group"
+                        >
+                          <span className="font-bold text-foreground group-hover:text-primary transition-colors truncate max-w-[100px] sm:max-w-[120px]">{getTeamName(data.team_number)}</span>
+                          <Badge variant="outline" className="font-mono text-[10px] shrink-0">#{data.team_number}</Badge>
+                        </Link>
+                      </td>
+                      <td className="p-2 sm:p-3 font-mono font-bold text-primary text-sm">{matchDisplay}</td>
+                      <td className="p-2 sm:p-3">
+                        <Badge
+                          variant={data.alliance_color === 'red' ? 'destructive' : 'default'}
+                          className="uppercase text-[9px] tracking-widest"
+                        >
+                          {data.alliance_color || '—'}
+                        </Badge>
+                      </td>
+                      <td className="p-2 sm:p-3 text-blue-400 font-bold text-sm">{data.autonomous_points ?? '—'}</td>
+                      <td className="p-2 sm:p-3 text-purple-400 font-bold text-sm">{data.autonomous_cleansing ?? 0}</td>
+                      <td className="p-2 sm:p-3 text-orange-400 font-bold text-sm">{data.teleop_points ?? '—'}</td>
+                      <td className="p-2 sm:p-3 text-purple-400 font-bold text-sm">{data.teleop_cleansing ?? 0}</td>
+                      <td className="p-2 sm:p-3">
+                        <span className="text-lg font-black text-foreground">{data.final_score ?? '—'}</span>
+                      </td>
+                      <td className="p-2 sm:p-3">
+                        <div className="flex items-center gap-1.5">
+                          {data.defense_rating != null ? (
+                            <>
+                              <div className="flex gap-0.5">
+                                {[...Array(10)].map((_, i) => (
+                                  <div
+                                    key={i}
+                                    className={cn(
+                                      'w-1 h-3 rounded-full',
+                                      i < data.defense_rating! ? 'bg-red-500' : 'bg-white/5'
+                                    )}
+                                  />
+                                ))}
                               </div>
-                            </td>
-                          </motion.tr>
-                        )}
-                      </AnimatePresence>
-                    </React.Fragment>
+                              <span className="text-xs font-bold text-muted-foreground">{data.defense_rating}</span>
+                            </>
+                          ) : (
+                            '—'
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-2 sm:p-3 text-muted-foreground text-xs">
+                        {data.average_downtime != null ? `${Number(data.average_downtime).toFixed(1)}s` : '—'}
+                      </td>
+                      <td className="p-2 sm:p-3 text-muted-foreground text-xs">
+                        {data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}
+                      </td>
+                      <td className="p-2 sm:p-3">
+                        <div className="max-w-[160px] truncate italic text-xs text-muted-foreground" title={data.comments}>
+                          {data.comments || '—'}
+                        </div>
+                      </td>
+                      <td className="p-2 sm:p-3 text-right">
+                        <Link href={teamUrl}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[10px] uppercase font-bold tracking-tight px-2 hover:bg-primary/10 hover:text-primary border-white/5"
+                          >
+                            Team
+                          </Button>
+                        </Link>
+                      </td>
+                    </motion.tr>
                   );
                 })}
               </tbody>
@@ -473,6 +342,9 @@ export default function ViewDataPage() {
               <p className="text-muted-foreground">No match forms have been uploaded for this competition yet.</p>
             </div>
           )}
+          <div className="p-4 border-t border-white/5 bg-black/20">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center">2026 Rebuilt · Scoring from fuel, tower, climb & cleansing</p>
+          </div>
         </CardContent>
       </Card>
     </main>

@@ -259,7 +259,7 @@ export default function PastCompetitionsPage() {
                   <Card 
                     key={competition.id} 
                     className="p-4 sm:p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow duration-200 cursor-pointer"
-                    onClick={() => loadCompetitionDetails(competition.id)}
+                    onClick={() => router.push(`/view-data?id=${encodeURIComponent(competition.id)}`)}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">

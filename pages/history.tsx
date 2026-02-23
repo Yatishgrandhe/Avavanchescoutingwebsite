@@ -2,14 +2,13 @@ import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 /**
- * Redirect /history to /past-competitions (Competition History page).
- * Competition history (live + past) is now shown on the Past Competitions page.
+ * Redirect /history to /competition-history (public competition history page).
  */
 export default function HistoryRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/past-competitions');
+    router.replace('/competition-history');
   }, [router]);
 
   return (

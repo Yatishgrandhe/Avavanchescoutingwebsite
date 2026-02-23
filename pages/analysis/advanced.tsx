@@ -198,10 +198,14 @@ export default function AdvancedAnalysis() {
       const brokeRate = totalMatches > 0 ? Math.round((brokeCount / totalMatches) * 100) : 0;
       const rebuilt = computeRebuiltMetrics(scoutingData);
 
-      // Calculate consistency (standard deviation)
-      const variance = scores.reduce((sum: number, score: number) => sum + Math.pow(score - avgTotal, 2), 0) / totalMatches;
+      // Calculate consistency (lower coefficient of variation = higher consistency)
+      const variance = totalMatches > 1
+        ? scores.reduce((sum: number, score: number) => sum + Math.pow(score - avgTotal, 2), 0) / totalMatches
+        : 0;
       const standardDeviation = Math.sqrt(variance);
-      const consistencyScore = Math.max(0, 100 - (standardDeviation / avgTotal) * 100);
+      const consistencyScore = (avgTotal > 0 && totalMatches > 0)
+        ? Math.max(0, Math.min(100, 100 - (standardDeviation / avgTotal) * 100))
+        : 0;
 
       // Calculate best/worst scores
       const bestScore = Math.max(...scores);

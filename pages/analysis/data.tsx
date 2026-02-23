@@ -309,10 +309,14 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       const bestScore = Math.max(...stat.total_scores);
       const worstScore = Math.min(...stat.total_scores);
 
-      // Calculate consistency (lower standard deviation = higher consistency)
-      const variance = stat.total_scores.reduce((sum, score) => sum + Math.pow(score - avgTotal, 2), 0) / stat.total_matches;
+      // Calculate consistency (lower coefficient of variation = higher consistency; guard div by zero)
+      const variance = stat.total_matches > 1
+        ? stat.total_scores.reduce((sum, score) => sum + Math.pow(score - avgTotal, 2), 0) / stat.total_matches
+        : 0;
       const standardDeviation = Math.sqrt(variance);
-      const consistencyScore = Math.max(0, 100 - (standardDeviation / avgTotal) * 100);
+      const consistencyScore = (avgTotal > 0 && stat.total_matches > 0)
+        ? Math.max(0, Math.min(100, 100 - (standardDeviation / avgTotal) * 100))
+        : 0;
 
       return {
         team_number: stat.team_number,

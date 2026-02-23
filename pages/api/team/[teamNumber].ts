@@ -65,11 +65,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const bestScore = Math.max(...scoutingData!.map((data: any) => data.final_score || 0));
       const worstScore = Math.min(...scoutingData!.map((data: any) => data.final_score || 0));
       
-      // Calculate consistency
+      // Calculate consistency (lower coefficient of variation = higher consistency)
       const scores = scoutingData!.map((data: any) => data.final_score || 0);
-      const variance = scores.reduce((sum: number, score: number) => sum + Math.pow(score - avgTotal, 2), 0) / totalMatches;
+      const variance = totalMatches > 1
+        ? scores.reduce((sum: number, score: number) => sum + Math.pow(score - avgTotal, 2), 0) / totalMatches
+        : 0;
       const standardDeviation = Math.sqrt(variance);
-      const consistencyScore = Math.max(0, 100 - (standardDeviation / avgTotal) * 100);
+      const consistencyScore = (avgTotal > 0 && totalMatches > 0)
+        ? Math.max(0, Math.min(100, 100 - (standardDeviation / avgTotal) * 100))
+        : 0;
 
       const stats = {
         totalMatches,

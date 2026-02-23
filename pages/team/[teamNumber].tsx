@@ -224,10 +224,19 @@ const TeamDetail: React.FC = () => {
     }));
     const rebuilt = computeRebuiltMetrics(rows);
 
-    const avgTotal = scoutingData.reduce((sum, data) => sum + (data.final_score || 0), 0) / totalMatches;
+    const scores = scoutingData.map((d) => d.final_score || 0);
+    const avgTotal = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+    const variance = scores.length > 1
+      ? scores.reduce((sum, score) => sum + Math.pow(score - avgTotal, 2), 0) / scores.length
+      : 0;
+    const standardDeviation = Math.sqrt(variance);
+    const consistencyScore = (avgTotal > 0 && scores.length > 0)
+      ? Math.max(0, Math.min(100, 100 - (standardDeviation / avgTotal) * 100))
+      : 0;
+
     const avgDefense = scoutingData.reduce((sum, data) => sum + (data.defense_rating || 0), 0) / totalMatches;
-    const bestScore = Math.max(...scoutingData.map(data => data.final_score || 0));
-    const worstScore = Math.min(...scoutingData.map(data => data.final_score || 0));
+    const bestScore = Math.max(...scores);
+    const worstScore = Math.min(...scores);
 
     return {
       totalMatches,
@@ -237,7 +246,7 @@ const TeamDetail: React.FC = () => {
       avgDefense: Math.round(avgDefense * 10) / 10,
       bestScore,
       worstScore,
-      consistencyScore: Math.round(rebuilt.goblin),
+      consistencyScore: Math.round(consistencyScore * 100) / 100,
       // REBUILT + EPA
       avg_auto_fuel: rebuilt.avg_auto_fuel,
       avg_teleop_fuel: rebuilt.avg_teleop_fuel,
@@ -259,7 +268,7 @@ const TeamDetail: React.FC = () => {
         { subject: 'Teleop', A: Math.min(100, (rebuilt.avg_teleop_fuel / 40) * 100), fullMark: 100 },
         { subject: 'Climb', A: Math.min(100, (rebuilt.avg_climb_pts / 30) * 100), fullMark: 100 },
         { subject: 'Uptime', A: rebuilt.avg_uptime_pct || 0, fullMark: 100 },
-        { subject: 'Consistency', A: Math.min(100, Math.max(0, 100 - Math.abs(rebuilt.goblin) * 10)), fullMark: 100 },
+        { subject: 'Consistency', A: Math.min(100, Math.max(0, consistencyScore)), fullMark: 100 },
       ],
 
       // Trends for Line Chart

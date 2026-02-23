@@ -24,7 +24,6 @@ import {
   Target,
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ScoutingData, Team } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
@@ -120,14 +119,35 @@ const TeamDetail: React.FC = () => {
     if (teamNumber) {
       loadTeamData();
     }
-  }, [teamNumber]);
+  }, [teamNumber, user]);
 
   const loadTeamData = async () => {
     try {
       setLoading(true);
       const teamNum = parseInt(teamNumber as string);
+      if (!teamNum) return;
 
-      // Load team information
+      // Guest users: load via public API (no auth required)
+      if (!user) {
+        const res = await fetch(`/api/team/${teamNum}`);
+        if (!res.ok) {
+          if (res.status === 404) {
+            setTeam(null);
+            setScoutingData([]);
+            setPitData(null);
+          }
+          setLoading(false);
+          return;
+        }
+        const data = await res.json();
+        setTeam(data.team);
+        setScoutingData(data.scoutingData || []);
+        setPitData(data.pitData || null);
+        setLoading(false);
+        return;
+      }
+
+      // Logged-in users: load from Supabase
       const { data: teamData, error: teamError } = await supabase
         .from('teams')
         .select('*')
@@ -136,7 +156,6 @@ const TeamDetail: React.FC = () => {
 
       if (teamError) throw teamError;
 
-      // Load all scouting data for this team
       const { data: scoutingDataResult, error: scoutingError } = await supabase
         .from('scouting_data')
         .select('*')
@@ -145,7 +164,6 @@ const TeamDetail: React.FC = () => {
 
       if (scoutingError) throw scoutingError;
 
-      // Load pit scouting data
       const { data: pitDataResult, error: pitError } = await supabase
         .from('pit_scouting_data')
         .select('*')
@@ -276,37 +294,43 @@ const TeamDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <ProtectedRoute>
-        <Layout>
-          <div className="min-h-[50vh] flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
-        </Layout>
-      </ProtectedRoute>
+      <Layout>
+        <div className="min-h-[50vh] flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </Layout>
     );
   }
 
   if (!team) {
+    const backUrl = router.query.competition_id
+      ? `/view-data?id=${router.query.competition_id}`
+      : router.query.event_key
+        ? `/view-data?event_key=${encodeURIComponent(router.query.event_key as string)}`
+        : '/competition-history';
     return (
-      <ProtectedRoute>
-        <Layout>
-          <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6 glass-card rounded-2xl mx-4">
-            <AlertCircle className="w-16 h-16 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-bold text-foreground mb-2">Team Not Found</h3>
-            <p className="text-muted-foreground mb-6 max-w-md">The requested team number could not be found in our database.</p>
-            <Button onClick={() => router.push('/analysis/data')} variant="outline" className="border-white/10 hover:bg-white/5">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Return to Analysis
-            </Button>
-          </div>
-        </Layout>
-      </ProtectedRoute>
+      <Layout>
+        <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6 glass-card rounded-2xl mx-4">
+          <AlertCircle className="w-16 h-16 text-muted-foreground mb-4" />
+          <h3 className="text-xl font-bold text-foreground mb-2">Team Not Found</h3>
+          <p className="text-muted-foreground mb-6 max-w-md">The requested team number could not be found in our database.</p>
+          <Button onClick={() => router.push(backUrl)} variant="outline" className="border-white/10 hover:bg-white/5">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+        </div>
+      </Layout>
     );
   }
 
+  const backUrl = router.query.competition_id
+    ? `/view-data?id=${router.query.competition_id}`
+    : router.query.event_key
+      ? `/view-data?event_key=${encodeURIComponent(router.query.event_key as string)}`
+      : null;
+
   return (
-    <ProtectedRoute>
-      <Layout>
+    <Layout>
         <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 pb-10 px-4">
           {/* Header Section */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mt-2">
@@ -323,22 +347,36 @@ const TeamDetail: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push('/analysis/data')}
-                className="glass border-white/10"
-              >
-                Switch Team
-              </Button>
-              <Button size="sm" className="shadow-lg shadow-primary/20">
-                Compare
-              </Button>
+              {backUrl ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(backUrl)}
+                  className="glass border-white/10"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Data
+                </Button>
+              ) : user ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push('/analysis/data')}
+                  className="glass border-white/10"
+                >
+                  Switch Team
+                </Button>
+              ) : null}
+              {user && (
+                <Button size="sm" className="shadow-lg shadow-primary/20">
+                  Compare
+                </Button>
+              )}
             </div>
           </div>
 
-          {teamStats && (
-            <Tabs defaultValue="overview" className="w-full">
+          {(
+            <Tabs defaultValue={teamStats ? 'overview' : 'pit'} className="w-full">
               <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-px overflow-x-auto">
                 <TabsList className="bg-transparent h-12 p-0 gap-8 justify-start">
                   <TabsTrigger
@@ -357,7 +395,7 @@ const TeamDetail: React.FC = () => {
                     value="pit"
                     className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 font-bold transition-all text-muted-foreground data-[state=active]:text-foreground"
                   >
-                    PIT DATA
+                    PIT SCOUTING
                   </TabsTrigger>
                   <TabsTrigger
                     value="matches"
@@ -369,6 +407,8 @@ const TeamDetail: React.FC = () => {
               </div>
 
               <TabsContent value="overview" className="space-y-6 outline-none">
+                {teamStats ? (
+                  <>
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
                   <StatCard label="Avg Scored" value={teamStats.avgTotal} color="primary" icon={TrendingUp} subLabel="points/match" />
@@ -428,9 +468,18 @@ const TeamDetail: React.FC = () => {
                     </CardContent>
                   </Card>
                 </div>
+                  </>
+                ) : (
+                  <div className="py-12 text-center text-muted-foreground">
+                    <Database className="w-12 h-12 mx-auto mb-4 opacity-40" />
+                    <p className="font-medium">No match data yet</p>
+                    <p className="text-sm mt-1">Check Pit Scouting or Match History when data is available.</p>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="advanced" className="outline-none">
+                {teamStats ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <Card className="glass bg-white/5 border-white/10 overflow-hidden">
                     <div className="p-6 space-y-4">
@@ -479,6 +528,11 @@ const TeamDetail: React.FC = () => {
                     </div>
                   </Card>
                 </div>
+                ) : (
+                  <div className="py-12 text-center text-muted-foreground">
+                    <p>No match data — advanced metrics require match history.</p>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="pit" className="outline-none">
@@ -740,7 +794,6 @@ const TeamDetail: React.FC = () => {
           )}
         </div>
       </Layout>
-    </ProtectedRoute>
   );
 };
 

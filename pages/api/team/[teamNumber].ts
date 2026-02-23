@@ -11,16 +11,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Invalid team number' });
       }
 
-      // Get team information
+      // Get team information (allow missing for past-only teams)
       const { data: team, error: teamError } = await supabase
         .from('teams')
         .select('*')
         .eq('team_number', teamNum)
-        .single();
+        .maybeSingle();
 
       if (teamError) {
         console.error('Error fetching team:', teamError);
-        return res.status(404).json({ error: 'Team not found' });
+        return res.status(500).json({ error: 'Failed to fetch team' });
       }
 
       // Get all scouting data for this team
@@ -35,12 +35,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: 'Failed to fetch scouting data' });
       }
 
-      // Calculate team statistics
+      // Get pit scouting data for this team (one record per team)
+      const { data: pitData, error: pitError } = await supabase
+        .from('pit_scouting_data')
+        .select('*')
+        .eq('team_number', teamNum)
+        .maybeSingle();
+
+      if (pitError) {
+        console.error('Error fetching pit scouting data:', pitError);
+      }
+
       const totalMatches = scoutingData?.length || 0;
       if (totalMatches === 0) {
         return res.status(200).json({
-          team,
+          team: team || { team_number: teamNum, team_name: `Team ${teamNum}` },
           scoutingData: [],
+          pitData: pitData || null,
           stats: null
         });
       }
@@ -73,8 +84,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       };
 
       res.status(200).json({
-        team,
-        scoutingData,
+        team: team || { team_number: teamNum, team_name: `Team ${teamNum}` },
+        scoutingData: scoutingData || [],
+        pitData: pitData || null,
         stats
       });
     } catch (error) {

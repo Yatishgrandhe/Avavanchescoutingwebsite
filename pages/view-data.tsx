@@ -225,30 +225,30 @@ export default function ViewDataPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto scrollbar-hide">
-            <table className="w-full border-collapse">
+            <table className="w-full border-collapse table-fixed min-w-[900px]">
               <thead>
                 <tr className="border-b border-white/5 text-muted-foreground font-medium uppercase tracking-wider text-[10px]">
-                  <th className="text-left p-4 cursor-pointer hover:text-foreground" onClick={() => handleSort('team_number')}>
+                  <th className="text-left p-2 sm:p-3 w-[140px] cursor-pointer hover:text-foreground" onClick={() => handleSort('team_number')}>
                     Team {sortField === 'team_number' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left p-4 cursor-pointer hover:text-foreground" onClick={() => handleSort('match_id')}>
+                  <th className="text-left p-2 sm:p-3 w-[72px] cursor-pointer hover:text-foreground" onClick={() => handleSort('match_id')}>
                     Match {sortField === 'match_id' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left p-4">Alliance</th>
-                  <th className="text-left p-4 cursor-pointer hover:text-foreground" onClick={() => handleSort('autonomous_points')}>
+                  <th className="text-left p-2 sm:p-3 w-[70px]">Alliance</th>
+                  <th className="text-left p-2 sm:p-3 w-[56px] cursor-pointer hover:text-foreground" onClick={() => handleSort('autonomous_points')}>
                     Auto {sortField === 'autonomous_points' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left p-4 cursor-pointer hover:text-foreground" onClick={() => handleSort('teleop_points')}>
+                  <th className="text-left p-2 sm:p-3 w-[60px] cursor-pointer hover:text-foreground" onClick={() => handleSort('teleop_points')}>
                     Teleop {sortField === 'teleop_points' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left p-4 cursor-pointer hover:text-foreground" onClick={() => handleSort('final_score')}>
+                  <th className="text-left p-2 sm:p-3 w-[56px] cursor-pointer hover:text-foreground" onClick={() => handleSort('final_score')}>
                     Total {sortField === 'final_score' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left p-4">Defense</th>
-                  <th className="text-left p-4">Downtime</th>
-                  <th className="text-left p-4">Broke</th>
-                  <th className="text-left p-4">Comments</th>
-                  <th className="text-left p-4">Details</th>
+                  <th className="text-left p-2 sm:p-3 w-[70px]">Defense</th>
+                  <th className="text-left p-2 sm:p-3 w-[72px]">Downtime</th>
+                  <th className="text-left p-2 sm:p-3 w-[52px]">Broke</th>
+                  <th className="text-left p-2 sm:p-3 min-w-[100px] max-w-[180px]">Comments</th>
+                  <th className="text-right p-2 sm:p-3 w-[72px]">Details</th>
                 </tr>
               </thead>
               <tbody>
@@ -266,14 +266,23 @@ export default function ViewDataPage() {
                         transition={{ duration: 0.2, delay: index * 0.02 }}
                         className="border-b border-white/5 hover:bg-white/5 transition-colors"
                       >
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-foreground">{getTeamName(data.team_number)}</span>
-                            <Badge variant="outline" className="font-mono text-[10px]">#{data.team_number}</Badge>
-                          </div>
+                        <td className="p-2 sm:p-3">
+                          <Link
+                            href={
+                              id
+                                ? `/team/${data.team_number}?competition_id=${encodeURIComponent(id as string)}`
+                                : event_key
+                                  ? `/team/${data.team_number}?event_key=${encodeURIComponent(event_key as string)}`
+                                  : `/team/${data.team_number}`
+                            }
+                            className="flex items-center gap-2 group"
+                          >
+                            <span className="font-bold text-foreground group-hover:text-primary transition-colors truncate max-w-[100px] sm:max-w-[120px]">{getTeamName(data.team_number)}</span>
+                            <Badge variant="outline" className="font-mono text-[10px] shrink-0">#{data.team_number}</Badge>
+                          </Link>
                         </td>
-                        <td className="p-4 font-mono font-bold text-primary">{matchDisplay}</td>
-                        <td className="p-4">
+                        <td className="p-2 sm:p-3 font-mono font-bold text-primary text-sm">{matchDisplay}</td>
+                        <td className="p-2 sm:p-3">
                           <Badge
                             variant={data.alliance_color === 'red' ? 'destructive' : 'default'}
                             className="uppercase text-[9px] tracking-widest"
@@ -281,13 +290,13 @@ export default function ViewDataPage() {
                             {data.alliance_color || '—'}
                           </Badge>
                         </td>
-                        <td className="p-4 text-blue-400 font-bold">{data.autonomous_points ?? '—'}</td>
-                        <td className="p-4 text-orange-400 font-bold">{data.teleop_points ?? '—'}</td>
-                        <td className="p-4">
-                          <span className="text-xl font-black text-foreground">{data.final_score ?? '—'}</span>
+                        <td className="p-2 sm:p-3 text-blue-400 font-bold text-sm">{data.autonomous_points ?? '—'}</td>
+                        <td className="p-2 sm:p-3 text-orange-400 font-bold text-sm">{data.teleop_points ?? '—'}</td>
+                        <td className="p-2 sm:p-3">
+                          <span className="text-lg font-black text-foreground">{data.final_score ?? '—'}</span>
                         </td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
+                        <td className="p-2 sm:p-3">
+                          <div className="flex items-center gap-1.5">
                             {data.defense_rating != null ? (
                               <>
                                 <div className="flex gap-0.5">
@@ -308,22 +317,22 @@ export default function ViewDataPage() {
                             )}
                           </div>
                         </td>
-                        <td className="p-4 text-muted-foreground text-sm">
+                        <td className="p-2 sm:p-3 text-muted-foreground text-xs">
                           {data.average_downtime != null ? `${Number(data.average_downtime).toFixed(1)}s` : '—'}
                         </td>
-                        <td className="p-4 text-muted-foreground text-sm">
+                        <td className="p-2 sm:p-3 text-muted-foreground text-xs">
                           {data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}
                         </td>
-                        <td className="p-4">
-                          <div className="max-w-[150px] truncate italic text-xs text-muted-foreground" title={data.comments}>
+                        <td className="p-2 sm:p-3">
+                          <div className="max-w-[160px] truncate italic text-xs text-muted-foreground" title={data.comments}>
                             {data.comments || '—'}
                           </div>
                         </td>
-                        <td className="p-4 text-right">
+                        <td className="p-2 sm:p-3 text-right">
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-white/10"
+                            className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-white/10"
                             onClick={() => toggleRowExpansion(rowKey)}
                           >
                             {expandedRows.has(rowKey) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -442,16 +451,9 @@ export default function ViewDataPage() {
                                 {autoRuns.length === 0 && teleopRuns.length === 0 && (
                                   <div className="text-xs text-muted-foreground text-center py-2 col-span-full">No runs recorded (legacy data)</div>
                                 )}
-                                {/* 2026 Rebuilt: Auto / Teleop Cleansing — always show for consistency with Data Analysis */}
-                                <div className="grid grid-cols-2 gap-4 mt-6 col-span-full">
-                                  <div className="bg-purple-500/10 p-4 rounded-xl border border-purple-500/20 text-center">
-                                    <span className="text-[10px] text-purple-400 uppercase font-black tracking-widest block mb-1">Auto Cleansing</span>
-                                    <span className="text-2xl font-black text-white">{data.autonomous_cleansing ?? 0}</span>
-                                  </div>
-                                  <div className="bg-purple-500/10 p-4 rounded-xl border border-purple-500/20 text-center">
-                                    <span className="text-[10px] text-purple-400 uppercase font-black tracking-widest block mb-1">Teleop Cleansing</span>
-                                    <span className="text-2xl font-black text-white">{data.teleop_cleansing ?? 0}</span>
-                                  </div>
+                                {/* 2026 Rebuilt: Cleansing not used — score from fuel/tower/climb only */}
+                                <div className="mt-4 pt-4 border-t border-white/5 col-span-full">
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center">2026 Rebuilt · Cleansing N/A (score from fuel, tower &amp; climb only)</p>
                                 </div>
                               </div>
                             </td>

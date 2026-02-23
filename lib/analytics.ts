@@ -189,6 +189,50 @@ export function getClimbPointsAdjusted(notes: any): number {
   return getClimbPoints(notes) + getClimbSpeedAdjustment(notes);
 }
 
+/** 2026 REBUILT: estimated score from notes (fuel 1 pt each + climb). */
+export function getEstimatedScoreFromNotes(notes: any): number {
+  const autoFuel = getAutoFuelCount(notes);
+  const teleopFuel = getTeleopFuelCount(notes);
+  const climbPts = getClimbPoints(notes);
+  return autoFuel * 1 + teleopFuel * 1 + climbPts;
+}
+
+/** One run for display: time, ball range label, value, estimated pts (2026: 1 pt per piece). */
+export interface RunForDisplay {
+  duration_sec: number;
+  ballLabel: string;
+  ballValue: number;
+  estPts: number;
+}
+
+/** All runs and estimated total for a match (2026 REBUILT). */
+export interface RunsForDisplay {
+  auto: RunForDisplay[];
+  teleop: RunForDisplay[];
+  autoClimbPts: number;
+  teleopClimbPts: number;
+  estimatedTotal: number;
+}
+
+/** Parse notes into runs for UI: each run shows time, ball range (multiple choice), estimated pts. */
+export function getRunsForDisplay(notes: any): RunsForDisplay {
+  const p = parseNotes(notes);
+  const autoRuns = (p.autonomous.runs || []).map((r: RunRecord) => {
+    const value = BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0;
+    const label = BALL_CHOICE_OPTIONS[r.ball_choice]?.label ?? '0';
+    return { duration_sec: r.duration_sec, ballLabel: label, ballValue: value, estPts: value * 1 };
+  });
+  const teleopRuns = (p.teleop.runs || []).map((r: RunRecord) => {
+    const value = BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0;
+    const label = BALL_CHOICE_OPTIONS[r.ball_choice]?.label ?? '0';
+    return { duration_sec: r.duration_sec, ballLabel: label, ballValue: value, estPts: value * 1 };
+  });
+  const autoClimbPts = getAutoClimbPoints(notes);
+  const teleopClimbPts = getTeleopClimbPoints(notes);
+  const estimatedTotal = getEstimatedScoreFromNotes(notes);
+  return { auto: autoRuns, teleop: teleopRuns, autoClimbPts, teleopClimbPts, estimatedTotal };
+}
+
 /** Uptime % from average_downtime (seconds). Match = 165s. */
 export function getUptimePct(averageDowntimeSec: number | null | undefined): number | null {
   if (averageDowntimeSec == null || Number.isNaN(averageDowntimeSec)) return null;

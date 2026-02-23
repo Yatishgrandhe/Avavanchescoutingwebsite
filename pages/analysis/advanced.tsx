@@ -25,6 +25,7 @@ import {
 import Layout from '@/components/layout/Layout';
 import { supabase } from '@/lib/supabase';
 import { computeRebuiltMetrics } from '@/lib/analytics';
+import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
 import {
   RadarChart,
   PolarGrid,
@@ -143,11 +144,12 @@ export default function AdvancedAnalysis() {
         throw new Error('Team not found');
       }
 
-      // Fetch scouting data with filters
+      // Fetch scouting data with filters — 2026 season only
       let scoutingQuery = supabase
         .from('scouting_data')
         .select('*')
         .eq('team_number', selectedTeam)
+        .like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN)
         .order('created_at', { ascending: false });
 
       if (filters.event_key) {

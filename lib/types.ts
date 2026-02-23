@@ -24,8 +24,10 @@ export interface ScoutingData {
   autonomous_points: number;
   teleop_points: number;
   final_score: number;
-  autonomous_cleansing: number;
-  teleop_cleansing: number;
+  /** @deprecated No longer used (2026 game); kept for DB compatibility. */
+  autonomous_cleansing?: number;
+  /** @deprecated No longer used (2026 game); kept for DB compatibility. */
+  teleop_cleansing?: number;
   notes: ScoringNotes | { autonomous?: Partial<ScoringNotes>; teleop?: Partial<ScoringNotes> };
   defense_rating: number;
   comments: string;

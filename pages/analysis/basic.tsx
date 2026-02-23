@@ -43,6 +43,7 @@ import {
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { computeRebuiltMetrics } from '@/lib/analytics';
+import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
 
 interface TeamData {
   team_number: number;
@@ -106,11 +107,11 @@ export default function BasicAnalysis() {
     try {
       setLoading(true);
       
-      // Load scouting data exactly like data.tsx does
-      // Fetch all data, then sort client-side by submitted_at (or created_at as fallback)
+      // Load scouting data exactly like data.tsx does — 2026 season only
       const { data: scoutingDataResult, error: scoutingError } = await supabase
         .from('scouting_data')
-        .select('*');
+        .select('*')
+        .like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN);
 
       if (scoutingError) {
         console.error('Error fetching scouting data:', scoutingError);

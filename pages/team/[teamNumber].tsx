@@ -288,7 +288,7 @@ const TeamDetail: React.FC = () => {
             </h4>
             <div className="space-y-2">
               <BreakdownItem label="FUEL (game pieces)" value={autoFuel} points={1} />
-              <BreakdownItem label="CLEANSING" value={p.autonomous.autonomous_cleansing || 0} points={5} isCleansing />
+              <BreakdownItem label="AUTO CLIMB L1" value={p.autonomous.auto_tower_level1 ? 'Yes' : 'No'} points={15} />
             </div>
           </div>
 
@@ -299,7 +299,7 @@ const TeamDetail: React.FC = () => {
             </h4>
             <div className="space-y-2">
               <BreakdownItem label="FUEL (game pieces)" value={teleopFuel} points={1} />
-              <BreakdownItem label="CLEANSING" value={p.teleop.teleop_cleansing || 0} points={5} isCleansing />
+              {climb && <BreakdownItem label="TOWER CLIMB" value={climb.label} points={climb.points} />}
             </div>
           </div>
 
@@ -466,8 +466,6 @@ const TeamDetail: React.FC = () => {
                     <StatCard label="Matches" value={teamStats.totalMatches} color="blue" icon={Database} subLabel="scouted" />
                     <StatCard label="Avg Auto" value={teamStats.avg_auto_fuel} color="blue" icon={Clock} subLabel="fuel" />
                     <StatCard label="Avg Teleop" value={teamStats.avg_teleop_fuel} color="orange" icon={Zap} subLabel="fuel" />
-                    <StatCard label="Avg Auto Cln" value={teamStats.avg_autonomous_cleansing} color="purple" icon={Activity} subLabel="pieces" />
-                    <StatCard label="Avg Tele Cln" value={teamStats.avg_teleop_cleansing} color="purple" icon={Activity} subLabel="pieces" />
                     <StatCard label="Avg Climb" value={teamStats.avg_climb_pts} color="green" icon={Award} subLabel="pts" />
                     <StatCard label="Consistency" value={`${teamStats.consistencyScore}%`} color="purple" icon={Activity} />
                   </div>

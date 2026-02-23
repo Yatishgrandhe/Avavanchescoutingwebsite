@@ -49,8 +49,8 @@ interface FormData {
   teamNumber: number;
   allianceColor: 'red' | 'blue';
   alliancePosition: 1 | 2 | 3;
-  autonomous: Partial<ScoringNotes> & { autonomous_cleansing?: number };
-  teleop: Partial<ScoringNotes> & { teleop_cleansing?: number };
+  autonomous: Partial<ScoringNotes>;
+  teleop: Partial<ScoringNotes>;
   miscellaneous: {
     defense_rating: number;
     comments: string;
@@ -117,8 +117,8 @@ export default function Scout() {
         autonomous_points: autonomousPoints,
         teleop_points: teleopPoints,
         final_score: finalScore,
-        autonomous_cleansing: formData.autonomous.autonomous_cleansing || 0,
-        teleop_cleansing: formData.teleop.teleop_cleansing || 0,
+        autonomous_cleansing: 0,
+        teleop_cleansing: 0,
         defense_rating: formData.miscellaneous.defense_rating,
         comments: formData.miscellaneous.comments,
         average_downtime: formData.miscellaneous.average_downtime ?? undefined,

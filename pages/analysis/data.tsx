@@ -37,6 +37,8 @@ import { ScoutingData, Team } from '@/lib/types';
 import { useAdmin } from '@/hooks/use-admin';
 import { computeRebuiltMetrics, parseNotes, getUptimePct, getClimbPoints } from '@/lib/analytics';
 import { BALL_CHOICE_OPTIONS } from '@/lib/types';
+import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
+import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
 
 interface DataAnalysisProps { }
 
@@ -54,8 +56,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     avg_teleop_points: number;
     avg_total_score: number;
     avg_defense_rating: number;
-    avg_autonomous_cleansing: number;
-    avg_teleop_cleansing: number;
+    avg_autonomous_cleansing?: number;
+    avg_teleop_cleansing?: number;
     avg_downtime?: number | null;
     broke_count?: number;
     broke_rate?: number;
@@ -97,10 +99,11 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       setLoading(true);
 
       // Load scouting data - select all fields including submitted_by_name and submitted_by_email
-      // Fetch all data, then sort client-side by submitted_at (or created_at as fallback)
+      // Only 2026 season: match_id must contain 2026 (e.g. avalanche_2026_qm1)
       const { data: scoutingDataResult, error: scoutingError } = await supabase
         .from('scouting_data')
-        .select('*');
+        .select('*')
+        .like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN);
 
       if (scoutingError) {
         console.error('Error loading scouting data:', scoutingError);
@@ -277,8 +280,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       teamStat.teleop_points.push(data.teleop_points || 0);
       teamStat.total_scores.push(data.final_score || 0);
       teamStat.defense_ratings.push(data.defense_rating || 0);
-      teamStat.autonomous_cleansing.push(data.autonomous_cleansing || 0);
-      teamStat.teleop_cleansing.push(data.teleop_cleansing || 0);
+      teamStat.autonomous_cleansing.push(data.autonomous_cleansing ?? 0);
+      teamStat.teleop_cleansing.push(data.teleop_cleansing ?? 0);
       if (data.average_downtime != null && !Number.isNaN(Number(data.average_downtime))) {
         teamStat.downtime_values.push(Number(data.average_downtime));
       }
@@ -297,8 +300,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       const avgTeleop = stat.teleop_points.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
       const avgTotal = stat.total_scores.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
       const avgDefense = stat.defense_ratings.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
-      const avgAutonomousCleansing = stat.autonomous_cleansing.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
-      const avgTeleopCleansing = stat.teleop_cleansing.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
       const downtimeVals = stat.downtime_values.filter((v): v is number => v != null);
       const avgDowntime = downtimeVals.length > 0
         ? downtimeVals.reduce((s, v) => s + v, 0) / downtimeVals.length
@@ -787,9 +788,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4">Avg Score</th>
                             <th className="text-left p-4">Auto</th>
                             <th className="text-left p-4">Teleop</th>
-                            <th className="text-left p-4 text-[9px]">Auto Cleansing</th>
-                            <th className="text-left p-4 text-[9px]">Teleop Cleansing</th>
-                            <th className="text-left p-4">Defense</th>
+                            <th className="text-left p-4 text-[9px]">Defense</th>
                             <th className="text-left p-4 text-[10px]">Avg Downtime</th>
                             <th className="text-left p-4 text-[10px]">Broke %</th>
                             <th className="text-left p-4 text-[9px]">Auto Fuel</th>
@@ -832,8 +831,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 </td>
                                 <td className="p-4 text-blue-400 font-semibold">{team.avg_autonomous_points}</td>
                                 <td className="p-4 text-orange-400 font-semibold">{team.avg_teleop_points}</td>
-                                <td className="p-4 text-muted-foreground text-sm">{team.avg_autonomous_cleansing}</td>
-                                <td className="p-4 text-muted-foreground text-sm">{team.avg_teleop_cleansing}</td>
                                 <td className="p-4">
                                   <Badge
                                     variant="outline"
@@ -961,17 +958,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                   />
                                 </div>
                                 <span className="text-xs font-bold text-white min-w-[2.5rem] text-right">{data.defense_rating}/10</span>
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="bg-purple-500/5 p-2 rounded-lg border border-purple-500/10 text-center">
-                                <span className="text-[8px] text-purple-400 uppercase font-bold block mb-0.5">Auto Cleansing</span>
-                                <span className="text-sm font-bold text-white">{data.autonomous_cleansing || 0}</span>
-                              </div>
-                              <div className="bg-purple-500/5 p-2 rounded-lg border border-purple-500/10 text-center">
-                                <span className="text-[8px] text-purple-400 uppercase font-bold block mb-0.5">Teleop Cleansing</span>
-                                <span className="text-sm font-bold text-white">{data.teleop_cleansing || 0}</span>
                               </div>
                             </div>
                           </div>
@@ -1261,6 +1247,11 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                         const autoRuns = formNotes.autonomous.runs || [];
                                         const teleopRuns = formNotes.teleop.runs || [];
                                         return (
+                                          <div className="space-y-6">
+                                            <div className="pb-4 border-b border-white/10">
+                                              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">2026 Rebuilt · Shooting runs &amp; estimated score</h4>
+                                              <ScoutingRunsBreakdown notes={data.notes} compact />
+                                            </div>
                                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                             <div className="space-y-4">
                                               <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
@@ -1355,15 +1346,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                                 </div>
                                               </div>
                                             </div>
-                                            <div className="grid grid-cols-2 gap-4 mt-6 col-span-full">
-                                              <div className="bg-purple-500/10 p-4 rounded-xl border border-purple-500/20 text-center">
-                                                <span className="text-[10px] text-purple-400 uppercase font-black tracking-widest block mb-1">Auto Cleansing</span>
-                                                <span className="text-2xl font-black text-white">{data.autonomous_cleansing || 0}</span>
-                                              </div>
-                                              <div className="bg-purple-500/10 p-4 rounded-xl border border-purple-500/20 text-center">
-                                                <span className="text-[10px] text-purple-400 uppercase font-black tracking-widest block mb-1">Teleop Cleansing</span>
-                                                <span className="text-2xl font-black text-white">{data.teleop_cleansing || 0}</span>
-                                              </div>
                                             </div>
                                           </div>
                                         );

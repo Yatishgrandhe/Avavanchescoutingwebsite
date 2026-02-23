@@ -60,8 +60,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           teleop_points,
           endgame_points,
           final_score,
-          autonomous_cleansing,
-          teleop_cleansing,
           defense_rating,
           comments,
           average_downtime,
@@ -97,8 +95,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return;
         }
 
-        // Handle scoring data - frontend might send pre-calculated scores or raw data
-        let finalAutonomousPoints, finalTeleopPoints, finalScore, finalNotes, finalAutonomousCleansing, finalTeleopCleansing;
+        // Handle scoring data - frontend might send pre-calculated scores or raw data. Cleansing removed; store 0.
+        let finalAutonomousPoints, finalTeleopPoints, finalScore, finalNotes;
 
         if (autonomous_points !== undefined && teleop_points !== undefined) {
           // Frontend sent pre-calculated scores
@@ -106,10 +104,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           finalTeleopPoints = teleop_points;
           finalScore = final_score || (autonomous_points + teleop_points);
           finalNotes = notes || {};
-          finalAutonomousCleansing = autonomous_cleansing || 0;
-          finalTeleopCleansing = teleop_cleansing || 0;
         } else {
-          // Frontend sent raw scoring data, calculate scores
+          // Frontend sent raw scoring data, calculate scores (no cleansing)
           const scoringNotes = {
             ...autonomous,
             ...teleop,
@@ -120,12 +116,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const autonomousScore = calculateScore(autonomous || {});
           const teleopScore = calculateScore(teleop || {});
 
-          finalAutonomousPoints = autonomousScore.final_score + (autonomous?.autonomous_cleansing || 0) * 5;
-          finalTeleopPoints = teleopScore.final_score + (teleop?.teleop_cleansing || 0) * 5;
+          finalAutonomousPoints = autonomousScore.final_score;
+          finalTeleopPoints = teleopScore.final_score;
           finalScore = finalAutonomousPoints + finalTeleopPoints;
           finalNotes = scoringNotes;
-          finalAutonomousCleansing = autonomous?.autonomous_cleansing || 0;
-          finalTeleopCleansing = teleop?.teleop_cleansing || 0;
         }
 
         // alliance_position from match scouting form (1, 2, or 3)
@@ -144,8 +138,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           autonomous_points: finalAutonomousPoints,
           teleop_points: finalTeleopPoints,
           final_score: finalScore,
-          autonomous_cleansing: finalAutonomousCleansing,
-          teleop_cleansing: finalTeleopCleansing,
+          autonomous_cleansing: 0,
+          teleop_cleansing: 0,
           notes: finalNotes,
           defense_rating: defense_rating || miscellaneous?.defense_rating || 0,
           comments: comments || miscellaneous?.comments || '',

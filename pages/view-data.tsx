@@ -32,6 +32,7 @@ import type { CompetitionViewTab } from '@/components/layout/CompetitionDataSide
 import { useSupabase } from '@/pages/_app';
 import { parseNotes, getClimbPoints, getUptimePct } from '@/lib/analytics';
 import { BALL_CHOICE_OPTIONS } from '@/lib/types';
+import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
 
 interface CompetitionInfo {
   id: string;
@@ -57,8 +58,6 @@ interface ViewDataRow {
   average_downtime?: number | null;
   broke?: boolean | null;
   created_at?: string;
-  autonomous_cleansing?: number;
-  teleop_cleansing?: number;
 }
 
 export default function ViewDataPage() {
@@ -74,6 +73,7 @@ export default function ViewDataPage() {
   const [sortField, setSortField] = useState<string>('match_id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [activeTab, setActiveTab] = useState<CompetitionViewTab>('teams');
+  const [expandedRowKey, setExpandedRowKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!event_key && !id) return;
@@ -216,14 +216,8 @@ export default function ViewDataPage() {
                   <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('autonomous_points')}>
                     Auto {sortField === 'autonomous_points' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('autonomous_cleansing')}>
-                    Auto Cln {sortField === 'autonomous_cleansing' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </th>
                   <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('teleop_points')}>
                     Teleop {sortField === 'teleop_points' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </th>
-                  <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('teleop_cleansing')}>
-                    Tele Cln {sortField === 'teleop_cleansing' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
                   <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('final_score')}>
                     Total {sortField === 'final_score' && (sortDirection === 'asc' ? '↑' : '↓')}
@@ -237,6 +231,8 @@ export default function ViewDataPage() {
               </thead>
               <tbody>
                 {sortedData.map((data, index) => {
+                  const rowKey = data.id || `${data.match_id ?? ''}-${data.team_number}-${index}`;
+                  const isExpanded = expandedRowKey === rowKey;
                   const teamUrl = id
                     ? `/team/${data.team_number}?competition_id=${encodeURIComponent(id as string)}`
                     : event_key
@@ -244,6 +240,7 @@ export default function ViewDataPage() {
                       : `/team/${data.team_number}`;
                   const matchDisplay = data.match_id ?? data.match_number ?? '—';
                   return (
+                    <React.Fragment key={rowKey}>
                     <motion.tr
                       key={data.id || `${matchDisplay}-${data.team_number}-${index}`}
                       initial={{ opacity: 0, y: 10 }}
@@ -270,9 +267,7 @@ export default function ViewDataPage() {
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-blue-400 font-bold align-middle">{data.autonomous_points ?? '—'}</td>
-                      <td className="py-3 px-4 text-purple-400 font-bold align-middle">{data.autonomous_cleansing ?? 0}</td>
                       <td className="py-3 px-4 text-orange-400 font-bold align-middle">{data.teleop_points ?? '—'}</td>
-                      <td className="py-3 px-4 text-purple-400 font-bold align-middle">{data.teleop_cleansing ?? 0}</td>
                       <td className="py-3 px-4 align-middle">
                         <span className="text-lg font-black text-foreground">{data.final_score ?? '—'}</span>
                       </td>
@@ -310,17 +305,44 @@ export default function ViewDataPage() {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-right align-middle">
-                        <Link href={teamUrl}>
+                        <div className="flex items-center justify-end gap-2">
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="h-8 text-[10px] uppercase font-bold tracking-tight px-3 hover:bg-primary/10 hover:text-primary border-white/10"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                            onClick={(e) => { e.preventDefault(); setExpandedRowKey(isExpanded ? null : rowKey); }}
+                            title={isExpanded ? 'Hide runs' : 'Show shooting runs'}
                           >
-                            Team
+                            {isExpanded ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </Button>
-                        </Link>
+                          <Link href={teamUrl}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 text-[10px] uppercase font-bold tracking-tight px-3 hover:bg-primary/10 hover:text-primary border-white/10"
+                            >
+                              Team
+                            </Button>
+                          </Link>
+                        </div>
                       </td>
                     </motion.tr>
+                    <AnimatePresence>
+                      {isExpanded && data.notes && (
+                        <motion.tr
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="bg-white/[0.02] border-b border-white/5"
+                        >
+                          <td colSpan={11} className="py-4 px-6">
+                            <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">2026 Rebuilt · Shooting runs &amp; estimated score</h4>
+                            <ScoutingRunsBreakdown notes={data.notes} />
+                          </td>
+                        </motion.tr>
+                      )}
+                    </AnimatePresence>
+                  </React.Fragment>
                   );
                 })}
               </tbody>
@@ -334,7 +356,7 @@ export default function ViewDataPage() {
             </div>
           )}
           <div className="p-4 border-t border-white/5 bg-black/20">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center">2026 Rebuilt · Scoring from fuel, tower, climb &amp; cleansing</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center">2026 Rebuilt · Scoring from fuel, tower &amp; climb</p>
           </div>
         </CardContent>
       </Card>

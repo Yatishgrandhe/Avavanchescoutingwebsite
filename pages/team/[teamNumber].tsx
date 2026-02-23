@@ -21,6 +21,7 @@ import {
   TrendingUp,
   Wrench,
   AlertCircle,
+  Target,
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -103,6 +104,17 @@ const TeamDetail: React.FC = () => {
   const [pitData, setPitData] = useState<PitScoutingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
+
+  const getMatchLabel = (matchId: string) => {
+    if (!matchId) return 'N/A';
+    // Try to extract QM/Q/F and number. e.g. avalanche_2026_qm1 -> QM1
+    const parts = matchId.split('_');
+    const lastPart = parts[parts.length - 1];
+    if (lastPart) {
+      return lastPart.toUpperCase();
+    }
+    return matchId;
+  };
 
   useEffect(() => {
     if (teamNumber) {
@@ -202,7 +214,7 @@ const TeamDetail: React.FC = () => {
 
       // Trends for Line Chart
       trends: scoutingData.map(d => ({
-        match: `#${d.match_id}`,
+        match: getMatchLabel(d.match_id),
         score: d.final_score,
         tele: d.teleop_points,
         auto: d.autonomous_points
@@ -578,109 +590,144 @@ const TeamDetail: React.FC = () => {
                 </div>
 
                 {scoutingData.length > 0 ? (
-                  <div className="grid gap-3 sm:gap-4">
-                    {scoutingData.map((data, index) => (
-                      <motion.div
-                        key={data.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        onClick={() => setSelectedMatch(selectedMatch === data.id ? null : data.id)}
-                        className={cn(
-                          "glass border border-white/5 rounded-2xl overflow-hidden cursor-pointer transition-all hover:bg-white/[0.02]",
-                          selectedMatch === data.id && "border-primary/50 bg-primary/5 ring-1 ring-primary/20"
-                        )}
-                      >
-                        <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="flex items-center gap-4">
-                            <div className="bg-white/5 h-12 w-12 rounded-xl flex flex-col items-center justify-center border border-white/10">
-                              <span className="text-[10px] text-muted-foreground font-bold uppercase leading-none mb-1">MTCH</span>
-                              <span className="text-lg font-black leading-none">{data.match_id}</span>
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <Badge className={cn(
-                                  "text-[10px] tracking-widest font-black uppercase",
-                                  data.alliance_color === 'red' ? "bg-red-500/20 text-red-500 hover:bg-red-500/30" : "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
-                                )}>
-                                  {data.alliance_color}
-                                </Badge>
-                                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
-                                  {data.submitted_by_name || 'Anonymous Scout'}
-                                </span>
-                              </div>
-                              <div className="text-lg font-black text-foreground">
-                                Total: <span className="text-primary">{data.final_score} pts</span>
-                              </div>
-                            </div>
-                          </div>
+                  <div className="space-y-4">
+                    {scoutingData.map((data, index) => {
+                      const climb = getClimbAchieved(data.notes);
 
-                          <div className="grid grid-cols-4 gap-4 flex-1 sm:max-w-xs text-center border-t sm:border-t-0 sm:border-l border-white/10 pt-4 sm:pt-0 sm:pl-6">
-                            <div>
-                              <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Auto</p>
-                              <p className="font-bold text-blue-400">{data.autonomous_points}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Tele</p>
-                              <p className="font-bold text-orange-400">{data.teleop_points}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Climb</p>
-                              <p className="font-bold text-green-400">
-                                {getClimbAchieved(data.notes)?.label || '—'}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Fail</p>
-                              <p className={cn("font-bold", data.broke ? "text-red-500" : "text-muted-foreground opacity-30")}>
-                                {data.broke ? 'YES' : 'NO'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <AnimatePresence>
-                          {selectedMatch === data.id && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              className="border-t border-white/5 bg-black/40"
-                            >
-                              <div className="p-4 sm:p-6 space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                  <div className="space-y-4">
-                                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">Scout Observations</h4>
-                                    <div className="bg-white/5 p-4 rounded-xl border border-white/5 text-sm italic text-foreground/80 leading-relaxed">
-                                      "{data.comments || "No specific comments recorded for this match."}"
-                                    </div>
-                                  </div>
-
-                                  <div className="space-y-4">
-                                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">Performance Details</h4>
-                                    <div className="grid grid-cols-2 gap-3">
-                                      <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Uptime</p>
-                                        <p className="text-sm font-black">{getUptimePct(data.average_downtime) || 0}%</p>
-                                      </div>
-                                      <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Defense</p>
-                                        <p className="text-sm font-black">{data.defense_rating}/10</p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">Full Scoring Breakdown</h4>
-                                  {renderScoringBreakdown(data.notes)}
-                                </div>
-                              </div>
-                            </motion.div>
+                      return (
+                        <motion.div
+                          key={data.id}
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.04 }}
+                          onClick={() => setSelectedMatch(selectedMatch === data.id ? null : data.id)}
+                          className={cn(
+                            "group glass rounded-2xl overflow-hidden cursor-pointer transition-all duration-300",
+                            selectedMatch === data.id
+                              ? "bg-primary/[0.07] border-primary/30 ring-1 ring-primary/20"
+                              : "bg-white/5 border-white/5 hover:bg-white/[0.08] hover:border-white/10"
                           )}
-                        </AnimatePresence>
-                      </motion.div>
-                    ))}
+                        >
+                          <div className="p-4 sm:p-6 flex flex-col md:flex-row md:items-center gap-6">
+                            {/* Match ID / Type Block */}
+                            <div className="flex items-center gap-4">
+                              <div className="bg-primary/20 h-16 w-16 rounded-2xl flex flex-col items-center justify-center border border-primary/20 shadow-[0_0_20px_rgba(59,130,246,0.1)] group-hover:scale-105 transition-transform">
+                                <span className="text-[10px] text-primary font-black uppercase tracking-widest leading-none mb-1">Match</span>
+                                <span className="text-2xl font-black text-primary leading-none">{getMatchLabel(data.match_id)}</span>
+                              </div>
+
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <Badge className={cn(
+                                    "px-2 py-0.5 text-[9px] font-black uppercase tracking-tighter border-none",
+                                    data.alliance_color === 'red' ? "bg-red-500/20 text-red-500" : "bg-blue-500/20 text-blue-500"
+                                  )}>
+                                    {data.alliance_color} alliance
+                                  </Badge>
+                                  <span className="text-[10px] text-muted-foreground/40">•</span>
+                                  <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                                    {data.submitted_by_name || 'Anonymous'}
+                                  </span>
+                                </div>
+                                <div className="text-2xl font-black text-foreground flex items-baseline gap-1.5">
+                                  {data.final_score}
+                                  <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">points</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Scoring Summary Chips */}
+                            <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/5 p-3 rounded-xl border border-white/5">
+                              <div className="text-center sm:text-left sm:pl-2">
+                                <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-0.5">Autonomous</p>
+                                <p className="text-lg font-black">{data.autonomous_points}</p>
+                              </div>
+                              <div className="text-center sm:text-left sm:pl-2 border-l border-white/5">
+                                <p className="text-[9px] font-black text-orange-400 uppercase tracking-widest mb-0.5">Teleop</p>
+                                <p className="text-lg font-black">{data.teleop_points}</p>
+                              </div>
+                              <div className="text-center sm:text-left sm:pl-2 border-l border-white/5">
+                                <p className="text-[9px] font-black text-green-400 uppercase tracking-widest mb-0.5">Climb</p>
+                                <p className="text-lg font-black">{climb?.label || '—'}</p>
+                              </div>
+                              <div className="text-center sm:text-left sm:pl-2 border-l border-white/5">
+                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Reliability</p>
+                                <p className={cn("text-lg font-black", data.broke ? "text-red-500" : "text-foreground")}>
+                                  {data.broke ? 'BROKE' : '100%'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="hidden md:block">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className={cn(
+                                  "rounded-full w-10 h-10 p-0 transition-transform",
+                                  selectedMatch === data.id && "rotate-180 text-primary bg-primary/10"
+                                )}
+                              >
+                                <Target className="w-5 h-5" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          <AnimatePresence>
+                            {selectedMatch === data.id && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                className="border-t border-white/5 bg-black/40 overflow-hidden"
+                              >
+                                <div className="p-6 space-y-8">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="space-y-4">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <div className="h-1 w-4 bg-primary rounded-full" />
+                                        <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Scout Observations</h4>
+                                      </div>
+                                      <div className="bg-white/5 p-4 rounded-xl border border-white/5 text-sm italic text-foreground/80 leading-relaxed relative">
+                                        <MessageSquare className="absolute -top-2 -left-2 w-8 h-8 text-white/5 -z-10" />
+                                        "{data.comments || "No specific comments recorded for this match."}"
+                                      </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <div className="h-1 w-4 bg-primary rounded-full" />
+                                        <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Live Performance</h4>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-white/5 p-4 rounded-xl border border-white/5 group-hover:bg-white/10 transition-colors">
+                                          <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-1">Active Uptime</p>
+                                          <p className="text-xl font-black text-foreground">{getUptimePct(data.average_downtime) || 0}%</p>
+                                        </div>
+                                        <div className="bg-white/5 p-4 rounded-xl border border-white/5 group-hover:bg-white/10 transition-colors">
+                                          <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-1">Defense Impact</p>
+                                          <p className="text-xl font-black text-foreground">{data.defense_rating}/10</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <div className="h-1 w-4 bg-primary rounded-full" />
+                                      <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Full Scoring Breakdown</h4>
+                                    </div>
+                                    <div className="bg-white/[0.02] rounded-2xl border border-white/5">
+                                      {renderScoringBreakdown(data.notes)}
+                                    </div>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="py-20 text-center glass-card rounded-2xl border-dashed border-2 border-white/5">

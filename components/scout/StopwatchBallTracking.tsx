@@ -31,21 +31,22 @@ export default function StopwatchBallTracking({
 }: StopwatchBallTrackingProps) {
   const [runs, setRuns] = useState<RunRecord[]>(() => initialData?.runs?.length ? [...initialData.runs] : []);
   const [running, setRunning] = useState(false);
-  const [elapsedSec, setElapsedSec] = useState(0);
+  const [elapsedMs, setElapsedMs] = useState(0);
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [showBallChoicePopup, setShowBallChoicePopup] = useState(false);
-  const [pendingDuration, setPendingDuration] = useState(0);
+  const [pendingDurationSec, setPendingDurationSec] = useState(0);
 
   useEffect(() => {
     if (!running) return;
-    const start = Date.now() - elapsedSec * 1000;
+    const start = Date.now();
     const id = setInterval(() => {
-      setElapsedSec(Math.floor((Date.now() - start) / 1000));
-    }, 100);
+      setElapsedMs(Date.now() - start);
+    }, 50);
     return () => clearInterval(id);
-  }, [running, elapsedSec]);
+  }, [running]);
 
   const handleStart = useCallback(() => {
+    setElapsedMs(0);
     setRunning(true);
     setSelectedChoice(null);
     setShowBallChoicePopup(false);
@@ -53,25 +54,25 @@ export default function StopwatchBallTracking({
 
   const handleStop = useCallback(() => {
     setRunning(false);
-    setPendingDuration(elapsedSec);
+    setPendingDurationSec(Math.round((elapsedMs / 1000) * 1000) / 1000);
     setSelectedChoice(null);
     setShowBallChoicePopup(true);
-  }, [elapsedSec]);
+  }, [elapsedMs]);
 
   const handleSaveRun = useCallback(() => {
     if (selectedChoice == null || selectedChoice < 0 || selectedChoice >= BALL_CHOICE_OPTIONS.length) return;
-    setRuns(prev => [...prev, { duration_sec: pendingDuration, ball_choice: selectedChoice }]);
-    setElapsedSec(0);
-    setPendingDuration(0);
+    setRuns(prev => [...prev, { duration_sec: Math.round(pendingDurationSec * 1000) / 1000, ball_choice: selectedChoice }]);
+    setElapsedMs(0);
+    setPendingDurationSec(0);
     setSelectedChoice(null);
     setShowBallChoicePopup(false);
-  }, [pendingDuration, selectedChoice]);
+  }, [pendingDurationSec, selectedChoice]);
 
   const handleClosePopup = useCallback(() => {
     setShowBallChoicePopup(false);
     setSelectedChoice(null);
-    setPendingDuration(0);
-    setElapsedSec(0);
+    setPendingDurationSec(0);
+    setElapsedMs(0);
   }, []);
 
   const handleRemoveRun = useCallback((index: number) => {
@@ -82,7 +83,7 @@ export default function StopwatchBallTracking({
     onComplete({ runs });
   }, [runs, onComplete]);
 
-  const duration = running ? elapsedSec : 0;
+  const durationSec = running ? elapsedMs / 1000 : 0;
 
   return (
     <Card className="bg-card border-border">
@@ -97,8 +98,7 @@ export default function StopwatchBallTracking({
         {/* Stopwatch */}
         <div className={`rounded-xl p-6 text-center ${isDarkMode ? 'bg-white/5 border border-white/10' : 'bg-muted/50 border border-border'}`}>
           <div className={`text-4xl font-mono font-bold tabular-nums ${isDarkMode ? 'text-white' : 'text-foreground'}`}>
-            {String(Math.floor(duration / 60)).padStart(2, '0')}:
-            {String(duration % 60).padStart(2, '0')}
+            {durationSec.toFixed(2)}s
           </div>
           <p className="text-sm text-muted-foreground mt-1">seconds</p>
           <div className="flex justify-center gap-3 mt-4">
@@ -120,7 +120,7 @@ export default function StopwatchBallTracking({
             <DialogHeader>
               <DialogTitle>How many balls scored?</DialogTitle>
               <DialogDescription>
-                Run ended at <strong>{pendingDuration}s</strong>. Pick the ball count for this run.
+                Run ended at <strong>{pendingDurationSec.toFixed(2)}s</strong>. Pick the ball count for this run.
               </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 py-2">
@@ -163,7 +163,7 @@ export default function StopwatchBallTracking({
                   className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-muted/30 border-border'}`}
                 >
                   <span>
-                    Run {i + 1}: <strong>{run.duration_sec}s</strong> — {BALL_CHOICE_OPTIONS[run.ball_choice]?.label ?? run.ball_choice} balls
+                    Run {i + 1}: <strong>{run.duration_sec.toFixed(2)}s</strong> — {BALL_CHOICE_OPTIONS[run.ball_choice]?.label ?? run.ball_choice} balls
                   </span>
                   <Button
                     type="button"

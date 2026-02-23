@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from '../ui/dialog';
 import { BallTrackingPhase, BALL_CHOICE_OPTIONS, SCORING_VALUES, type ScoringNotes } from '@/lib/types';
-import { TrendingUp, Award, Play, Square, Clock } from 'lucide-react';
+import { TrendingUp, Award, Play, Square, Clock, Trash2 } from 'lucide-react';
 import StopwatchBallTracking from './StopwatchBallTracking';
 
 interface TeleopFormProps {
@@ -35,41 +35,46 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   const [towerLevel3, setTowerLevel3] = useState(!!initialData?.teleop_tower_level3);
   const [climbSec, setClimbSec] = useState<number | ''>(initialData?.climb_sec != null ? Number(initialData.climb_sec) : '');
   const [climbTimerRunning, setClimbTimerRunning] = useState(false);
-  const [climbElapsedSec, setClimbElapsedSec] = useState(0);
+  const [climbElapsedMs, setClimbElapsedMs] = useState(0);
   const [showClimbTimePopup, setShowClimbTimePopup] = useState(false);
   const [pendingClimbSec, setPendingClimbSec] = useState(0);
 
   useEffect(() => {
     if (!climbTimerRunning) return;
-    const start = Date.now() - climbElapsedSec * 1000;
+    const start = Date.now();
     const id = setInterval(() => {
-      setClimbElapsedSec(Math.floor((Date.now() - start) / 1000));
-    }, 200);
+      setClimbElapsedMs(Date.now() - start);
+    }, 50);
     return () => clearInterval(id);
-  }, [climbTimerRunning, climbElapsedSec]);
+  }, [climbTimerRunning]);
 
   const handleClimbTimerStart = useCallback(() => {
+    setClimbElapsedMs(0);
     setClimbTimerRunning(true);
     setShowClimbTimePopup(false);
   }, []);
 
   const handleClimbTimerStop = useCallback(() => {
     setClimbTimerRunning(false);
-    setPendingClimbSec(climbElapsedSec);
+    setPendingClimbSec(Math.round((climbElapsedMs / 1000) * 1000) / 1000);
     setShowClimbTimePopup(true);
-  }, [climbElapsedSec]);
+  }, [climbElapsedMs]);
 
   const handleClimbTimeSave = useCallback(() => {
-    setClimbSec(pendingClimbSec);
-    setClimbElapsedSec(0);
+    setClimbSec(Math.round(pendingClimbSec * 1000) / 1000);
+    setClimbElapsedMs(0);
     setPendingClimbSec(0);
     setShowClimbTimePopup(false);
   }, [pendingClimbSec]);
 
   const handleClimbTimeCancel = useCallback(() => {
     setShowClimbTimePopup(false);
-    setClimbElapsedSec(0);
+    setClimbElapsedMs(0);
     setPendingClimbSec(0);
+  }, []);
+
+  const handleClimbTimeClear = useCallback(() => {
+    setClimbSec('');
   }, []);
 
   const progressPercentage = (currentStep / totalSteps) * 100;
@@ -158,7 +163,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                     </Button>
                   ) : (
                     <>
-                      <span className="font-mono text-sm tabular-nums min-w-[2.5rem]">{climbElapsedSec}s</span>
+                      <span className="font-mono text-sm tabular-nums min-w-[3.5rem]">{(climbElapsedMs / 1000).toFixed(2)}s</span>
                       <Button
                         type="button"
                         size="sm"
@@ -171,7 +176,19 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                     </>
                   )}
                   {climbSec !== '' && !climbTimerRunning && (
-                    <span className="text-xs text-muted-foreground ml-1">Saved: {climbSec}s</span>
+                    <>
+                      <span className="text-xs text-muted-foreground ml-1">Saved: {Number(climbSec).toFixed(2)}s</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={handleClimbTimeClear}
+                        title="Delete climb time"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
@@ -184,7 +201,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                     <Clock className="w-4 h-4" /> Climb time
                   </DialogTitle>
                   <DialogDescription>
-                    Recorded <strong>{pendingClimbSec}s</strong>. Save for CLANK or cancel.
+                    Recorded <strong>{(pendingClimbSec).toFixed(2)}s</strong>. Save for CLANK or cancel.
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter className="gap-2 sm:gap-0">

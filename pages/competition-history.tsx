@@ -23,9 +23,9 @@ import {
   Archive,
   Radio,
   ArrowLeft,
-  LogIn,
 } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
+import { useSupabase } from '@/pages/_app';
 
 interface PastCompetition {
   id: string;
@@ -60,6 +60,7 @@ interface LiveEvent {
 
 export default function PublicCompetitionHistoryPage() {
   const router = useRouter();
+  const { user } = useSupabase();
   const [competitions, setCompetitions] = useState<PastCompetition[]>([]);
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
   const [selectedCompetition, setSelectedCompetition] = useState<CompetitionDetails | null>(null);
@@ -131,7 +132,7 @@ export default function PublicCompetitionHistoryPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Public header — no sidebar */}
+      {/* Public header — no sidebar; guests see Back to Home only, logged-in see Sign In only */}
       <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
@@ -139,16 +140,20 @@ export default function PublicCompetitionHistoryPage() {
             <span className="font-semibold">Avalanche Scouting</span>
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ArrowLeft className="h-4 w-4" /> Back to Home
-              </Button>
-            </Link>
-            <Link href="/auth/signin">
-              <Button size="sm" className="gap-2">
-                <LogIn className="h-4 w-4" /> Sign In
-              </Button>
-            </Link>
+            {!user && (
+              <Link href="/">
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <ArrowLeft className="h-4 w-4" /> Back to Home
+                </Button>
+              </Link>
+            )}
+            {user && (
+              <Link href="/">
+                <Button size="sm" className="gap-2">
+                  <ArrowLeft className="h-4 w-4" /> Dashboard
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -162,7 +167,7 @@ export default function PublicCompetitionHistoryPage() {
                 Competition History
               </h1>
               <p className="text-sm sm:text-base text-muted-foreground">
-                View live and past competition data. Sign in for full access.
+                View live and past competition data.
               </p>
             </div>
             <div className="flex items-center space-x-2">
@@ -186,8 +191,7 @@ export default function PublicCompetitionHistoryPage() {
               {liveEvents.map((ev) => (
                 <Card
                   key={ev.event_key}
-                  className="p-4 sm:p-6 rounded-lg shadow-sm border border-emerald-500/30 bg-emerald-500/5 hover:shadow-md transition-shadow duration-200 cursor-pointer"
-                  onClick={() => router.push(`/auth/signin?next=${encodeURIComponent(`/analysis/data?event_key=${ev.event_key}`)}`)}
+                  className="p-4 sm:p-6 rounded-lg shadow-sm border border-emerald-500/30 bg-emerald-500/5 transition-shadow duration-200"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
@@ -216,7 +220,7 @@ export default function PublicCompetitionHistoryPage() {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
-                    {ev.scouting_count} scouting records · Sign in to view analysis
+                    {ev.scouting_count} scouting records
                   </p>
                 </Card>
               ))}
@@ -505,7 +509,7 @@ export default function PublicCompetitionHistoryPage() {
                       </tbody>
                     </table>
                     <p className="text-sm text-muted-foreground mt-2">
-                      Match scouting data. Sign in to open individual team pages.
+                      Match scouting data.
                     </p>
                   </div>
                 </Card>
@@ -530,7 +534,7 @@ export default function PublicCompetitionHistoryPage() {
                     ))}
                   </div>
                   <p className="text-sm text-muted-foreground mt-4 text-center">
-                    Sign in to view detailed team analysis and history.
+                    All teams in this competition.
                   </p>
                 </Card>
               </div>
@@ -542,8 +546,12 @@ export default function PublicCompetitionHistoryPage() {
       <footer className="border-t border-border py-4 mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center text-sm text-muted-foreground">
           <Link href="/" className="hover:text-primary transition-colors">Avalanche Scouting</Link>
-          {' · '}
-          <Link href="/auth/signin" className="hover:text-primary transition-colors">Sign In</Link>
+          {user && (
+            <>
+              {' · '}
+              <Link href="/" className="hover:text-primary transition-colors">Dashboard</Link>
+            </>
+          )}
         </div>
       </footer>
     </div>

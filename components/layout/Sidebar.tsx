@@ -105,7 +105,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
           icon: Database,
         },
         {
-          label: 'Team Analysis',
+          label: 'Scouting Data',
           href: '/analysis',
           icon: BarChart3,
         },

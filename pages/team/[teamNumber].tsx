@@ -434,7 +434,7 @@ const TeamDetail: React.FC = () => {
       </div>
 
       {(
-          <Tabs defaultValue={teamStats ? 'overview' : (user ? 'pit' : 'matches')} className="w-full">
+          <Tabs defaultValue="overview" className="w-full">
             <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-px overflow-x-auto">
               <TabsList className="bg-transparent h-12 p-0 gap-8 justify-start">
                 <TabsTrigger

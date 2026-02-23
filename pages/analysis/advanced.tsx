@@ -56,6 +56,7 @@ interface TeamStats {
   avg_downtime_sec?: number | null;
   broke_count?: number;
   clank?: number;
+  avg_climb_speed_sec?: number | null;
   rpmagic?: number;
   goblin?: number;
   best_score: number;
@@ -234,6 +235,7 @@ export default function AdvancedAnalysis() {
         avg_downtime_sec: rebuilt.avg_downtime_sec,
         broke_count: rebuilt.broke_count,
         clank: rebuilt.clank,
+        avg_climb_speed_sec: rebuilt.avg_climb_speed_sec ?? null,
         rpmagic: rebuilt.rpmagic,
         goblin: rebuilt.goblin,
         best_score: bestScore,
@@ -594,7 +596,13 @@ export default function AdvancedAnalysis() {
                 <Card className="bg-card border-border">
                   <CardContent className="p-3">
                     <p className={`text-[10px] font-medium uppercase ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>CLANK</p>
-                    <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{teamStats.clank != null ? `${teamStats.clank}%` : '—'}</p>
+                    <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{teamStats.clank != null ? `${teamStats.clank}` : '—'}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-card border-border">
+                  <CardContent className="p-3">
+                    <p className={`text-[10px] font-medium uppercase ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Avg climb speed</p>
+                    <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{teamStats.avg_climb_speed_sec != null ? `${teamStats.avg_climb_speed_sec}s` : '—'}</p>
                   </CardContent>
                 </Card>
                 <Card className="bg-card border-border">

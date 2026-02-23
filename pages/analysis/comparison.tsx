@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useSupabase } from '@/pages/_app';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
@@ -49,6 +50,8 @@ interface TeamComparison {
   avg_teleop_climb_pts?: number;
   avg_uptime_pct?: number | null;
   clank?: number;
+  /** Average climb time in seconds (CLANK speed). */
+  avg_climb_speed_sec?: number | null;
   rpmagic?: number;
   goblin?: number;
   best_score: number;
@@ -57,7 +60,68 @@ interface TeamComparison {
   win_rate: number;
 }
 
+/** Build TeamComparison from scouting rows (for competition-scoped comparison). */
+function buildTeamComparisonFromRows(
+  teamNumber: number,
+  teamName: string,
+  scoutingData: any[],
+): TeamComparison {
+  const totalMatches = scoutingData.length;
+  const scores = scoutingData.map((m: any) => m.final_score || 0);
+  const autonomousScores = scoutingData.map((m: any) => m.autonomous_points || 0);
+  const teleopScores = scoutingData.map((m: any) => m.teleop_points || 0);
+  const endgameScores = scoutingData.map(() => 0);
+  const defenseRatings = scoutingData.map((m: any) => m.defense_rating || 0);
+  const downtimeValues = scoutingData.map((m: any) => m.average_downtime).filter((v: any) => v != null && !Number.isNaN(Number(v)));
+  const avgDowntime = downtimeValues.length > 0
+    ? downtimeValues.reduce((s: number, v: number) => s + Number(v), 0) / downtimeValues.length
+    : null;
+  const brokeCount = scoutingData.filter((m: any) => m.broke === true).length;
+  const brokeRate = totalMatches > 0 ? Math.round((brokeCount / totalMatches) * 100) : 0;
+  const rebuilt = computeRebuiltMetrics(scoutingData);
+  const avgAutonomous = autonomousScores.reduce((a: number, b: number) => a + b, 0) / totalMatches;
+  const avgTeleop = teleopScores.reduce((a: number, b: number) => a + b, 0) / totalMatches;
+  const avgEndgame = endgameScores.reduce((a: number, b: number) => a + b, 0) / totalMatches;
+  const avgTotal = scores.reduce((a: number, b: number) => a + b, 0) / totalMatches;
+  const avgDefense = defenseRatings.reduce((a: number, b: number) => a + b, 0) / totalMatches;
+  const variance = totalMatches > 1
+    ? scores.reduce((sum: number, s: number) => sum + Math.pow(s - avgTotal, 2), 0) / totalMatches
+    : 0;
+  const consistencyScore = (avgTotal > 0 && totalMatches > 0)
+    ? Math.max(0, Math.min(100, 100 - (Math.sqrt(variance) / avgTotal) * 100))
+    : 0;
+  return {
+    team_number: teamNumber,
+    team_name: teamName,
+    total_matches: totalMatches,
+    avg_autonomous_points: Math.round(avgAutonomous * 100) / 100,
+    avg_teleop_points: Math.round(avgTeleop * 100) / 100,
+    avg_endgame_points: Math.round(avgEndgame * 100) / 100,
+    avg_total_score: Math.round(avgTotal * 100) / 100,
+    avg_defense_rating: Math.round(avgDefense * 100) / 100,
+    avg_downtime: avgDowntime != null ? Math.round(avgDowntime * 100) / 100 : null,
+    avg_downtime_sec: rebuilt.avg_downtime_sec,
+    broke_count: rebuilt.broke_count,
+    broke_rate: brokeRate,
+    avg_auto_fuel: rebuilt.avg_auto_fuel,
+    avg_teleop_fuel: rebuilt.avg_teleop_fuel,
+    avg_climb_pts: rebuilt.avg_climb_pts,
+    avg_auto_climb_pts: rebuilt.avg_auto_climb_pts,
+    avg_teleop_climb_pts: rebuilt.avg_teleop_climb_pts,
+    avg_uptime_pct: rebuilt.avg_uptime_pct,
+    clank: rebuilt.clank,
+    avg_climb_speed_sec: rebuilt.avg_climb_speed_sec ?? null,
+    rpmagic: rebuilt.rpmagic,
+    goblin: rebuilt.goblin,
+    best_score: Math.max(...scores),
+    worst_score: Math.min(...scores),
+    consistency_score: Math.round(consistencyScore * 100) / 100,
+    win_rate: 0.75,
+  };
+}
+
 export default function TeamComparison() {
+  const router = useRouter();
   const { user, loading: authLoading } = useSupabase();
   const [selectedTeams, setSelectedTeams] = useState<number[]>([]);
   const [teamComparisons, setTeamComparisons] = useState<TeamComparison[]>([]);
@@ -67,10 +131,55 @@ export default function TeamComparison() {
   const [inputValue, setInputValue] = useState('');
   const [availableTeams, setAvailableTeams] = useState<Array<{ team_number: number, team_name: string }>>([]);
   const [teamsLoading, setTeamsLoading] = useState(true);
+  const [competitionScoutingData, setCompetitionScoutingData] = useState<any[]>([]);
+  const [competitionTeams, setCompetitionTeams] = useState<Array<{ team_number: number; team_name: string }>>([]);
+  const [competitionName, setCompetitionName] = useState<string | null>(null);
 
-  // Load ALL available teams from Supabase (including Avalanche) for comparison
-  // This ensures all team names load properly in the comparison tab dropdown
+  const eventKey = (router.query.event_key as string) || undefined;
+  const competitionId = (router.query.id as string) || undefined;
+  const isCompetitionMode = Boolean(eventKey || competitionId);
+
+  // Load competition data when guest/open from view-data with event_key or id
   useEffect(() => {
+    if (!eventKey && !competitionId) return;
+    const loadCompetition = async () => {
+      try {
+        setTeamsLoading(true);
+        setError(null);
+        const params = eventKey
+          ? `event_key=${encodeURIComponent(eventKey)}`
+          : competitionId
+            ? `id=${encodeURIComponent(competitionId)}`
+            : '';
+        if (!params) return;
+        const res = await fetch(`/api/past-competitions?${params}`);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || 'Failed to load competition');
+        }
+        const data = await res.json();
+        const scouting = Array.isArray(data.scoutingData) ? data.scoutingData : [];
+        const teams = Array.isArray(data.teams) ? data.teams : [];
+        setCompetitionScoutingData(scouting);
+        setCompetitionTeams(teams);
+        setCompetitionName(data.competition?.competition_name || null);
+        const teamNumbers = new Set<number>();
+        scouting.forEach((r: any) => { if (r.team_number) teamNumbers.add(r.team_number); });
+        const withData = teams.filter((t: { team_number: number }) => teamNumbers.has(t.team_number));
+        setAvailableTeams(withData);
+      } catch (e: any) {
+        setError(e?.message || 'Failed to load competition data');
+        setAvailableTeams([]);
+      } finally {
+        setTeamsLoading(false);
+      }
+    };
+    loadCompetition();
+  }, [eventKey, competitionId]);
+
+  // Load all teams from Supabase when logged-in and not in competition mode
+  useEffect(() => {
+    if (!user || isCompetitionMode) return;
     const loadTeams = async () => {
       try {
         setTeamsLoading(true);
@@ -78,7 +187,6 @@ export default function TeamComparison() {
           .from('teams')
           .select('team_number, team_name')
           .order('team_number');
-
         if (error) {
           console.error('Error loading teams:', error);
           setError('Failed to load teams');
@@ -92,11 +200,8 @@ export default function TeamComparison() {
         setTeamsLoading(false);
       }
     };
-
-    if (user) {
-      loadTeams();
-    }
-  }, [user]);
+    loadTeams();
+  }, [user, isCompetitionMode]);
 
   const addTeam = async (teamNumber: number) => {
     if (selectedTeams.includes(teamNumber) || selectedTeams.length >= 4) {
@@ -107,7 +212,21 @@ export default function TeamComparison() {
     setError(null);
 
     try {
-      // Fetch team data
+      if (isCompetitionMode && competitionScoutingData.length > 0) {
+        const teamRows = competitionScoutingData.filter((r: any) => r.team_number === teamNumber);
+        if (teamRows.length === 0) {
+          setError(`No scouting data for Team ${teamNumber} in this competition`);
+          return;
+        }
+        const team = competitionTeams.find(t => t.team_number === teamNumber);
+        const teamName = team?.team_name || `Team ${teamNumber}`;
+        const teamComparison = buildTeamComparisonFromRows(teamNumber, teamName, teamRows);
+        setSelectedTeams(prev => [...prev, teamNumber]);
+        setTeamComparisons(prev => [...prev, teamComparison]);
+        setInputValue('');
+        return;
+      }
+
       const { data: teamData, error: teamError } = await supabase
         .from('teams')
         .select('*')
@@ -118,7 +237,6 @@ export default function TeamComparison() {
         throw new Error(`Team ${teamNumber} not found`);
       }
 
-      // Fetch scouting data
       const { data: scoutingData, error: scoutingError } = await supabase
         .from('scouting_data')
         .select('*')
@@ -133,69 +251,14 @@ export default function TeamComparison() {
         throw new Error(`No scouting data available for Team ${teamNumber}`);
       }
 
-      // Calculate statistics
-      const totalMatches = scoutingData.length;
-      const scores = scoutingData.map((match: any) => match.final_score || 0);
-      const autonomousScores = scoutingData.map((match: any) => match.autonomous_points || 0);
-      const teleopScores = scoutingData.map((match: any) => match.teleop_points || 0);
-      const endgameScores = scoutingData.map((match: any) => 0); // endgame_points not in database schema
-      const defenseRatings = scoutingData.map((match: any) => match.defense_rating || 0);
-      const downtimeValues = scoutingData.map((m: any) => m.average_downtime).filter((v: any) => v != null && !Number.isNaN(Number(v)));
-      const avgDowntime = downtimeValues.length > 0
-        ? downtimeValues.reduce((s: number, v: number) => s + Number(v), 0) / downtimeValues.length
-        : null;
-      const brokeCount = scoutingData.filter((m: any) => m.broke === true).length;
-      const brokeRate = totalMatches > 0 ? Math.round((brokeCount / totalMatches) * 100) : 0;
-      const rebuilt = computeRebuiltMetrics(scoutingData);
-
-      // Calculate averages
-      const avgAutonomous = autonomousScores.reduce((sum: number, score: number) => sum + score, 0) / totalMatches;
-      const avgTeleop = teleopScores.reduce((sum: number, score: number) => sum + score, 0) / totalMatches;
-      const avgEndgame = endgameScores.reduce((sum: number, score: number) => sum + score, 0) / totalMatches;
-      const avgTotal = scores.reduce((sum: number, score: number) => sum + score, 0) / totalMatches;
-      const avgDefense = defenseRatings.reduce((sum: number, rating: number) => sum + rating, 0) / totalMatches;
-
-      // Calculate consistency (lower coefficient of variation = higher consistency)
-      const variance = totalMatches > 1
-        ? scores.reduce((sum: number, score: number) => sum + Math.pow(score - avgTotal, 2), 0) / totalMatches
-        : 0;
-      const standardDeviation = Math.sqrt(variance);
-      const consistencyScore = (avgTotal > 0 && totalMatches > 0)
-        ? Math.max(0, Math.min(100, 100 - (standardDeviation / avgTotal) * 100))
-        : 0;
-
-      const teamComparison: TeamComparison = {
-        team_number: teamNumber,
-        team_name: teamData?.team_name || `Team ${teamNumber}`,
-        total_matches: totalMatches,
-        avg_autonomous_points: Math.round(avgAutonomous * 100) / 100,
-        avg_teleop_points: Math.round(avgTeleop * 100) / 100,
-        avg_endgame_points: Math.round(avgEndgame * 100) / 100,
-        avg_total_score: Math.round(avgTotal * 100) / 100,
-        avg_defense_rating: Math.round(avgDefense * 100) / 100,
-        avg_downtime: avgDowntime != null ? Math.round(avgDowntime * 100) / 100 : null,
-        avg_downtime_sec: rebuilt.avg_downtime_sec,
-        broke_count: rebuilt.broke_count,
-        broke_rate: brokeRate,
-        avg_auto_fuel: rebuilt.avg_auto_fuel,
-        avg_teleop_fuel: rebuilt.avg_teleop_fuel,
-        avg_climb_pts: rebuilt.avg_climb_pts,
-        avg_auto_climb_pts: rebuilt.avg_auto_climb_pts,
-        avg_teleop_climb_pts: rebuilt.avg_teleop_climb_pts,
-        avg_uptime_pct: rebuilt.avg_uptime_pct,
-        clank: rebuilt.clank,
-        rpmagic: rebuilt.rpmagic,
-        goblin: rebuilt.goblin,
-        best_score: Math.max(...scores),
-        worst_score: Math.min(...scores),
-        consistency_score: Math.round(consistencyScore * 100) / 100,
-        win_rate: 0.75, // Placeholder
-      };
-
+      const teamComparison = buildTeamComparisonFromRows(
+        teamNumber,
+        teamData?.team_name || `Team ${teamNumber}`,
+        scoutingData,
+      );
       setSelectedTeams(prev => [...prev, teamNumber]);
       setTeamComparisons(prev => [...prev, teamComparison]);
       setInputValue('');
-
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add team');
     } finally {
@@ -266,11 +329,16 @@ export default function TeamComparison() {
     );
   }
 
-  if (!user) {
-    const router = useRouter();
+  if (!user && !isCompetitionMode) {
     router.push('/');
     return null;
   }
+
+  const backToCompetitionHref = competitionId
+    ? `/view-data?id=${competitionId}`
+    : eventKey
+      ? `/view-data?event_key=${encodeURIComponent(eventKey)}`
+      : null;
 
   return (
     <Layout>
@@ -282,13 +350,20 @@ export default function TeamComparison() {
         >
           {/* Header */}
           <div className="mb-8">
+            {backToCompetitionHref && (
+              <div className="mb-4">
+                <Link href={backToCompetitionHref} className={`text-sm font-medium ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}>
+                  ← Back to {competitionName || 'Competition'}
+                </Link>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <div>
                 <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   Team Comparison
                 </h1>
                 <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Compare multiple teams side-by-side for strategic analysis
+                  {competitionName ? `Compare teams at ${competitionName}` : 'Compare multiple teams side-by-side for strategic analysis'}
                 </p>
               </div>
               {teamComparisons.length > 0 && (
@@ -576,7 +651,11 @@ export default function TeamComparison() {
                           </div>
                           <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>CLANK:</span>
-                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.clank != null ? `${team.clank}%` : '—'}</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.clank != null ? `${team.clank}` : '—'}</span>
+                          </div>
+                          <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Avg climb speed:</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</span>
                           </div>
                           <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>RPMAGIC:</span>
@@ -640,6 +719,7 @@ export default function TeamComparison() {
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Climb</th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Uptime %</th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>CLANK</th>
+                          <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Avg climb speed</th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>RPMAGIC</th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>GOBLIN</th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -695,7 +775,8 @@ export default function TeamComparison() {
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_teleop_fuel ?? '—'}</td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_climb_pts ?? '—'}</td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</td>
-                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.clank != null ? `${team.clank}%` : '—'}</td>
+                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.clank != null ? `${team.clank}` : '—'}</td>
+                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.rpmagic ?? '—'}</td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.goblin ?? '—'}</td>
                             <td className={`py-3 px-4 font-semibold text-green-400`}>

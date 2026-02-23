@@ -64,6 +64,7 @@ interface TeamData {
   avg_teleop_climb_pts?: number;
   avg_uptime_pct?: number | null;
   clank?: number;
+  avg_climb_speed_sec?: number | null;
   rpmagic?: number;
   goblin?: number;
 }
@@ -221,6 +222,7 @@ export default function BasicAnalysis() {
           avg_teleop_climb_pts: rebuilt.avg_teleop_climb_pts,
           avg_uptime_pct: rebuilt.avg_uptime_pct,
           clank: rebuilt.clank,
+          avg_climb_speed_sec: rebuilt.avg_climb_speed_sec ?? null,
           rpmagic: rebuilt.rpmagic,
           goblin: rebuilt.goblin,
         };
@@ -505,6 +507,7 @@ export default function BasicAnalysis() {
                         <TableHead>Total Score</TableHead>
                         <TableHead>Defense</TableHead>
                         <TableHead className="text-[9px]">CLANK</TableHead>
+                        <TableHead className="text-[9px]">Avg climb speed</TableHead>
                         <TableHead className="text-[9px]">RPMAGIC</TableHead>
                         <TableHead className="text-[9px]">GOBLIN</TableHead>
                       </TableRow>
@@ -539,7 +542,8 @@ export default function BasicAnalysis() {
                               <span className="text-sm">{(team.avg_defense_rating || 0).toFixed(1)}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm">{team.clank != null ? `${team.clank}%` : '—'}</TableCell>
+                          <TableCell className="text-sm">{team.clank != null ? `${team.clank}` : '—'}</TableCell>
+                          <TableCell className="text-sm">{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</TableCell>
                           <TableCell className="text-sm">{team.rpmagic ?? '—'}</TableCell>
                           <TableCell className="text-sm">{team.goblin ?? '—'}</TableCell>
                         </TableRow>

@@ -270,6 +270,7 @@ const TeamDetail: React.FC = () => {
       avg_autonomous_cleansing: rebuilt.avg_autonomous_cleansing,
       avg_teleop_cleansing: rebuilt.avg_teleop_cleansing,
       clank: rebuilt.clank,
+      avg_climb_speed_sec: rebuilt.avg_climb_speed_sec,
       rpmagic: rebuilt.rpmagic,
       goblin: rebuilt.goblin,
       epa: Math.round(avgTotal * 10) / 10, // Expected Points Added = avg score
@@ -568,6 +569,11 @@ const TeamDetail: React.FC = () => {
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         Climb Level Accuracy & No-Knockdown. Adjusted for speed: +2 for ≤3s, -2 for &gt;6s.
                       </p>
+                      {teamStats.avg_climb_speed_sec != null && (
+                        <p className="text-sm font-medium text-foreground">
+                          Avg climb speed: <span className="text-primary">{teamStats.avg_climb_speed_sec}s</span>
+                        </p>
+                      )}
                       <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                         <div className="h-full bg-primary" style={{ width: `${Math.min(100, (teamStats.clank / 30) * 100)}%` }} />
                       </div>

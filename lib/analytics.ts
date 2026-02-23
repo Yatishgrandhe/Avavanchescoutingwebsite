@@ -174,11 +174,18 @@ export function getClimbAchieved(notes: any): { label: string; points: number } 
   return null;
 }
 
-/** Climb pts adjusted for speed: +2 for ≤3s, -2 for >6s (for CLANK). */
-function getClimbSpeedAdjustment(notes: any): number {
+/** Climb time in seconds from notes (for CLANK speed display). Returns null if not recorded. */
+export function getClimbSpeedSec(notes: any): number | null {
   const p = parseNotes(notes);
   const sec = p.teleop.climb_sec;
-  if (sec == null || Number.isNaN(sec)) return 0;
+  if (sec == null || Number.isNaN(sec)) return null;
+  return sec;
+}
+
+/** Climb pts adjusted for speed: +2 for ≤3s, -2 for >6s (for CLANK). */
+function getClimbSpeedAdjustment(notes: any): number {
+  const sec = getClimbSpeedSec(notes);
+  if (sec == null) return 0;
   if (sec <= 3) return 2;
   if (sec > 6) return -2;
   return 0;
@@ -248,6 +255,8 @@ export interface RebuiltTeamMetrics {
   avg_teleop_climb_pts: number;
   avg_uptime_pct: number | null;
   avg_downtime_sec: number | null;
+  /** Average climb time in seconds (CLANK speed). Null when no climb times recorded. */
+  avg_climb_speed_sec: number | null;
   broke_count: number;
   broke_rate: number;
   avg_autonomous_cleansing: number;
@@ -282,6 +291,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
       avg_teleop_climb_pts: 0,
       avg_uptime_pct: null,
       avg_downtime_sec: null,
+      avg_climb_speed_sec: null,
       broke_count: 0,
       broke_rate: 0,
       avg_autonomous_cleansing: 0,
@@ -300,6 +310,8 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
   let totalClimbAdjusted = 0;
   let climbSuccesses = 0;
   let climbAttempts = n;
+  let climbSpeedSum = 0;
+  let climbSpeedCount = 0;
   let downtimeSum = 0;
   let downtimeCount = 0;
   let brokeCount = 0;
@@ -316,6 +328,11 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     totalAutoClimbPts += getAutoClimbPoints(notes);
     totalTeleopClimbPts += getTeleopClimbPoints(notes);
     totalClimbAdjusted += getClimbPointsAdjusted(notes);
+    const climbSec = getClimbSpeedSec(notes);
+    if (climbSec != null) {
+      climbSpeedSum += climbSec;
+      climbSpeedCount += 1;
+    }
     if (hadClimbSuccess(notes)) climbSuccesses += 1;
     if (row.average_downtime != null && !Number.isNaN(row.average_downtime)) {
       downtimeSum += Number(row.average_downtime);
@@ -357,6 +374,9 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
   }
   goblin = Math.round(goblin * 10) / 10;
 
+  const avgClimbSpeedSec =
+    climbSpeedCount > 0 ? Math.round((climbSpeedSum / climbSpeedCount) * 100) / 100 : null;
+
   return {
     avg_auto_fuel: Math.round((totalAutoFuel / n) * 100) / 100,
     avg_teleop_fuel: Math.round((totalTeleopFuel / n) * 100) / 100,
@@ -365,6 +385,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     avg_teleop_climb_pts: Math.round((totalTeleopClimbPts / n) * 100) / 100,
     avg_uptime_pct: avgUptime,
     avg_downtime_sec: avgDowntimeSec,
+    avg_climb_speed_sec: avgClimbSpeedSec,
     broke_count: brokeCount,
     broke_rate: Math.round((brokeCount / n) * 100),
     avg_autonomous_cleansing: Math.round((totalAutoCleansing / n) * 100) / 100,

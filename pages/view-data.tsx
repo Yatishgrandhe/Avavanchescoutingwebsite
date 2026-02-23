@@ -406,16 +406,27 @@ export default function ViewDataPage() {
     </main>
   );
 
+  const comparisonHref = id
+    ? `/analysis/comparison?id=${encodeURIComponent(id as string)}`
+    : event_key
+      ? `/analysis/comparison?event_key=${encodeURIComponent(event_key as string)}`
+      : '/analysis/comparison';
+
   const comparisonContent = (
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground mb-1">Comparison</h1>
-        <p className="text-muted-foreground text-sm">Compare teams and matches for {competition.competition_name}.</p>
+        <p className="text-muted-foreground text-sm">Compare teams and matches for {competition?.competition_name ?? 'this competition'}.</p>
       </div>
       <Card className="p-12 border border-white/10 bg-card/50 text-center">
         <GitCompare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-foreground mb-2">Comparison view</h3>
-        <p className="text-muted-foreground text-sm max-w-md mx-auto">Compare team performance across matches. Use Data Analysis to see the full table and open individual teams.</p>
+        <h3 className="text-lg font-semibold text-foreground mb-2">Team Comparison</h3>
+        <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">Compare up to 4 teams side-by-side using the same comparison page as logged-in users. Data is scoped to this competition.</p>
+        <Link href={comparisonHref}>
+          <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+            Open Team Comparison
+          </Button>
+        </Link>
       </Card>
     </main>
   );

@@ -69,6 +69,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     avg_uptime_pct?: number | null;
     avg_downtime_sec?: number | null;
     clank?: number;
+    avg_climb_speed_sec?: number | null;
     rpmagic?: number;
     goblin?: number;
     best_score: number;
@@ -800,6 +801,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 text-[9px]">Climb Pts</th>
                             <th className="text-left p-4 text-[9px]">Uptime %</th>
                             <th className="text-left p-4 text-[9px]">CLANK</th>
+                            <th className="text-left p-4 text-[9px]">Avg climb speed</th>
                             <th className="text-left p-4 text-[9px]">RPMAGIC</th>
                             <th className="text-left p-4 text-[9px]">GOBLIN</th>
                             <th className="text-left p-4">Best</th>
@@ -854,7 +856,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_teleop_fuel ?? '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_climb_pts ?? '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</td>
-                                <td className="p-4 text-muted-foreground text-sm">{team.clank != null ? `${team.clank}%` : '—'}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{team.clank != null ? `${team.clank}` : '—'}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.rpmagic ?? '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.goblin ?? '—'}</td>
                                 <td className="p-4 text-green-400 font-bold">{team.best_score}</td>

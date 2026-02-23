@@ -33,6 +33,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'GET') {
     try {
+      // Determine if request is from a guest (unauthenticated) for permission rules
+      let isGuest = true;
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (!error && user) isGuest = false;
+      }
+
       const { id, competition_key, year } = req.query;
 
       if (id) {
@@ -62,31 +71,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .eq('competition_id', id as string)
           .order('match_number');
 
-        // Get scouting data for this competition
+        // Get scouting data for this competition (match scouting — always allowed)
         const { data: scoutingData, error: scoutingError } = await supabaseAdmin
           .from('past_scouting_data')
           .select('*')
           .eq('competition_id', id as string);
 
-        // Get pit scouting data for this competition
-        const { data: pitScoutingData, error: pitScoutingError } = await supabaseAdmin
-          .from('past_pit_scouting_data')
-          .select('*')
-          .eq('competition_id', id as string);
-
-        // Get pick lists for this competition
-        const { data: pickLists, error: pickListsError } = await supabaseAdmin
-          .from('past_pick_lists')
-          .select('*')
-          .eq('competition_id', id as string);
+        // Guests see only match scouting data; omit pit and pick lists
+        let pitScoutingData: any[] = [];
+        let pickLists: any[] = [];
+        if (!isGuest) {
+          const [pitRes, pickRes] = await Promise.all([
+            supabaseAdmin.from('past_pit_scouting_data').select('*').eq('competition_id', id as string),
+            supabaseAdmin.from('past_pick_lists').select('*').eq('competition_id', id as string),
+          ]);
+          pitScoutingData = pitRes.data || [];
+          pickLists = pickRes.data || [];
+        }
 
         res.status(200).json({
           competition,
           teams: teams || [],
           matches: matches || [],
           scoutingData: scoutingData || [],
-          pitScoutingData: pitScoutingData || [],
-          pickLists: pickLists || []
+          pitScoutingData,
+          pickLists,
         });
       } else {
         // Get all past competitions with optional filtering
@@ -154,9 +163,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           live.sort((a, b) => (b.scouting_count || 0) - (a.scouting_count || 0));
         }
 
+        // Logged-in users do not see live events; only guests see them
+        const liveForResponse = isGuest ? live : [];
+
         res.status(200).json({
           competitions: competitions || [],
-          live: live,
+          live: liveForResponse,
         });
       }
     } catch (error) {

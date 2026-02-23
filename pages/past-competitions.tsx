@@ -72,7 +72,8 @@ export default function PastCompetitionsPage() {
 
   const loadCompetitions = async () => {
     try {
-      const response = await fetch('/api/past-competitions');
+      const headers: HeadersInit = session ? { 'Authorization': `Bearer ${session.access_token}` } : {};
+      const response = await fetch('/api/past-competitions', { headers });
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

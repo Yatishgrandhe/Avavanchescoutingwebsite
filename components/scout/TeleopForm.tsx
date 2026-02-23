@@ -1,8 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Button, Card, CardContent } from '../ui';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '../ui/dialog';
 import { BallTrackingPhase, BALL_CHOICE_OPTIONS, SCORING_VALUES, type ScoringNotes } from '@/lib/types';
-import { TrendingUp, CheckCircle, Award } from 'lucide-react';
+import { TrendingUp, Award, Play, Square, Clock } from 'lucide-react';
 import StopwatchBallTracking from './StopwatchBallTracking';
 
 interface TeleopFormProps {
@@ -26,6 +34,43 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   const [towerLevel2, setTowerLevel2] = useState(!!initialData?.teleop_tower_level2);
   const [towerLevel3, setTowerLevel3] = useState(!!initialData?.teleop_tower_level3);
   const [climbSec, setClimbSec] = useState<number | ''>(initialData?.climb_sec != null ? Number(initialData.climb_sec) : '');
+  const [climbTimerRunning, setClimbTimerRunning] = useState(false);
+  const [climbElapsedSec, setClimbElapsedSec] = useState(0);
+  const [showClimbTimePopup, setShowClimbTimePopup] = useState(false);
+  const [pendingClimbSec, setPendingClimbSec] = useState(0);
+
+  useEffect(() => {
+    if (!climbTimerRunning) return;
+    const start = Date.now() - climbElapsedSec * 1000;
+    const id = setInterval(() => {
+      setClimbElapsedSec(Math.floor((Date.now() - start) / 1000));
+    }, 200);
+    return () => clearInterval(id);
+  }, [climbTimerRunning, climbElapsedSec]);
+
+  const handleClimbTimerStart = useCallback(() => {
+    setClimbTimerRunning(true);
+    setShowClimbTimePopup(false);
+  }, []);
+
+  const handleClimbTimerStop = useCallback(() => {
+    setClimbTimerRunning(false);
+    setPendingClimbSec(climbElapsedSec);
+    setShowClimbTimePopup(true);
+  }, [climbElapsedSec]);
+
+  const handleClimbTimeSave = useCallback(() => {
+    setClimbSec(pendingClimbSec);
+    setClimbElapsedSec(0);
+    setPendingClimbSec(0);
+    setShowClimbTimePopup(false);
+  }, [pendingClimbSec]);
+
+  const handleClimbTimeCancel = useCallback(() => {
+    setShowClimbTimePopup(false);
+    setClimbElapsedSec(0);
+    setPendingClimbSec(0);
+  }, []);
 
   const progressPercentage = (currentStep / totalSteps) * 100;
 
@@ -94,22 +139,64 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
               ))}
             </div>
 
-            <div className="mt-3 pt-3 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase">Climb Time (sec)</span>
-                <span className="text-[9px] text-muted-foreground/60 uppercase">Used for CLANK adjustment</span>
+            <div className="mt-3 pt-3 border-t border-white/5 flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase block">Climb time (CLANK)</span>
+                  <span className="text-[9px] text-muted-foreground/60">+2 pts ≤3s, -2 pts &gt;6s</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {!climbTimerRunning ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 gap-1 text-xs"
+                      onClick={handleClimbTimerStart}
+                    >
+                      <Play className="w-3 h-3" /> Start
+                    </Button>
+                  ) : (
+                    <>
+                      <span className="font-mono text-sm tabular-nums min-w-[2.5rem]">{climbElapsedSec}s</span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        className="h-8 gap-1 text-xs"
+                        onClick={handleClimbTimerStop}
+                      >
+                        <Square className="w-3 h-3" /> Stop
+                      </Button>
+                    </>
+                  )}
+                  {climbSec !== '' && !climbTimerRunning && (
+                    <span className="text-xs text-muted-foreground ml-1">Saved: {climbSec}s</span>
+                  )}
+                </div>
               </div>
-              <input
-                type="number"
-                min={0}
-                max={30}
-                step={0.5}
-                placeholder="0.0"
-                value={climbSec === '' ? '' : climbSec}
-                onChange={(e) => setClimbSec(e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
-                className="w-full sm:w-20 px-2 py-1.5 rounded bg-white/5 border border-white/10 text-sm font-mono focus:ring-1 focus:ring-primary outline-none"
-              />
             </div>
+
+            <Dialog open={showClimbTimePopup} onOpenChange={(open) => !open && handleClimbTimeCancel()}>
+              <DialogContent className="sm:max-w-xs" onPointerDownOutside={(e) => e.preventDefault()}>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" /> Climb time
+                  </DialogTitle>
+                  <DialogDescription>
+                    Recorded <strong>{pendingClimbSec}s</strong>. Save for CLANK or cancel.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button type="button" variant="outline" onClick={handleClimbTimeCancel}>
+                    Cancel
+                  </Button>
+                  <Button type="button" onClick={handleClimbTimeSave}>
+                    Save
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
 
           <div className="pt-2">

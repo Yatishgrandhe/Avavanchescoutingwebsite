@@ -107,13 +107,25 @@ const TeamDetail: React.FC = () => {
 
   const getMatchLabel = (matchId: string) => {
     if (!matchId) return 'N/A';
-    // Try to extract QM/Q/F and number. e.g. avalanche_2026_qm1 -> QM1
     const parts = matchId.split('_');
     const lastPart = parts[parts.length - 1];
-    if (lastPart) {
-      return lastPart.toUpperCase();
-    }
+    if (lastPart) return lastPart.toUpperCase();
     return matchId;
+  };
+
+  /** Extract numeric sort key from match_id for chronological order (e.g. qm1 -> 1, qm10 -> 10, qf1m1 -> 101). */
+  const getMatchSortKey = (matchId: string): number => {
+    if (!matchId) return 0;
+    const lower = matchId.toLowerCase();
+    const qm = lower.match(/qm(\d+)/);
+    if (qm) return parseInt(qm[1], 10);
+    const qf = lower.match(/qf(\d+)m(\d+)/);
+    if (qf) return 100 + parseInt(qf[1], 10) * 10 + parseInt(qf[2], 10);
+    const sf = lower.match(/sf(\d+)m(\d+)/);
+    if (sf) return 200 + parseInt(sf[1], 10) * 10 + parseInt(sf[2], 10);
+    const f = lower.match(/f(\d+)m(\d+)/);
+    if (f) return 300 + parseInt(f[1], 10) * 10 + parseInt(f[2], 10);
+    return 0;
   };
 
   useEffect(() => {
@@ -262,22 +274,25 @@ const TeamDetail: React.FC = () => {
       goblin: rebuilt.goblin,
       epa: Math.round(avgTotal * 10) / 10, // Expected Points Added = avg score
 
-      // Data for Radar Chart
+      // Data for Radar Chart (all values 0–100 for correct scale; Recharts expects numeric A and fullMark)
       radarData: [
-        { subject: 'Reliability', A: Math.max(0, 100 - (rebuilt.broke_rate || 0)), fullMark: 100 },
-        { subject: 'Teleop', A: Math.min(100, (rebuilt.avg_teleop_fuel / 40) * 100), fullMark: 100 },
-        { subject: 'Climb', A: Math.min(100, (rebuilt.avg_climb_pts / 30) * 100), fullMark: 100 },
-        { subject: 'Uptime', A: rebuilt.avg_uptime_pct || 0, fullMark: 100 },
-        { subject: 'Consistency', A: Math.min(100, Math.max(0, consistencyScore)), fullMark: 100 },
+        { subject: 'Reliability', A: Math.max(0, Math.min(100, 100 - (rebuilt.broke_rate ?? 0))), fullMark: 100 },
+        { subject: 'Auto', A: Math.max(0, Math.min(100, ((rebuilt.avg_auto_fuel ?? 0) / 40) * 100)), fullMark: 100 },
+        { subject: 'Teleop', A: Math.max(0, Math.min(100, ((rebuilt.avg_teleop_fuel ?? 0) / 40) * 100)), fullMark: 100 },
+        { subject: 'Climb', A: Math.max(0, Math.min(100, ((rebuilt.avg_climb_pts ?? 0) / 30) * 100)), fullMark: 100 },
+        { subject: 'Uptime', A: Math.max(0, Math.min(100, rebuilt.avg_uptime_pct ?? 0)), fullMark: 100 },
+        { subject: 'Consistency', A: Math.max(0, Math.min(100, consistencyScore)), fullMark: 100 },
       ],
 
-      // Trends for Line Chart
-      trends: scoutingData.map(d => ({
-        match: getMatchLabel(d.match_id),
-        score: d.final_score,
-        tele: d.teleop_points,
-        auto: d.autonomous_points
-      })).reverse()
+      // Trends for Line Chart (numeric score/auto/tele; sorted by match order for correct draw)
+      trends: [...scoutingData]
+        .sort((a, b) => getMatchSortKey(a.match_id) - getMatchSortKey(b.match_id))
+        .map(d => ({
+          match: getMatchLabel(d.match_id),
+          score: Number(d.final_score) || 0,
+          tele: Number(d.teleop_points) || 0,
+          auto: Number(d.autonomous_points) || 0,
+        }))
     };
   };
 
@@ -492,13 +507,14 @@ const TeamDetail: React.FC = () => {
                           <RadarChart cx="50%" cy="50%" outerRadius="80%" data={teamStats.radarData}>
                             <PolarGrid stroke="rgba(255,255,255,0.1)" />
                             <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12 }} />
-                            <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} stroke="none" />
+                            <PolarRadiusAxis type="number" angle={30} domain={[0, 100]} allowDataOverflow={false} tick={false} stroke="none" />
                             <Radar
                               name={team.team_name}
                               dataKey="A"
                               stroke="#3b82f6"
                               fill="#3b82f6"
                               fillOpacity={0.5}
+                              isAnimationActive={true}
                             />
                           </RadarChart>
                         </ResponsiveContainer>
@@ -514,15 +530,17 @@ const TeamDetail: React.FC = () => {
                       </CardHeader>
                       <CardContent className="h-[350px]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={teamStats.trends}>
+                          <LineChart data={teamStats.trends} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                             <XAxis dataKey="match" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                            <YAxis domain={[0, 'auto']} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
                             <Tooltip
                               contentStyle={{ backgroundColor: '#09090b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
                               itemStyle={{ fontSize: '12px' }}
+                              formatter={(value: number) => [value, 'Score']}
+                              labelFormatter={(label) => `Match ${label}`}
                             />
-                            <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} />
+                            <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} connectNulls={false} isAnimationActive={true} />
                           </LineChart>
                         </ResponsiveContainer>
                       </CardContent>

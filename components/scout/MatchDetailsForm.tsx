@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui';
 import { ChevronDown, Loader2, AlertCircle, Target } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Match {
   match_id: string;
@@ -67,13 +68,13 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   const fetchMatches = async () => {
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await fetch('/api/matches');
       if (!response.ok) {
         throw new Error('Failed to fetch matches');
       }
-      
+
       const data = await response.json();
       setMatches(data.matches || []);
     } catch (err) {
@@ -105,7 +106,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   const handleNext = () => {
     // Clear any previous errors
     setError('');
-    
+
     if (!selectedMatch) {
       setError('Please select a match');
       return;
@@ -135,63 +136,46 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
       className="w-full max-w-4xl mx-auto min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]"
     >
       <Card className="bg-card border-border">
-        {/* Progress Bar */}
-        <div className="px-3 sm:px-6 pt-3 sm:pt-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className={`text-xs sm:text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Step {currentStep} of {totalSteps}
-            </span>
-            <span className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              {Math.round(progressPercentage)}%
-            </span>
-          </div>
-          <div className={`w-full rounded-full h-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-            <motion.div
-              className="h-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${progressPercentage}%` }}
-              transition={{ duration: 0.5 }}
-            />
-          </div>
-        </div>
 
-        <CardHeader className="text-center px-3 sm:px-6">
-          <CardTitle className={`text-lg sm:text-xl lg:text-2xl font-bold font-display flex items-center justify-center space-x-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-            <Target className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-            <span>Match & Team Selection</span>
+
+        <CardHeader className="text-center px-4 sm:px-6">
+          <CardTitle className="text-xl sm:text-2xl font-black tracking-tighter text-foreground flex items-center justify-center gap-2">
+            <Target className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+            <span>SELECT MATCH & TEAM</span>
           </CardTitle>
-          <CardDescription className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Select the match and team you want to scout
+          <CardDescription className="text-muted-foreground text-xs sm:text-sm uppercase tracking-widest font-medium">
+            Setup your scouting session
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Match Selection Dropdown */}
-          <div className="space-y-3">
-            <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Select Match <span className="text-red-500">*</span>
-            </label>
-            
+          {/* Match Selection */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-1 bg-primary rounded-full" />
+              <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Select Match</h3>
+            </div>
+
             {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
-                <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                  Loading matches...
+              <div className="flex items-center justify-center py-6 bg-white/5 rounded-xl border border-white/5">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                <span className="ml-2 text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                  Fetching...
                 </span>
               </div>
             ) : (
               <Select value={selectedMatch?.match_id || ''} onValueChange={handleMatchSelect}>
-                <SelectTrigger className="w-full bg-background border-border text-foreground">
-                  <SelectValue placeholder="Choose a match..." />
+                <SelectTrigger className="w-full bg-white/5 border-white/10 h-12 rounded-xl text-foreground hover:bg-white/10 transition-all font-mono">
+                  <SelectValue placeholder="CHOOSE A MATCH..." />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border">
+                <SelectContent className="bg-card border-white/10 rounded-xl">
                   {matches.map((match) => (
-                    <SelectItem 
-                      key={match.match_id} 
+                    <SelectItem
+                      key={match.match_id}
                       value={match.match_id}
-                      className={isDarkMode ? 'text-white hover:bg-gray-700' : 'text-gray-900 hover:bg-gray-100'}
+                      className="font-mono text-sm py-3"
                     >
-                      Match {match.match_number} - {match.event_key}
+                      MATCH {match.match_number} — {match.event_key}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -199,83 +183,91 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
             )}
           </div>
 
-          {/* Team Selection Dropdown */}
+          {/* Team Selection */}
           {selectedMatch && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
               className="space-y-4"
             >
-              <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Select Team to Scout <span className="text-red-500">*</span>
-              </label>
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-1 bg-primary rounded-full" />
+                <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Select Team</h3>
+              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Red Alliance */}
-                <div className="space-y-2">
-                  <div className={`text-sm font-medium ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
-                    Red Alliance
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 px-1">
+                    <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-red-400">Red Alliance</span>
                   </div>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 gap-2">
                     {selectedMatch.red_teams.map((team, index) => (
-                      <motion.button
+                      <button
                         key={team.team_number}
                         onClick={() => handleTeamSelect(team.team_number, 'red', (index + 1) as 1 | 2 | 3)}
-                        className={`w-full p-3 rounded-lg border text-left transition-colors ${
+                        className={cn(
+                          "w-full h-[60px] px-4 rounded-xl border flex items-center justify-between transition-all group relative overflow-hidden",
                           selectedTeam === team.team_number && allianceColor === 'red' && alliancePosition === (index + 1)
-                            ? 'border-red-500 bg-red-500/20 text-white'
-                            : isDarkMode 
-                              ? 'border-gray-600 bg-gray-700/50 hover:bg-gray-600/50 text-white'
-                              : 'border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-900'
-                        }`}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                            ? "border-red-500 bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+                            : "border-white/5 bg-white/5 hover:bg-white/10 text-foreground"
+                        )}
                       >
-                        <div className="font-semibold flex items-center justify-between">
-                          <span>Team {team.team_number}</span>
-                          <span className="text-sm font-normal bg-red-500/20 px-2 py-1 rounded">
-                            Red {index + 1}
+                        <div className="flex flex-col items-start z-10">
+                          <span className="text-lg font-black tracking-tight leading-none">{team.team_number}</span>
+                          <span className={cn(
+                            "text-[10px] font-bold uppercase truncate max-w-[120px]",
+                            selectedTeam === team.team_number && allianceColor === 'red' ? "text-white/70" : "text-muted-foreground"
+                          )}>
+                            {team.team_name}
                           </span>
                         </div>
-                        <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          {team.team_name}
-                        </div>
-                      </motion.button>
+                        <span className={cn(
+                          "text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded bg-black/20 z-10",
+                          selectedTeam === team.team_number && allianceColor === 'red' ? "text-white" : "text-red-400"
+                        )}>
+                          RED {index + 1}
+                        </span>
+                      </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Blue Alliance */}
-                <div className="space-y-2">
-                  <div className={`text-sm font-medium ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                    Blue Alliance
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 px-1">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">Blue Alliance</span>
                   </div>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 gap-2">
                     {selectedMatch.blue_teams.map((team, index) => (
-                      <motion.button
+                      <button
                         key={team.team_number}
                         onClick={() => handleTeamSelect(team.team_number, 'blue', (index + 1) as 1 | 2 | 3)}
-                        className={`w-full p-3 rounded-lg border text-left transition-colors ${
+                        className={cn(
+                          "w-full h-[60px] px-4 rounded-xl border flex items-center justify-between transition-all group relative overflow-hidden",
                           selectedTeam === team.team_number && allianceColor === 'blue' && alliancePosition === (index + 1)
-                            ? 'border-blue-500 bg-blue-500/20 text-white'
-                            : isDarkMode 
-                              ? 'border-gray-600 bg-gray-700/50 hover:bg-gray-600/50 text-white'
-                              : 'border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-900'
-                        }`}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                            ? "border-blue-500 bg-blue-500 text-white shadow-[0_0_20px_rgba(59,130,246,0.2)]"
+                            : "border-white/5 bg-white/5 hover:bg-white/10 text-foreground"
+                        )}
                       >
-                        <div className="font-semibold flex items-center justify-between">
-                          <span>Team {team.team_number}</span>
-                          <span className="text-sm font-normal bg-blue-500/20 px-2 py-1 rounded">
-                            Blue {index + 1}
+                        <div className="flex flex-col items-start z-10">
+                          <span className="text-lg font-black tracking-tight leading-none">{team.team_number}</span>
+                          <span className={cn(
+                            "text-[10px] font-bold uppercase truncate max-w-[120px]",
+                            selectedTeam === team.team_number && allianceColor === 'blue' ? "text-white/70" : "text-muted-foreground"
+                          )}>
+                            {team.team_name}
                           </span>
                         </div>
-                        <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          {team.team_name}
-                        </div>
-                      </motion.button>
+                        <span className={cn(
+                          "text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded bg-black/20 z-10",
+                          selectedTeam === team.team_number && allianceColor === 'blue' ? "text-white" : "text-blue-400"
+                        )}>
+                          BLUE {index + 1}
+                        </span>
+                      </button>
                     ))}
                   </div>
                 </div>

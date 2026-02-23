@@ -34,7 +34,7 @@ import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAdmin } from '@/hooks/use-admin';
 
-interface PitScoutingData {
+export interface PitScoutingData {
   id: string;
   team_number: number;
   robot_name: string;

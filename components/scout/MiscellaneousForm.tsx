@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Counter } from '../ui';
+import { Badge } from '../ui/badge';
+import { cn } from '@/lib/utils';
 
 interface MiscellaneousFormProps {
   onNext: (miscData: { defense_rating: number; comments: string; average_downtime: number | null; broke: boolean | null }) => void;
@@ -58,17 +60,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
       className="w-full max-w-4xl mx-auto min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]"
     >
       <Card className="bg-card border-border">
-        {/* Progress Bar */}
-        <div className="px-3 sm:px-6 pt-3 sm:pt-6">
-          <div className="w-full bg-muted rounded-full h-2">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${progressPercentage}%` }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-gradient-to-r from-primary to-primary/80 h-2 rounded-full"
-            />
-          </div>
-        </div>
+
 
         <CardHeader className="text-center px-3 sm:px-6">
           <CardTitle className="text-foreground text-lg sm:text-xl lg:text-2xl font-bold">
@@ -79,42 +71,92 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-6">
+        <CardContent className="space-y-6 px-3 sm:px-6 py-4">
           {/* Validation Error */}
           {validationError && (
-            <div className="bg-orange-500/20 text-orange-400 p-2 sm:p-3 rounded-md text-xs sm:text-sm text-center flex items-center justify-center">
-              <span>{validationError}</span>
+            <div className="bg-destructive/10 text-destructive p-3 rounded-xl text-xs font-bold uppercase tracking-wider text-center border border-destructive/20">
+              {validationError}
             </div>
           )}
 
-          {/* Defense Rating */}
-          <div className="space-y-2 sm:space-y-4">
-            <h3 className="text-foreground font-semibold text-base sm:text-lg">Defense Rating <span className="text-destructive">*</span></h3>
-            <div className="max-w-xs">
-              <Counter
-                value={typeof formData.defense_rating === 'number' ? formData.defense_rating : 0}
-                onChange={(value: number) => handleInputChange('defense_rating', value)}
-                min={0}
-                max={10}
-                step={1}
-                label="Rate the team's defensive play"
-                isDarkMode={true}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              {/* Defense Rating */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Defense Rating</h3>
+                  <Badge variant="outline" className="font-mono text-primary border-primary/20 bg-primary/5">
+                    {formData.defense_rating}/10
+                  </Badge>
+                </div>
+                <div className="px-1">
+                  <Counter
+                    value={typeof formData.defense_rating === 'number' ? formData.defense_rating : 0}
+                    onChange={(value: number) => handleInputChange('defense_rating', value)}
+                    min={0}
+                    max={10}
+                    step={1}
+                    isDarkMode={true}
+                  />
+                </div>
+              </div>
+
+              {/* Average Downtime & Broke */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Downtime (sec)</h3>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={formData.average_downtime ?? ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const v = e.target.value;
+                      handleInputChange('average_downtime', v === '' ? null : parseFloat(v));
+                    }}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 font-mono text-sm focus:ring-1 focus:ring-primary outline-none transition-all"
+                    placeholder="0.0"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Robot Broke?</h3>
+                  <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 h-[42px]">
+                    <button
+                      type="button"
+                      onClick={() => handleInputChange('broke', true)}
+                      className={cn(
+                        "flex-1 rounded-lg text-xs font-bold transition-all",
+                        formData.broke === true ? "bg-destructive text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
+                      )}
+                    >
+                      YES
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleInputChange('broke', false)}
+                      className={cn(
+                        "flex-1 rounded-lg text-xs font-bold transition-all",
+                        formData.broke === false ? "bg-green-600 text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
+                      )}
+                    >
+                      NO
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Comments */}
+            <div className="space-y-2 flex flex-col h-full">
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Scout Observations</h3>
+              <textarea
+                value={formData.comments}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('comments', e.target.value)}
+                className="flex-1 min-h-[120px] bg-white/5 border border-white/10 text-foreground rounded-xl px-4 py-3 resize-none focus:ring-1 focus:ring-primary outline-none text-sm leading-relaxed"
+                placeholder="Notes on robot behavior, specific scores missed, etc..."
               />
             </div>
-            <p className="text-muted-foreground text-xs sm:text-sm">
-              0 = No defense, 10 = Exceptional defensive play
-            </p>
-          </div>
-
-          {/* Comments */}
-          <div className="space-y-2 sm:space-y-4">
-            <h3 className="text-foreground font-semibold text-base sm:text-lg">Comments</h3>
-            <textarea
-              value={formData.comments}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('comments', e.target.value)}
-              className="w-full h-20 sm:h-24 md:h-32 lg:h-36 bg-background border border-border text-foreground rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary text-sm sm:text-base"
-              placeholder="Add any additional observations, strategies observed, or notable robot capabilities. Note: Include which HUB was active/inactive (determined by Auto performance), TOWER climb timing, and any other relevant details..."
-            />
           </div>
 
           {/* Average Downtime */}
@@ -137,61 +179,18 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
             </p>
           </div>
 
-          {/* Broke or Not */}
-          <div className="space-y-2 sm:space-y-4">
-            <h3 className="text-foreground font-semibold text-base sm:text-lg">Robot Broke?</h3>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="broke"
-                  checked={formData.broke === true}
-                  onChange={() => handleInputChange('broke', true)}
-                  className="rounded-full border-border text-primary focus:ring-primary"
-                />
-                <span className="text-foreground">Yes</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="broke"
-                  checked={formData.broke === false}
-                  onChange={() => handleInputChange('broke', false)}
-                  className="rounded-full border-border text-primary focus:ring-primary"
-                />
-                <span className="text-foreground">No</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="broke"
-                  checked={formData.broke === null}
-                  onChange={() => handleInputChange('broke', null)}
-                  className="rounded-full border-border text-primary focus:ring-primary"
-                />
-                <span className="text-muted-foreground">Unknown / N/A</span>
-              </label>
-            </div>
-            <p className="text-muted-foreground text-xs sm:text-sm">
-              Did the robot break or stop working during the match?
-            </p>
-          </div>
-
-          {/* Game Mechanics Notes */}
-          <div className="space-y-2 sm:space-y-4">
-            <h3 className="text-foreground font-semibold text-base sm:text-lg">Important Game Mechanics Notes</h3>
-            <div className="bg-blue-900/20 border border-blue-700/50 rounded-md p-3 sm:p-4 space-y-2 text-xs sm:text-sm text-foreground">
-              <p className="font-semibold">Active vs Inactive HUB:</p>
-              <p className="text-muted-foreground">The Alliance with more FUEL scored in Auto determines which goal becomes inactive during Shifts 2 and 4 in Teleop. FUEL in inactive HUB scores 0 points.</p>
-              
-              <p className="font-semibold mt-3">TOWER Points Evaluation:</p>
-              <p className="text-muted-foreground">TOWER points are evaluated about 3 seconds after the match ends or when all robots have come to rest.</p>
-              
-              <p className="font-semibold mt-3">FUEL Scoring Evaluation:</p>
-              <p className="text-muted-foreground">FUEL scoring is evaluated for up to 3 seconds after AUTO and after the match end to catch late-entering FUEL.</p>
-              
-              <p className="font-semibold mt-3">Endgame (Last 30 seconds):</p>
-              <p className="text-muted-foreground">During Endgame (0:30-0:00), both HUBs are active, so every FUEL correctly scored = 1 point.</p>
+          {/* Game Mechanics (Simplified) */}
+          <div className="bg-primary/5 border border-primary/10 rounded-xl p-4">
+            <h4 className="text-[10px] font-black uppercase text-primary tracking-[0.2em] mb-3">Quick Reference</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[11px] leading-tight">
+              <div className="space-y-1">
+                <span className="font-bold text-foreground/80 block uppercase">HUB Status</span>
+                <p className="text-muted-foreground">Inactive HUB (determined by Auto) scores 0 pts during Shifts 2 & 4.</p>
+              </div>
+              <div className="space-y-1">
+                <span className="font-bold text-foreground/80 block uppercase">Endgame</span>
+                <p className="text-muted-foreground">Last 30s: All HUBs active. TOWER pts evaluated when robots stop.</p>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -204,13 +203,13 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
           >
             Previous
           </Button>
-          
+
           <Button
             onClick={() => {
               // Validate required fields
               const defenseRating = typeof formData.defense_rating === 'number' ? formData.defense_rating : 0;
               const comments = formData.comments.trim();
-              
+
               if (defenseRating < 0 || defenseRating > 10) {
                 setValidationError('Please provide a defense rating between 0 and 10.');
                 return;

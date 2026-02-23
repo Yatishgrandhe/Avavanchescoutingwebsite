@@ -17,9 +17,10 @@ import {
   Award,
   CheckCircle,
   XCircle,
-  AlertCircle,
   BarChart3,
   TrendingUp,
+  Wrench,
+  AlertCircle,
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -33,6 +34,24 @@ import {
   getUptimePct,
   parseNotes,
 } from '@/lib/analytics';
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from 'recharts';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
+import { PitScoutingData } from '@/pages/pit-scouting-data';
 
 // Helper component for stat cards
 const StatCard = ({ label, value, color, icon: Icon, subLabel }: any) => (
@@ -81,6 +100,7 @@ const TeamDetail: React.FC = () => {
 
   const [team, setTeam] = useState<Team | null>(null);
   const [scoutingData, setScoutingData] = useState<ScoutingData[]>([]);
+  const [pitData, setPitData] = useState<PitScoutingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
 
@@ -113,8 +133,16 @@ const TeamDetail: React.FC = () => {
 
       if (scoutingError) throw scoutingError;
 
+      // Load pit scouting data
+      const { data: pitDataResult, error: pitError } = await supabase
+        .from('pit_scouting_data')
+        .select('*')
+        .eq('team_number', teamNum)
+        .maybeSingle();
+
       setTeam(teamData);
       setScoutingData(scoutingDataResult || []);
+      setPitData(pitDataResult);
     } catch (error) {
       console.error('Error loading team data:', error);
     } finally {
@@ -162,6 +190,23 @@ const TeamDetail: React.FC = () => {
       rpmagic: rebuilt.rpmagic,
       goblin: rebuilt.goblin,
       epa: Math.round(avgTotal * 10) / 10, // Expected Points Added = avg score
+
+      // Data for Radar Chart
+      radarData: [
+        { subject: 'Reliability', A: Math.max(0, 100 - (rebuilt.broke_rate || 0)), fullMark: 100 },
+        { subject: 'Teleop', A: Math.min(100, (rebuilt.avg_teleop_fuel / 40) * 100), fullMark: 100 },
+        { subject: 'Climb', A: Math.min(100, (rebuilt.avg_climb_pts / 30) * 100), fullMark: 100 },
+        { subject: 'Uptime', A: rebuilt.avg_uptime_pct || 0, fullMark: 100 },
+        { subject: 'Consistency', A: Math.min(100, Math.max(0, 100 - Math.abs(rebuilt.goblin) * 10)), fullMark: 100 },
+      ],
+
+      // Trends for Line Chart
+      trends: scoutingData.map(d => ({
+        match: `#${d.match_id}`,
+        score: d.final_score,
+        tele: d.teleop_points,
+        auto: d.autonomous_points
+      })).reverse()
     };
   };
 
@@ -250,295 +295,402 @@ const TeamDetail: React.FC = () => {
   return (
     <ProtectedRoute>
       <Layout>
-        <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 pb-10">
+        <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 pb-10 px-4">
           {/* Header Section */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col md:flex-row md:items-center justify-between gap-4"
-          >
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mt-2">
             <div>
-              <Button
-                onClick={() => {
-                  // Try to close the window/tab
-                  if (typeof window !== 'undefined') {
-                    window.close();
-                    // If window.close() doesn't work (e.g., page wasn't opened by script),
-                    // navigate to home after a short delay
-                    setTimeout(() => {
-                      router.push('/');
-                    }, 100);
-                  }
-                }}
-                variant="ghost"
-                size="sm"
-                className="mb-4 text-muted-foreground hover:text-foreground pl-0 hover:bg-transparent"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" /> Back
-              </Button>
-              <h1 className="text-4xl md:text-5xl font-heading font-bold text-foreground flex items-center gap-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">Team Analysis</Badge>
+                <span>•</span>
+                <span className="font-mono">Season 2026</span>
+              </div>
+              <h1 className="text-4xl md:text-6xl font-heading font-black tracking-tight text-foreground flex items-baseline gap-4">
                 <span className="text-primary">{team.team_number}</span>
-                <span className="text-muted-foreground/50 hidden md:inline">|</span>
-                <span className="text-2xl md:text-4xl">{team.team_name}</span>
+                <span className="text-2xl md:text-4xl font-bold opacity-90">{team.team_name}</span>
               </h1>
-              <p className="text-muted-foreground mt-2 max-w-2xl">
-                Comprehensive performance analysis for FRC Season 2026 Rebuilt.
-              </p>
             </div>
-          </motion.div>
 
-          {/* Stats Overview Grid — REBUILT + EPA */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/analysis/data')}
+                className="glass border-white/10"
+              >
+                Switch Team
+              </Button>
+              <Button size="sm" className="shadow-lg shadow-primary/20">
+                Compare
+              </Button>
+            </div>
+          </div>
+
           {teamStats && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="space-y-4"
-            >
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-                <StatCard label="Matches Scouted" value={teamStats.totalMatches} color="blue" icon={Database} />
-                <StatCard label="EPA" value={teamStats.epa} color="primary" icon={TrendingUp} subLabel="Expected Pts" />
-                <StatCard label="AVG AUTO" value={teamStats.avg_auto_fuel} color="blue" icon={Clock} subLabel="fuel" />
-                <StatCard label="AVG TELEOP" value={teamStats.avg_teleop_fuel} color="orange" icon={Zap} subLabel="fuel" />
-                <StatCard label="AVG CLIMB" value={teamStats.avg_climb_pts} color="green" icon={Award} subLabel="pts" />
-                <StatCard label="Defense" value={teamStats.avgDefense} color="red" icon={Shield} subLabel="/10" />
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-                <StatCard label="AVG UPTIME" value={teamStats.avg_uptime_pct != null ? `${teamStats.avg_uptime_pct}%` : '—'} color="green" icon={Activity} />
-                <StatCard label="AVG DOWNTIME" value={teamStats.avg_downtime_sec != null ? `${teamStats.avg_downtime_sec}s` : '—'} color="red" icon={Clock} />
-                <StatCard label="BROKE" value={`${teamStats.broke_count}/${teamStats.totalMatches}`} color="red" icon={AlertCircle} subLabel={teamStats.broke_rate ? `${teamStats.broke_rate}%` : ''} />
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <div className="glass-card p-4 rounded-xl flex flex-col justify-center items-center text-center border border-white/5 min-w-[120px]">
-                  <div className="text-xs text-green-400 font-mono">BEST: {teamStats.bestScore}</div>
-                  <div className="w-full h-px bg-white/10 my-1" />
-                  <div className="text-xs text-red-400 font-mono">WORST: {teamStats.worstScore}</div>
-                </div>
-              </div>
-
-              {/* REBUILT KPIs: CLANK, RPMAGIC, GOBLIN with explanations */}
-              <div className="rounded-xl border border-white/10 bg-card/50 p-4 sm:p-6 space-y-6">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">REBUILT advanced metrics</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="rounded-lg border border-white/5 bg-white/5 p-4 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-foreground">CLANK</span>
-                      <span className="text-2xl font-bold tabular-nums text-primary">{teamStats.clank}</span>
-                    </div>
-                    <p className="text-xs font-medium text-muted-foreground">Climb Level Accuracy & No-Knockdown</p>
-                    <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
-                      Climb pts adjusted for speed: +2 for ≤3s, -2 for &gt;6s. Pure avg climb pts (no time = no adjustment).
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-white/5 bg-white/5 p-4 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-foreground">RPMAGIC</span>
-                      <span className="text-2xl font-bold tabular-nums text-primary">{teamStats.rpmagic.toFixed(3)}</span>
-                    </div>
-                    <p className="text-xs font-medium text-muted-foreground">Ranking Points — Match Advantage Generated In Cycles</p>
-                    <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
-                      Marginal probability of earning an RP attributable to this team&apos;s scoring contribution per match.
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-white/5 bg-white/5 p-4 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-foreground">GOBLIN</span>
-                      <span className={cn("text-2xl font-bold tabular-nums", teamStats.goblin >= 0 ? "text-green-500" : "text-red-500")}>
-                        {teamStats.goblin >= 0 ? `+${teamStats.goblin}` : teamStats.goblin}
-                      </span>
-                    </div>
-                    <p className="text-xs font-medium text-muted-foreground">Game Outcome Boost from Luck, In Numbers</p>
-                    <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
-                      Difference between actual match margin and expected margin based on scouted performance. Positive = luckier than expected.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Match History List */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-4"
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-                <Database className="w-5 h-5 text-primary" />
-                Match History
-              </h2>
-              <Badge variant="outline" className="border-white/10 bg-white/5">
-                {scoutingData.length} Records
-              </Badge>
-            </div>
-
-            {scoutingData.length === 0 ? (
-              <div className="glass-card p-12 rounded-2xl text-center border-dashed border-2 border-white/10">
-                <div className="bg-white/5 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Database className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-medium text-foreground">No Match Data Yet</h3>
-                <p className="text-muted-foreground mt-1">Start scouting matches to populate this data.</p>
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                {scoutingData.map((data, index) => (
-                  <motion.div
-                    key={data.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 + (index * 0.05) }}
-                    className="glass-card rounded-xl overflow-hidden border border-white/5 hover:border-primary/20 transition-all group"
+            <Tabs defaultValue="overview" className="w-full">
+              <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-px overflow-x-auto">
+                <TabsList className="bg-transparent h-12 p-0 gap-8 justify-start">
+                  <TabsTrigger
+                    value="overview"
+                    className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 font-bold transition-all text-muted-foreground data-[state=active]:text-foreground"
                   >
-                    {/* Match Header Summary */}
-                    <div
-                      className="p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer"
-                      onClick={() => setSelectedMatch(selectedMatch === data.id ? null : data.id)}
-                    >
-                      <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex flex-col">
-                          <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider text-left">Match</span>
-                          <span className="text-xl font-bold font-mono text-foreground">#{data.match_id}</span>
-                        </div>
+                    OVERVIEW
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="advanced"
+                    className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 font-bold transition-all text-muted-foreground data-[state=active]:text-foreground"
+                  >
+                    ADVANCED
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="pit"
+                    className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 font-bold transition-all text-muted-foreground data-[state=active]:text-foreground"
+                  >
+                    PIT DATA
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="matches"
+                    className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 font-bold transition-all text-muted-foreground data-[state=active]:text-foreground"
+                  >
+                    MATCH HISTORY
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
-                        <div className="h-8 w-px bg-white/10 hidden md:block mx-2" />
+              <TabsContent value="overview" className="space-y-6 outline-none">
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+                  <StatCard label="Avg Scored" value={teamStats.avgTotal} color="primary" icon={TrendingUp} subLabel="points/match" />
+                  <StatCard label="Matches" value={teamStats.totalMatches} color="blue" icon={Database} subLabel="scouted" />
+                  <StatCard label="Avg Auto" value={teamStats.avg_auto_fuel} color="blue" icon={Clock} subLabel="fuel" />
+                  <StatCard label="Avg Teleop" value={teamStats.avg_teleop_fuel} color="orange" icon={Zap} subLabel="fuel" />
+                  <StatCard label="Avg Climb" value={teamStats.avg_climb_pts} color="green" icon={Award} subLabel="pts" />
+                  <StatCard label="Consistency" value={`${teamStats.consistencyScore}%`} color="purple" icon={Activity} />
+                </div>
 
-                        <Badge
-                          className={cn(
-                            "uppercase text-[10px] tracking-widest px-2 py-1",
-                            data.alliance_color === 'red'
-                              ? "bg-red-500/10 text-red-500 hover:bg-red-500/20"
-                              : "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"
-                          )}
-                        >
-                          {data.alliance_color} Alliance
-                        </Badge>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  {/* Radar Chart Section */}
+                  <Card className="lg:col-span-5 glass bg-white/5 border-white/10">
+                    <CardHeader>
+                      <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4" /> Performance Balance
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-[350px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={teamStats.radarData}>
+                          <PolarGrid stroke="rgba(255,255,255,0.1)" />
+                          <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12 }} />
+                          <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} stroke="none" />
+                          <Radar
+                            name={team.team_name}
+                            dataKey="A"
+                            stroke="#3b82f6"
+                            fill="#3b82f6"
+                            fillOpacity={0.5}
+                          />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
 
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-white/5 px-2 py-1 rounded-md">
-                          <User className="w-3 h-3" />
-                          <span>{data.submitted_by_name || 'Anonymous'}</span>
-                        </div>
+                  {/* Trends Chart Section */}
+                  <Card className="lg:col-span-7 glass bg-white/5 border-white/10">
+                    <CardHeader>
+                      <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                        <Activity className="w-4 h-4" /> Scoring Trends
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-[350px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={teamStats.trends}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                          <XAxis dataKey="match" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: '#09090b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                            itemStyle={{ fontSize: '12px' }}
+                          />
+                          <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="advanced" className="outline-none">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Card className="glass bg-white/5 border-white/10 overflow-hidden">
+                    <div className="p-6 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold">CLANK</h3>
+                        <Badge variant="outline" className="bg-primary/10 text-primary">{teamStats.clank}</Badge>
                       </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Climb Level Accuracy & No-Knockdown. Adjusted for speed: +2 for ≤3s, -2 for &gt;6s.
+                      </p>
+                      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-primary" style={{ width: `${Math.min(100, (teamStats.clank / 30) * 100)}%` }} />
+                      </div>
+                    </div>
+                  </Card>
 
-                      <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto">
-                        <div className="grid grid-cols-4 gap-4 sm:gap-6 text-center">
-                          <div>
-                            <div className="text-xs text-muted-foreground uppercase">Auto</div>
-                            <div className="font-bold text-blue-400">{data.autonomous_points ?? 0}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-muted-foreground uppercase">Tele</div>
-                            <div className="font-bold text-orange-400">{data.teleop_points ?? 0}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-muted-foreground uppercase">Climb</div>
-                            <div className="font-bold text-green-400">
-                              {(() => {
-                                const c = getClimbAchieved(data.notes);
-                                return c ? `${c.label} (${c.points})` : '—';
-                              })()}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-muted-foreground uppercase">Broke</div>
-                            <div className="font-bold">{data.broke ? 'Yes' : 'No'}</div>
-                          </div>
+                  <Card className="glass bg-white/5 border-white/10 overflow-hidden">
+                    <div className="p-6 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold">RPMAGIC</h3>
+                        <Badge variant="outline" className="bg-green-500/10 text-green-500">{teamStats.rpmagic.toFixed(3)}</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Ranking Points — Match Advantage Generated In Cycles. Marginal probability of earning RP.
+                      </p>
+                      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-green-500" style={{ width: `${teamStats.rpmagic * 100}%` }} />
+                      </div>
+                    </div>
+                  </Card>
+
+                  <Card className="glass bg-white/5 border-white/10 overflow-hidden">
+                    <div className="p-6 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold">GOBLIN</h3>
+                        <Badge variant="outline" className={cn(teamStats.goblin >= 0 ? "bg-blue-500/10 text-blue-500" : "bg-red-500/10 text-red-500")}>
+                          {teamStats.goblin >= 0 ? `+${teamStats.goblin}` : teamStats.goblin}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Game Outcome Boost from Luck, In Numbers. Positive = luckier than expected.
+                      </p>
+                      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-blue-500" style={{ width: `${Math.min(100, Math.abs(teamStats.goblin) * 5)}%` }} />
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="pit" className="outline-none">
+                {pitData ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className="lg:col-span-4 lg:sticky lg:top-24 h-fit space-y-4">
+                      <Card className="glass bg-white/5 border-white/10 overflow-hidden p-1">
+                        <div className="aspect-[4/3] rounded-lg overflow-hidden relative group">
+                          <img
+                            src={pitData.photos?.[0] || pitData.robot_image_url || '/placeholder-robot.png'}
+                            alt={team.team_name}
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          />
                         </div>
-
-                        <div className="flex items-center gap-4 border-l border-white/10 pl-6">
-                          <div className="text-right">
-                            <div className="text-xs text-muted-foreground uppercase tracking-wider">Total</div>
-                            <div className="text-2xl font-bold text-primary leading-none">{data.final_score}</div>
-                          </div>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full md:hidden">
-                            {selectedMatch === data.id ? <XCircle className="w-5 h-5" /> : <BarChart3 className="w-5 h-5" />}
-                          </Button>
+                      </Card>
+                      <div className="space-y-2">
+                        <h3 className="text-xl font-bold">{pitData.robot_name || 'Generic Bot'}</h3>
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-primary/20 text-primary border-primary/20">{pitData.drive_type}</Badge>
+                          <Badge variant="outline" className="border-white/10">{pitData.weight} lbs</Badge>
                         </div>
                       </div>
                     </div>
 
-                    {/* Detailed Dropdown */}
-                    <AnimatePresence>
-                      {selectedMatch === data.id && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="bg-black/20 border-t border-white/5"
-                        >
-                          <div className="p-4 md:p-6">
-                            {/* Match reliability: downtime, uptime, broke */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                              <div className="p-3 rounded-lg bg-white/5 border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block">Downtime</span>
-                                <span className="text-sm font-bold">{data.average_downtime != null ? `${Number(data.average_downtime)}s` : '—'}</span>
-                              </div>
-                              <div className="p-3 rounded-lg bg-white/5 border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block">Uptime</span>
-                                <span className="text-sm font-bold">{getUptimePct(data.average_downtime ?? null) != null ? `${getUptimePct(data.average_downtime ?? null)}%` : '—'}</span>
-                              </div>
-                              <div className="p-3 rounded-lg bg-white/5 border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block">Broke</span>
-                                <span className="text-sm font-bold">{data.broke ? 'Yes' : 'No'}</span>
-                              </div>
-                              <div className="p-3 rounded-lg bg-white/5 border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block">Climb</span>
-                                <span className="text-sm font-bold">
-                                  {(() => { const c = getClimbAchieved(data.notes); return c ? `${c.label} (${c.points} pts)` : 'None'; })()}
-                                </span>
-                              </div>
+                    <div className="lg:col-span-8 space-y-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <h4 className="text-sm font-bold text-muted-foreground uppercase flex items-center gap-2">
+                            <Wrench className="w-4 h-4" /> Drivetrain
+                          </h4>
+                          <div className="glass-card p-4 rounded-xl space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Type</span>
+                              <span className="font-bold">{pitData.drive_type}</span>
                             </div>
-
-                            {/* Defense & Comments Row */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                              <div className="glass-card p-4 rounded-lg bg-white/5">
-                                <span className="text-xs text-muted-foreground flex items-center gap-2 mb-2 uppercase tracking-wide">
-                                  <Shield className="w-3 h-3" /> Defense Rating
-                                </span>
-                                <div className="flex items-center gap-1">
-                                  {[...Array(10)].map((_, i) => (
-                                    <div
-                                      key={i}
-                                      className={cn(
-                                        "h-2 flex-1 rounded-full transition-all",
-                                        i < (data.defense_rating || 0) ? "bg-red-500" : "bg-white/10"
-                                      )}
-                                    />
-                                  ))}
-                                  <span className="ml-2 text-sm font-bold text-white">{data.defense_rating}/10</span>
-                                </div>
-                              </div>
-
-                              {data.comments && (
-                                <div className="glass-card p-4 rounded-lg bg-white/5">
-                                  <span className="text-xs text-muted-foreground flex items-center gap-2 mb-2 uppercase tracking-wide">
-                                    <MessageSquare className="w-3 h-3" /> Scout Comments
-                                  </span>
-                                  <p className="text-sm italic text-foreground/80 leading-relaxed">"{data.comments}"</p>
-                                </div>
-                              )}
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Dimensions</span>
+                              <span className="font-bold">{pitData.robot_dimensions?.length}"x{pitData.robot_dimensions?.width}"x{pitData.robot_dimensions?.height}"</span>
                             </div>
-
-                            {/* Full Scoring Breakdown */}
-                            {data.notes && (
-                              <div>
-                                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest border-b border-white/5 pb-2 mb-4">
-                                  Detailed Score Breakdown
-                                </h4>
-                                {renderScoringBreakdown(data.notes)}
-                              </div>
-                            )}
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Motor Count</span>
+                              <span className="font-bold">{pitData.drive_train_details?.drive_camps || '—'}</span>
+                            </div>
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </motion.div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <h4 className="text-sm font-bold text-muted-foreground uppercase flex items-center gap-2">
+                            <Zap className="w-4 h-4" /> Autonomous
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {pitData.autonomous_capabilities?.map((cap: string, i: number) => (
+                              <Badge key={i} variant="secondary" className="bg-white/5 border-white/10">{cap}</Badge>
+                            )) || <span className="text-muted-foreground text-sm italic">None documented</span>}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-bold text-muted-foreground uppercase flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4" /> Pit Scout Notes
+                        </h4>
+                        <Card className="glass-card p-6 bg-white/5 border-white/10">
+                          <p className="text-muted-foreground text-sm italic leading-relaxed whitespace-pre-wrap">
+                            "{pitData.notes || 'No notes provided by the scout.'}"
+                          </p>
+                        </Card>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <h4 className="text-sm font-bold text-green-400 uppercase">Strengths</h4>
+                          <ul className="space-y-2">
+                            {pitData.strengths?.map((s: string, i: number) => (
+                              <li key={i} className="flex items-center gap-2 text-sm">
+                                <CheckCircle className="w-4 h-4 text-green-500" /> {s}
+                              </li>
+                            )) || <span className="text-muted-foreground text-sm">Nothing noted</span>}
+                          </ul>
+                        </div>
+                        <div className="space-y-4">
+                          <h4 className="text-sm font-bold text-red-400 uppercase">Weaknesses</h4>
+                          <ul className="space-y-2">
+                            {pitData.weaknesses?.map((w: string, i: number) => (
+                              <li key={i} className="flex items-center gap-2 text-sm">
+                                <XCircle className="w-4 h-4 text-red-500" /> {w}
+                              </li>
+                            )) || <span className="text-muted-foreground text-sm">Nothing noted</span>}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-20 text-center glass-card rounded-2xl border-dashed border-2 border-white/5">
+                    <Database className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-20" />
+                    <h3 className="text-lg font-medium">No Pit Scouting Data</h3>
+                    <p className="text-muted-foreground text-sm">Data for this team hasn't been collected in the pits yet.</p>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="matches" className="outline-none space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold flex items-center gap-2 tracking-tight">
+                    <Database className="w-5 h-5 text-primary" /> RECORDED MATCHES
+                  </h2>
+                  <Badge variant="outline" className="opacity-60">{scoutingData.length} records</Badge>
+                </div>
+
+                {scoutingData.length > 0 ? (
+                  <div className="grid gap-3 sm:gap-4">
+                    {scoutingData.map((data, index) => (
+                      <motion.div
+                        key={data.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        onClick={() => setSelectedMatch(selectedMatch === data.id ? null : data.id)}
+                        className={cn(
+                          "glass border border-white/5 rounded-2xl overflow-hidden cursor-pointer transition-all hover:bg-white/[0.02]",
+                          selectedMatch === data.id && "border-primary/50 bg-primary/5 ring-1 ring-primary/20"
+                        )}
+                      >
+                        <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className="bg-white/5 h-12 w-12 rounded-xl flex flex-col items-center justify-center border border-white/10">
+                              <span className="text-[10px] text-muted-foreground font-bold uppercase leading-none mb-1">MTCH</span>
+                              <span className="text-lg font-black leading-none">{data.match_id}</span>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge className={cn(
+                                  "text-[10px] tracking-widest font-black uppercase",
+                                  data.alliance_color === 'red' ? "bg-red-500/20 text-red-500 hover:bg-red-500/30" : "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
+                                )}>
+                                  {data.alliance_color}
+                                </Badge>
+                                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
+                                  {data.submitted_by_name || 'Anonymous Scout'}
+                                </span>
+                              </div>
+                              <div className="text-lg font-black text-foreground">
+                                Total: <span className="text-primary">{data.final_score} pts</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-4 gap-4 flex-1 sm:max-w-xs text-center border-t sm:border-t-0 sm:border-l border-white/10 pt-4 sm:pt-0 sm:pl-6">
+                            <div>
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Auto</p>
+                              <p className="font-bold text-blue-400">{data.autonomous_points}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Tele</p>
+                              <p className="font-bold text-orange-400">{data.teleop_points}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Climb</p>
+                              <p className="font-bold text-green-400">
+                                {getClimbAchieved(data.notes)?.label || '—'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Fail</p>
+                              <p className={cn("font-bold", data.broke ? "text-red-500" : "text-muted-foreground opacity-30")}>
+                                {data.broke ? 'YES' : 'NO'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <AnimatePresence>
+                          {selectedMatch === data.id && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="border-t border-white/5 bg-black/40"
+                            >
+                              <div className="p-4 sm:p-6 space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                  <div className="space-y-4">
+                                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">Scout Observations</h4>
+                                    <div className="bg-white/5 p-4 rounded-xl border border-white/5 text-sm italic text-foreground/80 leading-relaxed">
+                                      "{data.comments || "No specific comments recorded for this match."}"
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-4">
+                                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">Performance Details</h4>
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Uptime</p>
+                                        <p className="text-sm font-black">{getUptimePct(data.average_downtime) || 0}%</p>
+                                      </div>
+                                      <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Defense</p>
+                                        <p className="text-sm font-black">{data.defense_rating}/10</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">Full Scoring Breakdown</h4>
+                                  {renderScoringBreakdown(data.notes)}
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-20 text-center glass-card rounded-2xl border-dashed border-2 border-white/5">
+                    <Database className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-20" />
+                    <h3 className="text-lg font-medium">No Match Data</h3>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
       </Layout>
     </ProtectedRoute>

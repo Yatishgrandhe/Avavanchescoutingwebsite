@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui';
@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/router';
 import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, ValidationResult } from '@/lib/form-validation';
-import PitPhotosUpload from '@/components/ui/PitPhotosUpload';
+import PitPhotosUpload, { PhotoItem } from '@/components/ui/PitPhotosUpload';
 
 interface Team {
   team_number: number;
@@ -52,7 +52,7 @@ interface PitScoutingData {
   shootingLocationsCount?: number;
   programmingLanguage: string;
   notes: string;
-  photos: string[];
+  photos: PhotoItem[];
   strengths: string[];
   weaknesses: string[];
   overallRating: number;
@@ -100,8 +100,84 @@ export default function PitScoutingMobile() {
   const [scoutedTeamNumbers, setScoutedTeamNumbers] = useState<Set<number>>(new Set());
 
   const totalSteps = 4;
+  const saveDraftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load teams from database
+  // On mount: clear draft on page refresh; restore draft on navigation
+  useEffect(() => {
+    const navEntries = performance.getEntriesByType?.('navigation');
+    const isReload = navEntries?.[0] && (navEntries[0] as PerformanceNavigationTiming).type === 'reload';
+
+    try {
+      if (isReload) {
+        sessionStorage.removeItem('pitScoutingDraft');
+        return;
+      }
+
+      const raw = sessionStorage.getItem('pitScoutingDraft');
+      if (!raw) return;
+      const draft = JSON.parse(raw) as { formData: Partial<PitScoutingData> & { photos?: (string | null)[] }; currentStep?: number };
+      if (!draft.formData) return;
+
+      const fd = draft.formData;
+      const photos: PhotoItem[] = (fd.photos || []).slice(0, 6).map((p) => (p && typeof p === 'string' ? p : null));
+      while (photos.length < 6) photos.push(null);
+
+      setFormData((prev) => ({
+        ...prev,
+        teamNumber: fd.teamNumber ?? prev.teamNumber,
+        robotName: fd.robotName ?? prev.robotName,
+        driveType: fd.driveType ?? prev.driveType,
+        driveTrainOther: fd.driveTrainOther ?? prev.driveTrainOther,
+        autonomousCapabilities: Array.isArray(fd.autonomousCapabilities) ? fd.autonomousCapabilities : prev.autonomousCapabilities,
+        teleopCapabilities: Array.isArray(fd.teleopCapabilities) ? fd.teleopCapabilities : prev.teleopCapabilities,
+        canClimb: fd.canClimb ?? prev.canClimb,
+        climbLevels: Array.isArray(fd.climbLevels) ? fd.climbLevels : prev.climbLevels,
+        climbLocation: fd.climbLocation ?? prev.climbLocation,
+        navigationLocations: Array.isArray(fd.navigationLocations) ? fd.navigationLocations : prev.navigationLocations,
+        ballHoldAmount: fd.ballHoldAmount ?? prev.ballHoldAmount,
+        downtimeStrategy: Array.isArray(fd.downtimeStrategy) ? fd.downtimeStrategy : prev.downtimeStrategy,
+        robotDimensions: fd.robotDimensions && typeof fd.robotDimensions === 'object' ? { ...prev.robotDimensions, ...fd.robotDimensions } : prev.robotDimensions,
+        weight: fd.weight ?? prev.weight,
+        cameraCount: fd.cameraCount ?? prev.cameraCount,
+        shootingLocationsCount: fd.shootingLocationsCount ?? prev.shootingLocationsCount,
+        programmingLanguage: fd.programmingLanguage ?? prev.programmingLanguage,
+        notes: fd.notes ?? prev.notes,
+        photos,
+        strengths: Array.isArray(fd.strengths) ? fd.strengths : prev.strengths,
+        weaknesses: Array.isArray(fd.weaknesses) ? fd.weaknesses : prev.weaknesses,
+        overallRating: fd.overallRating ?? prev.overallRating,
+      }));
+      if (typeof draft.currentStep === 'number' && draft.currentStep >= 1 && draft.currentStep <= totalSteps) {
+        setCurrentStep(draft.currentStep);
+      }
+    } catch {
+      try { sessionStorage.removeItem('pitScoutingDraft'); } catch {}
+    }
+  }, []);
+
+  // Debounced save to sessionStorage (photos: only URLs, Files are lost on restore)
+  useEffect(() => {
+    if (saveDraftTimerRef.current) clearTimeout(saveDraftTimerRef.current);
+    saveDraftTimerRef.current = setTimeout(() => {
+      try {
+        const photoUrls = (formData.photos || []).slice(0, 6).map((p) => (p && typeof p === 'string' ? p : null));
+        while (photoUrls.length < 6) photoUrls.push(null);
+        const draft = {
+          formData: { ...formData, photos: photoUrls },
+          currentStep,
+        };
+        sessionStorage.setItem('pitScoutingDraft', JSON.stringify(draft));
+      } catch {
+        /* ignore */
+      }
+      saveDraftTimerRef.current = null;
+    }, 500);
+
+    return () => {
+      if (saveDraftTimerRef.current) clearTimeout(saveDraftTimerRef.current);
+    };
+  }, [formData, currentStep]);
+
   useEffect(() => {
     const loadTeams = async () => {
       setLoadingTeams(true);
@@ -187,6 +263,28 @@ export default function PitScoutingMobile() {
         throw new Error(errorMessage);
       }
 
+      // Upload photos only on Submit (Files → URLs)
+      const photoItems = (formData.photos || []).slice(0, 6);
+      const photoUrls: string[] = [];
+      for (const item of photoItems) {
+        if (!item) continue;
+        if (typeof item === 'string') {
+          photoUrls.push(item);
+        } else {
+          const fd = new FormData();
+          fd.append('image', item);
+          fd.append('teamNumber', formData.teamNumber.toString());
+          fd.append('teamName', formData.robotName || 'Unknown');
+          try {
+            const upRes = await fetch('/api/upload-robot-image', { method: 'POST', body: fd });
+            const upData = await upRes.json();
+            if (upRes.ok && upData.directViewUrl) photoUrls.push(upData.directViewUrl);
+          } catch {
+            console.warn('Failed to upload photo');
+          }
+        }
+      }
+
       // Prepare the data with submitter information
       const submissionData = {
         team_number: formData.teamNumber,
@@ -223,8 +321,8 @@ export default function PitScoutingMobile() {
         shooting_locations_count: formData.shootingLocationsCount || 0,
         programming_language: formData.programmingLanguage,
         notes: formData.notes,
-        photos: (formData.photos || []).slice(0, 6),
-        robot_image_url: (formData.photos || [])[0] || null,
+        photos: photoUrls,
+        robot_image_url: photoUrls[0] || null,
         strengths: formData.strengths,
         weaknesses: formData.weaknesses,
         overall_rating: formData.overallRating || 0,
@@ -249,6 +347,9 @@ export default function PitScoutingMobile() {
       }
       
       console.log('Successfully saved pit scouting data:', data);
+      try {
+        sessionStorage.removeItem('pitScoutingDraft');
+      } catch {}
       setSubmitSuccess(true);
       
       // Reset form after successful submission
@@ -441,14 +542,12 @@ export default function PitScoutingMobile() {
 
                     {/* Pit Photos (up to 6) */}
                     <PitPhotosUpload
-                      teamNumber={formData.teamNumber}
-                      teamName={teams.find(t => t.team_number === formData.teamNumber)?.team_name || 'Unknown'}
                       photos={(() => {
-                        const p: (string | null)[] = [...(formData.photos || [])].slice(0, 6);
+                        const p: PhotoItem[] = [...(formData.photos || [])].slice(0, 6);
                         while (p.length < 6) p.push(null);
                         return p;
                       })()}
-                      onPhotosChange={(arr) => setFormData(prev => ({ ...prev, photos: arr.filter((x): x is string => Boolean(x)) }))}
+                      onPhotosChange={(arr) => setFormData(prev => ({ ...prev, photos: arr }))}
                     />
                   </div>
                   

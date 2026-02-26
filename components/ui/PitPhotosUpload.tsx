@@ -1,31 +1,28 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
-import { Button } from './Button';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { Camera, X, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const MAX_PHOTOS = 6;
 
+/** File = new (not yet uploaded), string = existing URL (from edit) */
+export type PhotoItem = File | string | null;
+
 interface PitPhotosUploadProps {
-  teamNumber: number;
-  teamName: string;
-  photos: (string | null)[];
-  onPhotosChange: (photos: (string | null)[]) => void;
+  photos: PhotoItem[];
+  onPhotosChange: (photos: PhotoItem[]) => void;
   className?: string;
 }
 
 export function PitPhotosUpload({
-  teamNumber,
-  teamName,
   photos,
   onPhotosChange,
   className,
 }: PitPhotosUploadProps) {
-  const [slotUploading, setSlotUploading] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const urlCacheRef = useRef<Map<number, string>>(new Map());
 
-  const paddedPhotos = useCallback((): (string | null)[] => {
+  const paddedPhotos = useCallback((): PhotoItem[] => {
     const arr = [...(photos || [])];
     while (arr.length < MAX_PHOTOS) arr.push(null);
     return arr.slice(0, MAX_PHOTOS);
@@ -34,47 +31,31 @@ export function PitPhotosUpload({
   const filledCount = paddedPhotos().filter(Boolean).length;
   const canAdd = filledCount < MAX_PHOTOS;
 
-  const uploadFile = useCallback(
-    async (file: File, slotIndex: number): Promise<string | null> => {
-      if (!teamNumber || teamNumber === 0) {
-        setUploadError('Please select a team number first');
-        return null;
-      }
-      setSlotUploading(slotIndex);
-      setUploadError(null);
+  const objectUrls = useMemo(() => {
+    const prev = urlCacheRef.current;
+    prev.forEach((u) => URL.revokeObjectURL(u));
+    prev.clear();
+    const next = new Map<number, string>();
+    paddedPhotos().forEach((p, i) => {
+      if (p instanceof File) next.set(i, URL.createObjectURL(p));
+    });
+    urlCacheRef.current = next;
+    return next;
+  }, [photos]);
 
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('teamNumber', teamNumber.toString());
-      formData.append('teamName', teamName);
+  useEffect(() => () => {
+    urlCacheRef.current.forEach((u) => URL.revokeObjectURL(u));
+    urlCacheRef.current.clear();
+  }, []);
 
-      try {
-        const response = await fetch('/api/upload-robot-image', {
-          method: 'POST',
-          body: formData,
-        });
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || data.details || `Upload failed: ${response.status}`);
-        }
-        if (!data.directViewUrl) {
-          throw new Error('No image URL returned');
-        }
-        return data.directViewUrl;
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Upload failed';
-        setUploadError(msg);
-        return null;
-      } finally {
-        setSlotUploading(null);
-      }
-    },
-    [teamNumber, teamName]
-  );
+  const getPreviewUrl = (item: PhotoItem, index: number): string | null => {
+    if (!item) return null;
+    if (typeof item === 'string') return item;
+    return objectUrls.get(index) ?? null;
+  };
 
   const handleFileSelect = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
       if (!file.type.startsWith('image/')) {
@@ -85,20 +66,16 @@ export function PitPhotosUpload({
         setUploadError('Image must be smaller than 10MB');
         return;
       }
-
+      setUploadError(null);
       const current = paddedPhotos();
       const slotIndex = current.findIndex((p) => !p);
       if (slotIndex === -1) return;
-
-      const url = await uploadFile(file, slotIndex);
-      if (url) {
-        const next = [...current];
-        next[slotIndex] = url;
-        onPhotosChange(next);
-      }
+      const next = [...current];
+      next[slotIndex] = file;
+      onPhotosChange(next);
       e.target.value = '';
     },
-    [paddedPhotos, uploadFile, onPhotosChange]
+    [paddedPhotos, onPhotosChange]
   );
 
   const handleAddClick = () => {
@@ -128,18 +105,20 @@ export function PitPhotosUpload({
         className="hidden"
       />
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {list.map((url, index) => (
+        {list.map((item, index) => {
+          const previewUrl = getPreviewUrl(item, index);
+          return (
           <div
             key={index}
             className={cn(
               'relative aspect-square rounded-xl border border-white/10 overflow-hidden bg-white/5',
-              !url && 'border-dashed'
+              !item && 'border-dashed'
             )}
           >
-            {url ? (
+            {previewUrl ? (
               <>
                 <img
-                  src={url}
+                  src={previewUrl}
                   alt={`Pit photo ${index + 1}`}
                   className="w-full h-full object-cover"
                 />
@@ -150,37 +129,28 @@ export function PitPhotosUpload({
                 >
                   <X size={14} />
                 </button>
-                {slotUploading === index && (
-                  <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                )}
               </>
             ) : (
               <button
                 type="button"
                 onClick={handleAddClick}
-                disabled={!canAdd || slotUploading !== null}
+                disabled={!canAdd}
                 className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground hover:bg-white/10 hover:text-foreground transition-colors disabled:opacity-50"
               >
-                {slotUploading === index ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : (
-                  <>
-                    <ImageIcon size={24} />
-                    <span className="text-xs">Add photo</span>
-                  </>
-                )}
+                <>
+                  <ImageIcon size={24} />
+                  <span className="text-xs">Add photo</span>
+                </>
               </button>
             )}
           </div>
-        ))}
+        );})}
       </div>
       {uploadError && (
         <p className="text-sm text-red-400 flex items-center gap-2">{uploadError}</p>
       )}
       <p className="text-[10px] text-muted-foreground/60">
-        JPEG, PNG, WebP up to 10MB each. Photos are uploaded when added.
+        JPEG, PNG, WebP up to 10MB each. Photos are uploaded when you submit the form.
       </p>
     </div>
   );

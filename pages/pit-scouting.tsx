@@ -18,12 +18,14 @@ import {
   AlertCircle,
   Cpu,
   Ruler,
-  Target
+  Target,
+  Route,
 } from 'lucide-react';
 import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, ValidationResult } from '@/lib/form-validation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import PitPhotosUpload from '@/components/ui/PitPhotosUpload';
+import AutoPathAnnotator, { AutoPath, AutoPathAnnotatorRef } from '@/components/ui/AutoPathAnnotator';
 
 interface Team {
   team_number: number;
@@ -39,6 +41,8 @@ interface PitScoutingData {
   robotName: string;
   robotImageUrl: string | null;
   photos: (string | null)[];
+  autoPaths: AutoPath[];
+  annotatedImageUrl: string | null;
   climbLocation: string;
   driveType: string;
   driveTrainOther?: string;
@@ -76,6 +80,8 @@ export default function PitScouting() {
     robotName: '',
     robotImageUrl: null,
     photos: [],
+    autoPaths: [],
+    annotatedImageUrl: null,
     climbLocation: '',
     driveType: '',
     driveTrainOther: '',
@@ -100,8 +106,9 @@ export default function PitScouting() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const [scoutedTeamNumbers, setScoutedTeamNumbers] = useState<Set<number>>(new Set());
+  const annotatorRef = React.useRef<AutoPathAnnotatorRef>(null);
 
-  const totalSteps = 3;
+  const totalSteps = 4;
 
   useEffect(() => {
     const loadTeams = async () => {
@@ -151,11 +158,14 @@ export default function PitScouting() {
             const photoArr = Array.isArray(existingData.photos) ? existingData.photos : (existingData.robot_image_url ? [existingData.robot_image_url] : []);
             const photosPadded: (string | null)[] = [...photoArr.slice(0, 6)];
             while (photosPadded.length < 6) photosPadded.push(null);
+            const autoPaths = Array.isArray(existingData.auto_paths) ? existingData.auto_paths : [];
             setFormData({
               teamNumber: existingData.team_number,
               robotName: existingData.robot_name || '',
               robotImageUrl: existingData.robot_image_url || null,
               photos: photosPadded,
+              autoPaths,
+              annotatedImageUrl: existingData.annotated_image_url || null,
               climbLocation: existingData.climb_location || '',
               driveType: existingData.drive_type || '',
               driveTrainOther: existingData.drive_type === 'Other' ? existingData.drive_type : '',
@@ -228,6 +238,24 @@ export default function PitScouting() {
       const photoUrls = (formData.photos || []).filter((p): p is string => Boolean(p)).slice(0, 6);
       const imageUrl = photoUrls[0] || formData.robotImageUrl || null;
 
+      let annotatedImageUrl = formData.annotatedImageUrl || null;
+      if (currentStep === 4 && formData.autoPaths?.length > 0 && formData.teamNumber) {
+        const blob = await annotatorRef.current?.exportToBlob();
+        if (blob) {
+          const fd = new FormData();
+          fd.append('image', blob, `auto_paths_team_${formData.teamNumber}_${Date.now()}.png`);
+          fd.append('teamNumber', formData.teamNumber.toString());
+          fd.append('teamName', formData.robotName || 'Unknown');
+          try {
+            const upRes = await fetch('/api/upload-robot-image', { method: 'POST', body: fd });
+            const upData = await upRes.json();
+            if (upRes.ok && upData.directViewUrl) annotatedImageUrl = upData.directViewUrl;
+          } catch {
+            console.warn('Failed to upload annotated image');
+          }
+        }
+      }
+
       const validation = validatePitScoutingForm(formData);
 
       if (!validation.isValid) {
@@ -273,6 +301,8 @@ export default function PitScouting() {
         programming_language: formData.programmingLanguage,
         robot_image_url: imageUrl,
         photos: photoUrls,
+        auto_paths: formData.autoPaths || [],
+        annotated_image_url: annotatedImageUrl,
         notes: formData.notes,
         strengths: [],
         weaknesses: [],
@@ -331,6 +361,8 @@ export default function PitScouting() {
             robotName: '',
             robotImageUrl: null,
             photos: [],
+            autoPaths: [],
+            annotatedImageUrl: null,
             climbLocation: '',
             driveType: '',
             driveTrainOther: '',
@@ -988,6 +1020,34 @@ export default function PitScouting() {
 
                     {/* The overall rating card was removed as requested */}
                   </div>
+                </motion.div>
+              )}
+
+              {currentStep === 4 && (
+                <motion.div
+                  key="step-4"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-6"
+                >
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/5">
+                    <div className="p-3 bg-blue-500/10 rounded-xl text-blue-400">
+                      <Route size={24} />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold">Auto Paths</h2>
+                      <p className="text-sm text-muted-foreground">Draw autonomous paths on the 2026 REBUILT field (optional)</p>
+                    </div>
+                  </div>
+                  <AutoPathAnnotator
+                    ref={annotatorRef}
+                    paths={formData.autoPaths || []}
+                    onPathsChange={(paths) => setFormData(prev => ({ ...prev, autoPaths: paths }))}
+                    fieldImageSrc="/field-2026-rebuilt.png"
+                    teamNumber={formData.teamNumber}
+                    teamName={teams.find(t => t.team_number === formData.teamNumber)?.team_name}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>

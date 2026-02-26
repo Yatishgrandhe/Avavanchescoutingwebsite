@@ -22,6 +22,7 @@ import {
   Wrench,
   AlertCircle,
   Target,
+  Route,
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import GuestLayout from '@/components/layout/GuestLayout';
@@ -675,6 +676,34 @@ const TeamDetail: React.FC = () => {
                         </div>
                       </div>
                     </div>
+
+                    {pitData.annotated_image_url && (
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-bold text-muted-foreground uppercase flex items-center gap-2">
+                          <Route className="w-4 h-4" /> Auto Paths
+                        </h4>
+                        <Card className="glass-card overflow-hidden border-white/10">
+                          <img
+                            src={pitData.annotated_image_url}
+                            alt="Annotated auto paths"
+                            className="w-full h-auto object-contain max-h-80"
+                          />
+                          {pitData.auto_paths && pitData.auto_paths.length > 0 && (
+                            <div className="p-4 space-y-2 border-t border-white/5">
+                              {pitData.auto_paths.map((p: { id: string; comment: string; color: string }, i: number) =>
+                                p.comment ? (
+                                  <div key={p.id} className="flex items-center gap-2 text-sm">
+                                    <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                                    <span className="text-muted-foreground">Path {i + 1}:</span>
+                                    <span>{p.comment}</span>
+                                  </div>
+                                ) : null
+                              )}
+                            </div>
+                          )}
+                        </Card>
+                      </div>
+                    )}
 
                     <div className="space-y-4">
                       <h4 className="text-sm font-bold text-muted-foreground uppercase flex items-center gap-2">

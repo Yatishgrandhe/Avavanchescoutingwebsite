@@ -48,6 +48,8 @@ interface PitScoutingData {
   notes: string;
   strengths: string[];
   weaknesses: string[];
+  auto_paths?: Array<{ id: string; points: { x: number; y: number }[]; color: string; comment: string }>;
+  annotated_image_url?: string | null;
   overall_rating: number;
   submitted_by: string;
   submitted_by_email: string;
@@ -113,6 +115,8 @@ export default function PitScoutingDetails() {
           notes: pitScoutingData.notes || '',
           strengths: pitScoutingData.strengths || [],
           weaknesses: pitScoutingData.weaknesses || [],
+          auto_paths: pitScoutingData.auto_paths || [],
+          annotated_image_url: pitScoutingData.annotated_image_url || null,
           overall_rating: pitScoutingData.overall_rating || 0,
           submitted_by: pitScoutingData.submitted_by,
           submitted_by_email: pitScoutingData.submitted_by_email,
@@ -291,6 +295,33 @@ export default function PitScoutingDetails() {
                 <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
                   <h3 className="text-lg font-bold text-white mb-2">Climb location</h3>
                   <p className="text-gray-300 capitalize">{pitData.climb_location}</p>
+                </div>
+              )}
+
+              {/* Auto Paths (annotated field) */}
+              {pitData.annotated_image_url && (
+                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
+                  <h3 className="text-xl font-bold text-white mb-3">Auto Paths</h3>
+                  <div className="rounded-lg overflow-hidden border border-gray-700 bg-gray-900">
+                    <img
+                      src={pitData.annotated_image_url}
+                      alt="Annotated auto paths"
+                      className="w-full h-auto object-contain max-h-96"
+                    />
+                  </div>
+                  {pitData.auto_paths && pitData.auto_paths.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {pitData.auto_paths.map((p: { id: string; comment: string; color: string }, i: number) =>
+                        p.comment ? (
+                          <div key={p.id} className="flex items-center gap-2 text-sm text-gray-300">
+                            <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                            <span>Path {i + 1}:</span>
+                            <span className="text-white">{p.comment}</span>
+                          </div>
+                        ) : null
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

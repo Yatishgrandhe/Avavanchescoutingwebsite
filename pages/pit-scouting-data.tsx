@@ -63,6 +63,8 @@ export interface PitScoutingData {
   notes: string;
   strengths: string[];
   weaknesses: string[];
+  auto_paths?: Array<{ id: string; points: { x: number; y: number }[]; color: string; comment: string }>;
+  annotated_image_url?: string | null;
   submitted_by: string;
   submitted_by_email: string;
   submitted_by_name: string;
@@ -138,6 +140,8 @@ export default function PitScoutingData() {
           notes: item.notes || '',
           strengths: item.strengths || [],
           weaknesses: item.weaknesses || [],
+          auto_paths: item.auto_paths || [],
+          annotated_image_url: item.annotated_image_url || null,
           submitted_by: item.submitted_by,
           submitted_by_email: item.submitted_by_email,
           submitted_by_name: item.submitted_by_name,
@@ -271,6 +275,8 @@ export default function PitScoutingData() {
         notes: item.notes || '',
         strengths: item.strengths || [],
         weaknesses: item.weaknesses || [],
+        auto_paths: item.auto_paths || [],
+        annotated_image_url: item.annotated_image_url || null,
         submitted_by: item.submitted_by,
         submitted_by_email: item.submitted_by_email,
         submitted_by_name: item.submitted_by_name,
@@ -735,6 +741,33 @@ export default function PitScoutingData() {
                       <div className="mb-4">
                         <h3 className="text-sm font-medium text-gray-400">Climb location</h3>
                         <p className="text-white capitalize">{selectedDetailItem.climb_location}</p>
+                      </div>
+                    )}
+
+                    {/* Auto Paths (annotated field) */}
+                    {selectedDetailItem.annotated_image_url && (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold text-white mb-3">Auto Paths</h3>
+                        <div className="rounded-lg overflow-hidden border border-gray-700 bg-gray-900">
+                          <img
+                            src={selectedDetailItem.annotated_image_url}
+                            alt="Annotated auto paths"
+                            className="w-full h-auto object-contain max-h-96"
+                          />
+                        </div>
+                        {selectedDetailItem.auto_paths && selectedDetailItem.auto_paths.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {selectedDetailItem.auto_paths.map((p: { id: string; comment: string; color: string }, i: number) => (
+                              p.comment && (
+                                <div key={p.id} className="flex items-center gap-2 text-sm">
+                                  <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                                  <span className="text-gray-300">Path {i + 1}:</span>
+                                  <span className="text-white">{p.comment}</span>
+                                </div>
+                              )
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
 

@@ -255,7 +255,7 @@ export default function PitScouting() {
               driveTrainOther: existingData.drive_type === 'Other' ? existingData.drive_type : '',
               autonomousCapabilities: existingData.autonomous_capabilities || [],
               teleopCapabilities: existingData.teleop_capabilities || [],
-              canClimb: existingData.drive_train_details?.can_climb || false,
+              canClimb: (existingData.drive_train_details?.climb_levels?.length ?? 0) > 0 || !!existingData.drive_train_details?.can_climb,
               climbLevels: existingData.drive_train_details?.climb_levels || [],
               navigationLocations: existingData.drive_train_details?.navigation_locations || [],
               ballHoldAmount: existingData.drive_train_details?.ball_hold_amount || 0,
@@ -376,7 +376,7 @@ export default function PitScouting() {
           type: formData.driveType === 'Other' ? formData.driveTrainOther : formData.driveType,
           auto_capabilities: formData.autonomousCapabilities.join(', '),
           teleop_capabilities: formData.teleopCapabilities.join(', '),
-          can_climb: formData.canClimb,
+          can_climb: formData.climbLevels.length > 0,
           climb_levels: formData.climbLevels,
           navigation_locations: formData.navigationLocations,
           ball_hold_amount: formData.ballHoldAmount || 0,
@@ -858,37 +858,12 @@ export default function PitScouting() {
                       </div>
                     </div>
 
-                    {/* Climb (Step 2 only) */}
+                    {/* Climb (Step 2 only) - canClimb derived from climbLevels */}
                     <div className="col-span-full space-y-4 pt-4 border-t border-white/5">
                       <h3 className="font-heading font-semibold text-lg flex items-center gap-2">Climb</h3>
                       <div className="space-y-4">
                         <div className="space-y-3">
-                          <label className="text-sm font-medium">Can they climb? <span className="text-red-400">*</span></label>
-                          <div className="flex gap-3">
-                            {['Yes', 'No'].map((opt) => (
-                              <div
-                                key={opt}
-                                onClick={() => setFormData(prev => ({
-                                  ...prev,
-                                  canClimb: opt === 'Yes',
-                                  climbLevels: opt === 'No' ? [] : prev.climbLevels
-                                }))}
-                                className={cn(
-                                  "flex-1 cursor-pointer p-3 rounded-xl border transition-all text-sm font-medium text-center",
-                                  (opt === 'Yes' && formData.canClimb) || (opt === 'No' && !formData.canClimb)
-                                    ? "bg-primary/20 border-primary/50 text-white"
-                                    : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
-                                )}
-                              >
-                                {opt}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {formData.canClimb && (
-                          <div className="space-y-3">
-                            <label className="text-sm font-medium">What level(s) can they climb? <span className="text-red-400">*</span></label>
+                          <label className="text-sm font-medium">What level(s) can they climb?</label>
                             <div className="grid grid-cols-1 gap-2">
                               {['LEVEL 1', 'LEVEL 2', 'LEVEL 3'].map((level) => (
                                 <div
@@ -917,8 +892,7 @@ export default function PitScouting() {
                                 </div>
                               ))}
                             </div>
-                          </div>
-                        )}
+                        </div>
 
                         <div className="space-y-3">
                           <label className="text-sm font-medium">Where can they climb from? <span className="text-muted-foreground font-normal">(climb location)</span></label>

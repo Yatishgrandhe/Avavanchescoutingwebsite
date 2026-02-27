@@ -513,8 +513,8 @@ export default function PitScoutingDetails() {
                   </div>
                   <div className="space-y-3">
                     <div className="p-3 bg-gray-700 rounded-lg border border-gray-600">
-                      <div className="text-white font-medium mb-2">Can Climb: {(pitData.drive_train_details as any)?.can_climb ? 'Yes' : 'No'}</div>
-                      {(pitData.drive_train_details as any)?.can_climb && (pitData.drive_train_details as any)?.climb_levels?.length > 0 && (
+                      <div className="text-white font-medium mb-2">Can Climb: {((pitData.drive_train_details as any)?.can_climb || (pitData.drive_train_details as any)?.climb_levels?.length > 0) ? 'Yes' : 'No'}</div>
+                      {(pitData.drive_train_details as any)?.climb_levels?.length > 0 && (
                         <div className="text-white mb-2">
                           <span className="font-medium">Levels: </span>
                           {(pitData.drive_train_details as any).climb_levels.join(', ')}

@@ -921,10 +921,10 @@ export default function PitScoutingData() {
                               <div>
                                 <span className="text-white font-medium">Can Climb: </span>
                                 <span className="text-white">
-                                  {(selectedDetailItem.drive_train_details as any)?.can_climb ? 'Yes' : 'No'}
+                                  {((selectedDetailItem.drive_train_details as any)?.can_climb || (selectedDetailItem.drive_train_details as any)?.climb_levels?.length > 0) ? 'Yes' : 'No'}
                                 </span>
                               </div>
-                              {(selectedDetailItem.drive_train_details as any)?.can_climb && (selectedDetailItem.drive_train_details as any)?.climb_levels?.length > 0 && (
+                              {(selectedDetailItem.drive_train_details as any)?.climb_levels?.length > 0 && (
                                 <div>
                                   <span className="text-white font-medium">Levels: </span>
                                   <span className="text-white">

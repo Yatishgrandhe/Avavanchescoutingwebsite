@@ -251,15 +251,6 @@ export function validatePitScoutingStep(step: number, formData: any): Validation
       return validateForm(formData, {
         autonomousCapabilities: pitScoutingRules.autonomousCapabilities,
         teleopCapabilities: pitScoutingRules.teleopCapabilities,
-        canClimb: pitScoutingRules.canClimb,
-        climbLevels: {
-          custom: (value: string[]) => {
-            if (formData.canClimb && (!value || value.length === 0)) {
-              return 'Please select at least one climb level';
-            }
-            return null;
-          }
-        }
       });
 
     case 3:
@@ -293,15 +284,6 @@ export function validatePitScoutingForm(formData: any): ValidationResult {
     },
     autonomousCapabilities: pitScoutingRules.autonomousCapabilities,
     teleopCapabilities: pitScoutingRules.teleopCapabilities,
-    canClimb: pitScoutingRules.canClimb,
-    climbLevels: {
-      custom: (value: string[]) => {
-        if (formData.canClimb && (!value || value.length === 0)) {
-          return 'Please select at least one climb level';
-        }
-        return null;
-      }
-    },
     navigationLocations: pitScoutingRules.navigationLocations,
     ballHoldAmount: pitScoutingRules.ballHoldAmount,
     downtimeStrategy: pitScoutingRules.downtimeStrategy,
@@ -316,8 +298,8 @@ export function validatePitScoutingForm(formData: any): ValidationResult {
 export function getStepErrorMessage(step: number, errors: ValidationErrors): string {
   const errorMessages = {
     1: 'Please select a team, enter robot name, and choose drive type.',
-    2: 'Please select at least one Auto and one Teleop capability, and complete the climb section.',
-    3: 'Please select climb capabilities and provide strategy details.',
+    2: 'Please select at least one Auto and one Teleop capability.',
+    3: 'Please provide navigation and strategy details.',
   };
 
   return errorMessages[step as keyof typeof errorMessages] || 'Please complete all required fields before proceeding.';

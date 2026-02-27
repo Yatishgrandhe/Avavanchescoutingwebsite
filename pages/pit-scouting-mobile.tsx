@@ -294,7 +294,7 @@ export default function PitScoutingMobile() {
           type: formData.driveType === 'Other' ? formData.driveTrainOther : formData.driveType,
           auto_capabilities: formData.autonomousCapabilities.join(', '),
           teleop_capabilities: formData.teleopCapabilities.join(', '),
-          can_climb: formData.canClimb,
+          can_climb: formData.climbLevels.length > 0,
           climb_levels: formData.climbLevels,
           navigation_locations: formData.navigationLocations,
           ball_hold_amount: formData.ballHoldAmount || 0,
@@ -810,34 +810,13 @@ export default function PitScoutingMobile() {
                     </div>
                   </div>
 
-                  {/* Climb (Step 2 only) */}
+                  {/* Climb (Step 2 only) - canClimb derived from climbLevels */}
                   <div className="bg-muted p-4 rounded-lg border">
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Climb</h3>
                     <div className="space-y-4">
                       <div>
-                        <h4 className="text-sm font-medium mb-2 text-foreground">Can they climb? <span className="text-destructive">*</span></h4>
-                        <div className="flex gap-3 mb-4">
-                          {['Yes', 'No'].map((opt) => (
-                            <label key={opt} className="flex items-center space-x-2 cursor-pointer flex-1">
-                              <input
-                                type="radio"
-                                name="canClimb"
-                                checked={(opt === 'Yes' && formData.canClimb) || (opt === 'No' && !formData.canClimb)}
-                                onChange={() => setFormData(prev => ({
-                                  ...prev,
-                                  canClimb: opt === 'Yes',
-                                  climbLevels: opt === 'No' ? [] : prev.climbLevels
-                                }))}
-                                className="w-4 h-4"
-                              />
-                              <span className="text-sm">{opt}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                      {formData.canClimb && (
                         <div>
-                          <label className="block text-sm font-medium mb-2 text-foreground">What level(s) can they climb? <span className="text-destructive">*</span></label>
+                          <label className="block text-sm font-medium mb-2 text-foreground">What level(s) can they climb?</label>
                           <div className="space-y-2">
                             {['LEVEL 1', 'LEVEL 2', 'LEVEL 3'].map((level) => (
                               <label key={level} className="flex items-center space-x-2 cursor-pointer p-2 rounded border border-input hover:bg-muted/50">
@@ -860,7 +839,7 @@ export default function PitScoutingMobile() {
                             ))}
                           </div>
                         </div>
-                      )}
+                      </div>
                       <div>
                         <label className="block text-sm font-medium mb-2 text-foreground">Where can they climb from? <span className="text-muted-foreground font-normal">(climb location)</span></label>
                         <Select
@@ -1124,7 +1103,7 @@ export default function PitScoutingMobile() {
                         driveType: formData.driveType,
                         autonomousCapabilities: formData.autonomousCapabilities,
                         teleopCapabilities: formData.teleopCapabilities,
-                        canClimb: formData.canClimb,
+                        canClimb: formData.climbLevels.length > 0,
                         climbLevels: formData.climbLevels,
                         navigationLocations: formData.navigationLocations,
                         ballHoldAmount: formData.ballHoldAmount,
@@ -1203,8 +1182,8 @@ export default function PitScoutingMobile() {
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground font-medium">Can Climb:</p>
-                          <p className="text-sm text-muted-foreground">{formData.canClimb ? 'Yes' : 'No'}</p>
-                          {formData.canClimb && formData.climbLevels.length > 0 && (
+                          <p className="text-sm text-muted-foreground">{(formData.climbLevels?.length ?? 0) > 0 ? 'Yes' : 'No'}</p>
+                          {(formData.climbLevels?.length ?? 0) > 0 && (
                             <div className="mt-1">
                               <p className="text-sm text-muted-foreground font-medium">Levels:</p>
                               {formData.climbLevels.map((level, index) => (

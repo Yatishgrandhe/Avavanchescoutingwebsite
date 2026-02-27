@@ -8,13 +8,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
     const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
     const GOOGLE_REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
-    let GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
+    let GOOGLE_DRIVE_FOLDER_ID = (process.env.GOOGLE_DRIVE_FOLDER_ID || '').trim();
 
     // Helper to extract ID from URL if necessary
     if (GOOGLE_DRIVE_FOLDER_ID && GOOGLE_DRIVE_FOLDER_ID.includes('drive.google.com')) {
         const match = GOOGLE_DRIVE_FOLDER_ID.match(/\/folders\/([a-zA-Z0-9_-]+)/) || GOOGLE_DRIVE_FOLDER_ID.match(/id=([a-zA-Z0-9_-]+)/);
         if (match && match[1]) {
-            GOOGLE_DRIVE_FOLDER_ID = match[1];
+            GOOGLE_DRIVE_FOLDER_ID = match[1].trim();
         }
     }
 
@@ -77,11 +77,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
-        // Step 3: Folder Access
+        // Step 3: Folder Access (supportsAllDrives for Shared Drives)
         try {
             const folder = await drive.files.get({
                 fileId: GOOGLE_DRIVE_FOLDER_ID,
-                fields: 'id, name, capabilities'
+                fields: 'id, name, capabilities',
+                supportsAllDrives: true
             });
             const canWrite = folder.data.capabilities?.canAddChildren || false;
             results.steps.push({
@@ -93,10 +94,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             results.steps.push({
                 name: 'Folder Access',
                 status: 'error',
-                message: `Could not access folder: ${e.message}. Check if you have access to the folder ID.`
+                message: `Could not access folder: ${e.message}. Trying direct upload anyway...`
             });
-            results.overall = 'error';
-            return res.status(200).json(results);
+            // Don't return - continue to Step 4; upload might still work
         }
 
         // Step 4: Test Write
@@ -115,7 +115,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     mimeType: mimeType,
                     body: Readable.from([fileContent])
                 },
-                fields: 'id'
+                fields: 'id',
+                supportsAllDrives: true
             });
 
             testFileId = response.data.id;
@@ -128,7 +129,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             results.steps.push({
                 name: 'Write Test',
                 status: 'error',
-                message: `Upload failed: ${e.message}`
+                message: `Upload failed: ${e.message}. Ensure: (1) OAuth scope is https://www.googleapis.com/auth/drive, (2) refresh token was obtained from the account that owns/has access to the folder, (3) folder ID is correct.`
             });
             results.overall = 'error';
             return res.status(200).json(results);
@@ -136,7 +137,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Step 5: Cleanup
         try {
-            await drive.files.delete({ fileId: testFileId! });
+            await drive.files.delete({ fileId: testFileId!, supportsAllDrives: true });
             results.steps.push({
                 name: 'Cleanup',
                 status: 'success',

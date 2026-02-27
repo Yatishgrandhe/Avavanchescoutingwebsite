@@ -107,10 +107,10 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
     }
 
     try {
-        let folderId = GOOGLE_DRIVE_FOLDER_ID;
+        let folderId = (GOOGLE_DRIVE_FOLDER_ID || '').trim();
         if (folderId.includes('drive.google.com')) {
             const match = folderId.match(/\/folders\/([a-zA-Z0-9_-]+)/) || folderId.match(/id=([a-zA-Z0-9_-]+)/);
-            if (match && match[1]) folderId = match[1];
+            if (match && match[1]) folderId = match[1].trim();
         }
 
         const oauth2Client = new google.auth.OAuth2(
@@ -136,7 +136,8 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
                 mimeType: mimeType,
                 body: fs.createReadStream(filePath)
             },
-            fields: 'id'
+            fields: 'id',
+            supportsAllDrives: true
         });
 
         const fileId = response.data.id;
@@ -147,6 +148,7 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
             await drive.permissions.create({
                 fileId: fileId,
                 requestBody: { role: 'reader', type: 'anyone' },
+                supportsAllDrives: true
             });
         } catch (e) { console.warn('Permission error:', e); }
 

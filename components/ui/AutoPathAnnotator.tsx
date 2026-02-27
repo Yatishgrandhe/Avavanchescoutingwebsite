@@ -14,6 +14,8 @@ export interface PathPoint {
 export interface AutoPath {
   id: string;
   points: PathPoint[];
+  /** Each segment is a continuous stroke; no line connects segments */
+  segments?: PathPoint[][];
   color: string;
   comment: string;
 }
@@ -23,8 +25,14 @@ const PATH_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec
 /** Minimum distance between sampled points during freehand draw (px) */
 const SAMPLE_DISTANCE = 6;
 
-/** Minimum points for a valid path */
+/** Minimum points for a valid path (total across all segments) */
 const MIN_POINTS = 3;
+
+/** JPEG quality for compressed export (0-1) */
+const EXPORT_JPEG_QUALITY = 0.85;
+
+/** Max dimension for exported image (keeps aspect ratio) */
+const EXPORT_MAX_DIM = 1600;
 
 export interface AutoPathAnnotatorRef {
   exportToBlob: () => Promise<Blob | null>;
@@ -50,7 +58,8 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
   const imageRef = useRef<HTMLImageElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mode, setMode] = useState<'idle' | 'drawing'>('idle');
-  const [currentPath, setCurrentPath] = useState<PathPoint[]>([]);
+  /** Current path as segments - each segment is one continuous stroke */
+  const [currentSegments, setCurrentSegments] = useState<PathPoint[][]>([]);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
   const [editingPathId, setEditingPathId] = useState<string | null>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -101,6 +110,14 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
     []
   );
 
+  const drawPathWithSegments = useCallback(
+    (ctx: CanvasRenderingContext2D, path: AutoPath, isActive: boolean) => {
+      const segs = path.segments && path.segments.length > 0 ? path.segments : (path.points.length >= 2 ? [path.points] : []);
+      segs.forEach((pts) => drawSketchPath(ctx, pts, path.color, isActive));
+    },
+    [drawSketchPath]
+  );
+
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -110,19 +127,21 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-    paths.forEach((p) => drawSketchPath(ctx, p.points, p.color, p.id === selectedPathId));
+    paths.forEach((p) => drawPathWithSegments(ctx, p, p.id === selectedPathId));
 
-    if (currentPath.length >= 2) {
+    const totalPoints = currentSegments.flat().length;
+    if (totalPoints >= 2) {
       const color = PATH_COLORS[(editingPathId ? paths.findIndex((x) => x.id === editingPathId) : paths.length) % PATH_COLORS.length];
-      drawSketchPath(ctx, currentPath, color, true);
-    } else if (currentPath.length === 1) {
+      currentSegments.forEach((pts) => drawSketchPath(ctx, pts, color, true));
+    } else if (totalPoints === 1) {
       const color = PATH_COLORS[paths.length % PATH_COLORS.length];
       ctx.fillStyle = color;
+      const pt = currentSegments.flat()[0];
       ctx.beginPath();
-      ctx.arc(currentPath[0].x, currentPath[0].y, 6, 0, Math.PI * 2);
+      ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
       ctx.fill();
     }
-  }, [paths, currentPath, selectedPathId, editingPathId, imgLoaded, drawSketchPath]);
+  }, [paths, currentSegments, selectedPathId, editingPathId, imgLoaded, drawSketchPath, drawPathWithSegments]);
 
   useEffect(() => {
     redraw();
@@ -158,11 +177,15 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
   }, [setupCanvas]);
 
   const addPointIfFarEnough = useCallback((pt: PathPoint) => {
-    setCurrentPath((prev) => {
-      const last = prev.length ? prev[prev.length - 1] : lastPointRef.current;
+    setCurrentSegments((prev) => {
+      const lastSeg = prev.length ? prev[prev.length - 1] : [];
+      const last = lastSeg.length ? lastSeg[lastSeg.length - 1] : lastPointRef.current;
       if (last && Math.hypot(pt.x - last.x, pt.y - last.y) < SAMPLE_DISTANCE) return prev;
       lastPointRef.current = pt;
-      return [...prev, pt];
+      const next = [...prev];
+      if (next.length === 0) next.push([pt]);
+      else next[next.length - 1] = [...lastSeg, pt];
+      return next;
     });
   }, []);
 
@@ -176,15 +199,19 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
       if (mode === 'drawing') {
         isPointerDownRef.current = true;
         lastPointRef.current = pt;
-        setCurrentPath((prev) => [...prev, pt]);
+        setCurrentSegments((prev) => {
+          const next = [...prev];
+          next.push([pt]);
+          return next;
+        });
         canvas.setPointerCapture(e.pointerId);
       } else {
-        const hit = paths.find((p) =>
-          p.points.some(
-            (pp, i) =>
-              i < p.points.length - 1 && distToSegment(pt, pp, p.points[i + 1]) < 18
-          )
-        );
+        const hit = paths.find((p) => {
+          const segs = p.segments && p.segments.length > 0 ? p.segments : (p.points.length >= 2 ? [p.points] : []);
+          return segs.some((pts) =>
+            pts.some((pp, i) => i < pts.length - 1 && distToSegment(pt, pp, pts[i + 1]) < 18)
+          );
+        });
         setSelectedPathId(hit?.id ?? null);
       }
     },
@@ -224,13 +251,14 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
 
   const startNewPath = () => {
     setEditingPathId(null);
-    setCurrentPath([]);
+    setCurrentSegments([]);
     setMode('drawing');
     lastPointRef.current = null;
   };
 
   const completePath = useCallback(() => {
-    if (currentPath.length < MIN_POINTS) return;
+    const flat = currentSegments.flat();
+    if (flat.length < MIN_POINTS) return;
 
     const color =
       editingPathId
@@ -239,7 +267,8 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
 
     const newPath: AutoPath = {
       id: editingPathId ?? `path-${Date.now()}`,
-      points: [...currentPath],
+      points: flat,
+      segments: currentSegments.map((s) => [...s]),
       color,
       comment: editingPathId ? paths.find((p) => p.id === editingPathId)?.comment ?? '' : '',
     };
@@ -252,24 +281,31 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
       onPathsChange([...paths, newPath]);
     }
 
-    setCurrentPath([]);
+    setCurrentSegments([]);
     setMode('idle');
     setEditingPathId(null);
     setSelectedPathId(newPath.id);
-  }, [currentPath, editingPathId, paths, onPathsChange]);
+  }, [currentSegments, editingPathId, paths, onPathsChange]);
 
   const cancelPath = useCallback(() => {
-    setCurrentPath([]);
+    setCurrentSegments([]);
     setMode('idle');
     setEditingPathId(null);
   }, []);
 
   const undoLastPoint = useCallback(() => {
-    setCurrentPath((prev) => {
-      if (prev.length <= 1) return prev;
-      const next = prev.slice(0, -1);
-      lastPointRef.current = next.length ? next[next.length - 1] : null;
-      return next;
+    setCurrentSegments((prev) => {
+      if (prev.length === 0) return prev;
+      const lastSeg = prev[prev.length - 1];
+      if (lastSeg.length <= 1) {
+        const next = prev.slice(0, -1);
+        const newLast = next.length ? next[next.length - 1] : [];
+        lastPointRef.current = newLast.length ? newLast[newLast.length - 1] : null;
+        return next;
+      }
+      const newLastSeg = lastSeg.slice(0, -1);
+      lastPointRef.current = newLastSeg[newLastSeg.length - 1];
+      return [...prev.slice(0, -1), newLastSeg];
     });
   }, []);
 
@@ -286,7 +322,7 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
       if (selectedPathId === id) setSelectedPathId(null);
       if (editingPathId === id) {
         setEditingPathId(null);
-        setCurrentPath([]);
+        setCurrentSegments([]);
         setMode('idle');
       }
     },
@@ -296,11 +332,13 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
   const editPath = useCallback(
     (id: string) => {
       const path = paths.find((p) => p.id === id);
-      if (!path || path.points.length < 2) return;
+      const segs = path?.segments && path.segments.length > 0 ? path.segments : (path?.points && path.points.length >= 2 ? [path.points] : []);
+      if (!path || segs.length === 0) return;
       setEditingPathId(id);
-      setCurrentPath([...path.points]);
+      setCurrentSegments(segs.map((s) => [...s]));
       setMode('drawing');
-      lastPointRef.current = path.points[path.points.length - 1];
+      const lastSeg = segs[segs.length - 1];
+      lastPointRef.current = lastSeg.length ? lastSeg[lastSeg.length - 1] : null;
     },
     [paths]
   );
@@ -333,49 +371,72 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
     const canvas = canvasRef.current;
     const img = imageRef.current;
     if (!canvas || !img || !imgLoaded) return null;
+
+    let iw = img.naturalWidth;
+    let ih = img.naturalHeight;
+    if (iw > EXPORT_MAX_DIM || ih > EXPORT_MAX_DIM) {
+      const scale = Math.min(EXPORT_MAX_DIM / iw, EXPORT_MAX_DIM / ih);
+      iw = Math.round(iw * scale);
+      ih = Math.round(ih * scale);
+    }
+
     const off = document.createElement('canvas');
-    off.width = img.naturalWidth;
-    off.height = img.naturalHeight;
+    off.width = iw;
+    off.height = ih;
     const ctx = off.getContext('2d');
     if (!ctx) return null;
-    ctx.drawImage(img, 0, 0);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, iw, ih);
+    ctx.drawImage(img, 0, 0, iw, ih);
 
     const allPaths =
-      currentPath.length >= MIN_POINTS
+      currentSegments.flat().length >= MIN_POINTS
         ? [
             ...paths,
             {
               id: 'tmp',
-              points: currentPath,
+              points: currentSegments.flat(),
+              segments: currentSegments.map((s) => [...s]),
               color: PATH_COLORS[paths.length % PATH_COLORS.length],
               comment: '',
-            },
+            } as AutoPath,
           ]
         : paths;
 
+    const scaleX = iw / img.naturalWidth;
+    const scaleY = ih / img.naturalHeight;
+    const scalePt = (p: PathPoint) => ({ x: p.x * scaleX, y: p.y * scaleY });
+
     allPaths.forEach((p) => {
-      if (p.points.length < 2) return;
-      ctx.strokeStyle = p.color;
-      ctx.lineWidth = 4;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      ctx.moveTo(p.points[0].x, p.points[0].y);
-      for (let i = 1; i < p.points.length - 1; i++) {
-        const p1 = p.points[i];
-        const p2 = p.points[i + 1];
-        ctx.quadraticCurveTo(p1.x, p1.y, (p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
-      }
-      if (p.points.length > 2) ctx.lineTo(p.points[p.points.length - 1].x, p.points[p.points.length - 1].y);
-      ctx.stroke();
+      const segs = p.segments && p.segments.length > 0 ? p.segments : (p.points.length >= 2 ? [p.points] : []);
+      segs.forEach((pts) => {
+        if (pts.length < 2) return;
+        const scaled = pts.map(scalePt);
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(scaled[0].x, scaled[0].y);
+        for (let i = 1; i < scaled.length - 1; i++) {
+          const p1 = scaled[i];
+          const p2 = scaled[i + 1];
+          ctx.quadraticCurveTo(p1.x, p1.y, (p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
+        }
+        ctx.lineTo(scaled[scaled.length - 1].x, scaled[scaled.length - 1].y);
+        ctx.stroke();
+      });
     });
 
-    return new Promise((resolve) => off.toBlob((b) => resolve(b), 'image/png'));
-  }, [paths, currentPath, imgLoaded]);
+    return new Promise((resolve) =>
+      off.toBlob((b) => resolve(b), 'image/jpeg', EXPORT_JPEG_QUALITY)
+    );
+  }, [paths, currentSegments, imgLoaded]);
 
   useImperativeHandle(ref, () => ({ exportToBlob }), [exportToBlob]);
 
-  const canUndoPoint = mode === 'drawing' && currentPath.length > 1;
+  const currentTotalPoints = currentSegments.flat().length;
+  const canUndoPoint = mode === 'drawing' && currentTotalPoints > 1;
   const canUndoPath = mode === 'idle' && paths.length > 0;
 
   return (
@@ -399,7 +460,7 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
             type="button"
             size="sm"
             onClick={completePath}
-            disabled={currentPath.length < MIN_POINTS}
+            disabled={currentTotalPoints < MIN_POINTS}
           >
             <Check className="w-4 h-4 mr-1" />
             Done
@@ -449,8 +510,9 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
           }}
           src={fieldImageSrc}
           alt="2026 REBUILT field"
-          className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+          className="absolute inset-0 w-full h-full object-contain pointer-events-none opacity-0"
           draggable={false}
+          aria-hidden
         />
         <canvas
           ref={canvasRef}
@@ -465,8 +527,8 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
 
       <p className="text-xs text-muted-foreground">
         {mode === 'drawing'
-          ? 'Drag on the field to draw. Release to finish the stroke. Click "Done" when complete.'
-          : 'Click "Draw Path" then drag to sketch a path. Select a path to edit or delete.'}
+          ? 'Drag to draw each stroke. Release and draw elsewhere for a new stroke. Click "Done" when complete.'
+          : 'Click "Draw Path" then drag to sketch. Select a path to edit or delete.'}
       </p>
 
       {paths.length > 0 && (

@@ -347,7 +347,7 @@ export default function PitScouting() {
         const blob = await annotatorRef.current?.exportToBlob();
         if (blob) {
           const fd = new FormData();
-          fd.append('image', blob, `auto_paths_team_${formData.teamNumber}_${Date.now()}.png`);
+          fd.append('image', blob, `auto_paths_team_${formData.teamNumber}_${Date.now()}.jpg`);
           fd.append('teamNumber', formData.teamNumber.toString());
           fd.append('teamName', formData.robotName || 'Unknown');
           try {

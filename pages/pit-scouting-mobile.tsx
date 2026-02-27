@@ -740,11 +740,42 @@ export default function PitScoutingMobile() {
                     </motion.div>
                   )}
 
+                  {/* Shared: Score FUEL (asked once) */}
+                  <div className="bg-muted p-4 rounded-lg border">
+                    <h3 className="text-lg font-semibold mb-2 text-foreground">Scoring (Auto & Teleop)</h3>
+                    <div className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
+                      <input
+                        type="checkbox"
+                        id="score-fuel"
+                        checked={formData.autonomousCapabilities.includes('Score FUEL in active HUB') || formData.teleopCapabilities.includes('Score FUEL in active HUB')}
+                        onChange={(e) => {
+                          const opt = 'Score FUEL in active HUB';
+                          if (e.target.checked) {
+                            setFormData(prev => ({
+                              ...prev,
+                              autonomousCapabilities: [...prev.autonomousCapabilities, opt],
+                              teleopCapabilities: [...prev.teleopCapabilities, opt],
+                            }));
+                          } else {
+                            setFormData(prev => ({
+                              ...prev,
+                              autonomousCapabilities: prev.autonomousCapabilities.filter(c => c !== opt),
+                              teleopCapabilities: prev.teleopCapabilities.filter(c => c !== opt),
+                            }));
+                          }
+                        }}
+                      />
+                      <label htmlFor="score-fuel" className="flex-1 text-sm font-medium text-foreground cursor-pointer">
+                        Score FUEL in active HUB
+                      </label>
+                    </div>
+                  </div>
+
                   {/* Autonomous Capabilities */}
                   <div className="bg-muted p-4 rounded-lg border">
-                    <h3 className="text-lg font-semibold mb-4 text-foreground">Question 2: What can they do in auto</h3>
+                    <h3 className="text-lg font-semibold mb-4 text-foreground">What can they do in auto</h3>
                     <div className="space-y-3">
-                      {['Score FUEL in active HUB', 'TOWER LEVEL 1 climb'].map((option) => (
+                      {['TOWER LEVEL 1 climb'].map((option) => (
                         <div key={option} className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
                           <input
                             type="checkbox"
@@ -777,9 +808,9 @@ export default function PitScoutingMobile() {
 
                   {/* Teleop Capabilities */}
                   <div className="bg-muted p-4 rounded-lg border">
-                    <h3 className="text-lg font-semibold mb-4 text-foreground">Question 3: What can they do during teleop</h3>
+                    <h3 className="text-lg font-semibold mb-4 text-foreground">What can they do during teleop</h3>
                     <div className="space-y-3">
-                      {['Score FUEL in active HUB', 'TOWER LEVEL 2 climb', 'TOWER LEVEL 3 climb'].map((option) => (
+                      {['TOWER LEVEL 1 climb', 'TOWER LEVEL 2 climb', 'TOWER LEVEL 3 climb'].map((option) => (
                         <div key={option} className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
                           <input
                             type="checkbox"

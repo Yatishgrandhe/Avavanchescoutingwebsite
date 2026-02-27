@@ -809,13 +809,41 @@ export default function PitScouting() {
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-8">
+                    {/* Shared: Score FUEL (asked once, applies to both periods) */}
+                    <div className="col-span-full space-y-2">
+                      <h3 className="font-heading font-semibold text-sm text-muted-foreground">Scoring (Auto & Teleop)</h3>
+                      <div
+                        onClick={() => {
+                          const opt = 'Score FUEL in active HUB';
+                          const active = formData.autonomousCapabilities.includes(opt) || formData.teleopCapabilities.includes(opt);
+                          setFormData(prev => ({
+                            ...prev,
+                            autonomousCapabilities: active ? prev.autonomousCapabilities.filter(c => c !== opt) : [...prev.autonomousCapabilities, opt],
+                            teleopCapabilities: active ? prev.teleopCapabilities.filter(c => c !== opt) : [...prev.teleopCapabilities, opt],
+                          }));
+                        }}
+                        className={cn(
+                          "inline-flex items-center gap-3 p-3 rounded-lg border cursor-pointer w-fit",
+                          (formData.autonomousCapabilities.includes('Score FUEL in active HUB') || formData.teleopCapabilities.includes('Score FUEL in active HUB'))
+                            ? "bg-primary/20 border-primary/50 text-white"
+                            : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                        )}
+                      >
+                        <div className={cn("w-4 h-4 rounded border flex items-center justify-center",
+                          (formData.autonomousCapabilities.includes('Score FUEL in active HUB') || formData.teleopCapabilities.includes('Score FUEL in active HUB')) ? "bg-primary border-primary" : "border-muted-foreground/50")}>
+                          {(formData.autonomousCapabilities.includes('Score FUEL in active HUB') || formData.teleopCapabilities.includes('Score FUEL in active HUB')) && <CheckCircle size={12} className="text-white" />}
+                        </div>
+                        <span className="text-sm font-medium">Score FUEL in active HUB</span>
+                      </div>
+                    </div>
+
                     {/* Autonomous */}
                     <div className="space-y-4">
                       <h3 className="font-heading font-semibold text-lg flex items-center gap-2">
                         <Badge className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20">Auto</Badge> Capabilities
                       </h3>
                       <div className="grid grid-cols-1 gap-2">
-                        {['Score FUEL in active HUB', 'TOWER LEVEL 1 climb'].map((opt) => (
+                        {['TOWER LEVEL 1 climb'].map((opt) => (
                           <div
                             key={opt}
                             onClick={() => {
@@ -850,7 +878,7 @@ export default function PitScouting() {
                         <Badge className="bg-green-500/10 text-green-400 hover:bg-green-500/20">Teleop</Badge> Capabilities
                       </h3>
                       <div className="grid grid-cols-1 gap-2">
-                        {['Score FUEL in active HUB', 'TOWER LEVEL 2 climb', 'TOWER LEVEL 3 climb'].map((opt) => (
+                        {['TOWER LEVEL 1 climb', 'TOWER LEVEL 2 climb', 'TOWER LEVEL 3 climb'].map((opt) => (
                           <div
                             key={opt}
                             onClick={() => {

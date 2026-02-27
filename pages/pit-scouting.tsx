@@ -664,27 +664,6 @@ export default function PitScouting() {
                           className="glass-input border-white/10"
                         />
                       </div>
-
-                      {/* Climb location (Yeti-style) - visible on Step 1 */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Where can the robot climb? <span className="text-muted-foreground font-normal">(climb location)</span></label>
-                        <Select
-                          value={formData.climbLocation || 'none'}
-                          onValueChange={(v) => setFormData(prev => ({ ...prev, climbLocation: v }))}
-                        >
-                          <SelectTrigger className="glass-input border-white/10">
-                            <SelectValue placeholder="Select where they can climb" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CLIMB_LOCATION_OPTIONS.map((opt) => (
-                              <SelectItem key={opt} value={opt} className="capitalize focus:bg-white/10">
-                                {opt}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">Sides, center, left, right, any, or none</p>
-                      </div>
                     </div>
 
                     <div className="space-y-4">

@@ -250,11 +250,7 @@ export function validatePitScoutingStep(step: number, formData: any): Validation
     case 2:
       return validateForm(formData, {
         autonomousCapabilities: pitScoutingRules.autonomousCapabilities,
-        teleopCapabilities: pitScoutingRules.teleopCapabilities
-      });
-
-    case 3:
-      return validateForm(formData, {
+        teleopCapabilities: pitScoutingRules.teleopCapabilities,
         canClimb: pitScoutingRules.canClimb,
         climbLevels: {
           custom: (value: string[]) => {
@@ -263,7 +259,11 @@ export function validatePitScoutingStep(step: number, formData: any): Validation
             }
             return null;
           }
-        },
+        }
+      });
+
+    case 3:
+      return validateForm(formData, {
         navigationLocations: pitScoutingRules.navigationLocations,
         ballHoldAmount: pitScoutingRules.ballHoldAmount,
         downtimeStrategy: pitScoutingRules.downtimeStrategy,
@@ -316,7 +316,7 @@ export function validatePitScoutingForm(formData: any): ValidationResult {
 export function getStepErrorMessage(step: number, errors: ValidationErrors): string {
   const errorMessages = {
     1: 'Please select a team, enter robot name, and choose drive type.',
-    2: 'Please select at least one autonomous capability and one teleop capability.',
+    2: 'Please select at least one Auto and one Teleop capability, and complete the climb section.',
     3: 'Please select climb capabilities and provide strategy details.',
   };
 

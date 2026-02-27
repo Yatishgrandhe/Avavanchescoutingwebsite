@@ -740,42 +740,11 @@ export default function PitScoutingMobile() {
                     </motion.div>
                   )}
 
-                  {/* Shared: Score FUEL (asked once) */}
-                  <div className="bg-muted p-4 rounded-lg border">
-                    <h3 className="text-lg font-semibold mb-2 text-foreground">Scoring (Auto & Teleop)</h3>
-                    <div className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
-                      <input
-                        type="checkbox"
-                        id="score-fuel"
-                        checked={formData.autonomousCapabilities.includes('Score FUEL in active HUB') || formData.teleopCapabilities.includes('Score FUEL in active HUB')}
-                        onChange={(e) => {
-                          const opt = 'Score FUEL in active HUB';
-                          if (e.target.checked) {
-                            setFormData(prev => ({
-                              ...prev,
-                              autonomousCapabilities: [...prev.autonomousCapabilities, opt],
-                              teleopCapabilities: [...prev.teleopCapabilities, opt],
-                            }));
-                          } else {
-                            setFormData(prev => ({
-                              ...prev,
-                              autonomousCapabilities: prev.autonomousCapabilities.filter(c => c !== opt),
-                              teleopCapabilities: prev.teleopCapabilities.filter(c => c !== opt),
-                            }));
-                          }
-                        }}
-                      />
-                      <label htmlFor="score-fuel" className="flex-1 text-sm font-medium text-foreground cursor-pointer">
-                        Score FUEL in active HUB
-                      </label>
-                    </div>
-                  </div>
-
                   {/* Autonomous Capabilities */}
                   <div className="bg-muted p-4 rounded-lg border">
                     <h3 className="text-lg font-semibold mb-4 text-foreground">What can they do in auto</h3>
                     <div className="space-y-3">
-                      {['TOWER LEVEL 1 climb'].map((option) => (
+                      {['Score FUEL in active HUB', 'TOWER LEVEL 1 climb'].map((option) => (
                         <div key={option} className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
                           <input
                             type="checkbox"
@@ -810,7 +779,7 @@ export default function PitScoutingMobile() {
                   <div className="bg-muted p-4 rounded-lg border">
                     <h3 className="text-lg font-semibold mb-4 text-foreground">What can they do during teleop</h3>
                     <div className="space-y-3">
-                      {['TOWER LEVEL 1 climb', 'TOWER LEVEL 2 climb', 'TOWER LEVEL 3 climb'].map((option) => (
+                      {['Score FUEL in active HUB', 'TOWER LEVEL 1 climb', 'TOWER LEVEL 2 climb', 'TOWER LEVEL 3 climb'].map((option) => (
                         <div key={option} className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
                           <input
                             type="checkbox"
@@ -838,6 +807,77 @@ export default function PitScoutingMobile() {
                           </label>
                         </div>
                       ))}
+                    </div>
+                  </div>
+
+                  {/* Climb (Step 2 only) */}
+                  <div className="bg-muted p-4 rounded-lg border">
+                    <h3 className="text-lg font-semibold mb-4 text-foreground">Climb</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-sm font-medium mb-2 text-foreground">Can they climb? <span className="text-destructive">*</span></h4>
+                        <div className="flex gap-3 mb-4">
+                          {['Yes', 'No'].map((opt) => (
+                            <label key={opt} className="flex items-center space-x-2 cursor-pointer flex-1">
+                              <input
+                                type="radio"
+                                name="canClimb"
+                                checked={(opt === 'Yes' && formData.canClimb) || (opt === 'No' && !formData.canClimb)}
+                                onChange={() => setFormData(prev => ({
+                                  ...prev,
+                                  canClimb: opt === 'Yes',
+                                  climbLevels: opt === 'No' ? [] : prev.climbLevels
+                                }))}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm">{opt}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      {formData.canClimb && (
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-foreground">What level(s) can they climb? <span className="text-destructive">*</span></label>
+                          <div className="space-y-2">
+                            {['LEVEL 1', 'LEVEL 2', 'LEVEL 3'].map((level) => (
+                              <label key={level} className="flex items-center space-x-2 cursor-pointer p-2 rounded border border-input hover:bg-muted/50">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.climbLevels.includes(level)}
+                                  onChange={() => {
+                                    const active = formData.climbLevels.includes(level);
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      climbLevels: active
+                                        ? prev.climbLevels.filter(l => l !== level)
+                                        : [...prev.climbLevels, level]
+                                    }));
+                                  }}
+                                  className="w-4 h-4"
+                                />
+                                <span className="text-sm">{level}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-foreground">Where can they climb from? <span className="text-muted-foreground font-normal">(climb location)</span></label>
+                        <Select
+                          value={formData.climbLocation || 'none'}
+                          onValueChange={(v) => setFormData(prev => ({ ...prev, climbLocation: v }))}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select where they can climb" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CLIMB_LOCATION_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt} className="capitalize">{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground mt-1">Sides, center, left, right, any, or none</p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -884,77 +924,6 @@ export default function PitScoutingMobile() {
                       {validationError}
                     </motion.div>
                   )}
-
-                  {/* Can Climb */}
-                  <div className="bg-muted p-4 rounded-lg border">
-                    <h3 className="text-lg font-semibold mb-4 text-foreground">Can they climb? <span className="text-destructive">*</span></h3>
-                    <div className="flex gap-3 mb-4">
-                      {['Yes', 'No'].map((opt) => (
-                        <label key={opt} className="flex items-center space-x-2 cursor-pointer flex-1">
-                          <input
-                            type="radio"
-                            name="canClimb"
-                            checked={(opt === 'Yes' && formData.canClimb) || (opt === 'No' && !formData.canClimb)}
-                            onChange={() => setFormData(prev => ({ 
-                              ...prev, 
-                              canClimb: opt === 'Yes',
-                              climbLevels: opt === 'No' ? [] : prev.climbLevels
-                            }))}
-                            className="w-4 h-4"
-                          />
-                          <span className="text-sm">{opt}</span>
-                        </label>
-                      ))}
-                    </div>
-                    
-                    {formData.canClimb && (
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium mb-2 text-foreground">
-                          What level(s) can they climb? <span className="text-destructive">*</span>
-                        </label>
-                        <div className="space-y-2">
-                          {['LEVEL 1', 'LEVEL 2', 'LEVEL 3'].map((level) => (
-                            <label key={level} className="flex items-center space-x-2 cursor-pointer p-2 rounded border border-input hover:bg-muted/50">
-                              <input
-                                type="checkbox"
-                                checked={formData.climbLevels.includes(level)}
-                                onChange={() => {
-                                  const active = formData.climbLevels.includes(level);
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    climbLevels: active
-                                      ? prev.climbLevels.filter(l => l !== level)
-                                      : [...prev.climbLevels, level]
-                                  }));
-                                }}
-                                className="w-4 h-4"
-                              />
-                              <span className="text-sm">{level}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Climb Location (Yeti-style) */}
-                    <div className="mt-4">
-                      <label className="block text-sm font-medium mb-2 text-foreground">Where can the robot climb? <span className="text-muted-foreground font-normal">(climb location)</span></label>
-                      <Select
-                        value={formData.climbLocation || 'none'}
-                        onValueChange={(v) => setFormData(prev => ({ ...prev, climbLocation: v }))}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select where they can climb" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CLIMB_LOCATION_OPTIONS.map((opt) => (
-                            <SelectItem key={opt} value={opt} className="capitalize">{opt}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground mt-1">Sides, center, left, right, any, or none</p>
-                    </div>
-                  </div>
 
                   {/* Navigation Locations */}
                   <div className="bg-muted p-4 rounded-lg border">

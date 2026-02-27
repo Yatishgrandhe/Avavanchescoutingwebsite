@@ -36,6 +36,7 @@ interface PitScoutingData {
   driveTrainOther?: string; // For "Other" drivetrain option
   autonomousCapabilities: string[];
   teleopCapabilities: string[];
+  canAutoalign: boolean;
   canClimb: boolean;
   climbLevels: string[];
   climbLocation: string;
@@ -72,6 +73,7 @@ export default function PitScoutingMobile() {
     driveTrainOther: '',
     autonomousCapabilities: [],
     teleopCapabilities: [],
+    canAutoalign: false,
     canClimb: false,
     climbLevels: [],
     climbLocation: '',
@@ -130,6 +132,7 @@ export default function PitScoutingMobile() {
         driveTrainOther: fd.driveTrainOther ?? prev.driveTrainOther,
         autonomousCapabilities: Array.isArray(fd.autonomousCapabilities) ? fd.autonomousCapabilities : prev.autonomousCapabilities,
         teleopCapabilities: Array.isArray(fd.teleopCapabilities) ? fd.teleopCapabilities : prev.teleopCapabilities,
+        canAutoalign: fd.canAutoalign ?? prev.canAutoalign,
         canClimb: fd.canClimb ?? prev.canClimb,
         climbLevels: Array.isArray(fd.climbLevels) ? fd.climbLevels : prev.climbLevels,
         climbLocation: fd.climbLocation ?? prev.climbLocation,
@@ -294,6 +297,7 @@ export default function PitScoutingMobile() {
           type: formData.driveType === 'Other' ? formData.driveTrainOther : formData.driveType,
           auto_capabilities: formData.autonomousCapabilities.join(', '),
           teleop_capabilities: formData.teleopCapabilities.join(', '),
+          can_autoalign: formData.canAutoalign,
           can_climb: formData.climbLevels.length > 0,
           climb_levels: formData.climbLevels,
           navigation_locations: formData.navigationLocations,
@@ -303,6 +307,7 @@ export default function PitScoutingMobile() {
         climb_location: formData.climbLocation || null,
         autonomous_capabilities: formData.autonomousCapabilities,
         teleop_capabilities: formData.teleopCapabilities,
+        can_autoalign: formData.canAutoalign,
         robot_dimensions: (() => {
           const dims: { length?: number; width?: number; height?: number } = {};
           if (formData.robotDimensions.length !== undefined && formData.robotDimensions.length !== null) {
@@ -361,6 +366,7 @@ export default function PitScoutingMobile() {
           driveTrainOther: '',
           autonomousCapabilities: [],
           teleopCapabilities: [],
+          canAutoalign: false,
           canClimb: false,
           climbLevels: [],
           climbLocation: '',
@@ -775,11 +781,11 @@ export default function PitScoutingMobile() {
                     </div>
                   </div>
 
-                  {/* Teleop Capabilities */}
+                  {/* Teleop Capabilities - climbing options removed (climb is in Climb section) */}
                   <div className="bg-muted p-4 rounded-lg border">
                     <h3 className="text-lg font-semibold mb-4 text-foreground">What can they do during teleop</h3>
                     <div className="space-y-3">
-                      {['Score FUEL in active HUB', 'TOWER LEVEL 1 climb', 'TOWER LEVEL 2 climb', 'TOWER LEVEL 3 climb'].map((option) => (
+                      {['Score FUEL in active HUB'].map((option) => (
                         <div key={option} className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors">
                           <input
                             type="checkbox"
@@ -808,6 +814,20 @@ export default function PitScoutingMobile() {
                         </div>
                       ))}
                     </div>
+                  </div>
+
+                  {/* Can Autoalign */}
+                  <div className="bg-muted p-4 rounded-lg border">
+                    <h3 className="text-lg font-semibold mb-4 text-foreground">Autoalign</h3>
+                    <label className="flex items-center space-x-2 cursor-pointer p-2 rounded border border-input hover:bg-muted/50">
+                      <input
+                        type="checkbox"
+                        checked={formData.canAutoalign}
+                        onChange={(e) => setFormData(prev => ({ ...prev, canAutoalign: e.target.checked }))}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">Can do autoalign</span>
+                    </label>
                   </div>
 
                   {/* Climb (Step 2 only) - canClimb derived from climbLevels */}
@@ -1179,6 +1199,10 @@ export default function PitScoutingMobile() {
                               <p className="text-sm text-muted-foreground">N/A</p>
                             )}
                           </div>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground font-medium">Can Autoalign:</p>
+                          <p className="text-sm text-muted-foreground">{formData.canAutoalign ? 'Yes' : 'No'}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground font-medium">Can Climb:</p>

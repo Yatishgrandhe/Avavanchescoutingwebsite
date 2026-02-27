@@ -36,6 +36,7 @@ interface PitScoutingData {
   };
   autonomous_capabilities: string[];
   teleop_capabilities: string[];
+  can_autoalign?: boolean;
   robot_dimensions: {
     length?: number;
     width?: number;
@@ -107,6 +108,7 @@ export default function PitScoutingDetails() {
           },
           autonomous_capabilities: pitScoutingData.autonomous_capabilities || [],
           teleop_capabilities: pitScoutingData.teleop_capabilities || [],
+          can_autoalign: !!pitScoutingData.can_autoalign,
           robot_dimensions: pitScoutingData.robot_dimensions || { height: 0 },
           weight: pitScoutingData.weight || 0,
           camera_count: pitScoutingData.camera_count !== undefined && pitScoutingData.camera_count !== null ? pitScoutingData.camera_count : undefined,
@@ -513,6 +515,7 @@ export default function PitScoutingDetails() {
                   </div>
                   <div className="space-y-3">
                     <div className="p-3 bg-gray-700 rounded-lg border border-gray-600">
+                      <div className="text-white font-medium mb-2">Can Autoalign: {pitData.can_autoalign ? 'Yes' : 'No'}</div>
                       <div className="text-white font-medium mb-2">Can Climb: {((pitData.drive_train_details as any)?.can_climb || (pitData.drive_train_details as any)?.climb_levels?.length > 0) ? 'Yes' : 'No'}</div>
                       {(pitData.drive_train_details as any)?.climb_levels?.length > 0 && (
                         <div className="text-white mb-2">

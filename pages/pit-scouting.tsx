@@ -49,6 +49,7 @@ interface PitScoutingData {
   driveTrainOther?: string;
   autonomousCapabilities: string[];
   teleopCapabilities: string[];
+  canAutoalign: boolean;
   canClimb: boolean;
   climbLevels: string[];
   navigationLocations: string[];
@@ -88,6 +89,7 @@ export default function PitScouting() {
     driveTrainOther: '',
     autonomousCapabilities: [],
     teleopCapabilities: [],
+    canAutoalign: false,
     canClimb: false,
     climbLevels: [],
     navigationLocations: [],
@@ -146,6 +148,7 @@ export default function PitScouting() {
         driveTrainOther: fd.driveTrainOther ?? prev.driveTrainOther,
         autonomousCapabilities: Array.isArray(fd.autonomousCapabilities) ? fd.autonomousCapabilities : prev.autonomousCapabilities,
         teleopCapabilities: Array.isArray(fd.teleopCapabilities) ? fd.teleopCapabilities : prev.teleopCapabilities,
+        canAutoalign: fd.canAutoalign ?? prev.canAutoalign,
         canClimb: fd.canClimb ?? prev.canClimb,
         climbLevels: Array.isArray(fd.climbLevels) ? fd.climbLevels : prev.climbLevels,
         navigationLocations: Array.isArray(fd.navigationLocations) ? fd.navigationLocations : prev.navigationLocations,
@@ -255,6 +258,7 @@ export default function PitScouting() {
               driveTrainOther: existingData.drive_type === 'Other' ? existingData.drive_type : '',
               autonomousCapabilities: existingData.autonomous_capabilities || [],
               teleopCapabilities: existingData.teleop_capabilities || [],
+              canAutoalign: !!existingData.can_autoalign,
               canClimb: (existingData.drive_train_details?.climb_levels?.length ?? 0) > 0 || !!existingData.drive_train_details?.can_climb,
               climbLevels: existingData.drive_train_details?.climb_levels || [],
               navigationLocations: existingData.drive_train_details?.navigation_locations || [],
@@ -376,6 +380,7 @@ export default function PitScouting() {
           type: formData.driveType === 'Other' ? formData.driveTrainOther : formData.driveType,
           auto_capabilities: formData.autonomousCapabilities.join(', '),
           teleop_capabilities: formData.teleopCapabilities.join(', '),
+          can_autoalign: formData.canAutoalign,
           can_climb: formData.climbLevels.length > 0,
           climb_levels: formData.climbLevels,
           navigation_locations: formData.navigationLocations,
@@ -385,6 +390,7 @@ export default function PitScouting() {
         },
         autonomous_capabilities: formData.autonomousCapabilities,
         teleop_capabilities: formData.teleopCapabilities,
+        can_autoalign: formData.canAutoalign,
         climb_location: formData.climbLocation || null,
         robot_dimensions: (() => {
           const dims: { length?: number; width?: number; height?: number } = {};
@@ -476,6 +482,7 @@ export default function PitScouting() {
             driveTrainOther: '',
             autonomousCapabilities: [],
             teleopCapabilities: [],
+            canAutoalign: false,
             canClimb: false,
             climbLevels: [],
             navigationLocations: [],
@@ -823,13 +830,13 @@ export default function PitScouting() {
                       </div>
                     </div>
 
-                    {/* Teleop */}
+                    {/* Teleop - climbing options removed (climb is in Climb section) */}
                     <div className="space-y-4">
                       <h3 className="font-heading font-semibold text-lg flex items-center gap-2">
                         <Badge className="bg-green-500/10 text-green-400 hover:bg-green-500/20">Teleop</Badge> Capabilities
                       </h3>
                       <div className="grid grid-cols-1 gap-2">
-                        {['Score FUEL in active HUB', 'TOWER LEVEL 1 climb', 'TOWER LEVEL 2 climb', 'TOWER LEVEL 3 climb'].map((opt) => (
+                        {['Score FUEL in active HUB'].map((opt) => (
                           <div
                             key={opt}
                             onClick={() => {
@@ -855,6 +862,26 @@ export default function PitScouting() {
                             <span className="text-sm font-medium">{opt}</span>
                           </div>
                         ))}
+                      </div>
+                    </div>
+
+                    {/* Can Autoalign */}
+                    <div className="col-span-full space-y-4 pt-4 border-t border-white/5">
+                      <h3 className="font-heading font-semibold text-lg flex items-center gap-2">Autoalign</h3>
+                      <div
+                        onClick={() => setFormData(prev => ({ ...prev, canAutoalign: !prev.canAutoalign }))}
+                        className={cn(
+                          "p-3 rounded-lg border cursor-pointer flex items-center gap-3 transition-all max-w-md",
+                          formData.canAutoalign
+                            ? "bg-blue-500/10 border-blue-500/40 text-blue-100"
+                            : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                        )}
+                      >
+                        <div className={cn("w-4 h-4 rounded border flex items-center justify-center transition-colors",
+                          formData.canAutoalign ? "bg-blue-500 border-blue-500" : "border-muted-foreground/50")}>
+                          {formData.canAutoalign && <CheckCircle size={12} className="text-white" />}
+                        </div>
+                        <span className="text-sm font-medium">Can do autoalign</span>
                       </div>
                     </div>
 

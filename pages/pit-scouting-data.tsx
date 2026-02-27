@@ -51,6 +51,7 @@ export interface PitScoutingData {
   };
   autonomous_capabilities: string[];
   teleop_capabilities: string[];
+  can_autoalign?: boolean;
   robot_dimensions: {
     length?: number;
     width?: number;
@@ -132,6 +133,7 @@ export default function PitScoutingData() {
           },
           autonomous_capabilities: item.autonomous_capabilities || [],
           teleop_capabilities: item.teleop_capabilities || [],
+          can_autoalign: !!item.can_autoalign,
           robot_dimensions: item.robot_dimensions && typeof item.robot_dimensions === 'object' ? item.robot_dimensions : { height: 0 },
           weight: item.weight || 0,
           camera_count: item.camera_count !== undefined && item.camera_count !== null ? item.camera_count : undefined,
@@ -267,6 +269,7 @@ export default function PitScoutingData() {
         },
         autonomous_capabilities: item.autonomous_capabilities || [],
         teleop_capabilities: item.teleop_capabilities || [],
+        can_autoalign: !!item.can_autoalign,
         robot_dimensions: item.robot_dimensions || { height: 0 },
         weight: item.weight || 0,
         camera_count: item.camera_count !== undefined && item.camera_count !== null ? item.camera_count : undefined,
@@ -914,6 +917,10 @@ export default function PitScoutingData() {
                                 <div className="text-gray-400">None specified</div>
                               )}
                             </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-300 font-medium">Can Autoalign:</span>
+                            <span className="text-white ml-2">{selectedDetailItem.can_autoalign ? 'Yes' : 'No'}</span>
                           </div>
                           <div>
                             <span className="text-gray-300 font-medium">Climb & Navigation:</span>

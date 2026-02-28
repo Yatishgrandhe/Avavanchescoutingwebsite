@@ -6,6 +6,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Format duration in seconds with milliseconds (e.g. "12.345s") */
+export function formatDurationSec(sec: number): string {
+  if (typeof sec !== 'number' || Number.isNaN(sec)) return '0.000s';
+  return `${(Math.round(sec * 1000) / 1000).toFixed(3)}s`;
+}
+
 function fuelFromRuns(runs: Array<{ ball_choice: number }> | undefined): number {
   if (!runs?.length) return 0;
   return runs.reduce((sum, r) => sum + (BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0), 0);

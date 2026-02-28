@@ -65,15 +65,15 @@ export interface RunRecord {
   ball_choice: number; // index into BALL_CHOICE_OPTIONS
 }
 
-/** Multiple choice after each stopwatch run: "How many balls in this run?" — 8 options in 15-ball increments */
+/** Multiple choice after each stopwatch run: "How many balls in this run?" — 8 options. Value = max of range (each ball scored = 1 pt). */
 export const BALL_CHOICE_OPTIONS = [
   { label: '0', value: 0 },
-  { label: '1–15', value: 8 },
-  { label: '16–30', value: 23 },
-  { label: '31–45', value: 38 },
-  { label: '46–60', value: 53 },
-  { label: '61–75', value: 68 },
-  { label: '76–90', value: 83 },
+  { label: '1–15', value: 15 },
+  { label: '16–30', value: 30 },
+  { label: '31–45', value: 45 },
+  { label: '46–60', value: 60 },
+  { label: '61–75', value: 75 },
+  { label: '76–90', value: 90 },
   { label: '91+', value: 95 },
 ] as const;
 

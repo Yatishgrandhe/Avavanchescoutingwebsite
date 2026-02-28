@@ -14,7 +14,8 @@ import {
   Eye,
   BookOpen,
   Archive,
-  Sparkles
+  Sparkles,
+  Users
 } from 'lucide-react';
 import { Badge, Logo, Avatar, AvatarFallback, AvatarImage } from '../ui';
 import {
@@ -88,6 +89,11 @@ const AppSidebar: React.FC<SidebarProps> = ({
           label: 'Pick Lists',
           href: '/pick-list',
           icon: List,
+        },
+        {
+          label: 'Scouting Stats',
+          href: '/admin/scouting-stats',
+          icon: Users,
         },
       ],
     }] : []),

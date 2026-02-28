@@ -29,6 +29,7 @@ import { useRouter } from 'next/router';
 type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'miscellaneous' | 'review';
 
 interface FormData {
+  scoutName: string;
   matchData: {
     match_id: string;
     event_key: string;
@@ -63,6 +64,7 @@ export default function MobileScout() {
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
+    scoutName: '',
     matchData: {
       match_id: '',
       event_key: '',
@@ -129,7 +131,7 @@ export default function MobileScout() {
         scout_id: user?.id,
         submitted_by_email: user?.email,
         // Use username from user_metadata: full_name, username (Discord), or name
-        submitted_by_name: user?.user_metadata?.full_name || user?.user_metadata?.username || user?.user_metadata?.name || user?.email,
+        submitted_by_name: formData.scoutName?.trim() || user?.email || 'Unknown',
         submitted_at: new Date().toISOString(),
         notes: {
           autonomous: formData.autonomous,
@@ -157,6 +159,7 @@ export default function MobileScout() {
         // Reset form or redirect
         setCurrentStep('match-details');
         setFormData({
+          scoutName: '',
           matchData: {
             match_id: '',
             event_key: '',
@@ -278,13 +281,14 @@ export default function MobileScout() {
               >
                 {currentStep === 'match-details' && (
                   <MatchDetailsForm
-                    onNext={(matchData, teamNumber, allianceColor, alliancePosition) => {
+                    onNext={(matchData, teamNumber, allianceColor, alliancePosition, scoutName) => {
                       setFormData(prev => ({ 
                         ...prev, 
                         matchData, 
                         teamNumber, 
                         allianceColor,
-                        alliancePosition
+                        alliancePosition,
+                        scoutName,
                       }));
                       handleStepNext('autonomous');
                     }}
@@ -295,6 +299,7 @@ export default function MobileScout() {
                       teamNumber: formData.teamNumber || undefined,
                       allianceColor: formData.allianceColor,
                       alliancePosition: formData.alliancePosition,
+                      scoutName: formData.scoutName,
                     }}
                   />
                 )}

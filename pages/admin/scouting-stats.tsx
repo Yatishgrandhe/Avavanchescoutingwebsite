@@ -176,7 +176,7 @@ export default function AdminScoutingStatsPage() {
                     Forms by Person
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Display name (not username) and number of match scouting forms submitted
+                    Name entered in the match scouting form (not Discord username) and number of forms submitted
                   </p>
                 </CardHeader>
                 <CardContent>

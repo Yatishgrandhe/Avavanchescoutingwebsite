@@ -21,7 +21,7 @@ interface Match {
 }
 
 interface MatchDetailsFormProps {
-  onNext: (matchData: Match, selectedTeam: number, allianceColor: 'red' | 'blue', alliancePosition: 1 | 2 | 3) => void;
+  onNext: (matchData: Match, selectedTeam: number, allianceColor: 'red' | 'blue', alliancePosition: 1 | 2 | 3, scoutName: string) => void;
   onBack?: () => void;
   currentStep: number;
   totalSteps: number;
@@ -31,6 +31,7 @@ interface MatchDetailsFormProps {
     teamNumber?: number;
     allianceColor?: 'red' | 'blue';
     alliancePosition?: 1 | 2 | 3;
+    scoutName?: string;
   };
 }
 
@@ -47,6 +48,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   const [selectedTeam, setSelectedTeam] = useState<number | null>(initialData?.teamNumber || null);
   const [allianceColor, setAllianceColor] = useState<'red' | 'blue' | ''>(initialData?.allianceColor || '');
   const [alliancePosition, setAlliancePosition] = useState<1 | 2 | 3 | null>(initialData?.alliancePosition || null);
+  const [scoutName, setScoutName] = useState<string>(initialData?.scoutName || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -62,6 +64,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
       if (initialData.teamNumber) setSelectedTeam(initialData.teamNumber);
       if (initialData.allianceColor) setAllianceColor(initialData.allianceColor);
       if (initialData.alliancePosition) setAlliancePosition(initialData.alliancePosition);
+      if (initialData.scoutName) setScoutName(initialData.scoutName);
     }
   }, [initialData]);
 
@@ -122,8 +125,13 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
       return;
     }
 
-    // All validations passed, proceed to next step
-    onNext(selectedMatch, selectedTeam, allianceColor as 'red' | 'blue', alliancePosition);
+    const name = scoutName.trim();
+    if (!name) {
+      setError('Please enter your name');
+      return;
+    }
+
+    onNext(selectedMatch, selectedTeam, allianceColor as 'red' | 'blue', alliancePosition, name);
   };
 
   const progressPercentage = (currentStep / totalSteps) * 100;
@@ -149,6 +157,22 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
         </CardHeader>
 
         <CardContent className="space-y-6">
+          {/* Scout Name */}
+          <div className="space-y-2">
+            <label className="text-xs font-black uppercase tracking-widest text-muted-foreground block">
+              Your Name <span className="text-red-400">*</span>
+            </label>
+            <Input
+              placeholder="Enter your name (used for scouting stats, not Discord username)"
+              value={scoutName}
+              onChange={(e) => setScoutName(e.target.value)}
+              className="bg-white/5 border-white/10 h-12 rounded-xl"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              This name appears on the scouting stats page and is not your Discord username.
+            </p>
+          </div>
+
           {/* Match Selection */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -300,7 +324,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
           )}
           <Button
             onClick={handleNext}
-            disabled={!selectedMatch || !selectedTeam || !alliancePosition}
+            disabled={!selectedMatch || !selectedTeam || !alliancePosition || !scoutName.trim()}
             className="ml-auto"
           >
             Next

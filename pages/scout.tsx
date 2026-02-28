@@ -25,12 +25,12 @@ import MiscellaneousForm from '@/components/scout/MiscellaneousForm';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ScoringNotes } from '@/lib/types';
-import { calculateScore } from '@/lib/utils';
-import { cn } from '@/lib/utils';
+import { calculateScore, cn, formatDurationSec } from '@/lib/utils';
 
 type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'miscellaneous' | 'review';
 
 interface FormData {
+  scoutName: string;
   matchData: {
     match_id: string;
     event_key: string;
@@ -64,6 +64,7 @@ export default function Scout() {
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
+    scoutName: '',
     matchData: {
       match_id: '',
       event_key: '',
@@ -125,8 +126,7 @@ export default function Scout() {
         broke: formData.miscellaneous.broke ?? undefined,
         scout_id: user?.id,
         submitted_by_email: user?.email,
-        // Use username from user_metadata: full_name, username (Discord), or name
-        submitted_by_name: user?.user_metadata?.full_name || user?.user_metadata?.username || user?.user_metadata?.name || user?.email,
+        submitted_by_name: formData.scoutName?.trim() || user?.email || 'Unknown',
         submitted_at: new Date().toISOString(),
         notes: {
           autonomous: formData.autonomous,
@@ -150,6 +150,7 @@ export default function Scout() {
         // Success animation or toast ideally
         setCurrentStep('match-details');
         setFormData({
+          scoutName: '',
           matchData: {
             match_id: '',
             event_key: '',
@@ -298,13 +299,14 @@ export default function Scout() {
                     className="h-full"
                   >
                     <MatchDetailsForm
-                      onNext={(matchData, teamNumber, allianceColor, alliancePosition) => {
+                      onNext={(matchData, teamNumber, allianceColor, alliancePosition, scoutName) => {
                         setFormData(prev => ({
                           ...prev,
                           matchData,
                           teamNumber,
                           allianceColor,
-                          alliancePosition
+                          alliancePosition,
+                          scoutName,
                         }));
                         handleStepNext('autonomous');
                       }}
@@ -315,6 +317,7 @@ export default function Scout() {
                         teamNumber: formData.teamNumber || undefined,
                         allianceColor: formData.allianceColor,
                         alliancePosition: formData.alliancePosition,
+                        scoutName: formData.scoutName,
                       }}
                     />
                   </motion.div>
@@ -466,7 +469,7 @@ export default function Scout() {
                               </div>
                               <div className="text-center">
                                 <span className="text-[9px] font-bold text-muted-foreground uppercase block">Downtime</span>
-                                <span className="text-sm font-black">{formData.miscellaneous.average_downtime ?? 0}s</span>
+                                <span className="text-sm font-black">{formatDurationSec(formData.miscellaneous.average_downtime ?? 0)}</span>
                               </div>
                               <div className="text-center">
                                 <span className="text-[9px] font-bold text-muted-foreground uppercase block">Broke</span>

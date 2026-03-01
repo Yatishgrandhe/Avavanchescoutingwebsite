@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui';
+import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui';
 import { ChevronDown, Loader2, AlertCircle, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -49,12 +49,28 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   const [allianceColor, setAllianceColor] = useState<'red' | 'blue' | ''>(initialData?.allianceColor || '');
   const [alliancePosition, setAlliancePosition] = useState<1 | 2 | 3 | null>(initialData?.alliancePosition || null);
   const [scoutName, setScoutName] = useState<string>(initialData?.scoutName || '');
+  const [scoutNames, setScoutNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch matches on component mount
+  // Fetch matches and scout names on component mount
   useEffect(() => {
     fetchMatches();
+  }, []);
+
+  useEffect(() => {
+    const fetchScoutNames = async () => {
+      try {
+        const res = await fetch('/api/scout-names');
+        if (res.ok) {
+          const { names } = await res.json();
+          setScoutNames(names || []);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    fetchScoutNames();
   }, []);
 
   // Sync initialData with state when it changes
@@ -162,14 +178,20 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
             <label className="text-xs font-black uppercase tracking-widest text-muted-foreground block">
               Your Name <span className="text-red-400">*</span>
             </label>
-            <Input
-              placeholder="Enter your name (used for scouting stats, not Discord username)"
-              value={scoutName}
-              onChange={(e) => setScoutName(e.target.value)}
-              className="bg-white/5 border-white/10 h-12 rounded-xl"
-            />
+            <Select value={scoutName} onValueChange={setScoutName}>
+              <SelectTrigger className="w-full bg-white/5 border-white/10 h-12 rounded-xl text-foreground hover:bg-white/10 transition-all">
+                <SelectValue placeholder="Select your name..." />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-white/10 rounded-xl">
+                {scoutNames.map((name) => (
+                  <SelectItem key={name} value={name} className="py-3">
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <p className="text-[10px] text-muted-foreground">
-              This name appears on the scouting stats page and is not your Discord username.
+              This name appears on the scouting stats page.
             </p>
           </div>
 

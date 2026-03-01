@@ -38,9 +38,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const [liveRes, pastRes] = await Promise.all([
+    const [liveRes, pastRes, namesRes] = await Promise.all([
       supabase.from('scouting_data').select('submitted_by_name'),
       supabase.from('past_scouting_data').select('submitted_by_name'),
+      supabase.from('scout_names').select('name').order('sort_order', { ascending: true }).order('name', { ascending: true }),
     ]);
 
     if (liveRes.error) {
@@ -50,6 +51,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (pastRes.error) {
       console.error('past_scouting_data error:', pastRes.error);
       return res.status(500).json({ error: 'Failed to load past scouting data' });
+    }
+    if (namesRes.error) {
+      console.error('scout_names error:', namesRes.error);
+      return res.status(500).json({ error: 'Failed to load scout names' });
     }
 
     const allRows = [
@@ -63,9 +68,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       countByPerson.set(displayName, (countByPerson.get(displayName) ?? 0) + 1);
     }
 
-    const byPerson: ScoutingStatsByPerson[] = Array.from(countByPerson.entries())
-      .map(([name, formCount]) => ({ name, formCount }))
-      .sort((a, b) => b.formCount - a.formCount);
+    const allScoutNames = (namesRes.data || []).map((r: { name: string }) => r.name);
+    const byPerson: ScoutingStatsByPerson[] = allScoutNames.map((name) => ({
+      name,
+      formCount: countByPerson.get(name) ?? 0,
+    }));
 
     const totalForms = allRows.length;
 

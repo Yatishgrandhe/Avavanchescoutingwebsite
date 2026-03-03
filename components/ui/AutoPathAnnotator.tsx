@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Button } from './Button';
 import { Input } from './Input';
-import { Maximize2, Minimize2, Plus, Trash2, Check, Undo2, Pencil } from 'lucide-react';
+import { Maximize2, Minimize2, Plus, Trash2, Check, Undo2, Pencil, Eraser } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface PathPoint {
@@ -57,7 +57,7 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [mode, setMode] = useState<'idle' | 'drawing'>('idle');
+  const [mode, setMode] = useState<'idle' | 'drawing' | 'eraser'>('idle');
   /** Current path as segments - each segment is one continuous stroke */
   const [currentSegments, setCurrentSegments] = useState<PathPoint[][]>([]);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
@@ -65,6 +65,9 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
   const [imgLoaded, setImgLoaded] = useState(false);
   const lastPointRef = useRef<PathPoint | null>(null);
   const isPointerDownRef = useRef(false);
+
+  /** Eraser: remove points within this distance (canvas px) from pointer */
+  const ERASER_RADIUS = 24;
 
   const getCanvasCoords = useCallback(
     (e: React.PointerEvent | PointerEvent): PathPoint | null => {
@@ -196,6 +199,20 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
       const pt = getCanvasCoords(e);
       if (!pt || !canvas) return;
 
+      if (mode === 'eraser') {
+        const hit = paths.find((p) => {
+          const segs = p.segments && p.segments.length > 0 ? p.segments : (p.points.length >= 2 ? [p.points] : []);
+          return segs.some((pts) =>
+            pts.some((pp, i) => i < pts.length - 1 && distToSegment(pt, pp, pts[i + 1]) < ERASER_RADIUS)
+          );
+        });
+        if (hit) {
+          onPathsChange(paths.filter((p) => p.id !== hit.id));
+          if (selectedPathId === hit.id) setSelectedPathId(null);
+        }
+        return;
+      }
+
       if (mode === 'drawing') {
         isPointerDownRef.current = true;
         lastPointRef.current = pt;
@@ -215,7 +232,7 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
         setSelectedPathId(hit?.id ?? null);
       }
     },
-    [mode, paths, getCanvasCoords]
+    [mode, paths, getCanvasCoords, onPathsChange, selectedPathId]
   );
 
   const handlePointerMove = useCallback(
@@ -313,8 +330,17 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
     if (paths.length === 0) return;
     const last = paths[paths.length - 1];
     onPathsChange(paths.slice(0, -1));
-    if (selectedPathId === last.id) setSelectedPathId(paths.length > 1 ? paths[paths.length - 2].id : null);
-  }, [paths, selectedPathId, onPathsChange]);
+    setSelectedPathId((current) => (current === last.id ? (paths.length > 1 ? paths[paths.length - 2].id : null) : current));
+  }, [paths, onPathsChange]);
+
+  /** Single Undo action: while drawing, undo last point; otherwise undo last completed path */
+  const handleUndo = useCallback(() => {
+    if (mode === 'drawing' && currentSegments.flat().length > 1) {
+      undoLastPoint();
+    } else if (paths.length > 0) {
+      undoLastPath();
+    }
+  }, [mode, currentSegments, paths.length, undoLastPoint, undoLastPath]);
 
   const deletePath = useCallback(
     (id: string) => {
@@ -436,8 +462,7 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
   useImperativeHandle(ref, () => ({ exportToBlob }), [exportToBlob]);
 
   const currentTotalPoints = currentSegments.flat().length;
-  const canUndoPoint = mode === 'drawing' && currentTotalPoints > 1;
-  const canUndoPath = mode === 'idle' && paths.length > 0;
+  const canUndo = (mode === 'drawing' && currentTotalPoints > 1) || (paths.length > 0);
 
   return (
     <div className={cn('flex flex-col gap-4', className)}>
@@ -468,27 +493,26 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
         )}
         <Button
           type="button"
+          variant={mode === 'eraser' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setMode(mode === 'eraser' ? 'idle' : 'eraser')}
+          className={mode === 'eraser' ? 'bg-primary text-primary-foreground' : ''}
+          title="Click on a path to remove it"
+        >
+          <Eraser className="w-4 h-4 mr-1" />
+          Eraser
+        </Button>
+        <Button
+          type="button"
           variant="ghost"
           size="sm"
-          onClick={undoLastPoint}
-          disabled={!canUndoPoint}
-          title="Undo last stroke segment"
+          onClick={handleUndo}
+          disabled={!canUndo}
+          title={mode === 'drawing' ? 'Undo last point' : 'Undo last path'}
         >
           <Undo2 className="w-4 h-4 mr-1" />
           Undo
         </Button>
-        {canUndoPath && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={undoLastPath}
-            title="Remove last path"
-          >
-            <Undo2 className="w-4 h-4 mr-1" />
-            Undo Path
-          </Button>
-        )}
         <Button type="button" variant="ghost" size="sm" onClick={toggleFullscreen}>
           {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           <span className="ml-1">{isFullscreen ? 'Exit' : 'Fullscreen'}</span>
@@ -516,7 +540,10 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
         />
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 cursor-crosshair touch-none"
+          className={cn(
+            'absolute inset-0 touch-none',
+            mode === 'eraser' ? 'cursor-cell' : 'cursor-crosshair'
+          )}
           style={{ touchAction: 'none' }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -528,7 +555,9 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
       <p className="text-xs text-muted-foreground">
         {mode === 'drawing'
           ? 'Drag to draw each stroke. Release and draw elsewhere for a new stroke. Click "Done" when complete.'
-          : 'Click "Draw Path" then drag to sketch. Select a path to edit or delete.'}
+          : mode === 'eraser'
+            ? 'Eraser mode: click on a path to remove it.'
+            : 'Click "Draw Path" then drag to sketch. Use Eraser to remove paths. Undo removes last point (while drawing) or last path.'}
       </p>
 
       {paths.length > 0 && (

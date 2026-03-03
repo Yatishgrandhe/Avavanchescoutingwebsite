@@ -5,6 +5,7 @@ import path from 'path';
 import { createClient } from '@supabase/supabase-js';
 import { google } from 'googleapis';
 import { Readable } from 'stream';
+import { CURRENT_EVENT_NAME } from '@/lib/constants';
 
 // Disable Next.js body parsing for file uploads
 export const config = {
@@ -127,9 +128,13 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
 
         console.log(`[API/upload-robot-image] OAuth Uploading: ${fileName} to folder ${folderId}`);
 
+        // Include event name in file name for Google Drive (e.g. "Event Cabbbarus 2026 - team_900_...")
+        const driveFileName = `Event ${CURRENT_EVENT_NAME} - ${fileName}`;
+
         const response = await drive.files.create({
             requestBody: {
-                name: fileName,
+                name: driveFileName,
+                description: `Event: ${CURRENT_EVENT_NAME}`,
                 parents: [folderId],
             },
             media: {

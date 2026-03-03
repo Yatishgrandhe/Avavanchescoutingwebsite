@@ -3,3 +3,9 @@ export const CURRENT_SEASON_YEAR = 2026;
 
 /** Supabase like pattern for match_id: only rows whose match_id contains the season year (e.g. avalanche_2026_qm1). */
 export const SCOUTING_MATCH_ID_SEASON_PATTERN = '%2026%';
+
+/** Current event key for matches/pick lists (e.g. load from TBA with this key). */
+export const CURRENT_EVENT_KEY = '2026cabbbarus';
+
+/** Current event display name (e.g. shown in UI and in Google Drive uploads). */
+export const CURRENT_EVENT_NAME = 'Cabbbarus 2026';

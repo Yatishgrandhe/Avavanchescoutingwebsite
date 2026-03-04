@@ -24,7 +24,7 @@ import TeleopForm from '@/components/scout/TeleopForm';
 import MiscellaneousForm from '@/components/scout/MiscellaneousForm';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { ScoringNotes } from '@/lib/types';
+import { ScoringNotes, getBallChoiceLabel } from '@/lib/types';
 import { calculateScore, cn, formatDurationSec } from '@/lib/utils';
 
 type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'miscellaneous' | 'review';
@@ -460,6 +460,54 @@ export default function Scout() {
                               <span className="text-2xl font-black text-primary drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]">
                                 {calculateScore(formData.autonomous).final_score + calculateScore(formData.teleop).final_score}
                               </span>
+                            </div>
+
+                            {/* Fuel & climb (range-based) */}
+                            <div className="space-y-2 pt-1 border-t border-white/5">
+                              <span className="text-[10px] font-black text-muted-foreground uppercase block">Fuel & climb</span>
+                              <div className="text-xs space-y-1">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Auto fuel (range):</span>
+                                  <span className="font-mono font-semibold">{formData.autonomous?.auto_fuel_active_hub ?? 0} pts</span>
+                                </div>
+                                {(formData.autonomous?.auto_tower_level1 != null || formData.autonomous?.auto_climb_sec != null) && (
+                                  <>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">L1 climb:</span>
+                                      <span className="font-semibold">{formData.autonomous?.auto_tower_level1 ? 'Yes (+15)' : 'No'}</span>
+                                    </div>
+                                    {formData.autonomous?.auto_climb_sec != null && Number(formData.autonomous.auto_climb_sec) > 0 && (
+                                      <div className="flex justify-between">
+                                        <span className="text-muted-foreground">CLANK speed:</span>
+                                        <span className="font-mono font-semibold">{formatDurationSec(Number(formData.autonomous.auto_climb_sec))}</span>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Teleop fuel (range):</span>
+                                  <span className="font-mono font-semibold">{formData.teleop?.teleop_fuel_active_hub ?? 0} pts</span>
+                                </div>
+                                {(formData.teleop?.teleop_tower_level1 || formData.teleop?.teleop_tower_level2 || formData.teleop?.teleop_tower_level3) && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Tower climb:</span>
+                                    <span className="font-semibold">
+                                      {formData.teleop?.teleop_tower_level3 ? 'L3 (+30)' : formData.teleop?.teleop_tower_level2 ? 'L2 (+20)' : 'L1 (+10)'}
+                                    </span>
+                                  </div>
+                                )}
+                                {formData.teleop?.climb_sec != null && Number(formData.teleop.climb_sec) > 0 && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Climb time:</span>
+                                    <span className="font-mono font-semibold">{formatDurationSec(Number(formData.teleop.climb_sec))}</span>
+                                  </div>
+                                )}
+                              </div>
+                              {((formData.autonomous?.runs?.length ?? 0) > 0 || (formData.teleop?.runs?.length ?? 0) > 0) && (
+                                <div className="text-[10px] text-muted-foreground pt-1">
+                                  Runs: Auto {formData.autonomous?.runs?.length ?? 0} ({((formData.autonomous?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'}) · Teleop {formData.teleop?.runs?.length ?? 0} ({((formData.teleop?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'})
+                                </div>
+                              )}
                             </div>
 
                             <div className="grid grid-cols-3 gap-2 pt-2">

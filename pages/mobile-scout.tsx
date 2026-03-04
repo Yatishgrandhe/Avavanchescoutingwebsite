@@ -22,8 +22,8 @@ import MatchDetailsForm from '@/components/scout/MatchDetailsForm';
 import AutonomousForm from '@/components/scout/AutonomousForm';
 import TeleopForm from '@/components/scout/TeleopForm';
 import MiscellaneousForm from '@/components/scout/MiscellaneousForm';
-import { ScoringNotes } from '@/lib/types';
-import { calculateScore } from '@/lib/utils';
+import { ScoringNotes, getBallChoiceLabel } from '@/lib/types';
+import { calculateScore, formatDurationSec } from '@/lib/utils';
 import { useRouter } from 'next/router';
 
 type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'miscellaneous' | 'review';
@@ -347,9 +347,9 @@ export default function MobileScout() {
                 {currentStep === 'review' && (
                   <div className="space-y-6">
                   <div>
-                    <h2 className="text-xl font-bold mb-2">Review Scouting Data</h2>
+                    <h2 className="text-xl font-bold mb-2">Review & Submit</h2>
                     <p className="text-muted-foreground text-sm">
-                      Please review your data before submitting
+                      Verify fuel (range-based), climb, and score before submitting
                     </p>
                   </div>
                   
@@ -409,7 +409,43 @@ export default function MobileScout() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="border-t pt-2 mt-2 space-y-1">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase">Fuel & climb (range-based)</p>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Auto fuel:</span>
+                            <span className="font-mono font-medium">{formData.autonomous?.auto_fuel_active_hub ?? 0}</span>
+                          </div>
+                          {formData.autonomous?.auto_tower_level1 != null && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">L1 climb:</span>
+                              <span className="font-medium">{formData.autonomous.auto_tower_level1 ? 'Yes (+15)' : 'No'}</span>
+                            </div>
+                          )}
+                          {formData.autonomous?.auto_climb_sec != null && Number(formData.autonomous.auto_climb_sec) > 0 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">CLANK speed:</span>
+                              <span className="font-mono font-medium">{formatDurationSec(Number(formData.autonomous.auto_climb_sec))}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Teleop fuel:</span>
+                            <span className="font-mono font-medium">{formData.teleop?.teleop_fuel_active_hub ?? 0}</span>
+                          </div>
+                          {(formData.teleop?.teleop_tower_level1 || formData.teleop?.teleop_tower_level2 || formData.teleop?.teleop_tower_level3) && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Tower:</span>
+                              <span className="font-medium">
+                                {formData.teleop?.teleop_tower_level3 ? 'L3 (+30)' : formData.teleop?.teleop_tower_level2 ? 'L2 (+20)' : 'L1 (+10)'}
+                              </span>
+                            </div>
+                          )}
+                          {((formData.autonomous?.runs?.length ?? 0) > 0 || (formData.teleop?.runs?.length ?? 0) > 0) && (
+                            <p className="text-xs text-muted-foreground pt-1">
+                              Runs — Auto: {((formData.autonomous?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'} · Teleop: {((formData.teleop?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex justify-between border-t pt-2 mt-2">
                           <span className="text-muted-foreground">Defense Rating:</span>
                           <span className="font-medium">{formData.miscellaneous.defense_rating}/10</span>
                         </div>

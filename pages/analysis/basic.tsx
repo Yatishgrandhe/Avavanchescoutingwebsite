@@ -44,7 +44,7 @@ import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { computeRebuiltMetrics, formatScoreRange } from '@/lib/analytics';
 import { formatDurationSec } from '@/lib/utils';
-import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
+import { SCOUTING_MATCH_ID_SEASON_PATTERN, CURRENT_EVENT_KEY, CURRENT_EVENT_NAME } from '@/lib/constants';
 
 interface TeamData {
   team_number: number;
@@ -341,6 +341,7 @@ export default function BasicAnalysis() {
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-600">
                     <SelectItem value="all" className="text-white hover:bg-gray-700">All Events</SelectItem>
+                    <SelectItem value={CURRENT_EVENT_KEY} className="text-white hover:bg-gray-700">{CURRENT_EVENT_NAME}</SelectItem>
                     <SelectItem value="2026camb" className="text-white hover:bg-gray-700">CAMB 2026</SelectItem>
                     <SelectItem value="2026mabt" className="text-white hover:bg-gray-700">MABT 2026</SelectItem>
                   </SelectContent>

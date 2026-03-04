@@ -108,7 +108,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
                   <input
                     type="number"
                     min={0}
-                    step={0.5}
+                    step={0.001}
                     value={formData.average_downtime ?? ''}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       const v = e.target.value;

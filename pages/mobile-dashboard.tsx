@@ -12,19 +12,18 @@ import {
   Activity,
   Users,
   Database,
-  Shield,
   Loader2
 } from 'lucide-react';
 import { useSupabase } from '@/pages/_app';
 import { useRefreshHandler } from '@/lib/refresh-handler';
 import Layout from '../components/layout/Layout';
 
-// Types for dashboard data
+// Types for dashboard data (all real from DB)
 interface DashboardStats {
   totalMatches: number;
   teamsCount: number;
   dataPoints: number;
-  successRate: number;
+  pitProfiles: number;
 }
 
 interface RecentActivity {
@@ -43,7 +42,7 @@ export default function MobileDashboard() {
     totalMatches: 0,
     teamsCount: 0,
     dataPoints: 0,
-    successRate: 0,
+    pitProfiles: 0,
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -63,39 +62,26 @@ export default function MobileDashboard() {
   const loadDashboardStats = async () => {
     setLoadingStats(true);
     try {
-      // Get total matches count
-      const { count: matchesCount } = await supabase
-        .from('matches')
-        .select('*', { count: 'exact', head: true });
-
-      // Get total teams count
-      const { count: teamsCount } = await supabase
-        .from('teams')
-        .select('*', { count: 'exact', head: true });
-
-      // Get total scouting data entries
-      const { count: scoutingDataCount } = await supabase
-        .from('scouting_data')
-        .select('*', { count: 'exact', head: true });
-
-      // Calculate success rate (percentage of matches with complete data)
-      const { data: matchesWithData } = await supabase
-        .from('scouting_data')
-        .select('match_id')
-        .not('match_id', 'is', null);
-
-      const uniqueMatchesWithData = matchesWithData ? new Set(matchesWithData.map((item: any) => item.match_id)).size : 0;
-      const successRate = matchesCount ? Math.round((uniqueMatchesWithData / matchesCount) * 100) : 0;
+      const [
+        { count: matchesCount },
+        { count: teamsCount },
+        { count: scoutingDataCount },
+        { count: pitCount },
+      ] = await Promise.all([
+        supabase.from('matches').select('*', { count: 'exact', head: true }),
+        supabase.from('teams').select('*', { count: 'exact', head: true }),
+        supabase.from('scouting_data').select('*', { count: 'exact', head: true }),
+        supabase.from('pit_scouting_data').select('*', { count: 'exact', head: true }),
+      ]);
 
       setDashboardStats({
         totalMatches: matchesCount || 0,
         teamsCount: teamsCount || 0,
         dataPoints: scoutingDataCount || 0,
-        successRate: successRate,
+        pitProfiles: pitCount || 0,
       });
     } catch (error) {
       console.error('Error loading dashboard stats:', error);
-      // Keep default values on error
     } finally {
       setLoadingStats(false);
     }
@@ -104,78 +90,53 @@ export default function MobileDashboard() {
   const loadRecentActivity = async () => {
     setLoadingActivity(true);
     try {
-      // Get recent scouting data entries
-      const { data: recentScoutingData } = await supabase
-        .from('scouting_data')
-        .select(`
-          id,
-          match_id,
-          team_number,
-          created_at,
-          matches:match_id (
-            match_number,
-            event_key
-          ),
-          teams:team_number (
-            team_name
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(5);
+      const [scoutingRes, pitRes] = await Promise.all([
+        supabase
+          .from('scouting_data')
+          .select('id, match_id, team_number, created_at, matches:match_id (match_number, event_key), teams:team_number (team_name)')
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase
+          .from('pit_scouting_data')
+          .select('id, team_number, robot_name, created_at')
+          .order('created_at', { ascending: false })
+          .limit(3),
+      ]);
 
-      const activities: RecentActivity[] = [];
+      const activities: (RecentActivity & { _sort?: number })[] = [];
 
-      if (recentScoutingData) {
-        recentScoutingData.forEach((entry: any) => {
-          const timeAgo = getTimeAgo(new Date(entry.created_at));
+      if (scoutingRes.data) {
+        scoutingRes.data.forEach((entry: any) => {
           activities.push({
             id: entry.id,
             type: 'match',
-            title: `Match ${entry.matches?.match_number || 'Unknown'} completed`,
-            description: `Team ${entry.team_number} - ${entry.teams?.team_name || 'Unknown Team'}`,
-            timestamp: timeAgo,
+            title: `Match ${entry.matches?.match_number ?? '?'} scouted`,
+            description: `Team ${entry.team_number} • ${entry.teams?.team_name || '—'}`,
+            timestamp: getTimeAgo(new Date(entry.created_at)),
             icon: 'check',
+            _sort: new Date(entry.created_at).getTime(),
+          });
+        });
+      }
+      if (pitRes.data?.length) {
+        pitRes.data.forEach((entry: any) => {
+          activities.push({
+            id: `pit-${entry.id}`,
+            type: 'pit',
+            title: 'Pit profile',
+            description: `Team ${entry.team_number} • ${entry.robot_name || '—'}`,
+            timestamp: getTimeAgo(new Date(entry.created_at)),
+            icon: 'clock',
+            _sort: new Date(entry.created_at).getTime(),
           });
         });
       }
 
-      // Add some sample pit scouting and analysis activities if needed
-      if (activities.length < 3) {
-        activities.push({
-          id: 'pit-1',
-          type: 'pit',
-          title: 'Pit scouting updated',
-          description: 'Robot capabilities analysis',
-          timestamp: '1 hour ago',
-          icon: 'clock',
-        });
-      }
-
-      if (activities.length < 3) {
-        activities.push({
-          id: 'analysis-1',
-          type: 'analysis',
-          title: 'New analytics report',
-          description: 'Team performance comparison',
-          timestamp: '2 hours ago',
-          icon: 'chart',
-        });
-      }
-
-      setRecentActivity(activities.slice(0, 3)); // Keep only top 3
+      activities.sort((a, b) => (b._sort ?? 0) - (a._sort ?? 0));
+      setRecentActivity(activities.slice(0, 5).map(({ _sort, ...rest }) => rest));
     } catch (error) {
       console.error('Error loading recent activity:', error);
-      // Set default activity on error
-      setRecentActivity([
-        {
-          id: 'default-1',
-          type: 'match',
-          title: 'Welcome to Avalanche',
-          description: 'Start scouting to see activity here',
-          timestamp: 'now',
-          icon: 'check',
-        }
-      ]);
+      setRecentActivity([]);
     } finally {
       setLoadingActivity(false);
     }
@@ -331,7 +292,7 @@ export default function MobileDashboard() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-muted-foreground">Total Matches</p>
+                    <p className="text-sm font-medium text-muted-foreground">Matches in schedule</p>
                     {loadingStats ? (
                       <div className="flex items-center space-x-2">
                         <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -341,7 +302,7 @@ export default function MobileDashboard() {
                       <>
                         <p className="text-2xl font-bold text-card-foreground">{dashboardStats.totalMatches}</p>
                         <p className="text-xs text-primary font-medium">
-                          {dashboardStats.totalMatches > 0 ? 'Active matches tracked' : 'No matches yet'}
+                          {dashboardStats.totalMatches > 0 ? 'From event' : 'No matches yet'}
                         </p>
                       </>
                     )}
@@ -357,7 +318,7 @@ export default function MobileDashboard() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-muted-foreground">Teams Registered</p>
+                    <p className="text-sm font-medium text-muted-foreground">Teams</p>
                     {loadingStats ? (
                       <div className="flex items-center space-x-2">
                         <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -367,7 +328,7 @@ export default function MobileDashboard() {
                       <>
                         <p className="text-2xl font-bold text-card-foreground">{dashboardStats.teamsCount}</p>
                         <p className="text-xs text-secondary font-medium">
-                          {dashboardStats.teamsCount > 0 ? 'Teams in database' : 'No teams registered'}
+                          {dashboardStats.teamsCount > 0 ? 'In database' : 'No teams'}
                         </p>
                       </>
                     )}
@@ -383,7 +344,7 @@ export default function MobileDashboard() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-muted-foreground">Data Points</p>
+                    <p className="text-sm font-medium text-muted-foreground">Match scouting forms</p>
                     {loadingStats ? (
                       <div className="flex items-center space-x-2">
                         <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -393,7 +354,7 @@ export default function MobileDashboard() {
                       <>
                         <p className="text-2xl font-bold text-card-foreground">{dashboardStats.dataPoints}</p>
                         <p className="text-xs text-warning font-medium">
-                          {dashboardStats.dataPoints > 0 ? 'Scouting entries collected' : 'Start scouting!'}
+                          {dashboardStats.dataPoints > 0 ? 'Submitted' : 'Start scouting!'}
                         </p>
                       </>
                     )}
@@ -409,7 +370,7 @@ export default function MobileDashboard() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-muted-foreground">Data Coverage</p>
+                    <p className="text-sm font-medium text-muted-foreground">Pit profiles</p>
                     {loadingStats ? (
                       <div className="flex items-center space-x-2">
                         <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -417,15 +378,15 @@ export default function MobileDashboard() {
                       </div>
                     ) : (
                       <>
-                        <p className="text-2xl font-bold text-card-foreground">{dashboardStats.successRate}%</p>
+                        <p className="text-2xl font-bold text-card-foreground">{dashboardStats.pitProfiles}</p>
                         <p className="text-xs text-success font-medium">
-                          {dashboardStats.successRate > 0 ? 'Matches with data' : 'No data yet'}
+                          {dashboardStats.pitProfiles > 0 ? 'Robot profiles' : 'No pit data yet'}
                         </p>
                       </>
                     )}
                   </div>
                   <div className="p-3 bg-success/10 rounded-2xl">
-                    <Shield className="w-6 h-6 text-success" />
+                    <Activity className="w-6 h-6 text-success" />
                   </div>
                 </div>
               </CardContent>

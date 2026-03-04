@@ -32,6 +32,7 @@ import Logo from '../components/ui/Logo';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useSupabase } from '@/pages/_app';
 import { useRefreshHandler } from '@/lib/refresh-handler';
+import { CURRENT_EVENT_NAME } from '@/lib/constants';
 
 // Enhanced Avalanche Animation
 const AvalancheAnimation = () => {
@@ -146,12 +147,12 @@ const benefits = [
   },
 ];
 
-// Types for dashboard data
+// Types for dashboard data (all from DB – no derived “success rate”)
 interface DashboardStats {
   totalMatches: number;
   teamsCount: number;
   dataPoints: number;
-  successRate: number;
+  pitProfiles: number;
 }
 
 interface RecentActivity {
@@ -170,7 +171,7 @@ export default function Home() {
     totalMatches: 0,
     teamsCount: 0,
     dataPoints: 0,
-    successRate: 0,
+    pitProfiles: 0,
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -235,23 +236,23 @@ export default function Home() {
   const loadDashboardStats = async () => {
     setLoadingStats(true);
     try {
-      const { count: matchesCount } = await supabase.from('matches').select('*', { count: 'exact', head: true });
-      const { count: teamsCount } = await supabase.from('teams').select('*', { count: 'exact', head: true });
-      const { count: scoutingDataCount } = await supabase.from('scouting_data').select('*', { count: 'exact', head: true });
-
-      const { data: matchesWithData } = await supabase
-        .from('scouting_data')
-        .select('match_id')
-        .not('match_id', 'is', null);
-
-      const uniqueMatchesWithData = matchesWithData ? new Set(matchesWithData.map((item: any) => item.match_id)).size : 0;
-      const successRate = matchesCount ? Math.round((uniqueMatchesWithData / matchesCount) * 100) : 0;
+      const [
+        { count: matchesCount },
+        { count: teamsCount },
+        { count: scoutingDataCount },
+        { count: pitCount },
+      ] = await Promise.all([
+        supabase.from('matches').select('*', { count: 'exact', head: true }),
+        supabase.from('teams').select('*', { count: 'exact', head: true }),
+        supabase.from('scouting_data').select('*', { count: 'exact', head: true }),
+        supabase.from('pit_scouting_data').select('*', { count: 'exact', head: true }),
+      ]);
 
       setDashboardStats({
         totalMatches: matchesCount || 0,
         teamsCount: teamsCount || 0,
         dataPoints: scoutingDataCount || 0,
-        successRate: successRate,
+        pitProfiles: pitCount || 0,
       });
     } catch (error) {
       console.error('Error loading dashboard stats:', error);
@@ -263,56 +264,54 @@ export default function Home() {
   const loadRecentActivity = async () => {
     setLoadingActivity(true);
     try {
-      const { data: recentScoutingData } = await supabase
-        .from('scouting_data')
-        .select(`
-          id,
-          match_id,
-          team_number,
-          created_at,
-          matches:match_id (match_number, event_key),
-          teams:team_number (team_name)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(5);
+      const [scoutingRes, pitRes] = await Promise.all([
+        supabase
+          .from('scouting_data')
+          .select('id, match_id, team_number, created_at, matches:match_id (match_number, event_key), teams:team_number (team_name)')
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase
+          .from('pit_scouting_data')
+          .select('id, team_number, robot_name, created_at')
+          .order('created_at', { ascending: false })
+          .limit(3),
+      ]);
 
       const activities: RecentActivity[] = [];
 
-      if (recentScoutingData) {
-        recentScoutingData.forEach((entry: any) => {
+      if (scoutingRes.data) {
+        scoutingRes.data.forEach((entry: any) => {
           activities.push({
             id: entry.id,
             type: 'match',
-            title: `Match ${entry.matches?.match_number || 'Unknown'} Scouted`,
-            description: `Team ${entry.team_number} • ${entry.teams?.team_name || 'Avalanche'}`,
+            title: `Match ${entry.matches?.match_number ?? '?'} scouted`,
+            description: `Team ${entry.team_number} • ${entry.teams?.team_name || '—'}`,
             timestamp: getTimeAgo(new Date(entry.created_at)),
             icon: 'check',
-          });
+            _sort: new Date(entry.created_at).getTime(),
+          } as RecentActivity & { _sort: number });
+        });
+      }
+      if (pitRes.data?.length) {
+        pitRes.data.forEach((entry: any) => {
+          activities.push({
+            id: `pit-${entry.id}`,
+            type: 'pit',
+            title: 'Pit profile',
+            description: `Team ${entry.team_number} • ${entry.robot_name || '—'}`,
+            timestamp: getTimeAgo(new Date(entry.created_at)),
+            icon: 'clock',
+            _sort: new Date(entry.created_at).getTime(),
+          } as RecentActivity & { _sort: number });
         });
       }
 
-      if (activities.length < 3) {
-        activities.push({
-          id: 'pit-sample',
-          type: 'pit',
-          title: 'Pit Scouting Updated',
-          description: 'Robot mechanics analyzed for Team 2724',
-          timestamp: '1 hour ago',
-          icon: 'clock',
-        });
-      }
-
-      setRecentActivity(activities.slice(0, 3));
+      type WithSort = RecentActivity & { _sort: number };
+      (activities as WithSort[]).sort((a, b) => b._sort - a._sort);
+      setRecentActivity((activities as WithSort[]).slice(0, 5).map(({ _sort, ...rest }) => rest));
     } catch (error) {
       console.error('Error loading recent activity:', error);
-      setRecentActivity([{
-        id: 'default',
-        type: 'match',
-        title: 'Welcome to Avalanche',
-        description: 'Start scouting to populate this feed',
-        timestamp: 'now',
-        icon: 'check',
-      }]);
+      setRecentActivity([]);
     } finally {
       setLoadingActivity(false);
     }
@@ -357,6 +356,9 @@ export default function Home() {
                   <p className="text-muted-foreground mt-1.5">
                     Welcome back, {user.user_metadata?.full_name?.split(' ')[0] || 'Scout'}. Ready for the competition?
                   </p>
+                  <p className="text-sm text-muted-foreground/80 mt-0.5">
+                    Event: {CURRENT_EVENT_NAME}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -382,37 +384,33 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Stats Cards */}
+            {/* Stats Cards – real data only */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {[
                 {
-                  label: "Total Matches",
+                  label: "Matches in schedule",
                   value: dashboardStats.totalMatches,
                   icon: Target,
-                  description: "Matches scouted",
-                  trend: "+12%"
+                  description: "Loaded from event",
                 },
                 {
-                  label: "Teams Tracked",
+                  label: "Teams",
                   value: dashboardStats.teamsCount,
                   icon: Users,
-                  description: "Active teams",
-                  trend: "+5"
+                  description: "In database",
                 },
                 {
-                  label: "Data Points",
+                  label: "Match scouting forms",
                   value: dashboardStats.dataPoints,
                   icon: Database,
-                  description: "Data collected",
-                  trend: "+234"
+                  description: "Submitted",
                 },
                 {
-                  label: "Success Rate",
-                  value: `${dashboardStats.successRate}%`,
+                  label: "Pit profiles",
+                  value: dashboardStats.pitProfiles,
                   icon: Activity,
-                  description: "Completion rate",
-                  trend: dashboardStats.successRate > 80 ? "Excellent" : "Good"
-                }
+                  description: "Robot profiles",
+                },
               ].map((stat, i) => (
                 <Card key={i} className="relative overflow-hidden">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -510,23 +508,20 @@ export default function Home() {
                     <TabsContent value="overview" className="space-y-4 mt-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Total Matches</span>
+                          <span className="text-sm text-muted-foreground">Matches in schedule</span>
                           <span className="text-sm font-medium">{loadingStats ? '...' : dashboardStats.totalMatches}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Teams Tracked</span>
+                          <span className="text-sm text-muted-foreground">Teams</span>
                           <span className="text-sm font-medium">{loadingStats ? '...' : dashboardStats.teamsCount}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Data Points</span>
+                          <span className="text-sm text-muted-foreground">Match scouting forms</span>
                           <span className="text-sm font-medium">{loadingStats ? '...' : dashboardStats.dataPoints}</span>
                         </div>
-                        <Separator />
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Success Rate</span>
-                          <Badge variant={dashboardStats.successRate > 80 ? "default" : "secondary"}>
-                            {loadingStats ? '...' : `${dashboardStats.successRate}%`}
-                          </Badge>
+                          <span className="text-sm text-muted-foreground">Pit profiles</span>
+                          <span className="text-sm font-medium">{loadingStats ? '...' : dashboardStats.pitProfiles}</span>
                         </div>
                       </div>
                     </TabsContent>
@@ -543,38 +538,38 @@ export default function Home() {
                           </TableHeader>
                           <TableBody>
                             <TableRow>
-                              <TableCell className="font-medium">Total Matches</TableCell>
+                              <TableCell className="font-medium">Matches in schedule</TableCell>
                               <TableCell className="text-right">{loadingStats ? '...' : dashboardStats.totalMatches}</TableCell>
                               <TableCell className="text-right">
                                 <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
-                                  Active
+                                  From event
                                 </Badge>
                               </TableCell>
                             </TableRow>
                             <TableRow>
-                              <TableCell className="font-medium">Teams Tracked</TableCell>
+                              <TableCell className="font-medium">Teams</TableCell>
                               <TableCell className="text-right">{loadingStats ? '...' : dashboardStats.teamsCount}</TableCell>
                               <TableCell className="text-right">
                                 <Badge variant="outline" className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
-                                  Tracking
+                                  In DB
                                 </Badge>
                               </TableCell>
                             </TableRow>
                             <TableRow>
-                              <TableCell className="font-medium">Data Points</TableCell>
+                              <TableCell className="font-medium">Match scouting forms</TableCell>
                               <TableCell className="text-right">{loadingStats ? '...' : dashboardStats.dataPoints}</TableCell>
                               <TableCell className="text-right">
                                 <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">
-                                  Collected
+                                  Submitted
                                 </Badge>
                               </TableCell>
                             </TableRow>
                             <TableRow>
-                              <TableCell className="font-medium">Success Rate</TableCell>
-                              <TableCell className="text-right">{loadingStats ? '...' : `${dashboardStats.successRate}%`}</TableCell>
+                              <TableCell className="font-medium">Pit profiles</TableCell>
+                              <TableCell className="text-right">{loadingStats ? '...' : dashboardStats.pitProfiles}</TableCell>
                               <TableCell className="text-right">
-                                <Badge variant="outline" className={dashboardStats.successRate > 80 ? "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20" : "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20"}>
-                                  {dashboardStats.successRate > 80 ? 'Excellent' : 'Good'}
+                                <Badge variant="outline" className="bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20">
+                                  Robot data
                                 </Badge>
                               </TableCell>
                             </TableRow>
@@ -587,15 +582,46 @@ export default function Home() {
                       <div className="space-y-4">
                         <div className="flex items-center gap-2">
                           <Sparkles className="h-4 w-4 text-primary" />
-                          <span className="text-sm font-medium">Quick Insights</span>
+                          <span className="text-sm font-medium">Insights</span>
                         </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          {['Rankings', 'Averages', 'Predictions'].map((item) => (
-                            <div key={item} className="text-center p-3 rounded-lg border text-sm hover:bg-accent cursor-pointer transition-colors">
-                              {item}
+                        {loadingStats ? (
+                          <div className="space-y-2 text-sm text-muted-foreground">Loading…</div>
+                        ) : (
+                          <div className="space-y-3 text-sm">
+                            <div className="flex justify-between rounded-lg border px-3 py-2">
+                              <span className="text-muted-foreground">Match forms submitted</span>
+                              <span className="font-medium">{dashboardStats.dataPoints}</span>
                             </div>
-                          ))}
-                        </div>
+                            <div className="flex justify-between rounded-lg border px-3 py-2">
+                              <span className="text-muted-foreground">Pit profiles</span>
+                              <span className="font-medium">{dashboardStats.pitProfiles}</span>
+                            </div>
+                            <div className="flex justify-between rounded-lg border px-3 py-2">
+                              <span className="text-muted-foreground">Teams in event</span>
+                              <span className="font-medium">{dashboardStats.teamsCount}</span>
+                            </div>
+                            <div className="flex justify-between rounded-lg border px-3 py-2">
+                              <span className="text-muted-foreground">Matches in schedule</span>
+                              <span className="font-medium">{dashboardStats.totalMatches}</span>
+                            </div>
+                            {dashboardStats.totalMatches > 0 && (
+                              <div className="flex justify-between rounded-lg border px-3 py-2 bg-muted/50">
+                                <span className="text-muted-foreground">Forms per match</span>
+                                <span className="font-medium">
+                                  {(dashboardStats.dataPoints / dashboardStats.totalMatches).toFixed(1)}
+                                </span>
+                              </div>
+                            )}
+                            <div className="pt-2 flex flex-wrap gap-2">
+                              <Button variant="outline" size="sm" onClick={() => router.push('/analysis/data')}>
+                                Data Analysis
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => router.push('/analysis/comparison')}>
+                                Team Comparison
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </TabsContent>
                   </Tabs>

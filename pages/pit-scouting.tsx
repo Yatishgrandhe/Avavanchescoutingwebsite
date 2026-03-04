@@ -110,8 +110,10 @@ export default function PitScouting() {
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const [scoutedTeamNumbers, setScoutedTeamNumbers] = useState<Set<number>>(new Set());
   const annotatorRef = React.useRef<AutoPathAnnotatorRef>(null);
+  /** Stored blob when leaving step 2 so we can upload it on submit (annotator unmounted on step 3) */
+  const exportedAnnotatedBlobRef = useRef<Blob | null>(null);
 
-  const totalSteps = 4;
+  const totalSteps = 3;
   const saveDraftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // On mount: clear draft on page refresh; restore draft on navigation (not edit mode)
@@ -295,6 +297,11 @@ export default function PitScouting() {
 
     if (validation.isValid) {
       if (currentStep < totalSteps) {
+        // When leaving step 2, export auto paths image so we can upload it on submit (annotator unmounted on step 3)
+        if (currentStep === 2 && formData.autoPaths?.length > 0 && annotatorRef.current) {
+          const blob = await annotatorRef.current.exportToBlob();
+          exportedAnnotatedBlobRef.current = blob ?? null;
+        }
         setCurrentStep(currentStep + 1);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
@@ -347,8 +354,8 @@ export default function PitScouting() {
       const imageUrl = photoUrls[0] || formData.robotImageUrl || null;
 
       let annotatedImageUrl = formData.annotatedImageUrl || null;
-      if (currentStep === 4 && formData.autoPaths?.length > 0 && formData.teamNumber) {
-        const blob = await annotatorRef.current?.exportToBlob();
+      if (formData.autoPaths?.length > 0 && formData.teamNumber) {
+        const blob = exportedAnnotatedBlobRef.current ?? (await annotatorRef.current?.exportToBlob?.());
         if (blob) {
           const fd = new FormData();
           fd.append('image', blob, `auto_paths_team_${formData.teamNumber}_${Date.now()}.jpg`);
@@ -467,6 +474,7 @@ export default function PitScouting() {
       setSubmitSuccess(true);
 
       setTimeout(() => {
+        exportedAnnotatedBlobRef.current = null;
         if (isEditMode) {
           router.push('/pit-scouting-data');
         } else {
@@ -828,6 +836,23 @@ export default function PitScouting() {
                           </div>
                         ))}
                       </div>
+
+                      {/* Auto Paths (multiple paths supported) */}
+                      <div className="space-y-3 pt-4 border-t border-white/5">
+                        <h3 className="font-heading font-semibold text-lg flex items-center gap-2">
+                          <Route size={18} className="text-blue-400" />
+                          Auto Paths
+                        </h3>
+                        <p className="text-sm text-muted-foreground">Draw one or more autonomous paths on the field (optional). Add multiple paths with &quot;Add path&quot;.</p>
+                        <AutoPathAnnotator
+                          ref={annotatorRef}
+                          paths={formData.autoPaths || []}
+                          onPathsChange={(paths) => setFormData(prev => ({ ...prev, autoPaths: paths }))}
+                          fieldImageSrc="/field-2026-rebuilt.png"
+                          teamNumber={formData.teamNumber}
+                          teamName={teams.find(t => t.team_number === formData.teamNumber)?.team_name}
+                        />
+                      </div>
                     </div>
 
                     {/* Teleop - climbing options removed (climb is in Climb section) */}
@@ -1116,33 +1141,6 @@ export default function PitScouting() {
                 </motion.div>
               )}
 
-              {currentStep === 4 && (
-                <motion.div
-                  key="step-4"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="space-y-6"
-                >
-                  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/5">
-                    <div className="p-3 bg-blue-500/10 rounded-xl text-blue-400">
-                      <Route size={24} />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-semibold">Auto Paths</h2>
-                      <p className="text-sm text-muted-foreground">Draw autonomous paths on the 2026 REBUILT field (optional)</p>
-                    </div>
-                  </div>
-                  <AutoPathAnnotator
-                    ref={annotatorRef}
-                    paths={formData.autoPaths || []}
-                    onPathsChange={(paths) => setFormData(prev => ({ ...prev, autoPaths: paths }))}
-                    fieldImageSrc="/field-2026-rebuilt.png"
-                    teamNumber={formData.teamNumber}
-                    teamName={teams.find(t => t.team_number === formData.teamNumber)?.team_name}
-                  />
-                </motion.div>
-              )}
             </AnimatePresence>
           </div>
 

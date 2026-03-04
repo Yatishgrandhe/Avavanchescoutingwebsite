@@ -81,7 +81,7 @@ export const LEGACY_BALL_CHOICE_OPTIONS = [
   { label: '91+', value: 95 },
 ] as const;
 
-/** Multiple choice after each stopwatch run: ranges of 5 (0, 1–5 … 46–50, 51+). Value = max of range. New submissions use indices 0–11. */
+/** Multiple choice after each stopwatch run: ranges of 5 from 0 up to 70 (0, 1–5 … 66–70, 71+). Value = max of range. New submissions use indices 0–15. */
 export const BALL_CHOICE_OPTIONS = [
   { label: '0', value: 0 },
   { label: '1–5', value: 5 },
@@ -94,7 +94,11 @@ export const BALL_CHOICE_OPTIONS = [
   { label: '36–40', value: 40 },
   { label: '41–45', value: 45 },
   { label: '46–50', value: 50 },
-  { label: '51+', value: 55 },
+  { label: '51–55', value: 55 },
+  { label: '56–60', value: 60 },
+  { label: '61–65', value: 65 },
+  { label: '66–70', value: 70 },
+  { label: '71+', value: 75 },
 ] as const;
 
 /** Value for scoring from a run's ball_choice index. Uses legacy options when index < 8, else new options. */

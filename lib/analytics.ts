@@ -294,6 +294,8 @@ export interface RebuiltTeamMetrics {
   /** Min/max teleop fuel across matches — for detail stats range display. */
   teleop_fuel_min: number;
   teleop_fuel_max: number;
+  /** Average time per shooting attempt (run) in seconds across all runs in all matches. */
+  avg_shooting_time_sec: number | null;
 }
 
 export interface ScoutingRowForAnalytics {
@@ -342,6 +344,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
       auto_fuel_max: 0,
       teleop_fuel_min: 0,
       teleop_fuel_max: 0,
+      avg_shooting_time_sec: null,
     };
   }
 
@@ -366,6 +369,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
   const ballsPerCycleList: number[] = [];
   const autoFuelList: number[] = [];
   const teleopFuelList: number[] = [];
+  const shootingDurations: number[] = [];
 
   rows.forEach((row) => {
     const notes = row.notes;
@@ -398,9 +402,14 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     autoPtsList.push(row.autonomous_points ?? 0);
     teleopPtsList.push(row.teleop_points ?? 0);
     const p = parseNotes(row.notes);
-    const autoRuns = p.autonomous?.runs?.length ?? 0;
-    const teleopRuns = p.teleop.runs?.length ?? 0;
-    const totalRuns = autoRuns + teleopRuns;
+    const autoRuns = p.autonomous?.runs ?? [];
+    const teleopRuns = p.teleop?.runs ?? [];
+    [...autoRuns, ...teleopRuns].forEach((r: RunRecord) => {
+      if (typeof r.duration_sec === 'number' && !Number.isNaN(r.duration_sec)) {
+        shootingDurations.push(r.duration_sec);
+      }
+    });
+    const totalRuns = autoRuns.length + teleopRuns.length;
     const totalBalls = autoFuel + teleopFuel;
     const bpc = totalRuns > 0 ? totalBalls / totalRuns : 0;
     ballsPerCycleList.push(bpc);
@@ -452,6 +461,11 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
   const avgClimbSpeedSec =
     climbSpeedCount > 0 ? Math.round((climbSpeedSum / climbSpeedCount) * 100) / 100 : null;
 
+  const avgShootingTimeSec =
+    shootingDurations.length > 0
+      ? Math.round((shootingDurations.reduce((a, b) => a + b, 0) / shootingDurations.length) * 1000) / 1000
+      : null;
+
   return {
     avg_auto_fuel: Math.round((totalAutoFuel / n) * 100) / 100,
     avg_teleop_fuel: Math.round((totalTeleopFuel / n) * 100) / 100,
@@ -481,6 +495,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     auto_fuel_max: autoFuelMax,
     teleop_fuel_min: teleopFuelMin,
     teleop_fuel_max: teleopFuelMax,
+    avg_shooting_time_sec: avgShootingTimeSec,
   };
 }
 

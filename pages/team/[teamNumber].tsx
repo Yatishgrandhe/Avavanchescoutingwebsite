@@ -55,6 +55,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { PitScoutingData } from '@/pages/pit-scouting-data';
+import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
 
 // Helper component for stat cards
 const StatCard = ({ label, value, color, icon: Icon, subLabel }: any) => (
@@ -288,6 +289,7 @@ const TeamDetail: React.FC = () => {
       auto_fuel_max: rebuilt.auto_fuel_max,
       teleop_fuel_min: rebuilt.teleop_fuel_min,
       teleop_fuel_max: rebuilt.teleop_fuel_max,
+      avg_shooting_time_sec: rebuilt.avg_shooting_time_sec ?? null,
       epa: Math.round(avgTotal * 10) / 10, // Expected Points Added = avg score
 
       // Data for Radar Chart (all values 0–100 for correct scale; Recharts expects numeric A and fullMark)
@@ -509,6 +511,7 @@ const TeamDetail: React.FC = () => {
                     <StatCard label="Average auto fuel" value={teamStats.avg_auto_fuel ?? 0} color="blue" icon={Target} subLabel="fuel" />
                     <StatCard label="Average teleop fuel" value={teamStats.avg_teleop_fuel ?? 0} color="orange" icon={Zap} subLabel="fuel" />
                     <StatCard label="Average balls/cycle" value={teamStats.avg_balls_per_cycle ?? 0} color="orange" icon={Zap} subLabel="per run" />
+                    <StatCard label="Avg shooting time" value={teamStats.avg_shooting_time_sec != null ? `${teamStats.avg_shooting_time_sec}s` : '—'} color="blue" icon={Clock} subLabel="per attempt" />
                     <StatCard label="Avg Climb" value={teamStats.avg_climb_pts} color="green" icon={Award} subLabel="pts" />
                     <StatCard label="Consistency" value={`${teamStats.consistencyScore}%`} color="purple" icon={Activity} />
                   </div>
@@ -899,6 +902,13 @@ const TeamDetail: React.FC = () => {
                                 </div>
 
                                 <div className="space-y-4">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className="h-1 w-4 bg-primary rounded-full" />
+                                    <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Shooting attempts (range + time per attempt)</h4>
+                                  </div>
+                                  <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4">
+                                    <ScoutingRunsBreakdown notes={data.notes} />
+                                  </div>
                                   <div className="flex items-center gap-2 mb-2">
                                     <div className="h-1 w-4 bg-primary rounded-full" />
                                     <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Full Scoring Breakdown</h4>

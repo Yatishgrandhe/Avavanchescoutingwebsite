@@ -66,6 +66,8 @@ interface TeamComparison {
   total_pts_max?: number;
   balls_per_cycle_min?: number;
   balls_per_cycle_max?: number;
+  /** Average time per shooting attempt in seconds. */
+  avg_shooting_time_sec?: number | null;
 }
 
 /** Build TeamComparison from scouting rows (for competition-scoped comparison). */
@@ -129,6 +131,7 @@ function buildTeamComparisonFromRows(
     total_pts_max: rebuilt.total_pts_max,
     balls_per_cycle_min: rebuilt.balls_per_cycle_min,
     balls_per_cycle_max: rebuilt.balls_per_cycle_max,
+    avg_shooting_time_sec: rebuilt.avg_shooting_time_sec ?? null,
     best_score: Math.max(...scores),
     worst_score: Math.min(...scores),
     consistency_score: Math.round(consistencyScore * 100) / 100,
@@ -674,6 +677,10 @@ export default function TeamComparison() {
                             <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</span>
                           </div>
                           <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Avg shooting time:</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}</span>
+                          </div>
+                          <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>RPMAGIC:</span>
                             <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.rpmagic ?? '—'}</span>
                           </div>
@@ -736,6 +743,7 @@ export default function TeamComparison() {
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Uptime %</th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>CLANK</th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Avg climb speed</th>
+                          <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Avg shooting time</th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>RPMAGIC</th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>GOBLIN</th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -793,6 +801,7 @@ export default function TeamComparison() {
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.clank != null ? `${team.clank}` : '—'}</td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</td>
+                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}</td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.rpmagic ?? '—'}</td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.goblin ?? '—'}</td>
                             <td className={`py-3 px-4 font-semibold text-green-400`}>

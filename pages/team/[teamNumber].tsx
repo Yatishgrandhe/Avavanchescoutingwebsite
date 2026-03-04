@@ -283,6 +283,7 @@ const TeamDetail: React.FC = () => {
       total_pts_max: rebuilt.total_pts_max,
       balls_per_cycle_min: rebuilt.balls_per_cycle_min,
       balls_per_cycle_max: rebuilt.balls_per_cycle_max,
+      avg_balls_per_cycle: rebuilt.avg_balls_per_cycle,
       auto_fuel_min: rebuilt.auto_fuel_min,
       auto_fuel_max: rebuilt.auto_fuel_max,
       teleop_fuel_min: rebuilt.teleop_fuel_min,
@@ -501,13 +502,13 @@ const TeamDetail: React.FC = () => {
                 <>
                   {/* Stats Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-                    <StatCard label="Score range" value={formatScoreRange(teamStats.total_pts_min ?? teamStats.avgTotal, teamStats.total_pts_max ?? teamStats.avgTotal)} color="primary" icon={TrendingUp} subLabel="total pts" />
+                    <StatCard label="Average score" value={teamStats.avgTotal} color="primary" icon={TrendingUp} subLabel="total pts" />
                     <StatCard label="Matches" value={teamStats.totalMatches} color="blue" icon={Database} subLabel="scouted" />
-                    <StatCard label="Auto range" value={formatScoreRange(teamStats.auto_pts_min ?? 0, teamStats.auto_pts_max ?? 0)} color="blue" icon={Clock} subLabel="pts" />
-                    <StatCard label="Teleop range" value={formatScoreRange(teamStats.teleop_pts_min ?? 0, teamStats.teleop_pts_max ?? 0)} color="orange" icon={Zap} subLabel="pts" />
-                    <StatCard label="Auto fuel range" value={formatScoreRange(teamStats.auto_fuel_min ?? 0, teamStats.auto_fuel_max ?? 0)} color="blue" icon={Target} subLabel="fuel" />
-                    <StatCard label="Teleop fuel range" value={formatScoreRange(teamStats.teleop_fuel_min ?? 0, teamStats.teleop_fuel_max ?? 0)} color="orange" icon={Zap} subLabel="fuel" />
-                    <StatCard label="Balls/cycle" value={formatScoreRange(teamStats.balls_per_cycle_min ?? 0, teamStats.balls_per_cycle_max ?? 0)} color="orange" icon={Zap} subLabel="per run" />
+                    <StatCard label="Average auto" value={teamStats.avgAutonomous} color="blue" icon={Clock} subLabel="pts" />
+                    <StatCard label="Average teleop" value={teamStats.avgTeleop} color="orange" icon={Zap} subLabel="pts" />
+                    <StatCard label="Average auto fuel" value={teamStats.avg_auto_fuel ?? 0} color="blue" icon={Target} subLabel="fuel" />
+                    <StatCard label="Average teleop fuel" value={teamStats.avg_teleop_fuel ?? 0} color="orange" icon={Zap} subLabel="fuel" />
+                    <StatCard label="Average balls/cycle" value={teamStats.avg_balls_per_cycle ?? 0} color="orange" icon={Zap} subLabel="per run" />
                     <StatCard label="Avg Climb" value={teamStats.avg_climb_pts} color="green" icon={Award} subLabel="pts" />
                     <StatCard label="Consistency" value={`${teamStats.consistencyScore}%`} color="purple" icon={Activity} />
                   </div>

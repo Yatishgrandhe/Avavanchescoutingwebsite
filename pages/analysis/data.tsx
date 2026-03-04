@@ -35,7 +35,7 @@ import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ScoutingData, Team } from '@/lib/types';
 import { useAdmin } from '@/hooks/use-admin';
-import { computeRebuiltMetrics, parseNotes, getUptimePct, getClimbPoints, formatScoreRange } from '@/lib/analytics';
+import { computeRebuiltMetrics, parseNotes, getUptimePct, getClimbPoints } from '@/lib/analytics';
 import { getBallChoiceScoreFromRange, getBallChoiceLabel } from '@/lib/types';
 import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
@@ -83,6 +83,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     total_pts_max?: number;
     balls_per_cycle_min?: number;
     balls_per_cycle_max?: number;
+    avg_balls_per_cycle?: number;
   }>>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -713,7 +714,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               </div>
                               <div className="text-right flex-shrink-0">
                                 <span className="text-[10px] text-muted-foreground uppercase tracking-widest block">Avg Score</span>
-                                <span className="text-2xl font-bold text-primary" title="Range across matches">{formatScoreRange(team.total_pts_min ?? team.avg_total_score, team.total_pts_max ?? team.avg_total_score)}</span>
+                                <span className="text-2xl font-bold text-primary" title="Average score">{team.avg_total_score}</span>
                               </div>
                             </div>
 
@@ -723,20 +724,20 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <span className="text-sm font-semibold">{team.total_matches}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Total range</span>
-                                <span className="text-sm font-semibold text-green-400">{formatScoreRange(team.total_pts_min ?? team.avg_total_score, team.total_pts_max ?? team.avg_total_score)}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Average total</span>
+                                <span className="text-sm font-semibold text-green-400">{team.avg_total_score}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Auto range</span>
-                                <span className="text-sm font-semibold text-blue-400">{formatScoreRange(team.auto_pts_min ?? team.avg_autonomous_points, team.auto_pts_max ?? team.avg_autonomous_points)}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Average auto</span>
+                                <span className="text-sm font-semibold text-blue-400">{team.avg_autonomous_points}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Teleop range</span>
-                                <span className="text-sm font-semibold text-orange-400">{formatScoreRange(team.teleop_pts_min ?? team.avg_teleop_points, team.teleop_pts_max ?? team.avg_teleop_points)}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Average teleop</span>
+                                <span className="text-sm font-semibold text-orange-400">{team.avg_teleop_points}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Balls/cycle</span>
-                                <span className="text-sm font-semibold text-muted-foreground">{formatScoreRange(team.balls_per_cycle_min ?? 0, team.balls_per_cycle_max ?? 0)}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Average balls/cycle</span>
+                                <span className="text-sm font-semibold text-muted-foreground">{team.avg_balls_per_cycle ?? 0}</span>
                               </div>
                             </div>
 
@@ -803,15 +804,15 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4">Team Name</th>
                             <th className="text-left p-4">Matches</th>
                             <th className="text-left p-4">Avg Score</th>
-                            <th className="text-left p-4">Auto</th>
-                            <th className="text-left p-4">Teleop</th>
+                            <th className="text-left p-4 text-[9px]">Average auto</th>
+                            <th className="text-left p-4 text-[9px]">Average teleop</th>
                             <th className="text-left p-4 text-[9px]">Defense</th>
                             <th className="text-left p-4 text-[10px]">Avg Downtime</th>
                             <th className="text-left p-4 text-[10px]">Broke %</th>
-                            <th className="text-left p-4 text-[9px]">Auto Fuel</th>
-                            <th className="text-left p-4 text-[9px]">Teleop Fuel</th>
+                            <th className="text-left p-4 text-[9px]">Average auto fuel</th>
+                            <th className="text-left p-4 text-[9px]">Average teleop fuel</th>
                             <th className="text-left p-4 text-[9px]">Climb Pts</th>
-                            <th className="text-left p-4 text-[9px]">Balls/cycle</th>
+                            <th className="text-left p-4 text-[9px]">Avg balls/cycle</th>
                             <th className="text-left p-4 text-[9px]">Uptime %</th>
                             <th className="text-left p-4 text-[9px]">CLANK</th>
                             <th className="text-left p-4 text-[9px]">Avg climb speed</th>
@@ -846,10 +847,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 </td>
                                 <td className="p-4 text-foreground font-medium">{team.total_matches}</td>
                                 <td className="p-4">
-                                  <span className="font-bold text-primary text-lg" title="Score range">{formatScoreRange(team.total_pts_min ?? team.avg_total_score, team.total_pts_max ?? team.avg_total_score)}</span>
+                                  <span className="font-bold text-primary text-lg" title="Average score">{team.avg_total_score}</span>
                                 </td>
-                                <td className="p-4 text-blue-400 font-semibold" title="Auto range">{formatScoreRange(team.auto_pts_min ?? team.avg_autonomous_points, team.auto_pts_max ?? team.avg_autonomous_points)}</td>
-                                <td className="p-4 text-orange-400 font-semibold" title="Teleop range">{formatScoreRange(team.teleop_pts_min ?? team.avg_teleop_points, team.teleop_pts_max ?? team.avg_teleop_points)}</td>
+                                <td className="p-4 text-blue-400 font-semibold" title="Average auto">{team.avg_autonomous_points}</td>
+                                <td className="p-4 text-orange-400 font-semibold" title="Average teleop">{team.avg_teleop_points}</td>
                                 <td className="p-4">
                                   <Badge
                                     variant="outline"
@@ -868,7 +869,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_auto_fuel ?? '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_teleop_fuel ?? '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_climb_pts ?? '—'}</td>
-                                <td className="p-4 text-muted-foreground text-sm">{formatScoreRange(team.balls_per_cycle_min ?? 0, team.balls_per_cycle_max ?? 0)}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{team.avg_balls_per_cycle ?? 0}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.clank != null ? `${team.clank}` : '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</td>

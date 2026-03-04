@@ -286,6 +286,8 @@ export interface RebuiltTeamMetrics {
   /** Min/max of (teleop fuel / num teleop runs) per match — balls per cycle. */
   balls_per_cycle_min: number;
   balls_per_cycle_max: number;
+  /** Average balls per cycle (teleop fuel / num teleop runs) across matches. */
+  avg_balls_per_cycle: number;
   /** Min/max auto fuel (game pieces) across matches — for detail stats range display. */
   auto_fuel_min: number;
   auto_fuel_max: number;
@@ -335,6 +337,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
       total_pts_max: 0,
       balls_per_cycle_min: 0,
       balls_per_cycle_max: 0,
+      avg_balls_per_cycle: 0,
       auto_fuel_min: 0,
       auto_fuel_max: 0,
       teleop_fuel_min: 0,
@@ -395,8 +398,11 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     autoPtsList.push(row.autonomous_points ?? 0);
     teleopPtsList.push(row.teleop_points ?? 0);
     const p = parseNotes(row.notes);
+    const autoRuns = p.autonomous?.runs?.length ?? 0;
     const teleopRuns = p.teleop.runs?.length ?? 0;
-    const bpc = teleopRuns > 0 ? teleopFuel / teleopRuns : 0;
+    const totalRuns = autoRuns + teleopRuns;
+    const totalBalls = autoFuel + teleopFuel;
+    const bpc = totalRuns > 0 ? totalBalls / totalRuns : 0;
     ballsPerCycleList.push(bpc);
   });
 
@@ -408,6 +414,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
   const totalPtsMax = scores.length ? Math.max(...scores) : 0;
   const ballsPerCycleMin = ballsPerCycleList.length ? Math.round(Math.min(...ballsPerCycleList) * 100) / 100 : 0;
   const ballsPerCycleMax = ballsPerCycleList.length ? Math.round(Math.max(...ballsPerCycleList) * 100) / 100 : 0;
+  const avgBallsPerCycle = ballsPerCycleList.length ? Math.round((ballsPerCycleList.reduce((a, b) => a + b, 0) / ballsPerCycleList.length) * 100) / 100 : 0;
   const autoFuelMin = autoFuelList.length ? Math.min(...autoFuelList) : 0;
   const autoFuelMax = autoFuelList.length ? Math.max(...autoFuelList) : 0;
   const teleopFuelMin = teleopFuelList.length ? Math.min(...teleopFuelList) : 0;
@@ -469,6 +476,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     total_pts_max: totalPtsMax,
     balls_per_cycle_min: ballsPerCycleMin,
     balls_per_cycle_max: ballsPerCycleMax,
+    avg_balls_per_cycle: avgBallsPerCycle,
     auto_fuel_min: autoFuelMin,
     auto_fuel_max: autoFuelMax,
     teleop_fuel_min: teleopFuelMin,

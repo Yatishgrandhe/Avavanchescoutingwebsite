@@ -42,7 +42,7 @@ import {
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { computeRebuiltMetrics, formatScoreRange } from '@/lib/analytics';
+import { computeRebuiltMetrics } from '@/lib/analytics';
 import { formatDurationSec } from '@/lib/utils';
 import { SCOUTING_MATCH_ID_SEASON_PATTERN, CURRENT_EVENT_KEY, CURRENT_EVENT_NAME } from '@/lib/constants';
 
@@ -76,6 +76,7 @@ interface TeamData {
   total_pts_max?: number;
   balls_per_cycle_min?: number;
   balls_per_cycle_max?: number;
+  avg_balls_per_cycle?: number;
 }
 
 interface MatchData {
@@ -505,8 +506,8 @@ export default function BasicAnalysis() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Team</TableHead>
-                        <TableHead className="text-[9px]">Auto range</TableHead>
-                        <TableHead className="text-[9px]">Teleop range</TableHead>
+                        <TableHead className="text-[9px]">Average auto</TableHead>
+                        <TableHead className="text-[9px]">Average teleop</TableHead>
                         <TableHead className="text-[9px]">Matches Scouted</TableHead>
                         <TableHead className="text-[9px]">AVG CLIMB</TableHead>
                         <TableHead className="text-[9px]">AUTO CLIMB</TableHead>
@@ -514,8 +515,8 @@ export default function BasicAnalysis() {
                         <TableHead className="text-[9px]">AVG UPTIME</TableHead>
                         <TableHead className="text-[9px]">AVG DOWNTIME</TableHead>
                         <TableHead className="text-[9px]">BROKE</TableHead>
-                        <TableHead>Total range</TableHead>
-                        <TableHead className="text-[9px]">Balls/cycle</TableHead>
+                        <TableHead>Average total</TableHead>
+                        <TableHead className="text-[9px]">Average balls/cycle</TableHead>
                         <TableHead>Defense</TableHead>
                         <TableHead className="text-[9px]">CLANK</TableHead>
                         <TableHead className="text-[9px]">Avg climb speed</TableHead>
@@ -532,8 +533,8 @@ export default function BasicAnalysis() {
                               <span className="text-sm text-muted-foreground">{team.team_name}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm">{formatScoreRange(team.auto_pts_min ?? team.avg_autonomous_points ?? 0, team.auto_pts_max ?? team.avg_autonomous_points ?? 0)}</TableCell>
-                          <TableCell className="text-sm">{formatScoreRange(team.teleop_pts_min ?? team.avg_teleop_points ?? 0, team.teleop_pts_max ?? team.avg_teleop_points ?? 0)}</TableCell>
+                          <TableCell className="text-sm">{team.avg_autonomous_points ?? 0}</TableCell>
+                          <TableCell className="text-sm">{team.avg_teleop_points ?? 0}</TableCell>
                           <TableCell>{team.total_matches}</TableCell>
                           <TableCell className="text-sm">{team.avg_climb_pts ?? '—'}</TableCell>
                           <TableCell className="text-sm">{team.avg_auto_climb_pts ?? '—'}</TableCell>
@@ -541,8 +542,8 @@ export default function BasicAnalysis() {
                           <TableCell className="text-sm">{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</TableCell>
                           <TableCell className="text-sm">{team.avg_downtime_sec != null ? `${team.avg_downtime_sec}s` : (team.avg_downtime != null ? `${Number(team.avg_downtime).toFixed(1)}s` : '—')}</TableCell>
                           <TableCell className="text-sm">{team.total_matches ? `${team.broke_count ?? 0}/${team.total_matches}` : '—'}</TableCell>
-                          <TableCell className="font-medium">{formatScoreRange(team.total_pts_min ?? team.avg_total_score ?? 0, team.total_pts_max ?? team.avg_total_score ?? 0)}</TableCell>
-                          <TableCell className="text-sm">{formatScoreRange(team.balls_per_cycle_min ?? 0, team.balls_per_cycle_max ?? 0)}</TableCell>
+                          <TableCell className="font-medium">{team.avg_total_score ?? 0}</TableCell>
+                          <TableCell className="text-sm">{team.avg_balls_per_cycle ?? 0}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <div className="w-16 bg-muted rounded-full h-2">

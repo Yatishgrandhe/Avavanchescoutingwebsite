@@ -52,7 +52,11 @@ export interface ScoringNotes {
   balls_75_90?: number;
   auto_fuel_active_hub: number;
   auto_tower_level1: boolean;
+  /** Auto climb time in seconds (CLANK speed), with millisecond precision. */
+  auto_climb_sec?: number | null;
   teleop_fuel_active_hub: number;
+  /** Teleop climb time in seconds, with millisecond precision. */
+  climb_sec?: number | null;
   teleop_fuel_shifts?: number[];
   teleop_tower_level1: boolean;
   teleop_tower_level2: boolean;
@@ -65,8 +69,8 @@ export interface RunRecord {
   ball_choice: number; // index into BALL_CHOICE_OPTIONS
 }
 
-/** Multiple choice after each stopwatch run: "How many balls in this run?" — 8 options. Value = max of range (each ball scored = 1 pt). */
-export const BALL_CHOICE_OPTIONS = [
+/** Legacy 8 options (indices 0–7); used for display when ball_choice < 8. */
+export const LEGACY_BALL_CHOICE_OPTIONS = [
   { label: '0', value: 0 },
   { label: '1–15', value: 15 },
   { label: '16–30', value: 30 },
@@ -76,6 +80,35 @@ export const BALL_CHOICE_OPTIONS = [
   { label: '76–90', value: 90 },
   { label: '91+', value: 95 },
 ] as const;
+
+/** Multiple choice after each stopwatch run: ranges of 5 (0, 1–5 … 46–50, 51+). Value = max of range. New submissions use indices 0–11. */
+export const BALL_CHOICE_OPTIONS = [
+  { label: '0', value: 0 },
+  { label: '1–5', value: 5 },
+  { label: '6–10', value: 10 },
+  { label: '11–15', value: 15 },
+  { label: '16–20', value: 20 },
+  { label: '21–25', value: 25 },
+  { label: '26–30', value: 30 },
+  { label: '31–35', value: 35 },
+  { label: '36–40', value: 40 },
+  { label: '41–45', value: 45 },
+  { label: '46–50', value: 50 },
+  { label: '51+', value: 55 },
+] as const;
+
+/** Value for scoring from a run's ball_choice index. Uses legacy options when index < 8, else new options. */
+export function getBallChoiceValue(ball_choice: number): number {
+  if (ball_choice < LEGACY_BALL_CHOICE_OPTIONS.length) return LEGACY_BALL_CHOICE_OPTIONS[ball_choice]?.value ?? 0;
+  const idx = ball_choice;
+  return BALL_CHOICE_OPTIONS[idx]?.value ?? 0;
+}
+
+/** Label for display from a run's ball_choice index. Uses legacy when index < 8, else new options. */
+export function getBallChoiceLabel(ball_choice: number): string {
+  if (ball_choice < LEGACY_BALL_CHOICE_OPTIONS.length) return LEGACY_BALL_CHOICE_OPTIONS[ball_choice]?.label ?? '0';
+  return BALL_CHOICE_OPTIONS[ball_choice]?.label ?? '0';
+}
 
 /** One phase (auto or teleop) can have multiple runs. */
 export interface BallTrackingPhase {

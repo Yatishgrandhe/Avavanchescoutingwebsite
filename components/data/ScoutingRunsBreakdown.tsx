@@ -4,7 +4,7 @@
 import React from 'react';
 import { getRunsForDisplay } from '@/lib/analytics';
 import { Clock, Target, Award } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatDurationSec } from '@/lib/utils';
 
 interface ScoutingRunsBreakdownProps {
   notes: any;
@@ -33,7 +33,7 @@ export function ScoutingRunsBreakdown({ notes, className, compact }: ScoutingRun
                 )}
               >
                 <span className="font-mono text-muted-foreground">
-                  Run {i + 1}: {run.duration_sec}s
+                  Run {i + 1}: {formatDurationSec(run.duration_sec)}
                 </span>
                 <span className="text-foreground font-medium">{run.ballLabel} balls</span>
                 <span className="text-blue-400 font-bold">→ {run.estPts} pts</span>
@@ -66,7 +66,7 @@ export function ScoutingRunsBreakdown({ notes, className, compact }: ScoutingRun
                 )}
               >
                 <span className="font-mono text-muted-foreground">
-                  Run {i + 1}: {run.duration_sec}s
+                  Run {i + 1}: {formatDurationSec(run.duration_sec)}
                 </span>
                 <span className="text-foreground font-medium">{run.ballLabel} balls</span>
                 <span className="text-orange-400 font-bold">→ {run.estPts} pts</span>

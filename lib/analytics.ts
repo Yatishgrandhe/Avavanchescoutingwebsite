@@ -4,7 +4,7 @@
  */
 
 import type { RunRecord } from '@/lib/types';
-import { BALL_CHOICE_OPTIONS } from '@/lib/types';
+import { getBallChoiceValue, getBallChoiceLabel } from '@/lib/types';
 
 const MATCH_LENGTH_SEC = 165;
 
@@ -12,6 +12,7 @@ export interface ParsedNotes {
   autonomous: {
     auto_fuel_active_hub: number;
     auto_tower_level1: boolean;
+    auto_climb_sec?: number | null;
     runs?: RunRecord[];
     duration_sec?: number | null;
     balls_0_15?: number;
@@ -49,7 +50,7 @@ function sumBalls(phase: Record<string, unknown>): number {
 
 function fuelFromRuns(runs: RunRecord[] | undefined): number {
   if (!runs?.length) return 0;
-  return runs.reduce((sum, r) => sum + (BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0), 0);
+  return runs.reduce((sum, r) => sum + getBallChoiceValue(r.ball_choice), 0);
 }
 
 export function parseNotes(notes: any): ParsedNotes {
@@ -67,7 +68,7 @@ export function parseNotes(notes: any): ParsedNotes {
   const teleopShifts = Array.isArray(teleop.teleop_fuel_shifts)
     ? teleop.teleop_fuel_shifts
     : teleopRuns.length > 0
-      ? teleopRuns.map((r: RunRecord) => BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0)
+      ? teleopRuns.map((r: RunRecord) => getBallChoiceValue(r.ball_choice))
       : teleopFuelFromBalls > 0
         ? [Number(teleop.balls_0_15) || 0, Number(teleop.balls_15_30) || 0, Number(teleop.balls_30_45) || 0, Number(teleop.balls_45_60) || 0, Number(teleop.balls_60_75) || 0, Number(teleop.balls_75_90) || 0]
         : teleop.teleop_fuel_active_hub != null
@@ -81,6 +82,7 @@ export function parseNotes(notes: any): ParsedNotes {
     autonomous: {
       auto_fuel_active_hub: autoFuel,
       auto_tower_level1: Boolean(auto.auto_tower_level1),
+      auto_climb_sec: auto.auto_climb_sec != null && !Number.isNaN(Number(auto.auto_climb_sec)) ? Number(auto.auto_climb_sec) : undefined,
       runs: autoRuns.length ? autoRuns : undefined,
       duration_sec: auto.duration_sec != null ? Number(auto.duration_sec) : undefined,
       balls_0_15: Number(auto.balls_0_15) || 0,
@@ -174,10 +176,18 @@ export function getClimbAchieved(notes: any): { label: string; points: number } 
   return null;
 }
 
-/** Climb time in seconds from notes (for CLANK speed display). Returns null if not recorded. */
+/** Teleop climb time in seconds from notes (for CLANK speed display). Returns null if not recorded. */
 export function getClimbSpeedSec(notes: any): number | null {
   const p = parseNotes(notes);
   const sec = p.teleop.climb_sec;
+  if (sec == null || Number.isNaN(sec)) return null;
+  return sec;
+}
+
+/** Auto climb time in seconds from notes (CLANK speed in autonomous). Returns null if not recorded. */
+export function getAutoClimbSpeedSec(notes: any): number | null {
+  const p = parseNotes(notes);
+  const sec = p.autonomous.auto_climb_sec;
   if (sec == null || Number.isNaN(sec)) return null;
   return sec;
 }
@@ -221,17 +231,17 @@ export interface RunsForDisplay {
   estimatedTotal: number;
 }
 
-/** Parse notes into runs for UI: each run shows time, ball range (multiple choice), estimated pts. */
+/** Parse notes into runs for UI: each run shows time, ball range (multiple choice), estimated pts. Uses legacy labels/values when ball_choice < 8. */
 export function getRunsForDisplay(notes: any): RunsForDisplay {
   const p = parseNotes(notes);
   const autoRuns = (p.autonomous.runs || []).map((r: RunRecord) => {
-    const value = BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0;
-    const label = BALL_CHOICE_OPTIONS[r.ball_choice]?.label ?? '0';
+    const value = getBallChoiceValue(r.ball_choice);
+    const label = getBallChoiceLabel(r.ball_choice);
     return { duration_sec: r.duration_sec, ballLabel: label, ballValue: value, estPts: value * 1 };
   });
   const teleopRuns = (p.teleop.runs || []).map((r: RunRecord) => {
-    const value = BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0;
-    const label = BALL_CHOICE_OPTIONS[r.ball_choice]?.label ?? '0';
+    const value = getBallChoiceValue(r.ball_choice);
+    const label = getBallChoiceLabel(r.ball_choice);
     return { duration_sec: r.duration_sec, ballLabel: label, ballValue: value, estPts: value * 1 };
   });
   const autoClimbPts = getAutoClimbPoints(notes);
@@ -264,6 +274,18 @@ export interface RebuiltTeamMetrics {
   clank: number;
   rpmagic: number;
   goblin: number;
+  /** Min/max autonomous points across matches. */
+  auto_pts_min: number;
+  auto_pts_max: number;
+  /** Min/max teleop points across matches. */
+  teleop_pts_min: number;
+  teleop_pts_max: number;
+  /** Min/max total (final) score across matches. */
+  total_pts_min: number;
+  total_pts_max: number;
+  /** Min/max of (teleop fuel / num teleop runs) per match — balls per cycle. */
+  balls_per_cycle_min: number;
+  balls_per_cycle_max: number;
 }
 
 export interface ScoutingRowForAnalytics {
@@ -299,6 +321,14 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
       clank: 0,
       rpmagic: 0,
       goblin: 0,
+      auto_pts_min: 0,
+      auto_pts_max: 0,
+      teleop_pts_min: 0,
+      teleop_pts_max: 0,
+      total_pts_min: 0,
+      total_pts_max: 0,
+      balls_per_cycle_min: 0,
+      balls_per_cycle_max: 0,
     };
   }
 
@@ -318,6 +348,9 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
   let totalAutoCleansing = 0;
   let totalTeleopCleansing = 0;
   const scores: number[] = [];
+  const autoPtsList: number[] = [];
+  const teleopPtsList: number[] = [];
+  const ballsPerCycleList: number[] = [];
 
   rows.forEach((row) => {
     const notes = row.notes;
@@ -343,7 +376,23 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     totalTeleopCleansing += row.teleop_cleansing || 0;
     const score = row.final_score ?? 0;
     scores.push(score);
+    autoPtsList.push(row.autonomous_points ?? 0);
+    teleopPtsList.push(row.teleop_points ?? 0);
+    const p = parseNotes(row.notes);
+    const teleopRuns = p.teleop.runs?.length ?? 0;
+    const teleopFuel = getTeleopFuelCount(row.notes);
+    const bpc = teleopRuns > 0 ? teleopFuel / teleopRuns : 0;
+    ballsPerCycleList.push(bpc);
   });
+
+  const autoPtsMin = autoPtsList.length ? Math.min(...autoPtsList) : 0;
+  const autoPtsMax = autoPtsList.length ? Math.max(...autoPtsList) : 0;
+  const teleopPtsMin = teleopPtsList.length ? Math.min(...teleopPtsList) : 0;
+  const teleopPtsMax = teleopPtsList.length ? Math.max(...teleopPtsList) : 0;
+  const totalPtsMin = scores.length ? Math.min(...scores) : 0;
+  const totalPtsMax = scores.length ? Math.max(...scores) : 0;
+  const ballsPerCycleMin = ballsPerCycleList.length ? Math.round(Math.min(...ballsPerCycleList) * 100) / 100 : 0;
+  const ballsPerCycleMax = ballsPerCycleList.length ? Math.round(Math.max(...ballsPerCycleList) * 100) / 100 : 0;
 
   const avgUptime =
     downtimeCount > 0
@@ -393,5 +442,19 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     clank,
     rpmagic,
     goblin,
+    auto_pts_min: autoPtsMin,
+    auto_pts_max: autoPtsMax,
+    teleop_pts_min: teleopPtsMin,
+    teleop_pts_max: teleopPtsMax,
+    total_pts_min: totalPtsMin,
+    total_pts_max: totalPtsMax,
+    balls_per_cycle_min: ballsPerCycleMin,
+    balls_per_cycle_max: ballsPerCycleMax,
   };
+}
+
+/** Format min–max score range for display: "min–max" when different, "min" when equal. */
+export function formatScoreRange(min: number, max: number): string {
+  if (min === max || Number.isNaN(min) || Number.isNaN(max)) return String(min);
+  return `${min}–${max}`;
 }

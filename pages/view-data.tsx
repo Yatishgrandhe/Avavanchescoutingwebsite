@@ -31,7 +31,7 @@ import CompetitionDataLayout from '@/components/layout/CompetitionDataLayout';
 import type { CompetitionViewTab } from '@/components/layout/CompetitionDataSidebar';
 import { useSupabase } from '@/pages/_app';
 import { parseNotes, getClimbPoints, getUptimePct } from '@/lib/analytics';
-import { BALL_CHOICE_OPTIONS } from '@/lib/types';
+import { formatDurationSec } from '@/lib/utils';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
 
 interface CompetitionInfo {
@@ -294,7 +294,7 @@ export default function ViewDataPage() {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-muted-foreground text-sm align-middle">
-                        {data.average_downtime != null ? `${Number(data.average_downtime).toFixed(1)}s` : '—'}
+                        {data.average_downtime != null ? formatDurationSec(Number(data.average_downtime)) : '—'}
                       </td>
                       <td className="py-3 px-4 text-muted-foreground text-sm align-middle">
                         {data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}

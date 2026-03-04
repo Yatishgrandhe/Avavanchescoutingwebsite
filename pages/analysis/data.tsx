@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui';
 import { Button } from '../../components/ui';
 import { Input } from '../../components/ui';
 import { Badge } from '../../components/ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, formatDurationSec } from '@/lib/utils';
 import {
   Database,
   Filter,
@@ -35,8 +35,8 @@ import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ScoutingData, Team } from '@/lib/types';
 import { useAdmin } from '@/hooks/use-admin';
-import { computeRebuiltMetrics, parseNotes, getUptimePct, getClimbPoints } from '@/lib/analytics';
-import { BALL_CHOICE_OPTIONS } from '@/lib/types';
+import { computeRebuiltMetrics, parseNotes, getUptimePct, getClimbPoints, formatScoreRange } from '@/lib/analytics';
+import { getBallChoiceValue, getBallChoiceLabel } from '@/lib/types';
 import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
 
@@ -75,6 +75,14 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     best_score: number;
     worst_score: number;
     consistency_score: number;
+    auto_pts_min?: number;
+    auto_pts_max?: number;
+    teleop_pts_min?: number;
+    teleop_pts_max?: number;
+    total_pts_min?: number;
+    total_pts_max?: number;
+    balls_per_cycle_min?: number;
+    balls_per_cycle_max?: number;
   }>>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -160,9 +168,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         // Nested structure; support runs (stopwatch + multiple choice per run)
         const autoRuns = Array.isArray(parsed.autonomous?.runs) ? parsed.autonomous.runs : [];
         const teleopRuns = Array.isArray(parsed.teleop?.runs) ? parsed.teleop.runs : [];
-        const autoFuelFromRuns = autoRuns.reduce((s: number, r: { ball_choice: number }) => s + (BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0), 0);
-        const teleopFuelFromRuns = teleopRuns.reduce((s: number, r: { ball_choice: number }) => s + (BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0), 0);
-        const teleopShiftsFromRuns = teleopRuns.length > 0 ? teleopRuns.map((r: { ball_choice: number }) => BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0) : null;
+        const autoFuelFromRuns = autoRuns.reduce((s: number, r: { ball_choice: number }) => s + getBallChoiceValue(r.ball_choice), 0);
+        const teleopFuelFromRuns = teleopRuns.reduce((s: number, r: { ball_choice: number }) => s + getBallChoiceValue(r.ball_choice), 0);
+        const teleopShiftsFromRuns = teleopRuns.length > 0 ? teleopRuns.map((r: { ball_choice: number }) => getBallChoiceValue(r.ball_choice)) : null;
 
         return {
           autonomous: {
@@ -705,7 +713,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               </div>
                               <div className="text-right flex-shrink-0">
                                 <span className="text-[10px] text-muted-foreground uppercase tracking-widest block">Avg Score</span>
-                                <span className="text-2xl font-bold text-primary">{team.avg_total_score}</span>
+                                <span className="text-2xl font-bold text-primary" title="Range across matches">{formatScoreRange(team.total_pts_min ?? team.avg_total_score, team.total_pts_max ?? team.avg_total_score)}</span>
                               </div>
                             </div>
 
@@ -715,16 +723,20 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <span className="text-sm font-semibold">{team.total_matches}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Best Score</span>
-                                <span className="text-sm font-semibold text-green-400">{team.best_score}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Total range</span>
+                                <span className="text-sm font-semibold text-green-400">{formatScoreRange(team.total_pts_min ?? team.avg_total_score, team.total_pts_max ?? team.avg_total_score)}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Auto Avg</span>
-                                <span className="text-sm font-semibold text-blue-400">{team.avg_autonomous_points}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Auto range</span>
+                                <span className="text-sm font-semibold text-blue-400">{formatScoreRange(team.auto_pts_min ?? team.avg_autonomous_points, team.auto_pts_max ?? team.avg_autonomous_points)}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Teleop Avg</span>
-                                <span className="text-sm font-semibold text-orange-400">{team.avg_teleop_points}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Teleop range</span>
+                                <span className="text-sm font-semibold text-orange-400">{formatScoreRange(team.teleop_pts_min ?? team.avg_teleop_points, team.teleop_pts_max ?? team.avg_teleop_points)}</span>
+                              </div>
+                              <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Balls/cycle</span>
+                                <span className="text-sm font-semibold text-muted-foreground">{formatScoreRange(team.balls_per_cycle_min ?? 0, team.balls_per_cycle_max ?? 0)}</span>
                               </div>
                             </div>
 
@@ -799,6 +811,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 text-[9px]">Auto Fuel</th>
                             <th className="text-left p-4 text-[9px]">Teleop Fuel</th>
                             <th className="text-left p-4 text-[9px]">Climb Pts</th>
+                            <th className="text-left p-4 text-[9px]">Balls/cycle</th>
                             <th className="text-left p-4 text-[9px]">Uptime %</th>
                             <th className="text-left p-4 text-[9px]">CLANK</th>
                             <th className="text-left p-4 text-[9px]">Avg climb speed</th>
@@ -833,10 +846,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 </td>
                                 <td className="p-4 text-foreground font-medium">{team.total_matches}</td>
                                 <td className="p-4">
-                                  <span className="font-bold text-primary text-lg">{team.avg_total_score}</span>
+                                  <span className="font-bold text-primary text-lg" title="Score range">{formatScoreRange(team.total_pts_min ?? team.avg_total_score, team.total_pts_max ?? team.avg_total_score)}</span>
                                 </td>
-                                <td className="p-4 text-blue-400 font-semibold">{team.avg_autonomous_points}</td>
-                                <td className="p-4 text-orange-400 font-semibold">{team.avg_teleop_points}</td>
+                                <td className="p-4 text-blue-400 font-semibold" title="Auto range">{formatScoreRange(team.auto_pts_min ?? team.avg_autonomous_points, team.auto_pts_max ?? team.avg_autonomous_points)}</td>
+                                <td className="p-4 text-orange-400 font-semibold" title="Teleop range">{formatScoreRange(team.teleop_pts_min ?? team.avg_teleop_points, team.teleop_pts_max ?? team.avg_teleop_points)}</td>
                                 <td className="p-4">
                                   <Badge
                                     variant="outline"
@@ -855,6 +868,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_auto_fuel ?? '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_teleop_fuel ?? '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_climb_pts ?? '—'}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{formatScoreRange(team.balls_per_cycle_min ?? 0, team.balls_per_cycle_max ?? 0)}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.clank != null ? `${team.clank}` : '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</td>
@@ -1026,7 +1040,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                               <span className="text-[8px] text-muted-foreground uppercase">Runs ({autoRuns.length})</span>
                                               <ul className="text-xs mt-1 space-y-0.5">
                                                 {autoRuns.map((r, i) => (
-                                                  <li key={i}>{r.duration_sec}s — {BALL_CHOICE_OPTIONS[r.ball_choice]?.label ?? r.ball_choice}</li>
+                                                  <li key={i}>{formatDurationSec(r.duration_sec)} — {getBallChoiceLabel(r.ball_choice)}</li>
                                                 ))}
                                               </ul>
                                             </div>
@@ -1053,7 +1067,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                               <span className="text-[8px] text-muted-foreground uppercase">Runs ({teleopRuns.length})</span>
                                               <ul className="text-xs mt-1 space-y-0.5">
                                                 {teleopRuns.map((r, i) => (
-                                                  <li key={i}>{r.duration_sec}s — {BALL_CHOICE_OPTIONS[r.ball_choice]?.label ?? r.ball_choice}</li>
+                                                  <li key={i}>{formatDurationSec(r.duration_sec)} — {getBallChoiceLabel(r.ball_choice)}</li>
                                                 ))}
                                               </ul>
                                             </div>
@@ -1075,7 +1089,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-white/5">
                                         <div className="bg-white/5 p-2 rounded-lg border border-white/5 text-center">
                                           <span className="text-[8px] text-muted-foreground uppercase block">Downtime</span>
-                                          <span className="text-xs font-bold">{data.average_downtime != null ? `${Number(data.average_downtime).toFixed(1)}s` : '—'}</span>
+                                          <span className="text-xs font-bold">{data.average_downtime != null ? formatDurationSec(Number(data.average_downtime)) : '—'}</span>
                                         </div>
                                         <div className="bg-white/5 p-2 rounded-lg border border-white/5 text-center">
                                           <span className="text-[8px] text-muted-foreground uppercase block">Uptime</span>
@@ -1195,7 +1209,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                     <span className="text-xs font-bold text-muted-foreground">{data.defense_rating}</span>
                                   </div>
                                 </td>
-                                <td className="p-4 text-muted-foreground text-sm">{data.average_downtime != null ? `${Number(data.average_downtime).toFixed(1)}s` : '—'}</td>
+                                <td className="p-4 text-muted-foreground text-sm">{data.average_downtime != null ? formatDurationSec(Number(data.average_downtime)) : '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}</td>
                                 {showUploaderInfo && (
                                   <td className="p-4">
@@ -1289,7 +1303,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                                   <span className="text-[10px] text-muted-foreground uppercase font-semibold">Runs ({autoRuns.length})</span>
                                                   <ul className="text-sm space-y-1">
                                                     {autoRuns.map((r, i) => (
-                                                      <li key={i} className="flex justify-between"><span>Run {i + 1}: {r.duration_sec}s</span><span>{BALL_CHOICE_OPTIONS[r.ball_choice]?.label ?? r.ball_choice} balls</span></li>
+                                                      <li key={i} className="flex justify-between"><span>Run {i + 1}: {formatDurationSec(r.duration_sec)}</span><span>{getBallChoiceLabel(r.ball_choice)} balls</span></li>
                                                     ))}
                                                   </ul>
                                                 </div>
@@ -1323,7 +1337,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                                   <span className="text-[10px] text-muted-foreground uppercase font-semibold">Runs ({teleopRuns.length})</span>
                                                   <ul className="text-sm space-y-1">
                                                     {teleopRuns.map((r, i) => (
-                                                      <li key={i} className="flex justify-between"><span>Run {i + 1}: {r.duration_sec}s</span><span>{BALL_CHOICE_OPTIONS[r.ball_choice]?.label ?? r.ball_choice} balls</span></li>
+                                                      <li key={i} className="flex justify-between"><span>Run {i + 1}: {formatDurationSec(r.duration_sec)}</span><span>{getBallChoiceLabel(r.ball_choice)} balls</span></li>
                                                     ))}
                                                   </ul>
                                                 </div>
@@ -1337,7 +1351,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                                 <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
                                                   <span className="text-xs text-muted-foreground">Downtime</span>
-                                                  <span className="text-sm font-medium">{data.average_downtime != null ? `${Number(data.average_downtime).toFixed(1)}s` : '—'}</span>
+                                                  <span className="text-sm font-medium">{data.average_downtime != null ? formatDurationSec(Number(data.average_downtime)) : '—'}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
                                                   <span className="text-xs text-muted-foreground">Uptime</span>

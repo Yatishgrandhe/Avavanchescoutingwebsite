@@ -9,7 +9,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from '../ui/dialog';
-import { RunRecord, BALL_CHOICE_OPTIONS, type BallTrackingPhase } from '@/lib/types';
+import { RunRecord, BALL_CHOICE_OPTIONS, getBallChoiceLabel, type BallTrackingPhase } from '@/lib/types';
+import { formatDurationSec } from '@/lib/utils';
 import { Play, Square, Clock, Plus, List } from 'lucide-react';
 
 interface StopwatchBallTrackingProps {
@@ -41,7 +42,7 @@ export default function StopwatchBallTracking({
     const start = Date.now();
     const id = setInterval(() => {
       setElapsedMs(Date.now() - start);
-    }, 50);
+    }, 10);
     return () => clearInterval(id);
   }, [running]);
 
@@ -98,9 +99,9 @@ export default function StopwatchBallTracking({
         {/* Stopwatch */}
         <div className={`rounded-xl p-6 text-center ${isDarkMode ? 'bg-white/5 border border-white/10' : 'bg-muted/50 border border-border'}`}>
           <div className={`text-4xl font-mono font-bold tabular-nums ${isDarkMode ? 'text-white' : 'text-foreground'}`}>
-            {durationSec.toFixed(2)}s
+            {formatDurationSec(durationSec)}
           </div>
-          <p className="text-sm text-muted-foreground mt-1">seconds</p>
+          <p className="text-sm text-muted-foreground mt-1">seconds (with milliseconds)</p>
           <div className="flex justify-center gap-3 mt-4">
             {!running ? (
               <Button type="button" onClick={handleStart} className="gap-2">
@@ -120,7 +121,7 @@ export default function StopwatchBallTracking({
             <DialogHeader>
               <DialogTitle>How many balls scored?</DialogTitle>
               <DialogDescription>
-                Run ended at <strong>{pendingDurationSec.toFixed(2)}s</strong>. Pick the ball count for this run.
+                Run ended at <strong>{formatDurationSec(pendingDurationSec)}</strong>. Pick the ball count for this run.
               </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 py-2">
@@ -163,7 +164,7 @@ export default function StopwatchBallTracking({
                   className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-muted/30 border-border'}`}
                 >
                   <span>
-                    Run {i + 1}: <strong>{run.duration_sec.toFixed(2)}s</strong> — {BALL_CHOICE_OPTIONS[run.ball_choice]?.label ?? run.ball_choice} balls
+                    Run {i + 1}: <strong>{formatDurationSec(run.duration_sec)}</strong> — {getBallChoiceLabel(run.ball_choice)} balls
                   </span>
                   <Button
                     type="button"

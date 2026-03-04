@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { supabase } from '@/lib/supabase';
-import { computeRebuiltMetrics } from '@/lib/analytics';
+import { computeRebuiltMetrics, formatScoreRange } from '@/lib/analytics';
 
 interface TeamComparison {
   team_number: number;
@@ -58,6 +58,14 @@ interface TeamComparison {
   worst_score: number;
   consistency_score: number;
   win_rate: number;
+  auto_pts_min?: number;
+  auto_pts_max?: number;
+  teleop_pts_min?: number;
+  teleop_pts_max?: number;
+  total_pts_min?: number;
+  total_pts_max?: number;
+  balls_per_cycle_min?: number;
+  balls_per_cycle_max?: number;
 }
 
 /** Build TeamComparison from scouting rows (for competition-scoped comparison). */
@@ -113,6 +121,14 @@ function buildTeamComparisonFromRows(
     avg_climb_speed_sec: rebuilt.avg_climb_speed_sec ?? null,
     rpmagic: rebuilt.rpmagic,
     goblin: rebuilt.goblin,
+    auto_pts_min: rebuilt.auto_pts_min,
+    auto_pts_max: rebuilt.auto_pts_max,
+    teleop_pts_min: rebuilt.teleop_pts_min,
+    teleop_pts_max: rebuilt.teleop_pts_max,
+    total_pts_min: rebuilt.total_pts_min,
+    total_pts_max: rebuilt.total_pts_max,
+    balls_per_cycle_min: rebuilt.balls_per_cycle_min,
+    balls_per_cycle_max: rebuilt.balls_per_cycle_max,
     best_score: Math.max(...scores),
     worst_score: Math.min(...scores),
     consistency_score: Math.round(consistencyScore * 100) / 100,
@@ -599,15 +615,15 @@ export default function TeamComparison() {
                           </div>
                           <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Avg Score:</span>
-                            <span className={`ml-2 font-semibold text-blue-600`}>{team.avg_total_score}</span>
+                            <span className={`ml-2 font-semibold text-blue-600`}>{formatScoreRange(team.total_pts_min ?? team.avg_total_score, team.total_pts_max ?? team.avg_total_score)}</span>
                           </div>
                           <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Auto:</span>
-                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.avg_autonomous_points}</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatScoreRange(team.auto_pts_min ?? team.avg_autonomous_points, team.auto_pts_max ?? team.avg_autonomous_points)}</span>
                           </div>
                           <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Teleop:</span>
-                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.avg_teleop_points}</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatScoreRange(team.teleop_pts_min ?? team.avg_teleop_points, team.teleop_pts_max ?? team.avg_teleop_points)}</span>
                           </div>
                           <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Endgame:</span>
@@ -751,13 +767,13 @@ export default function TeamComparison() {
                               {team.total_matches}
                             </td>
                             <td className={`py-3 px-4 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              {team.avg_total_score}
+                              {formatScoreRange(team.total_pts_min ?? team.avg_total_score, team.total_pts_max ?? team.avg_total_score)}
                             </td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                              {team.avg_autonomous_points}
+                              {formatScoreRange(team.auto_pts_min ?? team.avg_autonomous_points, team.auto_pts_max ?? team.avg_autonomous_points)}
                             </td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                              {team.avg_teleop_points}
+                              {formatScoreRange(team.teleop_pts_min ?? team.avg_teleop_points, team.teleop_pts_max ?? team.avg_teleop_points)}
                             </td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               {team.avg_endgame_points}
@@ -810,7 +826,7 @@ export default function TeamComparison() {
                               {team.team_name}
                             </span>
                             <span className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              {team.avg_total_score}
+                              {formatScoreRange(team.total_pts_min ?? team.avg_total_score, team.total_pts_max ?? team.avg_total_score)}
                             </span>
                           </div>
                           <div className={`w-full rounded-full h-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>

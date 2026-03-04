@@ -9,7 +9,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from '../ui/dialog';
-import { BallTrackingPhase, BALL_CHOICE_OPTIONS, SCORING_VALUES, type ScoringNotes } from '@/lib/types';
+import { BallTrackingPhase, getBallChoiceValue, SCORING_VALUES, type ScoringNotes } from '@/lib/types';
+import { formatDurationSec } from '@/lib/utils';
 import { TrendingUp, Award, Play, Square, Clock, Trash2, Zap } from 'lucide-react';
 import StopwatchBallTracking from './StopwatchBallTracking';
 
@@ -44,7 +45,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
     const start = Date.now();
     const id = setInterval(() => {
       setClimbElapsedMs(Date.now() - start);
-    }, 50);
+    }, 10);
     return () => clearInterval(id);
   }, [climbTimerRunning]);
 
@@ -81,13 +82,13 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
 
   const handleComplete = (data: BallTrackingPhase) => {
     const totalFuel = (data.runs ?? []).reduce(
-      (sum, r) => sum + (BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0),
+      (sum, r) => sum + getBallChoiceValue(r.ball_choice),
       0
     );
     onNext({
       ...data,
       teleop_fuel_active_hub: Math.round(totalFuel * 10) / 10,
-      teleop_fuel_shifts: (data.runs ?? []).map(r => BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0),
+      teleop_fuel_shifts: (data.runs ?? []).map(r => getBallChoiceValue(r.ball_choice)),
       teleop_tower_level1: towerLevel1,
       teleop_tower_level2: towerLevel2,
       teleop_tower_level3: towerLevel3,
@@ -163,7 +164,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                     </Button>
                   ) : (
                     <>
-                      <span className="font-mono text-sm tabular-nums min-w-[3.5rem]">{(climbElapsedMs / 1000).toFixed(2)}s</span>
+                      <span className="font-mono text-sm tabular-nums min-w-[4.5rem]">{formatDurationSec(climbElapsedMs / 1000)}</span>
                       <Button
                         type="button"
                         size="sm"
@@ -177,7 +178,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                   )}
                   {climbSec !== '' && !climbTimerRunning && (
                     <>
-                      <span className="text-xs text-muted-foreground ml-1">Saved: {Number(climbSec).toFixed(2)}s</span>
+                      <span className="text-xs text-muted-foreground ml-1">Saved: {formatDurationSec(Number(climbSec))}</span>
                       <Button
                         type="button"
                         variant="ghost"
@@ -201,7 +202,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                     <Clock className="w-4 h-4" /> Climb time
                   </DialogTitle>
                   <DialogDescription>
-                    Recorded <strong>{(pendingClimbSec).toFixed(2)}s</strong>. Save for CLANK or cancel.
+                    Recorded <strong>{formatDurationSec(pendingClimbSec)}</strong>. Save for CLANK or cancel.
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter className="gap-2 sm:gap-0">

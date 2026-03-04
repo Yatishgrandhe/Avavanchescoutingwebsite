@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { BALL_CHOICE_OPTIONS } from "@/lib/types"
+import { getBallChoiceValue } from "@/lib/types"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -14,7 +14,7 @@ export function formatDurationSec(sec: number): string {
 
 function fuelFromRuns(runs: Array<{ ball_choice: number }> | undefined): number {
   if (!runs?.length) return 0;
-  return runs.reduce((sum, r) => sum + (BALL_CHOICE_OPTIONS[r.ball_choice]?.value ?? 0), 0);
+  return runs.reduce((sum, r) => sum + getBallChoiceValue(r.ball_choice), 0);
 }
 
 export function calculateScore(data: any) {

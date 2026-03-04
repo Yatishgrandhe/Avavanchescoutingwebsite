@@ -23,8 +23,9 @@ import {
   Download
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
+import { formatDurationSec } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { computeRebuiltMetrics } from '@/lib/analytics';
+import { computeRebuiltMetrics, formatScoreRange } from '@/lib/analytics';
 import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
 import {
   RadarChart,
@@ -63,6 +64,14 @@ interface TeamStats {
   worst_score: number;
   consistency_score: number;
   win_rate: number;
+  auto_pts_min?: number;
+  auto_pts_max?: number;
+  teleop_pts_min?: number;
+  teleop_pts_max?: number;
+  total_pts_min?: number;
+  total_pts_max?: number;
+  balls_per_cycle_min?: number;
+  balls_per_cycle_max?: number;
   recent_performance: Array<{
     match_id: string;
     final_score: number;
@@ -494,7 +503,7 @@ export default function AdvancedAnalysis() {
                           Avg Score
                         </p>
                         <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                          {teamStats.avg_total_score}
+                          {formatScoreRange(teamStats.total_pts_min ?? teamStats.avg_total_score, teamStats.total_pts_max ?? teamStats.avg_total_score)}
                         </p>
                       </div>
                       <BarChart3 className={`w-8 h-8 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
@@ -749,13 +758,13 @@ export default function AdvancedAnalysis() {
                     <div className="flex justify-between items-center">
                       <span className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Autonomous</span>
                       <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {teamStats.avg_autonomous_points} pts
+                        {formatScoreRange(teamStats.auto_pts_min ?? teamStats.avg_autonomous_points, teamStats.auto_pts_max ?? teamStats.avg_autonomous_points)} pts
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Teleop</span>
                       <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {teamStats.avg_teleop_points} pts
+                        {formatScoreRange(teamStats.teleop_pts_min ?? teamStats.avg_teleop_points, teamStats.teleop_pts_max ?? teamStats.avg_teleop_points)} pts
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -865,7 +874,7 @@ export default function AdvancedAnalysis() {
                               {match.defense_rating}/10
                             </td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                              {match.average_downtime != null ? `${match.average_downtime}s` : '—'}
+                              {match.average_downtime != null ? formatDurationSec(Number(match.average_downtime)) : '—'}
                             </td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               {match.broke === true ? 'Yes' : match.broke === false ? 'No' : '—'}

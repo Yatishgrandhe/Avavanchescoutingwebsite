@@ -9,7 +9,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '../ui/dialog';
-import { BallTrackingPhase, getBallChoiceValue, SCORING_VALUES, type ScoringNotes } from '@/lib/types';
+import { BallTrackingPhase, getBallChoiceScoreFromRange, SCORING_VALUES, type ScoringNotes } from '@/lib/types';
 import { formatDurationSec } from '@/lib/utils';
 import { TrendingUp, Award, Play, Square, Clock, Trash2, Zap } from 'lucide-react';
 import StopwatchBallTracking from './StopwatchBallTracking';
@@ -82,13 +82,13 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
 
   const handleComplete = (data: BallTrackingPhase) => {
     const totalFuel = (data.runs ?? []).reduce(
-      (sum, r) => sum + getBallChoiceValue(r.ball_choice),
+      (sum, r) => sum + getBallChoiceScoreFromRange(r.ball_choice),
       0
     );
     onNext({
       ...data,
       teleop_fuel_active_hub: Math.round(totalFuel * 10) / 10,
-      teleop_fuel_shifts: (data.runs ?? []).map(r => getBallChoiceValue(r.ball_choice)),
+      teleop_fuel_shifts: (data.runs ?? []).map(r => getBallChoiceScoreFromRange(r.ball_choice)),
       teleop_tower_level1: towerLevel1,
       teleop_tower_level2: towerLevel2,
       teleop_tower_level3: towerLevel3,

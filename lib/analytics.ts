@@ -4,7 +4,7 @@
  */
 
 import type { RunRecord } from '@/lib/types';
-import { getBallChoiceValue, getBallChoiceLabel } from '@/lib/types';
+import { getBallChoiceScoreFromRange, getBallChoiceLabel } from '@/lib/types';
 
 const MATCH_LENGTH_SEC = 165;
 
@@ -50,7 +50,7 @@ function sumBalls(phase: Record<string, unknown>): number {
 
 function fuelFromRuns(runs: RunRecord[] | undefined): number {
   if (!runs?.length) return 0;
-  return runs.reduce((sum, r) => sum + getBallChoiceValue(r.ball_choice), 0);
+  return runs.reduce((sum, r) => sum + getBallChoiceScoreFromRange(r.ball_choice), 0);
 }
 
 export function parseNotes(notes: any): ParsedNotes {
@@ -68,7 +68,7 @@ export function parseNotes(notes: any): ParsedNotes {
   const teleopShifts = Array.isArray(teleop.teleop_fuel_shifts)
     ? teleop.teleop_fuel_shifts
     : teleopRuns.length > 0
-      ? teleopRuns.map((r: RunRecord) => getBallChoiceValue(r.ball_choice))
+      ? teleopRuns.map((r: RunRecord) => getBallChoiceScoreFromRange(r.ball_choice))
       : teleopFuelFromBalls > 0
         ? [Number(teleop.balls_0_15) || 0, Number(teleop.balls_15_30) || 0, Number(teleop.balls_30_45) || 0, Number(teleop.balls_45_60) || 0, Number(teleop.balls_60_75) || 0, Number(teleop.balls_75_90) || 0]
         : teleop.teleop_fuel_active_hub != null
@@ -235,12 +235,12 @@ export interface RunsForDisplay {
 export function getRunsForDisplay(notes: any): RunsForDisplay {
   const p = parseNotes(notes);
   const autoRuns = (p.autonomous.runs || []).map((r: RunRecord) => {
-    const value = getBallChoiceValue(r.ball_choice);
+    const value = getBallChoiceScoreFromRange(r.ball_choice);
     const label = getBallChoiceLabel(r.ball_choice);
     return { duration_sec: r.duration_sec, ballLabel: label, ballValue: value, estPts: value * 1 };
   });
   const teleopRuns = (p.teleop.runs || []).map((r: RunRecord) => {
-    const value = getBallChoiceValue(r.ball_choice);
+    const value = getBallChoiceScoreFromRange(r.ball_choice);
     const label = getBallChoiceLabel(r.ball_choice);
     return { duration_sec: r.duration_sec, ballLabel: label, ballValue: value, estPts: value * 1 };
   });

@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from '../ui/dialog';
 import { Button } from '../ui/Button';
-import { BallTrackingPhase, getBallChoiceValue } from '@/lib/types';
+import { BallTrackingPhase, getBallChoiceScoreFromRange } from '@/lib/types';
 import { Award, Play, Square, Clock } from 'lucide-react';
 import { formatDurationSec } from '@/lib/utils';
 import StopwatchBallTracking from './StopwatchBallTracking';
@@ -81,7 +81,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
 
   const handleComplete = (data: BallTrackingPhase) => {
     const totalFuel = (data.runs ?? []).reduce(
-      (sum, r) => sum + getBallChoiceValue(r.ball_choice),
+      (sum, r) => sum + getBallChoiceScoreFromRange(r.ball_choice),
       0
     );
     onNext({

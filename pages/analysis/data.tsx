@@ -36,7 +36,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ScoutingData, Team } from '@/lib/types';
 import { useAdmin } from '@/hooks/use-admin';
 import { computeRebuiltMetrics, parseNotes, getUptimePct, getClimbPoints, formatScoreRange } from '@/lib/analytics';
-import { getBallChoiceValue, getBallChoiceLabel } from '@/lib/types';
+import { getBallChoiceScoreFromRange, getBallChoiceLabel } from '@/lib/types';
 import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
 
@@ -168,9 +168,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         // Nested structure; support runs (stopwatch + multiple choice per run)
         const autoRuns = Array.isArray(parsed.autonomous?.runs) ? parsed.autonomous.runs : [];
         const teleopRuns = Array.isArray(parsed.teleop?.runs) ? parsed.teleop.runs : [];
-        const autoFuelFromRuns = autoRuns.reduce((s: number, r: { ball_choice: number }) => s + getBallChoiceValue(r.ball_choice), 0);
-        const teleopFuelFromRuns = teleopRuns.reduce((s: number, r: { ball_choice: number }) => s + getBallChoiceValue(r.ball_choice), 0);
-        const teleopShiftsFromRuns = teleopRuns.length > 0 ? teleopRuns.map((r: { ball_choice: number }) => getBallChoiceValue(r.ball_choice)) : null;
+        const autoFuelFromRuns = autoRuns.reduce((s: number, r: { ball_choice: number }) => s + getBallChoiceScoreFromRange(r.ball_choice), 0);
+        const teleopFuelFromRuns = teleopRuns.reduce((s: number, r: { ball_choice: number }) => s + getBallChoiceScoreFromRange(r.ball_choice), 0);
+        const teleopShiftsFromRuns = teleopRuns.length > 0 ? teleopRuns.map((r: { ball_choice: number }) => getBallChoiceScoreFromRange(r.ball_choice)) : null;
 
         return {
           autonomous: {

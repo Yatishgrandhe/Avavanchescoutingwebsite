@@ -101,11 +101,23 @@ export const BALL_CHOICE_OPTIONS = [
   { label: '71+', value: 75 },
 ] as const;
 
-/** Value for scoring from a run's ball_choice index. Legacy 0–7; new form saves 8+optionIndex so 8–23 map to BALL_CHOICE_OPTIONS 0–15. */
+/** Value for scoring from a run's ball_choice index. Legacy 0–7; new form saves 8+optionIndex so 8–23 map to BALL_CHOICE_OPTIONS 0–15. Returns max of range (for backward compat / display). */
 export function getBallChoiceValue(ball_choice: number): number {
   if (ball_choice < LEGACY_BALL_CHOICE_OPTIONS.length) return LEGACY_BALL_CHOICE_OPTIONS[ball_choice]?.value ?? 0;
   const idx = ball_choice - LEGACY_BALL_CHOICE_OPTIONS.length;
   return BALL_CHOICE_OPTIONS[idx]?.value ?? 0;
+}
+
+/** Midpoint of each range for BALL_CHOICE_OPTIONS (0, 1–5→3, 6–10→8, … 66–70→68, 71+→75). Used for scoring so we use the range, not the high end. */
+const BALL_CHOICE_MIDPOINTS: number[] = [0, 3, 8, 13, 18, 23, 28, 33, 38, 43, 48, 53, 58, 63, 68, 75];
+/** Legacy midpoints (0, 1–15→8, 16–30→23, 31–45→38, 46–60→53, 61–75→68, 76–90→83, 91+→95). */
+const LEGACY_BALL_CHOICE_MIDPOINTS: number[] = [0, 8, 23, 38, 53, 68, 83, 95];
+
+/** Score from range: use midpoint of the selected range for all fuel/scoring calculations (submit ranges, not high end). */
+export function getBallChoiceScoreFromRange(ball_choice: number): number {
+  if (ball_choice < LEGACY_BALL_CHOICE_OPTIONS.length) return LEGACY_BALL_CHOICE_MIDPOINTS[ball_choice] ?? 0;
+  const idx = ball_choice - LEGACY_BALL_CHOICE_OPTIONS.length;
+  return BALL_CHOICE_MIDPOINTS[idx] ?? 0;
 }
 
 /** Label for display from a run's ball_choice index. Legacy 0–7; new form uses 8+optionIndex. */

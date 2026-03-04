@@ -283,6 +283,10 @@ const TeamDetail: React.FC = () => {
       total_pts_max: rebuilt.total_pts_max,
       balls_per_cycle_min: rebuilt.balls_per_cycle_min,
       balls_per_cycle_max: rebuilt.balls_per_cycle_max,
+      auto_fuel_min: rebuilt.auto_fuel_min,
+      auto_fuel_max: rebuilt.auto_fuel_max,
+      teleop_fuel_min: rebuilt.teleop_fuel_min,
+      teleop_fuel_max: rebuilt.teleop_fuel_max,
       epa: Math.round(avgTotal * 10) / 10, // Expected Points Added = avg score
 
       // Data for Radar Chart (all values 0–100 for correct scale; Recharts expects numeric A and fullMark)
@@ -501,6 +505,8 @@ const TeamDetail: React.FC = () => {
                     <StatCard label="Matches" value={teamStats.totalMatches} color="blue" icon={Database} subLabel="scouted" />
                     <StatCard label="Auto range" value={formatScoreRange(teamStats.auto_pts_min ?? 0, teamStats.auto_pts_max ?? 0)} color="blue" icon={Clock} subLabel="pts" />
                     <StatCard label="Teleop range" value={formatScoreRange(teamStats.teleop_pts_min ?? 0, teamStats.teleop_pts_max ?? 0)} color="orange" icon={Zap} subLabel="pts" />
+                    <StatCard label="Auto fuel range" value={formatScoreRange(teamStats.auto_fuel_min ?? 0, teamStats.auto_fuel_max ?? 0)} color="blue" icon={Target} subLabel="fuel" />
+                    <StatCard label="Teleop fuel range" value={formatScoreRange(teamStats.teleop_fuel_min ?? 0, teamStats.teleop_fuel_max ?? 0)} color="orange" icon={Zap} subLabel="fuel" />
                     <StatCard label="Balls/cycle" value={formatScoreRange(teamStats.balls_per_cycle_min ?? 0, teamStats.balls_per_cycle_max ?? 0)} color="orange" icon={Zap} subLabel="per run" />
                     <StatCard label="Avg Climb" value={teamStats.avg_climb_pts} color="green" icon={Award} subLabel="pts" />
                     <StatCard label="Consistency" value={`${teamStats.consistencyScore}%`} color="purple" icon={Activity} />

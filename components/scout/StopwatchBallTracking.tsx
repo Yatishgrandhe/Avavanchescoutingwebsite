@@ -9,7 +9,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '../ui/dialog';
-import { RunRecord, BALL_CHOICE_OPTIONS, getBallChoiceLabel, type BallTrackingPhase } from '@/lib/types';
+import { RunRecord, BALL_CHOICE_OPTIONS, LEGACY_BALL_CHOICE_OPTIONS, getBallChoiceLabel, type BallTrackingPhase } from '@/lib/types';
 import { formatDurationSec } from '@/lib/utils';
 import { Play, Square, Clock, Plus, List } from 'lucide-react';
 
@@ -62,7 +62,9 @@ export default function StopwatchBallTracking({
 
   const handleSaveRun = useCallback(() => {
     if (selectedChoice == null || selectedChoice < 0 || selectedChoice >= BALL_CHOICE_OPTIONS.length) return;
-    setRuns(prev => [...prev, { duration_sec: Math.round(pendingDurationSec * 1000) / 1000, ball_choice: selectedChoice }]);
+    // New form saves 8 + option index so getBallChoiceLabel/Value use BALL_CHOICE_OPTIONS (not legacy).
+    const ball_choice = LEGACY_BALL_CHOICE_OPTIONS.length + selectedChoice;
+    setRuns(prev => [...prev, { duration_sec: Math.round(pendingDurationSec * 1000) / 1000, ball_choice }]);
     setElapsedMs(0);
     setPendingDurationSec(0);
     setSelectedChoice(null);

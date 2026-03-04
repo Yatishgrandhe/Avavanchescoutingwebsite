@@ -101,17 +101,18 @@ export const BALL_CHOICE_OPTIONS = [
   { label: '71+', value: 75 },
 ] as const;
 
-/** Value for scoring from a run's ball_choice index. Uses legacy options when index < 8, else new options. */
+/** Value for scoring from a run's ball_choice index. Legacy 0–7; new form saves 8+optionIndex so 8–23 map to BALL_CHOICE_OPTIONS 0–15. */
 export function getBallChoiceValue(ball_choice: number): number {
   if (ball_choice < LEGACY_BALL_CHOICE_OPTIONS.length) return LEGACY_BALL_CHOICE_OPTIONS[ball_choice]?.value ?? 0;
-  const idx = ball_choice;
+  const idx = ball_choice - LEGACY_BALL_CHOICE_OPTIONS.length;
   return BALL_CHOICE_OPTIONS[idx]?.value ?? 0;
 }
 
-/** Label for display from a run's ball_choice index. Uses legacy when index < 8, else new options. */
+/** Label for display from a run's ball_choice index. Legacy 0–7; new form uses 8+optionIndex. */
 export function getBallChoiceLabel(ball_choice: number): string {
   if (ball_choice < LEGACY_BALL_CHOICE_OPTIONS.length) return LEGACY_BALL_CHOICE_OPTIONS[ball_choice]?.label ?? '0';
-  return BALL_CHOICE_OPTIONS[ball_choice]?.label ?? '0';
+  const idx = ball_choice - LEGACY_BALL_CHOICE_OPTIONS.length;
+  return BALL_CHOICE_OPTIONS[idx]?.label ?? '0';
 }
 
 /** One phase (auto or teleop) can have multiple runs. */

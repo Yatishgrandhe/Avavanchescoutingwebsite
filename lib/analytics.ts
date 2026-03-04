@@ -286,6 +286,12 @@ export interface RebuiltTeamMetrics {
   /** Min/max of (teleop fuel / num teleop runs) per match — balls per cycle. */
   balls_per_cycle_min: number;
   balls_per_cycle_max: number;
+  /** Min/max auto fuel (game pieces) across matches — for detail stats range display. */
+  auto_fuel_min: number;
+  auto_fuel_max: number;
+  /** Min/max teleop fuel across matches — for detail stats range display. */
+  teleop_fuel_min: number;
+  teleop_fuel_max: number;
 }
 
 export interface ScoutingRowForAnalytics {
@@ -329,6 +335,10 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
       total_pts_max: 0,
       balls_per_cycle_min: 0,
       balls_per_cycle_max: 0,
+      auto_fuel_min: 0,
+      auto_fuel_max: 0,
+      teleop_fuel_min: 0,
+      teleop_fuel_max: 0,
     };
   }
 
@@ -351,11 +361,17 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
   const autoPtsList: number[] = [];
   const teleopPtsList: number[] = [];
   const ballsPerCycleList: number[] = [];
+  const autoFuelList: number[] = [];
+  const teleopFuelList: number[] = [];
 
   rows.forEach((row) => {
     const notes = row.notes;
-    totalAutoFuel += getAutoFuelCount(notes);
-    totalTeleopFuel += getTeleopFuelCount(notes);
+    const autoFuel = getAutoFuelCount(notes);
+    const teleopFuel = getTeleopFuelCount(notes);
+    totalAutoFuel += autoFuel;
+    totalTeleopFuel += teleopFuel;
+    autoFuelList.push(autoFuel);
+    teleopFuelList.push(teleopFuel);
     const climbPts = getClimbPoints(notes);
     totalClimbPts += climbPts;
     totalAutoClimbPts += getAutoClimbPoints(notes);
@@ -380,7 +396,6 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     teleopPtsList.push(row.teleop_points ?? 0);
     const p = parseNotes(row.notes);
     const teleopRuns = p.teleop.runs?.length ?? 0;
-    const teleopFuel = getTeleopFuelCount(row.notes);
     const bpc = teleopRuns > 0 ? teleopFuel / teleopRuns : 0;
     ballsPerCycleList.push(bpc);
   });
@@ -393,6 +408,10 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
   const totalPtsMax = scores.length ? Math.max(...scores) : 0;
   const ballsPerCycleMin = ballsPerCycleList.length ? Math.round(Math.min(...ballsPerCycleList) * 100) / 100 : 0;
   const ballsPerCycleMax = ballsPerCycleList.length ? Math.round(Math.max(...ballsPerCycleList) * 100) / 100 : 0;
+  const autoFuelMin = autoFuelList.length ? Math.min(...autoFuelList) : 0;
+  const autoFuelMax = autoFuelList.length ? Math.max(...autoFuelList) : 0;
+  const teleopFuelMin = teleopFuelList.length ? Math.min(...teleopFuelList) : 0;
+  const teleopFuelMax = teleopFuelList.length ? Math.max(...teleopFuelList) : 0;
 
   const avgUptime =
     downtimeCount > 0
@@ -450,6 +469,10 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     total_pts_max: totalPtsMax,
     balls_per_cycle_min: ballsPerCycleMin,
     balls_per_cycle_max: ballsPerCycleMax,
+    auto_fuel_min: autoFuelMin,
+    auto_fuel_max: autoFuelMax,
+    teleop_fuel_min: teleopFuelMin,
+    teleop_fuel_max: teleopFuelMax,
   };
 }
 

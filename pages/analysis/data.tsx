@@ -684,7 +684,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                                 <span className="text-[10px] text-muted-foreground uppercase block mb-1">Avg Score</span>
-                                <span className="text-sm font-semibold text-green-400">{team.avg_total_score}</span>
+                                <span className="text-sm font-semibold text-primary">{team.avg_total_score}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                                 <span className="text-[10px] text-muted-foreground uppercase block mb-1">Auto EPA</span>
@@ -699,35 +699,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <span className="text-sm font-semibold text-green-400">{team.avg_climb_pts ?? '—'}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Avg balls/cycle</span>
-                                <span className="text-sm font-semibold text-muted-foreground">{team.avg_balls_per_cycle ?? 0}</span>
-                              </div>
-                            </div>
-
-                            <div className="space-y-3 mb-4">
-                              <div>
-                                <div className="flex justify-between text-[10px] mb-1">
-                                  <span className="text-muted-foreground uppercase tracking-wider">Defense Rating</span>
-                                  <span className="font-bold">{team.avg_defense_rating}/10</span>
-                                </div>
-                                <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-                                  <div
-                                    className="bg-yellow-500 h-full rounded-full shadow-[0_0_8px_rgba(234,179,8,0.5)]"
-                                    style={{ width: `${(team.avg_defense_rating / 10) * 100}%` }}
-                                  />
-                                </div>
-                              </div>
-                              <div>
-                                <div className="flex justify-between text-[10px] mb-1">
-                                  <span className="text-muted-foreground uppercase tracking-wider">Consistency</span>
-                                  <span className="font-bold">{team.consistency_score}%</span>
-                                </div>
-                                <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-                                  <div
-                                    className="bg-purple-500 h-full rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]"
-                                    style={{ width: `${team.consistency_score}%` }}
-                                  />
-                                </div>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Consistency</span>
+                                <span className={cn("text-sm font-semibold", team.consistency_score >= 80 ? 'text-green-400' : team.consistency_score >= 60 ? 'text-yellow-400' : 'text-red-400')}>{team.consistency_score}%</span>
                               </div>
                             </div>
 
@@ -764,25 +737,13 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                       <table className="w-full border-collapse">
                         <thead>
                           <tr className="border-b border-white/5 text-muted-foreground font-medium uppercase tracking-wider text-[10px]">
-                            <th className="text-left p-4">Team Name</th>
+                            <th className="text-left p-4">Team</th>
                             <th className="text-left p-4">Matches</th>
                             <th className="text-left p-4">Avg Score</th>
-                            <th className="text-left p-4 text-[9px]">Average auto</th>
-                            <th className="text-left p-4 text-[9px]">Average teleop</th>
-                            <th className="text-left p-4 text-[9px]">Defense</th>
-                            <th className="text-left p-4 text-[10px]">Avg Downtime</th>
-                            <th className="text-left p-4 text-[10px]">Broke %</th>
                             <th className="text-left p-4 text-[9px]">Auto EPA</th>
                             <th className="text-left p-4 text-[9px]">Teleop EPA</th>
                             <th className="text-left p-4 text-[9px]">Endgame EPA</th>
-                            <th className="text-left p-4 text-[9px]">Avg balls/cycle</th>
-                            <th className="text-left p-4 text-[9px]" title="Estimated amount of points per match">EPA (Est. pts)</th>
-                            <th className="text-left p-4 text-[9px]">Uptime %</th>
-                            <th className="text-left p-4 text-[9px]">CLANK</th>
-                            <th className="text-left p-4 text-[9px]">Avg climb speed</th>
-                            <th className="text-left p-4 text-[9px]">RPMAGIC</th>
-                            <th className="text-left p-4 text-[9px]">GOBLIN</th>
-                            <th className="text-left p-4">Best</th>
+                            <th className="text-left p-4 text-[9px]">EPA</th>
                             <th className="text-left p-4 text-[11px]">Consistency</th>
                             <th className="text-right p-4 text-[11px]">Actions</th>
                           </tr>
@@ -811,46 +772,20 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 </td>
                                 <td className="p-4 text-foreground font-medium">{team.total_matches}</td>
                                 <td className="p-4">
-                                  <span className="font-bold text-primary text-lg" title="Average score">{team.avg_total_score}</span>
+                                  <span className="font-bold text-primary text-lg">{team.avg_total_score}</span>
                                 </td>
-                                <td className="p-4 text-blue-400 font-semibold" title="Average auto">{team.avg_autonomous_points}</td>
-                                <td className="p-4 text-orange-400 font-semibold" title="Average teleop">{team.avg_teleop_points}</td>
-                                <td className="p-4">
-                                  <Badge
-                                    variant="outline"
-                                    className={cn(
-                                      "px-2 py-0.5",
-                                      team.avg_defense_rating >= 7 ? "text-green-400 border-green-500/20 bg-green-500/5 shadow-[0_0_8px_rgba(34,197,94,0.1)]" :
-                                        team.avg_defense_rating >= 5 ? "text-yellow-400 border-yellow-500/20 bg-yellow-500/5" :
-                                          "text-red-400 border-red-500/20 bg-red-500/5"
-                                    )}
-                                  >
-                                    {team.avg_defense_rating}/10
-                                  </Badge>
-                                </td>
-                                <td className="p-4 text-muted-foreground text-sm">{team.avg_downtime_sec != null ? `${team.avg_downtime_sec}s` : (team.avg_downtime != null ? `${team.avg_downtime}s` : '—')}</td>
-                                <td className="p-4 text-muted-foreground text-sm">{team.total_matches ? `${team.broke_count ?? 0}/${team.total_matches}` : (team.broke_rate != null ? `${team.broke_rate}%` : '—')}</td>
                                 <td className="p-4 text-blue-400 font-semibold text-sm">{team.avg_autonomous_points ?? '—'}</td>
                                 <td className="p-4 text-orange-400 font-semibold text-sm">{team.avg_teleop_points ?? '—'}</td>
                                 <td className="p-4 text-green-400 font-semibold text-sm">{team.avg_climb_pts ?? '—'}</td>
-                                <td className="p-4 text-muted-foreground text-sm">{team.avg_balls_per_cycle ?? 0}</td>
-                                <td className="p-4 text-primary font-bold text-sm" title="Estimated amount of points per match">{team.epa ?? team.avg_total_score ?? '—'}</td>
-                                <td className="p-4 text-muted-foreground text-sm">{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</td>
-                                <td className="p-4 text-muted-foreground text-sm">{team.clank != null ? `${team.clank}` : '—'}</td>
-                                <td className="p-4 text-muted-foreground text-sm">{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</td>
-                                <td className="p-4 text-muted-foreground text-sm">{team.rpmagic ?? '—'}</td>
-                                <td className="p-4 text-muted-foreground text-sm">{team.goblin ?? '—'}</td>
-                                <td className="p-4 text-green-400 font-bold">{team.best_score}</td>
+                                <td className="p-4 text-primary font-bold text-sm">{team.epa ?? team.avg_total_score ?? '—'}</td>
                                 <td className="p-4">
-                                  <div className="flex items-center gap-2">
-                                    <span className={cn(
-                                      "font-bold",
-                                      team.consistency_score >= 80 ? 'text-green-400' :
-                                        team.consistency_score >= 60 ? 'text-yellow-400' : 'text-red-400'
-                                    )}>
-                                      {team.consistency_score}%
-                                    </span>
-                                  </div>
+                                  <span className={cn(
+                                    "font-bold text-sm",
+                                    team.consistency_score >= 80 ? 'text-green-400' :
+                                      team.consistency_score >= 60 ? 'text-yellow-400' : 'text-red-400'
+                                  )}>
+                                    {team.consistency_score}%
+                                  </span>
                                 </td>
                                 <td className="p-4 text-right">
                                   <div className="flex justify-end gap-2">

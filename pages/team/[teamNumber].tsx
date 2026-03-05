@@ -290,7 +290,7 @@ const TeamDetail: React.FC = () => {
       teleop_fuel_min: rebuilt.teleop_fuel_min,
       teleop_fuel_max: rebuilt.teleop_fuel_max,
       avg_shooting_time_sec: rebuilt.avg_shooting_time_sec ?? null,
-      epa: Math.round(avgTotal * 10) / 10, // Expected Points Added = avg score
+      epa: rebuilt.epa,
 
       // Data for Radar Chart (all values 0–100 for correct scale; Recharts expects numeric A and fullMark)
       radarData: [
@@ -467,180 +467,176 @@ const TeamDetail: React.FC = () => {
       </div>
 
       {(
-          <Tabs defaultValue="overview" className="w-full">
-            <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-px overflow-x-auto">
-              <TabsList className="bg-transparent h-12 p-0 gap-8 justify-start">
-                <TabsTrigger
-                  value="overview"
-                  className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 font-bold transition-all text-muted-foreground data-[state=active]:text-foreground"
-                >
-                  OVERVIEW
-                </TabsTrigger>
-                <TabsTrigger
-                  value="advanced"
-                  className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 font-bold transition-all text-muted-foreground data-[state=active]:text-foreground"
-                >
-                  ADVANCED
-                </TabsTrigger>
-                {user && (
+        <Tabs defaultValue="overview" className="w-full">
+          <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-px overflow-x-auto">
+            <TabsList className="bg-transparent h-12 p-0 gap-8 justify-start">
+              <TabsTrigger
+                value="overview"
+                className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 font-bold transition-all text-muted-foreground data-[state=active]:text-foreground"
+              >
+                OVERVIEW
+              </TabsTrigger>
+              <TabsTrigger
+                value="advanced"
+                className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 font-bold transition-all text-muted-foreground data-[state=active]:text-foreground"
+              >
+                ADVANCED
+              </TabsTrigger>
+              {user && (
                 <TabsTrigger
                   value="pit"
                   className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 font-bold transition-all text-muted-foreground data-[state=active]:text-foreground"
                 >
                   PIT SCOUTING
                 </TabsTrigger>
-                )}
-                <TabsTrigger
-                  value="matches"
-                  className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 font-bold transition-all text-muted-foreground data-[state=active]:text-foreground"
-                >
-                  MATCH HISTORY
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            <TabsContent value="overview" className="space-y-6 outline-none">
-              {teamStats ? (
-                <>
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-                    <StatCard label="Average score" value={teamStats.avgTotal} color="primary" icon={TrendingUp} subLabel="total pts" />
-                    <StatCard label="Matches" value={teamStats.totalMatches} color="blue" icon={Database} subLabel="scouted" />
-                    <StatCard label="Average auto" value={teamStats.avgAutonomous} color="blue" icon={Clock} subLabel="pts" />
-                    <StatCard label="Average teleop" value={teamStats.avgTeleop} color="orange" icon={Zap} subLabel="pts" />
-                    <StatCard label="Average auto fuel" value={teamStats.avg_auto_fuel ?? 0} color="blue" icon={Target} subLabel="fuel" />
-                    <StatCard label="Average teleop fuel" value={teamStats.avg_teleop_fuel ?? 0} color="orange" icon={Zap} subLabel="fuel" />
-                    <StatCard label="Average balls/cycle" value={teamStats.avg_balls_per_cycle ?? 0} color="orange" icon={Zap} subLabel="per run" />
-                    <StatCard label="Avg shooting time" value={teamStats.avg_shooting_time_sec != null ? `${teamStats.avg_shooting_time_sec}s` : '—'} color="blue" icon={Clock} subLabel="per attempt" />
-                    <StatCard label="Avg Climb" value={teamStats.avg_climb_pts} color="green" icon={Award} subLabel="pts" />
-                    <StatCard label="Consistency" value={`${teamStats.consistencyScore}%`} color="purple" icon={Activity} />
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    {/* Radar Chart Section */}
-                    <Card className="lg:col-span-5 glass bg-white/5 border-white/10">
-                      <CardHeader>
-                        <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                          <BarChart3 className="w-4 h-4" /> Performance Balance
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="h-[350px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <RadarChart cx="50%" cy="50%" outerRadius="80%" data={teamStats.radarData}>
-                            <PolarGrid stroke="rgba(255,255,255,0.1)" />
-                            <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12 }} />
-                            <PolarRadiusAxis type="number" angle={30} domain={[0, 100]} allowDataOverflow={false} tick={false} stroke="none" />
-                            <Radar
-                              name={team.team_name}
-                              dataKey="A"
-                              stroke="#3b82f6"
-                              fill="#3b82f6"
-                              fillOpacity={0.5}
-                              isAnimationActive={true}
-                            />
-                          </RadarChart>
-                        </ResponsiveContainer>
-                      </CardContent>
-                    </Card>
-
-                    {/* Trends Chart Section */}
-                    <Card className="lg:col-span-7 glass bg-white/5 border-white/10">
-                      <CardHeader>
-                        <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                          <Activity className="w-4 h-4" /> Scoring Trends
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="h-[350px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={teamStats.trends} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                            <XAxis dataKey="match" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                            <YAxis domain={[0, 'auto']} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                            <Tooltip
-                              contentStyle={{ backgroundColor: '#09090b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                              itemStyle={{ fontSize: '12px' }}
-                              formatter={(value: number) => [value, 'Score']}
-                              labelFormatter={(label) => `Match ${label}`}
-                            />
-                            <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} connectNulls={false} isAnimationActive={true} />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </>
-              ) : (
-                <div className="py-12 text-center text-muted-foreground">
-                  <Database className="w-12 h-12 mx-auto mb-4 opacity-40" />
-                  <p className="font-medium">No match data yet</p>
-                  <p className="text-sm mt-1">Check Pit Scouting or Match History when data is available.</p>
-                </div>
               )}
-            </TabsContent>
+              <TabsTrigger
+                value="matches"
+                className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 font-bold transition-all text-muted-foreground data-[state=active]:text-foreground"
+              >
+                MATCH HISTORY
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-            <TabsContent value="advanced" className="outline-none">
-              {teamStats ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Card className="glass bg-white/5 border-white/10 overflow-hidden">
-                    <div className="p-6 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold">CLANK</h3>
-                        <Badge variant="outline" className="bg-primary/10 text-primary">{teamStats.clank}</Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Climb Level Accuracy & No-Knockdown. Adjusted for speed: +2 for ≤3s, -2 for &gt;6s.
-                      </p>
-                      {teamStats.avg_climb_speed_sec != null && (
-                        <p className="text-sm font-medium text-foreground">
-                          Avg climb speed: <span className="text-primary">{teamStats.avg_climb_speed_sec}s</span>
-                        </p>
-                      )}
-                      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-primary" style={{ width: `${Math.min(100, (teamStats.clank / 30) * 100)}%` }} />
-                      </div>
-                    </div>
+          <TabsContent value="overview" className="space-y-6 outline-none">
+            {teamStats ? (
+              <>
+                {/* Stats Grid — aligned with data analysis: core EPAs + consistency */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
+                  <StatCard label="Avg Score" value={teamStats.avgTotal} color="primary" icon={TrendingUp} subLabel="total pts" />
+                  <StatCard label="Matches" value={teamStats.totalMatches} color="blue" icon={Database} subLabel="scouted" />
+                  <StatCard label="Auto EPA" value={teamStats.avgAutonomous} color="blue" icon={Clock} subLabel="pts" />
+                  <StatCard label="Teleop EPA" value={teamStats.avgTeleop} color="orange" icon={Zap} subLabel="pts" />
+                  <StatCard label="Endgame EPA" value={teamStats.avg_climb_pts ?? 0} color="green" icon={Award} subLabel="climb pts" />
+                  <StatCard label="Consistency" value={`${teamStats.consistencyScore}%`} color="purple" icon={Activity} />
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  {/* Radar Chart Section */}
+                  <Card className="lg:col-span-5 glass bg-white/5 border-white/10">
+                    <CardHeader>
+                      <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4" /> Performance Balance
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-[350px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={teamStats.radarData}>
+                          <PolarGrid stroke="rgba(255,255,255,0.1)" />
+                          <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12 }} />
+                          <PolarRadiusAxis type="number" angle={30} domain={[0, 100]} allowDataOverflow={false} tick={false} stroke="none" />
+                          <Radar
+                            name={team.team_name}
+                            dataKey="A"
+                            stroke="#3b82f6"
+                            fill="#3b82f6"
+                            fillOpacity={0.5}
+                            isAnimationActive={true}
+                          />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
                   </Card>
 
-                  <Card className="glass bg-white/5 border-white/10 overflow-hidden">
-                    <div className="p-6 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold">RPMAGIC</h3>
-                        <Badge variant="outline" className="bg-green-500/10 text-green-500">{teamStats.rpmagic.toFixed(3)}</Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Ranking Points — Match Advantage Generated In Cycles. Marginal probability of earning RP.
-                      </p>
-                      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-green-500" style={{ width: `${teamStats.rpmagic * 100}%` }} />
-                      </div>
-                    </div>
-                  </Card>
-
-                  <Card className="glass bg-white/5 border-white/10 overflow-hidden">
-                    <div className="p-6 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold">GOBLIN</h3>
-                        <Badge variant="outline" className={cn(teamStats.goblin >= 0 ? "bg-blue-500/10 text-blue-500" : "bg-red-500/10 text-red-500")}>
-                          {teamStats.goblin >= 0 ? `+${teamStats.goblin}` : teamStats.goblin}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Game Outcome Boost from Luck, In Numbers. Positive = luckier than expected.
-                      </p>
-                      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-500" style={{ width: `${Math.min(100, Math.abs(teamStats.goblin) * 5)}%` }} />
-                      </div>
-                    </div>
+                  {/* Trends Chart Section */}
+                  <Card className="lg:col-span-7 glass bg-white/5 border-white/10">
+                    <CardHeader>
+                      <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                        <Activity className="w-4 h-4" /> Scoring Trends
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-[350px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={teamStats.trends} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                          <XAxis dataKey="match" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                          <YAxis domain={[0, 'auto']} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: '#09090b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                            itemStyle={{ fontSize: '12px' }}
+                            formatter={(value: number) => [value, 'Score']}
+                            labelFormatter={(label) => `Match ${label}`}
+                          />
+                          <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} connectNulls={false} isAnimationActive={true} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </CardContent>
                   </Card>
                 </div>
-              ) : (
-                <div className="py-12 text-center text-muted-foreground">
-                  <p>No match data — advanced metrics require match history.</p>
-                </div>
-              )}
-            </TabsContent>
+              </>
+            ) : (
+              <div className="py-12 text-center text-muted-foreground">
+                <Database className="w-12 h-12 mx-auto mb-4 opacity-40" />
+                <p className="font-medium">No match data yet</p>
+                <p className="text-sm mt-1">Check Pit Scouting or Match History when data is available.</p>
+              </div>
+            )}
+          </TabsContent>
 
-            {user && (
+          <TabsContent value="advanced" className="outline-none">
+            {teamStats ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="glass bg-white/5 border-white/10 overflow-hidden">
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-bold">CLANK</h3>
+                      <Badge variant="outline" className="bg-primary/10 text-primary">{teamStats.clank}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Climb Level Accuracy & No-Knockdown. Adjusted for speed: +2 for ≤3s, -2 for &gt;6s.
+                    </p>
+                    {teamStats.avg_climb_speed_sec != null && (
+                      <p className="text-sm font-medium text-foreground">
+                        Avg climb speed: <span className="text-primary">{teamStats.avg_climb_speed_sec}s</span>
+                      </p>
+                    )}
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full bg-primary" style={{ width: `${Math.min(100, (teamStats.clank / 30) * 100)}%` }} />
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="glass bg-white/5 border-white/10 overflow-hidden">
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-bold">RPMAGIC</h3>
+                      <Badge variant="outline" className="bg-green-500/10 text-green-500">{teamStats.rpmagic.toFixed(3)}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Ranking Points — Match Advantage Generated In Cycles. Marginal probability of earning RP.
+                    </p>
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full bg-green-500" style={{ width: `${teamStats.rpmagic * 100}%` }} />
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="glass bg-white/5 border-white/10 overflow-hidden">
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-bold">GOBLIN</h3>
+                      <Badge variant="outline" className={cn(teamStats.goblin >= 0 ? "bg-blue-500/10 text-blue-500" : "bg-red-500/10 text-red-500")}>
+                        {teamStats.goblin >= 0 ? `+${teamStats.goblin}` : teamStats.goblin}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Game Outcome Boost from Luck, In Numbers. Positive = luckier than expected.
+                    </p>
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500" style={{ width: `${Math.min(100, Math.abs(teamStats.goblin) * 5)}%` }} />
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            ) : (
+              <div className="py-12 text-center text-muted-foreground">
+                <p>No match data — advanced metrics require match history.</p>
+              </div>
+            )}
+          </TabsContent>
+
+          {user && (
             <TabsContent value="pit" className="outline-none">
               {pitData ? (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -768,173 +764,173 @@ const TeamDetail: React.FC = () => {
                 </div>
               )}
             </TabsContent>
-            )}
+          )}
 
-            <TabsContent value="matches" className="outline-none space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold flex items-center gap-2 tracking-tight">
-                  <Database className="w-5 h-5 text-primary" /> RECORDED MATCHES
-                </h2>
-                <Badge variant="outline" className="opacity-60">{scoutingData.length} records</Badge>
-              </div>
+          <TabsContent value="matches" className="outline-none space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold flex items-center gap-2 tracking-tight">
+                <Database className="w-5 h-5 text-primary" /> RECORDED MATCHES
+              </h2>
+              <Badge variant="outline" className="opacity-60">{scoutingData.length} records</Badge>
+            </div>
 
-              {scoutingData.length > 0 ? (
-                <div className="space-y-4">
-                  {scoutingData.map((data, index) => {
-                    const climb = getClimbAchieved(data.notes);
+            {scoutingData.length > 0 ? (
+              <div className="space-y-4">
+                {scoutingData.map((data, index) => {
+                  const climb = getClimbAchieved(data.notes);
 
-                    return (
-                      <motion.div
-                        key={data.id}
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.04 }}
-                        onClick={() => setSelectedMatch(selectedMatch === data.id ? null : data.id)}
-                        className={cn(
-                          "group glass rounded-2xl overflow-hidden cursor-pointer transition-all duration-300",
-                          selectedMatch === data.id
-                            ? "bg-primary/[0.07] border-primary/30 ring-1 ring-primary/20"
-                            : "bg-white/5 border-white/5 hover:bg-white/[0.08] hover:border-white/10"
-                        )}
-                      >
-                        <div className="p-4 sm:p-6 flex flex-col md:flex-row md:items-center gap-6">
-                          {/* Match ID / Type Block */}
-                          <div className="flex items-center gap-4">
-                            <div className="bg-primary/20 h-16 w-16 rounded-2xl flex flex-col items-center justify-center border border-primary/20 shadow-[0_0_20px_rgba(59,130,246,0.1)] group-hover:scale-105 transition-transform">
-                              <span className="text-[10px] text-primary font-black uppercase tracking-widest leading-none mb-1">Match</span>
-                              <span className="text-2xl font-black text-primary leading-none">{getMatchLabel(data.match_id)}</span>
-                            </div>
-
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <Badge className={cn(
-                                  "px-2 py-0.5 text-[9px] font-black uppercase tracking-tighter border-none",
-                                  data.alliance_color === 'red' ? "bg-red-500/20 text-red-500" : "bg-blue-500/20 text-blue-500"
-                                )}>
-                                  {data.alliance_color} alliance
-                                </Badge>
-                                <span className="text-[10px] text-muted-foreground/40">•</span>
-                                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-                                  {data.submitted_by_name || 'Anonymous'}
-                                </span>
-                              </div>
-                              <div className="text-2xl font-black text-foreground flex items-baseline gap-1.5">
-                                {data.final_score}
-                                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">points</span>
-                              </div>
-                            </div>
+                  return (
+                    <motion.div
+                      key={data.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.04 }}
+                      onClick={() => setSelectedMatch(selectedMatch === data.id ? null : data.id)}
+                      className={cn(
+                        "group glass rounded-2xl overflow-hidden cursor-pointer transition-all duration-300",
+                        selectedMatch === data.id
+                          ? "bg-primary/[0.07] border-primary/30 ring-1 ring-primary/20"
+                          : "bg-white/5 border-white/5 hover:bg-white/[0.08] hover:border-white/10"
+                      )}
+                    >
+                      <div className="p-4 sm:p-6 flex flex-col md:flex-row md:items-center gap-6">
+                        {/* Match ID / Type Block */}
+                        <div className="flex items-center gap-4">
+                          <div className="bg-primary/20 h-16 w-16 rounded-2xl flex flex-col items-center justify-center border border-primary/20 shadow-[0_0_20px_rgba(59,130,246,0.1)] group-hover:scale-105 transition-transform">
+                            <span className="text-[10px] text-primary font-black uppercase tracking-widest leading-none mb-1">Match</span>
+                            <span className="text-2xl font-black text-primary leading-none">{getMatchLabel(data.match_id)}</span>
                           </div>
 
-                          {/* Scoring Summary Chips */}
-                          <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/5 p-3 rounded-xl border border-white/5">
-                            <div className="text-center sm:text-left sm:pl-2">
-                              <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-0.5">Autonomous</p>
-                              <p className="text-lg font-black">{data.autonomous_points}</p>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Badge className={cn(
+                                "px-2 py-0.5 text-[9px] font-black uppercase tracking-tighter border-none",
+                                data.alliance_color === 'red' ? "bg-red-500/20 text-red-500" : "bg-blue-500/20 text-blue-500"
+                              )}>
+                                {data.alliance_color} alliance
+                              </Badge>
+                              <span className="text-[10px] text-muted-foreground/40">•</span>
+                              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                                {data.submitted_by_name || 'Anonymous'}
+                              </span>
                             </div>
-                            <div className="text-center sm:text-left sm:pl-2 border-l border-white/5">
-                              <p className="text-[9px] font-black text-orange-400 uppercase tracking-widest mb-0.5">Teleop</p>
-                              <p className="text-lg font-black">{data.teleop_points}</p>
+                            <div className="text-2xl font-black text-foreground flex items-baseline gap-1.5">
+                              {data.final_score}
+                              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">points</span>
                             </div>
-                            <div className="text-center sm:text-left sm:pl-2 border-l border-white/5">
-                              <p className="text-[9px] font-black text-green-400 uppercase tracking-widest mb-0.5">Climb</p>
-                              <p className="text-lg font-black">{climb?.label || '—'}</p>
-                            </div>
-                            <div className="text-center sm:text-left sm:pl-2 border-l border-white/5">
-                              <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Reliability</p>
-                              <p className={cn("text-lg font-black", data.broke ? "text-red-500" : "text-foreground")}>
-                                {data.broke ? 'BROKE' : '100%'}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="hidden md:block">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className={cn(
-                                "rounded-full w-10 h-10 p-0 transition-transform",
-                                selectedMatch === data.id && "rotate-180 text-primary bg-primary/10"
-                              )}
-                            >
-                              <Target className="w-5 h-5" />
-                            </Button>
                           </div>
                         </div>
 
-                        <AnimatePresence>
-                          {selectedMatch === data.id && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.3, ease: 'easeInOut' }}
-                              className="border-t border-white/5 bg-black/40 overflow-hidden"
-                            >
-                              <div className="p-6 space-y-8">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                  <div className="space-y-4">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <div className="h-1 w-4 bg-primary rounded-full" />
-                                      <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Scout Observations</h4>
-                                    </div>
-                                    <div className="bg-white/5 p-4 rounded-xl border border-white/5 text-sm italic text-foreground/80 leading-relaxed relative">
-                                      <MessageSquare className="absolute -top-2 -left-2 w-8 h-8 text-white/5 -z-10" />
-                                      "{data.comments || "No specific comments recorded for this match."}"
-                                    </div>
-                                  </div>
+                        {/* Scoring Summary Chips */}
+                        <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/5 p-3 rounded-xl border border-white/5">
+                          <div className="text-center sm:text-left sm:pl-2">
+                            <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-0.5">Autonomous</p>
+                            <p className="text-lg font-black">{data.autonomous_points}</p>
+                          </div>
+                          <div className="text-center sm:text-left sm:pl-2 border-l border-white/5">
+                            <p className="text-[9px] font-black text-orange-400 uppercase tracking-widest mb-0.5">Teleop</p>
+                            <p className="text-lg font-black">{data.teleop_points}</p>
+                          </div>
+                          <div className="text-center sm:text-left sm:pl-2 border-l border-white/5">
+                            <p className="text-[9px] font-black text-green-400 uppercase tracking-widest mb-0.5">Climb</p>
+                            <p className="text-lg font-black">{climb?.label || '—'}</p>
+                          </div>
+                          <div className="text-center sm:text-left sm:pl-2 border-l border-white/5">
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Reliability</p>
+                            <p className={cn("text-lg font-black", data.broke ? "text-red-500" : "text-foreground")}>
+                              {data.broke ? 'BROKE' : '100%'}
+                            </p>
+                          </div>
+                        </div>
 
-                                  <div className="space-y-4">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <div className="h-1 w-4 bg-primary rounded-full" />
-                                      <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Live Performance</h4>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div className="bg-white/5 p-4 rounded-xl border border-white/5 group-hover:bg-white/10 transition-colors">
-                                        <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-1">Active Uptime</p>
-                                        <p className="text-xl font-black text-foreground">{getUptimePct(data.average_downtime) || 0}%</p>
-                                      </div>
-                                      <div className="bg-white/5 p-4 rounded-xl border border-white/5 group-hover:bg-white/10 transition-colors">
-                                        <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-1">Defense Impact</p>
-                                        <p className="text-xl font-black text-foreground">{data.defense_rating}/10</p>
-                                      </div>
-                                    </div>
+                        <div className="hidden md:block">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                              "rounded-full w-10 h-10 p-0 transition-transform",
+                              selectedMatch === data.id && "rotate-180 text-primary bg-primary/10"
+                            )}
+                          >
+                            <Target className="w-5 h-5" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <AnimatePresence>
+                        {selectedMatch === data.id && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="border-t border-white/5 bg-black/40 overflow-hidden"
+                          >
+                            <div className="p-6 space-y-8">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className="h-1 w-4 bg-primary rounded-full" />
+                                    <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Scout Observations</h4>
+                                  </div>
+                                  <div className="bg-white/5 p-4 rounded-xl border border-white/5 text-sm italic text-foreground/80 leading-relaxed relative">
+                                    <MessageSquare className="absolute -top-2 -left-2 w-8 h-8 text-white/5 -z-10" />
+                                    "{data.comments || "No specific comments recorded for this match."}"
                                   </div>
                                 </div>
 
                                 <div className="space-y-4">
                                   <div className="flex items-center gap-2 mb-2">
                                     <div className="h-1 w-4 bg-primary rounded-full" />
-                                    <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Shooting attempts (range + time per attempt)</h4>
+                                    <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Live Performance</h4>
                                   </div>
-                                  <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4">
-                                    <ScoutingRunsBreakdown notes={data.notes} />
-                                  </div>
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <div className="h-1 w-4 bg-primary rounded-full" />
-                                    <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Full Scoring Breakdown</h4>
-                                  </div>
-                                  <div className="bg-white/[0.02] rounded-2xl border border-white/5">
-                                    {renderScoringBreakdown(data.notes)}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-white/5 p-4 rounded-xl border border-white/5 group-hover:bg-white/10 transition-colors">
+                                      <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-1">Active Uptime</p>
+                                      <p className="text-xl font-black text-foreground">{getUptimePct(data.average_downtime) || 0}%</p>
+                                    </div>
+                                    <div className="bg-white/5 p-4 rounded-xl border border-white/5 group-hover:bg-white/10 transition-colors">
+                                      <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-1">Defense Impact</p>
+                                      <p className="text-xl font-black text-foreground">{data.defense_rating}/10</p>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="py-20 text-center glass-card rounded-2xl border-dashed border-2 border-white/5">
-                  <Database className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-                  <h3 className="text-lg font-medium">No Match Data</h3>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        )}
-      </div>
+
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div className="h-1 w-4 bg-primary rounded-full" />
+                                  <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Shooting attempts (range + time per attempt)</h4>
+                                </div>
+                                <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4">
+                                  <ScoutingRunsBreakdown notes={data.notes} />
+                                </div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div className="h-1 w-4 bg-primary rounded-full" />
+                                  <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Full Scoring Breakdown</h4>
+                                </div>
+                                <div className="bg-white/[0.02] rounded-2xl border border-white/5">
+                                  {renderScoringBreakdown(data.notes)}
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-20 text-center glass-card rounded-2xl border-dashed border-2 border-white/5">
+                <Database className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-20" />
+                <h3 className="text-lg font-medium">No Match Data</h3>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      )}
+    </div>
   );
 
   return user ? (

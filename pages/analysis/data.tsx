@@ -84,6 +84,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     balls_per_cycle_min?: number;
     balls_per_cycle_max?: number;
     avg_balls_per_cycle?: number;
+    epa?: number;
   }>>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -328,6 +329,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         ? Math.max(0, Math.min(100, 100 - (standardDeviation / avgTotal) * 100))
         : 0;
 
+      const rebuilt = computeRebuiltMetrics(
+        scoutingData.filter(d => d.team_number === stat.team_number)
+      );
       return {
         team_number: stat.team_number,
         team_name: stat.team_name,
@@ -340,9 +344,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         best_score: bestScore,
         worst_score: worstScore,
         consistency_score: Math.round(consistencyScore * 100) / 100,
-        ...computeRebuiltMetrics(
-          scoutingData.filter(d => d.team_number === stat.team_number)
-        )
+        ...rebuilt,
+        epa: Math.round(avgTotal * 10) / 10, // Expected Points Added = estimated points per match
       };
     }).filter(stat => stat.total_matches > 0); // Only show teams with scouting data
   };
@@ -669,6 +672,31 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                     </div>
                   </div>
                 </div>
+                {viewMode === 'teams' && filteredTeamStats.length > 0 && (
+                  <>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-3 border-t border-white/5">
+                      <div className="text-center">
+                        <div className="text-lg md:text-xl font-bold text-blue-400">
+                          {(filteredTeamStats.reduce((sum, t) => sum + (t.avg_auto_fuel ?? 0), 0) / filteredTeamStats.length).toFixed(1)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Avg Auto Fuel</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg md:text-xl font-bold text-orange-400">
+                          {(filteredTeamStats.reduce((sum, t) => sum + (t.avg_teleop_fuel ?? 0), 0) / filteredTeamStats.length).toFixed(1)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Avg Teleop Fuel</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg md:text-xl font-bold text-primary">
+                          {(filteredTeamStats.reduce((sum, t) => sum + (t.epa ?? t.avg_total_score ?? 0), 0) / filteredTeamStats.length).toFixed(1)}
+                        </div>
+                        <div className="text-xs text-muted-foreground" title="Estimated amount of points per match">EPA (Est. pts/match)</div>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/80 pt-1.5 text-center">EPA = estimated amount of points per match (average total score)</p>
+                  </>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -738,6 +766,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                                 <span className="text-[10px] text-muted-foreground uppercase block mb-1">Average balls/cycle</span>
                                 <span className="text-sm font-semibold text-muted-foreground">{team.avg_balls_per_cycle ?? 0}</span>
+                              </div>
+                              <div className="bg-white/5 p-3 rounded-xl border border-primary/20 bg-primary/5" title="Estimated amount of points per match">
+                                <span className="text-[10px] text-primary uppercase block mb-1 font-bold">EPA (Est. pts)</span>
+                                <span className="text-sm font-bold text-primary">{team.epa ?? team.avg_total_score ?? 0}</span>
                               </div>
                             </div>
 
@@ -813,6 +845,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 text-[9px]">Average teleop fuel</th>
                             <th className="text-left p-4 text-[9px]">Climb Pts</th>
                             <th className="text-left p-4 text-[9px]">Avg balls/cycle</th>
+                            <th className="text-left p-4 text-[9px]" title="Estimated amount of points per match">EPA (Est. pts)</th>
                             <th className="text-left p-4 text-[9px]">Uptime %</th>
                             <th className="text-left p-4 text-[9px]">CLANK</th>
                             <th className="text-left p-4 text-[9px]">Avg climb speed</th>
@@ -870,6 +903,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_teleop_fuel ?? '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_climb_pts ?? '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_balls_per_cycle ?? 0}</td>
+                                <td className="p-4 text-primary font-bold text-sm" title="Estimated amount of points per match">{team.epa ?? team.avg_total_score ?? '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.clank != null ? `${team.clank}` : '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</td>
@@ -1274,100 +1308,100 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                               <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">2026 Rebuilt · Shooting runs &amp; estimated score</h4>
                                               <ScoutingRunsBreakdown notes={data.notes} compact />
                                             </div>
-                                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                            <div className="space-y-4">
-                                              <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                                                <Target className="w-3 h-3" /> Autonomous
-                                              </h4>
-                                              <div className="grid grid-cols-2 gap-3">
-                                                <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">AVG AUTO (fuel)</span>
-                                                  <div className="text-xl font-bold text-blue-400">{formNotes.autonomous.auto_fuel_active_hub ?? 0}</div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                              <div className="space-y-4">
+                                                <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                                                  <Target className="w-3 h-3" /> Autonomous
+                                                </h4>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                  <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                                    <span className="text-[10px] text-muted-foreground uppercase font-semibold">AVG AUTO (fuel)</span>
+                                                    <div className="text-xl font-bold text-blue-400">{formNotes.autonomous.auto_fuel_active_hub ?? 0}</div>
+                                                  </div>
+                                                  <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                                    <span className="text-[10px] text-muted-foreground uppercase font-semibold">Climb pts</span>
+                                                    <div className="text-lg font-bold">{getClimbPoints(data.notes)}</div>
+                                                  </div>
+                                                  <div className="bg-white/5 p-3 rounded-xl border border-white/5 col-span-2">
+                                                    <span className="text-[10px] text-muted-foreground uppercase font-semibold">Level 1 Climb</span>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                      {formNotes.autonomous.auto_tower_level1 ? (
+                                                        <Badge className="bg-green-500/20 text-green-400 border-green-500/20 text-[10px]">SUCCESS</Badge>
+                                                      ) : (
+                                                        <Badge variant="outline" className="text-[10px] opacity-40">NONE</Badge>
+                                                      )}
+                                                    </div>
+                                                  </div>
                                                 </div>
-                                                <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Climb pts</span>
-                                                  <div className="text-lg font-bold">{getClimbPoints(data.notes)}</div>
+                                                {autoRuns.length > 0 && (
+                                                  <div className="space-y-1">
+                                                    <span className="text-[10px] text-muted-foreground uppercase font-semibold">Runs ({autoRuns.length})</span>
+                                                    <ul className="text-sm space-y-1">
+                                                      {autoRuns.map((r, i) => (
+                                                        <li key={i} className="flex justify-between"><span>Run {i + 1}: {formatDurationSec(r.duration_sec)}</span><span>{getBallChoiceLabel(r.ball_choice)} balls</span></li>
+                                                      ))}
+                                                    </ul>
+                                                  </div>
+                                                )}
+                                              </div>
+
+                                              <div className="space-y-4">
+                                                <h4 className="text-xs font-bold text-orange-400 uppercase tracking-widest flex items-center gap-2">
+                                                  <TrendingUp className="w-3 h-3" /> Teleop
+                                                </h4>
+                                                <div className="space-y-2">
+                                                  <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                    <span className="text-xs text-muted-foreground">AVG TELEOP (fuel)</span>
+                                                    <span className="text-sm font-bold text-orange-400">{formNotes.teleop.teleop_fuel_active_hub ?? 0}</span>
+                                                  </div>
+                                                  <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                    <span className="text-xs text-muted-foreground">Tower Level 1</span>
+                                                    {formNotes.teleop.teleop_tower_level1 ? <CheckCircle className="w-4 h-4 text-green-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/20" />}
+                                                  </div>
+                                                  <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                    <span className="text-xs text-muted-foreground">Tower Level 2</span>
+                                                    {formNotes.teleop.teleop_tower_level2 ? <CheckCircle className="w-4 h-4 text-green-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/20" />}
+                                                  </div>
+                                                  <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                    <span className="text-xs text-muted-foreground font-bold text-white">Tower Level 3</span>
+                                                    {formNotes.teleop.teleop_tower_level3 ? <Award className="w-5 h-5 text-yellow-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/20" />}
+                                                  </div>
                                                 </div>
-                                                <div className="bg-white/5 p-3 rounded-xl border border-white/5 col-span-2">
-                                                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Level 1 Climb</span>
-                                                  <div className="flex items-center gap-2 mt-1">
-                                                    {formNotes.autonomous.auto_tower_level1 ? (
-                                                      <Badge className="bg-green-500/20 text-green-400 border-green-500/20 text-[10px]">SUCCESS</Badge>
-                                                    ) : (
-                                                      <Badge variant="outline" className="text-[10px] opacity-40">NONE</Badge>
-                                                    )}
+                                                {teleopRuns.length > 0 && (
+                                                  <div className="space-y-1">
+                                                    <span className="text-[10px] text-muted-foreground uppercase font-semibold">Runs ({teleopRuns.length})</span>
+                                                    <ul className="text-sm space-y-1">
+                                                      {teleopRuns.map((r, i) => (
+                                                        <li key={i} className="flex justify-between"><span>Run {i + 1}: {formatDurationSec(r.duration_sec)}</span><span>{getBallChoiceLabel(r.ball_choice)} balls</span></li>
+                                                      ))}
+                                                    </ul>
+                                                  </div>
+                                                )}
+                                              </div>
+
+                                              <div className="space-y-4">
+                                                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                                  <Activity className="w-3 h-3" /> Match reliability
+                                                </h4>
+                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                                  <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                    <span className="text-xs text-muted-foreground">Downtime</span>
+                                                    <span className="text-sm font-medium">{data.average_downtime != null ? formatDurationSec(Number(data.average_downtime)) : '—'}</span>
+                                                  </div>
+                                                  <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                    <span className="text-xs text-muted-foreground">Uptime</span>
+                                                    <span className="text-sm font-medium">{getUptimePct(data.average_downtime) != null ? `${getUptimePct(data.average_downtime)}%` : '—'}</span>
+                                                  </div>
+                                                  <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                    <span className="text-xs text-muted-foreground">Broke</span>
+                                                    <span className="text-sm font-medium">{data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}</span>
+                                                  </div>
+                                                  <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                    <span className="text-xs text-muted-foreground">Climb pts</span>
+                                                    <span className="text-sm font-medium">{getClimbPoints(data.notes)}</span>
                                                   </div>
                                                 </div>
                                               </div>
-                                              {autoRuns.length > 0 && (
-                                                <div className="space-y-1">
-                                                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Runs ({autoRuns.length})</span>
-                                                  <ul className="text-sm space-y-1">
-                                                    {autoRuns.map((r, i) => (
-                                                      <li key={i} className="flex justify-between"><span>Run {i + 1}: {formatDurationSec(r.duration_sec)}</span><span>{getBallChoiceLabel(r.ball_choice)} balls</span></li>
-                                                    ))}
-                                                  </ul>
-                                                </div>
-                                              )}
-                                            </div>
-
-                                            <div className="space-y-4">
-                                              <h4 className="text-xs font-bold text-orange-400 uppercase tracking-widest flex items-center gap-2">
-                                                <TrendingUp className="w-3 h-3" /> Teleop
-                                              </h4>
-                                              <div className="space-y-2">
-                                                <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                                  <span className="text-xs text-muted-foreground">AVG TELEOP (fuel)</span>
-                                                  <span className="text-sm font-bold text-orange-400">{formNotes.teleop.teleop_fuel_active_hub ?? 0}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                                  <span className="text-xs text-muted-foreground">Tower Level 1</span>
-                                                  {formNotes.teleop.teleop_tower_level1 ? <CheckCircle className="w-4 h-4 text-green-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/20" />}
-                                                </div>
-                                                <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                                  <span className="text-xs text-muted-foreground">Tower Level 2</span>
-                                                  {formNotes.teleop.teleop_tower_level2 ? <CheckCircle className="w-4 h-4 text-green-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/20" />}
-                                                </div>
-                                                <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                                  <span className="text-xs text-muted-foreground font-bold text-white">Tower Level 3</span>
-                                                  {formNotes.teleop.teleop_tower_level3 ? <Award className="w-5 h-5 text-yellow-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/20" />}
-                                                </div>
-                                              </div>
-                                              {teleopRuns.length > 0 && (
-                                                <div className="space-y-1">
-                                                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Runs ({teleopRuns.length})</span>
-                                                  <ul className="text-sm space-y-1">
-                                                    {teleopRuns.map((r, i) => (
-                                                      <li key={i} className="flex justify-between"><span>Run {i + 1}: {formatDurationSec(r.duration_sec)}</span><span>{getBallChoiceLabel(r.ball_choice)} balls</span></li>
-                                                    ))}
-                                                  </ul>
-                                                </div>
-                                              )}
-                                            </div>
-
-                                            <div className="space-y-4">
-                                              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                                <Activity className="w-3 h-3" /> Match reliability
-                                              </h4>
-                                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                                <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                                  <span className="text-xs text-muted-foreground">Downtime</span>
-                                                  <span className="text-sm font-medium">{data.average_downtime != null ? formatDurationSec(Number(data.average_downtime)) : '—'}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                                  <span className="text-xs text-muted-foreground">Uptime</span>
-                                                  <span className="text-sm font-medium">{getUptimePct(data.average_downtime) != null ? `${getUptimePct(data.average_downtime)}%` : '—'}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                                  <span className="text-xs text-muted-foreground">Broke</span>
-                                                  <span className="text-sm font-medium">{data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                                  <span className="text-xs text-muted-foreground">Climb pts</span>
-                                                  <span className="text-sm font-medium">{getClimbPoints(data.notes)}</span>
-                                                </div>
-                                              </div>
-                                            </div>
                                             </div>
                                           </div>
                                         );

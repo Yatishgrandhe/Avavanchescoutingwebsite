@@ -294,6 +294,8 @@ export interface RebuiltTeamMetrics {
   /** Min/max teleop fuel across matches — for detail stats range display. */
   teleop_fuel_min: number;
   teleop_fuel_max: number;
+  /** Expected Points Added: contribution based on fuel and climb pieces (average of estimated match scores). */
+  epa: number;
   /** Average time per shooting attempt (run) in seconds across all runs in all matches. */
   avg_shooting_time_sec: number | null;
 }
@@ -344,6 +346,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
       auto_fuel_max: 0,
       teleop_fuel_min: 0,
       teleop_fuel_max: 0,
+      epa: 0,
       avg_shooting_time_sec: null,
     };
   }
@@ -370,6 +373,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
   const autoFuelList: number[] = [];
   const teleopFuelList: number[] = [];
   const shootingDurations: number[] = [];
+  const estimatedScores: number[] = [];
 
   rows.forEach((row) => {
     const notes = row.notes;
@@ -413,6 +417,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     const totalBalls = autoFuel + teleopFuel;
     const bpc = totalRuns > 0 ? totalBalls / totalRuns : 0;
     ballsPerCycleList.push(bpc);
+    estimatedScores.push(getEstimatedScoreFromNotes(notes));
   });
 
   const autoPtsMin = autoPtsList.length ? Math.min(...autoPtsList) : 0;
@@ -438,6 +443,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
 
   const avgScore = scores.reduce((a, b) => a + b, 0) / n;
   const totalSum = scores.reduce((a, b) => a + b, 0);
+  const epa = estimatedScores.reduce((a, b) => a + b, 0) / n;
 
   // CLANK: Climb Level Accuracy & No-Knockdown. Avg of (climb pts + speed adj): +2 for ≤3s, -2 for >6s.
   const clank = n > 0 ? Math.round((totalClimbAdjusted / n) * 10) / 10 : 0;
@@ -495,6 +501,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     auto_fuel_max: autoFuelMax,
     teleop_fuel_min: teleopFuelMin,
     teleop_fuel_max: teleopFuelMax,
+    epa: Math.round(epa * 100) / 100,
     avg_shooting_time_sec: avgShootingTimeSec,
   };
 }

@@ -290,7 +290,7 @@ const TeamDetail: React.FC = () => {
       teleop_fuel_min: rebuilt.teleop_fuel_min,
       teleop_fuel_max: rebuilt.teleop_fuel_max,
       avg_shooting_time_sec: rebuilt.avg_shooting_time_sec ?? null,
-      epa: rebuilt.epa,
+      epa: Math.round(avgTotal * 10) / 10, // Expected points per match (avg total score)
 
       // Data for Radar Chart (all values 0–100 for correct scale; Recharts expects numeric A and fullMark)
       radarData: [

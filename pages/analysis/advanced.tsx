@@ -60,6 +60,7 @@ interface TeamStats {
   avg_climb_speed_sec?: number | null;
   rpmagic?: number;
   goblin?: number;
+  epa?: number;
   best_score: number;
   worst_score: number;
   consistency_score: number;
@@ -247,6 +248,7 @@ export default function AdvancedAnalysis() {
         avg_climb_speed_sec: rebuilt.avg_climb_speed_sec ?? null,
         rpmagic: rebuilt.rpmagic,
         goblin: rebuilt.goblin,
+        epa: rebuilt.epa,
         best_score: bestScore,
         worst_score: worstScore,
         consistency_score: Math.round(consistencyScore * 100) / 100,
@@ -507,6 +509,22 @@ export default function AdvancedAnalysis() {
                         </p>
                       </div>
                       <BarChart3 className={`w-8 h-8 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card border-border">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          EPA (Expected Points Added)
+                        </p>
+                        <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {teamStats.epa ?? '—'}
+                        </p>
+                      </div>
+                      <Target className={`w-8 h-8 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
                     </div>
                   </CardContent>
                 </Card>

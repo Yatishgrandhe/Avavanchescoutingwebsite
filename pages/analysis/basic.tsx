@@ -7,7 +7,7 @@ import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { 
+import {
   Table,
   TableBody,
   TableCell,
@@ -15,13 +15,13 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   LineChart,
   Line,
@@ -29,11 +29,11 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import { 
-  Search, 
-  Filter, 
-  Download, 
-  TrendingUp, 
+import {
+  Search,
+  Filter,
+  Download,
+  TrendingUp,
   TrendingDown,
   Target,
   Users,
@@ -77,6 +77,7 @@ interface TeamData {
   balls_per_cycle_min?: number;
   balls_per_cycle_max?: number;
   avg_balls_per_cycle?: number;
+  epa?: number;
 }
 
 interface MatchData {
@@ -117,7 +118,7 @@ export default function BasicAnalysis() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
+
       // Load scouting data exactly like data.tsx does — 2026 season only
       const { data: scoutingDataResult, error: scoutingError } = await supabase
         .from('scouting_data')
@@ -175,9 +176,9 @@ export default function BasicAnalysis() {
         submitted_by_email: sd.submitted_by_email,
         submitted_at: sd.submitted_at,
       }));
-      
+
       setMatches(matchData);
-      
+
       // Count unique matches (distinct match_id values)
       const uniqueMatchIds = new Set(sortedScoutingData.map((sd: any) => sd.match_id));
       setUniqueMatchesCount(uniqueMatchIds.size);
@@ -186,7 +187,7 @@ export default function BasicAnalysis() {
       const teamsWithStats = allTeams.map((team: any) => {
         const teamScoutingData = sortedScoutingData.filter((sd: any) => sd.team_number === team.team_number);
         const totalMatches = teamScoutingData.length;
-        
+
         if (totalMatches === 0) {
           return {
             team_number: team.team_number,
@@ -200,7 +201,7 @@ export default function BasicAnalysis() {
             broke_rate: 0,
           };
         }
-        
+
         const avgAutonomous = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.autonomous_points || 0), 0) / totalMatches;
         const avgTeleop = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.teleop_points || 0), 0) / totalMatches;
         const avgTotal = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.final_score || 0), 0) / totalMatches;
@@ -212,7 +213,7 @@ export default function BasicAnalysis() {
         const brokeCount = teamScoutingData.filter((sd: any) => sd.broke === true).length;
         const brokeRate = totalMatches > 0 ? Math.round((brokeCount / totalMatches) * 100) : 0;
         const rebuilt = computeRebuiltMetrics(teamScoutingData);
-        
+
         return {
           team_number: team.team_number,
           team_name: team.team_name,
@@ -235,9 +236,10 @@ export default function BasicAnalysis() {
           avg_climb_speed_sec: rebuilt.avg_climb_speed_sec ?? null,
           rpmagic: rebuilt.rpmagic,
           goblin: rebuilt.goblin,
+          epa: rebuilt.epa,
         };
       });
-      
+
       setTeams(teamsWithStats);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -250,7 +252,7 @@ export default function BasicAnalysis() {
     }
   };
 
-  const filteredTeams = (teams || []).filter(team => 
+  const filteredTeams = (teams || []).filter(team =>
     team.team_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     team.team_number.toString().includes(searchTerm)
   );
@@ -292,15 +294,15 @@ export default function BasicAnalysis() {
 
   return (
     <ProtectedRoute>
-    <Layout>
+      <Layout>
         <div className="space-y-6 data-page">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-               <h1 className="text-3xl font-bold text-white">Team Analysis</h1>
-               <p className="text-slate-300">
-                 Comprehensive team performance analysis and insights
-               </p>
+              <h1 className="text-3xl font-bold text-white">Team Analysis</h1>
+              <p className="text-slate-300">
+                Comprehensive team performance analysis and insights
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm">
@@ -315,7 +317,7 @@ export default function BasicAnalysis() {
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
                 <div className="relative flex-1">
-                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <Input
                     placeholder="Search teams..."
                     value={searchTerm}
@@ -355,8 +357,8 @@ export default function BasicAnalysis() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                 <CardTitle className="text-sm font-medium text-white">Total Teams</CardTitle>
-                 <Users className="h-4 w-4 text-slate-400" />
+                <CardTitle className="text-sm font-medium text-white">Total Teams</CardTitle>
+                <Users className="h-4 w-4 text-slate-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-white">{teams.length}</div>
@@ -368,8 +370,8 @@ export default function BasicAnalysis() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                 <CardTitle className="text-sm font-medium text-white">Scouting Records</CardTitle>
-                 <Target className="h-4 w-4 text-slate-400" />
+                <CardTitle className="text-sm font-medium text-white">Scouting Records</CardTitle>
+                <Target className="h-4 w-4 text-slate-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-white">{matches.length}</div>
@@ -381,13 +383,13 @@ export default function BasicAnalysis() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                 <CardTitle className="text-sm font-medium text-white">Avg Score</CardTitle>
-                 <TrendingUp className="h-4 w-4 text-slate-400" />
+                <CardTitle className="text-sm font-medium text-white">Avg Score</CardTitle>
+                <TrendingUp className="h-4 w-4 text-slate-400" />
               </CardHeader>
               <CardContent>
-                 <div className="text-2xl font-bold text-white">
-                   {teams.length > 0 ? (teams.reduce((sum, team) => sum + (team.avg_total_score || 0), 0) / teams.length).toFixed(1) : '0'}
-                 </div>
+                <div className="text-2xl font-bold text-white">
+                  {teams.length > 0 ? (teams.reduce((sum, team) => sum + (team.avg_total_score || 0), 0) / teams.length).toFixed(1) : '0'}
+                </div>
                 <p className="text-xs text-slate-400">
                   Across all teams
                 </p>
@@ -396,16 +398,16 @@ export default function BasicAnalysis() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                 <CardTitle className="text-sm font-medium text-white">Top Team</CardTitle>
-                 <Trophy className="h-4 w-4 text-slate-400" />
+                <CardTitle className="text-sm font-medium text-white">Top Team</CardTitle>
+                <Trophy className="h-4 w-4 text-slate-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-white">
                   {topTeams.length > 0 ? (topTeams[0].team_name || `Team ${topTeams[0].team_number}`) : 'N/A'}
                 </div>
-                 <p className="text-xs text-slate-400">
-                   {topTeams.length > 0 && topTeams[0].avg_total_score ? `Team ${topTeams[0].team_number} - ${topTeams[0].avg_total_score.toFixed(1)} avg` : 'No data'}
-                 </p>
+                <p className="text-xs text-slate-400">
+                  {topTeams.length > 0 && topTeams[0].avg_total_score ? `Team ${topTeams[0].team_number} - ${topTeams[0].avg_total_score.toFixed(1)} avg` : 'No data'}
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -446,15 +448,15 @@ export default function BasicAnalysis() {
                     <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis 
-                          dataKey="nameShort" 
+                        <XAxis
+                          dataKey="nameShort"
                           angle={-45}
                           textAnchor="end"
                           height={80}
                           interval={0}
                         />
                         <YAxis />
-                        <Tooltip 
+                        <Tooltip
                           formatter={(value: any) => value}
                           labelFormatter={(label: any, payload: any) => {
                             const data = payload?.[0]?.payload;
@@ -499,7 +501,7 @@ export default function BasicAnalysis() {
             <TabsContent value="teams" className="space-y-4">
               <Card>
                 <CardHeader>
-                   <CardTitle className="text-white">Team Performance</CardTitle>
+                  <CardTitle className="text-white">Team Performance</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -522,6 +524,7 @@ export default function BasicAnalysis() {
                         <TableHead className="text-[9px]">Avg climb speed</TableHead>
                         <TableHead className="text-[9px]">RPMAGIC</TableHead>
                         <TableHead className="text-[9px]">GOBLIN</TableHead>
+                        <TableHead className="text-[9px]">EPA</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -547,8 +550,8 @@ export default function BasicAnalysis() {
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <div className="w-16 bg-muted rounded-full h-2">
-                                <div 
-                                  className="bg-primary h-2 rounded-full" 
+                                <div
+                                  className="bg-primary h-2 rounded-full"
                                   style={{ width: `${((team.avg_defense_rating || 0) / 10) * 100}%` }}
                                 />
                               </div>
@@ -559,6 +562,7 @@ export default function BasicAnalysis() {
                           <TableCell className="text-sm">{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</TableCell>
                           <TableCell className="text-sm">{team.rpmagic ?? '—'}</TableCell>
                           <TableCell className="text-sm">{team.goblin ?? '—'}</TableCell>
+                          <TableCell className="text-sm font-bold text-primary">{team.epa ?? '—'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -570,7 +574,7 @@ export default function BasicAnalysis() {
             <TabsContent value="matches" className="space-y-4">
               <Card>
                 <CardHeader>
-                   <CardTitle className="text-white">Recent Matches</CardTitle>
+                  <CardTitle className="text-white">Recent Matches</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -618,8 +622,8 @@ export default function BasicAnalysis() {
                             <TableCell>
                               <div className="flex items-center gap-1">
                                 <div className="w-12 bg-muted rounded-full h-2">
-                                  <div 
-                                    className="bg-primary h-2 rounded-full" 
+                                  <div
+                                    className="bg-primary h-2 rounded-full"
                                     style={{ width: `${((match.defense_rating || 0) / 10) * 100}%` }}
                                   />
                                 </div>
@@ -656,15 +660,15 @@ export default function BasicAnalysis() {
                     <ResponsiveContainer width="100%" height={300}>
                       <LineChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis 
-                          dataKey="nameShort" 
+                        <XAxis
+                          dataKey="nameShort"
                           angle={-45}
                           textAnchor="end"
                           height={80}
                           interval={0}
                         />
                         <YAxis />
-                        <Tooltip 
+                        <Tooltip
                           formatter={(value: any) => value}
                           labelFormatter={(label: any, payload: any) => {
                             const data = payload?.[0]?.payload;
@@ -686,15 +690,15 @@ export default function BasicAnalysis() {
                     <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis 
-                          dataKey="nameShort" 
+                        <XAxis
+                          dataKey="nameShort"
                           angle={-45}
                           textAnchor="end"
                           height={80}
                           interval={0}
                         />
                         <YAxis />
-                        <Tooltip 
+                        <Tooltip
                           formatter={(value: any) => value}
                           labelFormatter={(label: any, payload: any) => {
                             const data = payload?.[0]?.payload;

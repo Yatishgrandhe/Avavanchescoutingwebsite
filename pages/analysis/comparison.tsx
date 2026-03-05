@@ -68,6 +68,7 @@ interface TeamComparison {
   balls_per_cycle_max?: number;
   /** Average time per shooting attempt in seconds. */
   avg_shooting_time_sec?: number | null;
+  epa?: number;
 }
 
 /** Build TeamComparison from scouting rows (for competition-scoped comparison). */
@@ -136,6 +137,7 @@ function buildTeamComparisonFromRows(
     worst_score: Math.min(...scores),
     consistency_score: Math.round(consistencyScore * 100) / 100,
     win_rate: 0.75,
+    epa: rebuilt.epa,
   };
 }
 
@@ -689,6 +691,10 @@ export default function TeamComparison() {
                             <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.goblin ?? '—'}</span>
                           </div>
                           <div>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>EPA:</span>
+                            <span className={`ml-2 font-bold text-primary`}>{team.epa ?? '—'}</span>
+                          </div>
+                          <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Best:</span>
                             <span className={`ml-2 font-semibold text-green-600`}>{team.best_score}</span>
                           </div>
@@ -746,6 +752,7 @@ export default function TeamComparison() {
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Avg shooting time</th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>RPMAGIC</th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>GOBLIN</th>
+                          <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>EPA</th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                             Best
                           </th>
@@ -804,6 +811,7 @@ export default function TeamComparison() {
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}</td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.rpmagic ?? '—'}</td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.goblin ?? '—'}</td>
+                            <td className={`py-3 px-4 font-bold text-primary`}>{team.epa ?? '—'}</td>
                             <td className={`py-3 px-4 font-semibold text-green-400`}>
                               {team.best_score}
                             </td>

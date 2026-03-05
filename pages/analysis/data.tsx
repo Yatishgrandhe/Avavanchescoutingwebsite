@@ -628,75 +628,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                   </div>
                 </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
-                  <div className="text-center">
-                    <div className="text-xl md:text-2xl font-bold text-primary">
-                      {viewMode === 'teams' ? filteredTeamStats.length : sortedData.length}
-                    </div>
-                    <div className="text-xs md:text-sm text-muted-foreground">
-                      {viewMode === 'teams' ? 'Teams with Data' : 'Total Records'}
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xl md:text-2xl font-bold text-secondary">
-                      {viewMode === 'teams'
-                        ? Math.round(filteredTeamStats.reduce((sum, t) => sum + t.avg_total_score, 0) / filteredTeamStats.length) || 0
-                        : new Set(sortedData.map(d => d.team_number)).size
-                      }
-                    </div>
-                    <div className="text-xs md:text-sm text-muted-foreground">
-                      {viewMode === 'teams' ? 'Avg Team Score' : 'Teams Scouted'}
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xl md:text-2xl font-bold text-warning">
-                      {viewMode === 'teams'
-                        ? Math.round(filteredTeamStats.reduce((sum, t) => sum + t.avg_defense_rating, 0) / filteredTeamStats.length) || 0
-                        : Math.round(sortedData.reduce((sum, d) => sum + d.final_score, 0) / sortedData.length) || 0
-                      }
-                    </div>
-                    <div className="text-xs md:text-sm text-muted-foreground">
-                      {viewMode === 'teams' ? 'Avg Defense (/10)' : 'Avg Score'}
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xl md:text-2xl font-bold text-success">
-                      {viewMode === 'teams'
-                        ? Math.round(filteredTeamStats.reduce((sum, t) => sum + t.consistency_score, 0) / filteredTeamStats.length) || 0
-                        : Math.round(sortedData.reduce((sum, d) => sum + d.defense_rating, 0) / sortedData.length) || 0
-                      }
-                    </div>
-                    <div className="text-xs md:text-sm text-muted-foreground">
-                      {viewMode === 'teams' ? 'Avg Consistency (%)' : 'Avg Defense'}
-                    </div>
-                  </div>
-                </div>
-                {viewMode === 'teams' && filteredTeamStats.length > 0 && (
-                  <>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-3 border-t border-white/5">
-                      <div className="text-center">
-                        <div className="text-lg md:text-xl font-bold text-blue-400">
-                          {(filteredTeamStats.reduce((sum, t) => sum + (t.avg_auto_fuel ?? 0), 0) / filteredTeamStats.length).toFixed(1)}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Avg Auto Fuel</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-lg md:text-xl font-bold text-orange-400">
-                          {(filteredTeamStats.reduce((sum, t) => sum + (t.avg_teleop_fuel ?? 0), 0) / filteredTeamStats.length).toFixed(1)}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Avg Teleop Fuel</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-lg md:text-xl font-bold text-primary">
-                          {(filteredTeamStats.reduce((sum, t) => sum + (t.epa ?? t.avg_total_score ?? 0), 0) / filteredTeamStats.length).toFixed(1)}
-                        </div>
-                        <div className="text-xs text-muted-foreground" title="Estimated amount of points per match">EPA (Est. pts/match)</div>
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground/80 pt-1.5 text-center">EPA = estimated amount of points per match (average total score)</p>
-                  </>
-                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -752,24 +683,24 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <span className="text-sm font-semibold">{team.total_matches}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Average total</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Avg Score</span>
                                 <span className="text-sm font-semibold text-green-400">{team.avg_total_score}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Average auto</span>
-                                <span className="text-sm font-semibold text-blue-400">{team.avg_autonomous_points}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Auto EPA</span>
+                                <span className="text-sm font-semibold text-blue-400">{team.avg_autonomous_points ?? '—'}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Average teleop</span>
-                                <span className="text-sm font-semibold text-orange-400">{team.avg_teleop_points}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Teleop EPA</span>
+                                <span className="text-sm font-semibold text-orange-400">{team.avg_teleop_points ?? '—'}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Average balls/cycle</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Endgame EPA</span>
+                                <span className="text-sm font-semibold text-green-400">{team.avg_climb_pts ?? '—'}</span>
+                              </div>
+                              <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Avg balls/cycle</span>
                                 <span className="text-sm font-semibold text-muted-foreground">{team.avg_balls_per_cycle ?? 0}</span>
-                              </div>
-                              <div className="bg-white/5 p-3 rounded-xl border border-primary/20 bg-primary/5" title="Estimated amount of points per match">
-                                <span className="text-[10px] text-primary uppercase block mb-1 font-bold">EPA (Est. pts)</span>
-                                <span className="text-sm font-bold text-primary">{team.epa ?? team.avg_total_score ?? 0}</span>
                               </div>
                             </div>
 
@@ -841,9 +772,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 text-[9px]">Defense</th>
                             <th className="text-left p-4 text-[10px]">Avg Downtime</th>
                             <th className="text-left p-4 text-[10px]">Broke %</th>
-                            <th className="text-left p-4 text-[9px]">Average auto fuel</th>
-                            <th className="text-left p-4 text-[9px]">Average teleop fuel</th>
-                            <th className="text-left p-4 text-[9px]">Climb Pts</th>
+                            <th className="text-left p-4 text-[9px]">Auto EPA</th>
+                            <th className="text-left p-4 text-[9px]">Teleop EPA</th>
+                            <th className="text-left p-4 text-[9px]">Endgame EPA</th>
                             <th className="text-left p-4 text-[9px]">Avg balls/cycle</th>
                             <th className="text-left p-4 text-[9px]" title="Estimated amount of points per match">EPA (Est. pts)</th>
                             <th className="text-left p-4 text-[9px]">Uptime %</th>
@@ -899,9 +830,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 </td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_downtime_sec != null ? `${team.avg_downtime_sec}s` : (team.avg_downtime != null ? `${team.avg_downtime}s` : '—')}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.total_matches ? `${team.broke_count ?? 0}/${team.total_matches}` : (team.broke_rate != null ? `${team.broke_rate}%` : '—')}</td>
-                                <td className="p-4 text-muted-foreground text-sm">{team.avg_auto_fuel ?? '—'}</td>
-                                <td className="p-4 text-muted-foreground text-sm">{team.avg_teleop_fuel ?? '—'}</td>
-                                <td className="p-4 text-muted-foreground text-sm">{team.avg_climb_pts ?? '—'}</td>
+                                <td className="p-4 text-blue-400 font-semibold text-sm">{team.avg_autonomous_points ?? '—'}</td>
+                                <td className="p-4 text-orange-400 font-semibold text-sm">{team.avg_teleop_points ?? '—'}</td>
+                                <td className="p-4 text-green-400 font-semibold text-sm">{team.avg_climb_pts ?? '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_balls_per_cycle ?? 0}</td>
                                 <td className="p-4 text-primary font-bold text-sm" title="Estimated amount of points per match">{team.epa ?? team.avg_total_score ?? '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</td>

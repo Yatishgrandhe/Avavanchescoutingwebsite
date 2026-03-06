@@ -376,7 +376,8 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
   const autoFuelList: number[] = [];
   const teleopFuelList: number[] = [];
   const shootingDurations: number[] = [];
-  const estimatedScores: number[] = [];
+  /** EPA: expected points per match. Use actual final_score when valid, else estimated from notes (fuel + climb). */
+  const epaScores: number[] = [];
 
   rows.forEach((row) => {
     const notes = row.notes;
@@ -406,6 +407,9 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     totalTeleopCleansing += row.teleop_cleansing || 0;
     const score = row.final_score ?? 0;
     scores.push(score);
+    // EPA: use actual match score when valid, else estimated from notes (aligns with Statbotics-style “expected points”)
+    const hasActualScore = row.final_score != null && !Number.isNaN(Number(row.final_score));
+    epaScores.push(hasActualScore ? Number(row.final_score) : getEstimatedScoreFromNotes(notes));
     autoPtsList.push(row.autonomous_points ?? 0);
     teleopPtsList.push(row.teleop_points ?? 0);
     const p = parseNotes(row.notes);
@@ -420,7 +424,6 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     const totalBalls = autoFuel + teleopFuel;
     const bpc = totalRuns > 0 ? totalBalls / totalRuns : 0;
     ballsPerCycleList.push(bpc);
-    estimatedScores.push(getEstimatedScoreFromNotes(notes));
   });
 
   const autoPtsMin = autoPtsList.length ? Math.min(...autoPtsList) : 0;
@@ -446,7 +449,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
 
   const avgScore = scores.reduce((a, b) => a + b, 0) / n;
   const totalSum = scores.reduce((a, b) => a + b, 0);
-  const epa = estimatedScores.reduce((a, b) => a + b, 0) / n;
+  const epa = epaScores.length > 0 ? epaScores.reduce((a, b) => a + b, 0) / epaScores.length : avgScore;
 
   // CLANK: Climb Level Accuracy & No-Knockdown. Avg of (climb pts + speed adj): +2 for ≤3s, -2 for >6s.
   const clank = n > 0 ? Math.round((totalClimbAdjusted / n) * 10) / 10 : 0;

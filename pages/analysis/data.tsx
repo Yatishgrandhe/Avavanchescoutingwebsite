@@ -346,7 +346,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         worst_score: worstScore,
         consistency_score: Math.round(consistencyScore * 100) / 100,
         ...rebuilt,
-        epa: Math.round(avgTotal * 10) / 10, // Expected Points Added = estimated points per match
+        // epa from rebuilt: actual score when available, else estimated from notes (fuel + climb)
       };
     }).filter(stat => stat.total_matches > 0); // Only show teams with scouting data
   };

@@ -291,7 +291,7 @@ const TeamDetail: React.FC = () => {
       teleop_fuel_max: rebuilt.teleop_fuel_max,
       avg_shooting_time_sec: rebuilt.avg_shooting_time_sec ?? null,
       endgame_epa: rebuilt.endgame_epa ?? rebuilt.avg_climb_pts ?? 0, // Endgame EPA = climbing points
-      epa: Math.round(avgTotal * 10) / 10, // Expected points per match (avg total score)
+      epa: rebuilt.epa ?? Math.round(avgTotal * 10) / 10, // Expected points per match (actual when available, else estimated)
 
       // Data for Radar Chart (all values 0–100 for correct scale; Recharts expects numeric A and fullMark)
       radarData: [

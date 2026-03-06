@@ -47,10 +47,12 @@ interface AutoPathAnnotatorProps {
   teamName?: string;
 }
 
+const DEFAULT_FIELD_IMAGE = '/field-2026-rebuilt.png';
+
 export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnotatorProps>(function AutoPathAnnotator({
   paths,
   onPathsChange,
-  fieldImageSrc = '/field-2026-rebuilt.png',
+  fieldImageSrc = DEFAULT_FIELD_IMAGE,
   className,
 }: AutoPathAnnotatorProps, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,8 +65,23 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
   const [editingPathId, setEditingPathId] = useState<string | null>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  /** Resolve field image URL with current origin so it loads on all deployments (Vercel, preview, etc.) */
+  const [resolvedFieldSrc, setResolvedFieldSrc] = useState<string>(() =>
+    typeof window !== 'undefined' && fieldImageSrc.startsWith('/')
+      ? `${window.location.origin}${fieldImageSrc}`
+      : fieldImageSrc
+  );
   const lastPointRef = useRef<PathPoint | null>(null);
   const isPointerDownRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const src = fieldImageSrc.startsWith('/') ? `${window.location.origin}${fieldImageSrc}` : fieldImageSrc;
+    setResolvedFieldSrc(src);
+    setImgError(false);
+    setImgLoaded(false);
+  }, [fieldImageSrc]);
 
   /** Eraser: remove points within this distance (canvas px) from pointer */
   const ERASER_RADIUS = 24;
@@ -526,18 +543,26 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
       >
         <img
           ref={(el) => {
-            if (el && !imageRef.current) {
-              imageRef.current = el;
-              if (el.complete) setImgLoaded(true);
-              else el.onload = () => setImgLoaded(true);
+            imageRef.current = el;
+            if (!el) return;
+            if (el.complete && el.naturalWidth > 0) setImgLoaded(true);
+            else {
+              el.onload = () => setImgLoaded(true);
+              el.onerror = () => setImgError(true);
             }
           }}
-          src={fieldImageSrc}
+          src={resolvedFieldSrc}
           alt="2026 REBUILT field"
           className="absolute inset-0 w-full h-full object-contain pointer-events-none opacity-0"
+          crossOrigin="anonymous"
           draggable={false}
           aria-hidden
         />
+        {imgError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-xl text-muted-foreground text-sm p-4 text-center">
+            Field image could not be loaded. You can still draw paths on the canvas.
+          </div>
+        )}
         <canvas
           ref={canvasRef}
           className={cn(

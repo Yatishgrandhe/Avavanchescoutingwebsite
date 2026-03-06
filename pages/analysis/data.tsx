@@ -64,6 +64,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     avg_auto_fuel?: number;
     avg_teleop_fuel?: number;
     avg_climb_pts?: number;
+    endgame_epa?: number;
     avg_auto_climb_pts?: number;
     avg_teleop_climb_pts?: number;
     avg_uptime_pct?: number | null;
@@ -696,7 +697,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                                 <span className="text-[10px] text-muted-foreground uppercase block mb-1">Endgame EPA</span>
-                                <span className="text-sm font-semibold text-green-400">{team.avg_climb_pts ?? '—'}</span>
+                                <span className="text-sm font-semibold text-green-400">{team.endgame_epa ?? team.avg_climb_pts ?? '—'}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                                 <span className="text-[10px] text-muted-foreground uppercase block mb-1">Consistency</span>
@@ -776,7 +777,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 </td>
                                 <td className="p-4 text-blue-400 font-semibold text-sm">{team.avg_autonomous_points ?? '—'}</td>
                                 <td className="p-4 text-orange-400 font-semibold text-sm">{team.avg_teleop_points ?? '—'}</td>
-                                <td className="p-4 text-green-400 font-semibold text-sm">{team.avg_climb_pts ?? '—'}</td>
+                                <td className="p-4 text-green-400 font-semibold text-sm">{team.endgame_epa ?? team.avg_climb_pts ?? '—'}</td>
                                 <td className="p-4 text-primary font-bold text-sm">{team.epa ?? team.avg_total_score ?? '—'}</td>
                                 <td className="p-4">
                                   <span className={cn(

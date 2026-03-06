@@ -296,6 +296,8 @@ export interface RebuiltTeamMetrics {
   teleop_fuel_max: number;
   /** Expected Points Added: contribution based on fuel and climb pieces (average of estimated match scores). */
   epa: number;
+  /** Endgame EPA: average climbing points per match (climb contribution to score). */
+  endgame_epa: number;
   /** Average time per shooting attempt (run) in seconds across all runs in all matches. */
   avg_shooting_time_sec: number | null;
 }
@@ -347,6 +349,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
       teleop_fuel_min: 0,
       teleop_fuel_max: 0,
       epa: 0,
+      endgame_epa: 0,
       avg_shooting_time_sec: null,
     };
   }
@@ -502,6 +505,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     teleop_fuel_min: teleopFuelMin,
     teleop_fuel_max: teleopFuelMax,
     epa: Math.round(epa * 100) / 100,
+    endgame_epa: Math.round((totalClimbPts / n) * 100) / 100, // climbing points = endgame EPA
     avg_shooting_time_sec: avgShootingTimeSec,
   };
 }

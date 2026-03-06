@@ -311,10 +311,24 @@ export interface ScoutingRowForAnalytics {
   teleop_points?: number;
   autonomous_cleansing?: number;
   teleop_cleansing?: number;
+  /** For sequential EPA: sort matches by time so EPA is a moving average (Statbotics-style). */
+  created_at?: string;
+}
+
+/**
+ * Statbotics-style K factor for EPA update (number of matches played, 1-based).
+ * See https://www.statbotics.io/blog/epa and https://www.statbotics.io/blog/intro
+ */
+function epaKFactor(matchesPlayed: number): number {
+  if (matchesPlayed <= 6) return 0.5;
+  if (matchesPlayed <= 12) return 0.5 - (matchesPlayed - 6) / 30;
+  return 0.3;
 }
 
 /**
  * Compute REBUILT KPIs for a set of scouting rows (same team).
+ * EPA is a sequential moving average (Statbotics-style): after each match, EPA is updated
+ * by K * (score - EPA). Uses actual score when available, else estimated from notes.
  */
 export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltTeamMetrics {
   const n = rows.length;
@@ -376,8 +390,8 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
   const autoFuelList: number[] = [];
   const teleopFuelList: number[] = [];
   const shootingDurations: number[] = [];
-  /** EPA: expected points per match. Use actual final_score when valid, else estimated from notes (fuel + climb). */
-  const epaScores: number[] = [];
+  /** Per-match score (actual or estimated) + created_at for chronological EPA (Statbotics-style moving average). */
+  const epaMatchScores: { score: number; created_at?: string }[] = [];
 
   rows.forEach((row) => {
     const notes = row.notes;
@@ -409,7 +423,8 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     scores.push(score);
     // EPA: use actual match score when valid, else estimated from notes (aligns with Statbotics-style “expected points”)
     const hasActualScore = row.final_score != null && !Number.isNaN(Number(row.final_score));
-    epaScores.push(hasActualScore ? Number(row.final_score) : getEstimatedScoreFromNotes(notes));
+    const matchScore = hasActualScore ? Number(row.final_score) : getEstimatedScoreFromNotes(notes);
+    epaMatchScores.push({ score: matchScore, created_at: row.created_at });
     autoPtsList.push(row.autonomous_points ?? 0);
     teleopPtsList.push(row.teleop_points ?? 0);
     const p = parseNotes(row.notes);
@@ -449,7 +464,18 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
 
   const avgScore = scores.reduce((a, b) => a + b, 0) / n;
   const totalSum = scores.reduce((a, b) => a + b, 0);
-  const epa = epaScores.length > 0 ? epaScores.reduce((a, b) => a + b, 0) / epaScores.length : avgScore;
+
+  // EPA: Statbotics-style moving average (statbotics.io/blog/epa, blog/intro). Sort by created_at, then update after each match.
+  const sortedForEpa = [...epaMatchScores].sort((a, b) => {
+    const tA = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const tB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return tA - tB;
+  });
+  let epa = sortedForEpa.length > 0 ? sortedForEpa[0].score : avgScore;
+  for (let i = 1; i < sortedForEpa.length; i++) {
+    const K = epaKFactor(i + 1); // N = matches played (1-based)
+    epa = epa + K * (sortedForEpa[i].score - epa);
+  }
 
   // CLANK: Climb Level Accuracy & No-Knockdown. Avg of (climb pts + speed adj): +2 for ≤3s, -2 for >6s.
   const clank = n > 0 ? Math.round((totalClimbAdjusted / n) * 10) / 10 : 0;

@@ -4,12 +4,16 @@ import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardConten
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 
+type MiscData = { defense_rating: number; comments: string; average_downtime: number | null; broke: boolean | null };
+
 interface MiscellaneousFormProps {
-  onNext: (miscData: { defense_rating: number; comments: string; average_downtime: number | null; broke: boolean | null }) => void;
+  onNext: (miscData: MiscData) => void;
   onBack: () => void;
   currentStep: number;
   totalSteps: number;
   initialData?: { defense_rating: number; comments: string; average_downtime?: number | null; broke?: boolean | null };
+  /** Called whenever any field changes so parent can persist data when user navigates back */
+  onDataChange?: (data: MiscData) => void;
 }
 
 const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
@@ -18,6 +22,7 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
   currentStep,
   totalSteps,
   initialData,
+  onDataChange,
 }) => {
   const [formData, setFormData] = useState({
     defense_rating: (initialData?.defense_rating as number) ?? 0,
@@ -40,14 +45,12 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
   }, [initialData]);
 
   const handleInputChange = (field: keyof typeof formData, value: string | number | boolean | null) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-    // Clear validation error when user makes changes
-    if (validationError) {
-      setValidationError(null);
-    }
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
+      onDataChange?.(next);
+      return next;
+    });
+    if (validationError) setValidationError(null);
   };
 
   const progressPercentage = (currentStep / totalSteps) * 100;

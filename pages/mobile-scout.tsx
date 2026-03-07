@@ -338,6 +338,7 @@ export default function MobileScout() {
                       setCurrentStep('review');
                     }}
                     onBack={() => setCurrentStep('teleop')}
+                    onDataChange={(data) => setFormData(prev => ({ ...prev, miscellaneous: data }))}
                     currentStep={currentStepIndex}
                     totalSteps={steps.length}
                     initialData={formData.miscellaneous}

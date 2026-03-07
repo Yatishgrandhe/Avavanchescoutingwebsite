@@ -380,6 +380,7 @@ export default function Scout() {
                         handleStepNext('review');
                       }}
                       onBack={() => setCurrentStep('teleop')}
+                      onDataChange={(data) => setFormData(prev => ({ ...prev, miscellaneous: data }))}
                       currentStep={currentStepIndex}
                       totalSteps={steps.length}
                       initialData={formData.miscellaneous}

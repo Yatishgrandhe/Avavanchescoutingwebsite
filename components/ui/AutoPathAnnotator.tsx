@@ -66,6 +66,8 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
   const [editingPathId, setEditingPathId] = useState<string | null>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
+  /** True when fullscreen is done via fixed overlay (e.g. iOS) instead of Fullscreen API */
+  const [pseudoFullscreen, setPseudoFullscreen] = useState(false);
   /** Resolve field image URL with current origin so it loads on all deployments (Vercel, preview, etc.) */
   const [resolvedFieldSrc, setResolvedFieldSrc] = useState<string>(() =>
     typeof window !== 'undefined' && fieldImageSrc.startsWith('/')
@@ -394,18 +396,35 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
   );
 
   const toggleFullscreen = () => {
-    if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen?.();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen?.();
+    const container = containerRef.current;
+    if (!container) return;
+    if (isFullscreen || pseudoFullscreen) {
+      if (document.fullscreenElement) document.exitFullscreen?.();
+      setPseudoFullscreen(false);
       setIsFullscreen(false);
+      return;
+    }
+    const enterFullscreen = () => {
+      container.requestFullscreen?.().then(() => setIsFullscreen(true)).catch(() => {
+        setPseudoFullscreen(true);
+        setIsFullscreen(true);
+      });
+    };
+    if (typeof container.requestFullscreen === 'function') {
+      enterFullscreen();
+    } else {
+      setPseudoFullscreen(true);
+      setIsFullscreen(true);
     }
   };
 
   useEffect(() => {
-    const h = () => setIsFullscreen(!!document.fullscreenElement);
+    const h = () => {
+      if (!document.fullscreenElement) {
+        setIsFullscreen(false);
+        setPseudoFullscreen(false);
+      } else setIsFullscreen(true);
+    };
     document.addEventListener('fullscreenchange', h);
     return () => document.removeEventListener('fullscreenchange', h);
   }, []);
@@ -538,8 +557,17 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
 
       <div
         ref={containerRef}
-        className="relative w-full bg-black/30 rounded-xl overflow-hidden"
-        style={{ minHeight: 280, maxHeight: isFullscreen ? '90vh' : 500 }}
+        className={cn(
+          'relative w-full bg-black/30 rounded-xl overflow-hidden',
+          'min-h-[400px] sm:min-h-[320px]'
+        )}
+        style={{
+          ...(pseudoFullscreen
+            ? { position: 'fixed', inset: 0, zIndex: 9999, height: '100dvh', maxHeight: '100dvh', borderRadius: 0 }
+            : isFullscreen
+              ? { height: '100%', maxHeight: '100dvh' }
+              : { maxHeight: 500 }),
+        }}
       >
         <img
           ref={(el) => {
@@ -575,6 +603,18 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerLeave}
         />
+        {isFullscreen && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="absolute top-3 right-3 z-10 shadow-lg"
+            onClick={toggleFullscreen}
+          >
+            <Minimize2 className="w-4 h-4 mr-1" />
+            Exit fullscreen
+          </Button>
+        )}
       </div>
 
       <p className="text-xs text-muted-foreground">

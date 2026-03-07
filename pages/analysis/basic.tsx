@@ -38,7 +38,9 @@ import {
   Target,
   Users,
   Trophy,
-  BarChart3
+  BarChart3,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -110,6 +112,11 @@ export default function BasicAnalysis() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string>('all');
   const [selectedEvent, setSelectedEvent] = useState<string>('all');
+  type TeamSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'avg_climb_pts' | 'team_number' | 'team_name' | 'epa' | 'avg_defense_rating';
+  const [teamSortField, setTeamSortField] = useState<TeamSortKey>('avg_total_score');
+  const [teamSortDirection, setTeamSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
+  const [minAvgScoreFilter, setMinAvgScoreFilter] = useState<number | ''>('');
 
   useEffect(() => {
     fetchData();
@@ -252,10 +259,39 @@ export default function BasicAnalysis() {
     }
   };
 
-  const filteredTeams = (teams || []).filter(team =>
-    team.team_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    team.team_number.toString().includes(searchTerm)
-  );
+  const filteredTeams = (teams || []).filter(team => {
+    const matchesSearch =
+      team.team_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      team.team_number.toString().includes(searchTerm);
+    const matchesMinMatches = minMatchesFilter === '' || team.total_matches >= Number(minMatchesFilter);
+    const matchesMinAvgScore = minAvgScoreFilter === '' || (team.avg_total_score ?? 0) >= Number(minAvgScoreFilter);
+    return matchesSearch && matchesMinMatches && matchesMinAvgScore;
+  });
+
+  const sortedFilteredTeams = [...filteredTeams].sort((a, b) => {
+    type K = keyof TeamData;
+    let aVal: number | string = (a as any)[teamSortField as K];
+    let bVal: number | string = (b as any)[teamSortField as K];
+    if (teamSortField === 'team_name') {
+      aVal = (aVal ?? '').toString().toLowerCase();
+      bVal = (bVal ?? '').toString().toLowerCase();
+    }
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      return teamSortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+    }
+    return teamSortDirection === 'asc'
+      ? String(aVal ?? '').localeCompare(String(bVal ?? ''))
+      : String(bVal ?? '').localeCompare(String(aVal ?? ''));
+  });
+
+  const handleTeamSort = (field: TeamSortKey) => {
+    if (teamSortField === field) {
+      setTeamSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setTeamSortField(field);
+      setTeamSortDirection('desc');
+    }
+  };
 
   const topTeams = [...(teams || [])]
     .filter(team => team.avg_total_score > 0) // Only show teams with actual data
@@ -349,6 +385,31 @@ export default function BasicAnalysis() {
                     <SelectItem value="2026mabt" className="text-white hover:bg-gray-700">MABT 2026</SelectItem>
                   </SelectContent>
                 </Select>
+                <div className="flex items-end gap-2">
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Min matches</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="Any"
+                      value={minMatchesFilter === '' ? '' : minMatchesFilter}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMinMatchesFilter(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))}
+                      className="w-24 h-9 bg-gray-800 border-gray-600 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Min avg score</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      placeholder="Any"
+                      value={minAvgScoreFilter === '' ? '' : minAvgScoreFilter}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMinAvgScoreFilter(e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value) || 0))}
+                      className="w-24 h-9 bg-gray-800 border-gray-600 text-white"
+                    />
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -506,27 +567,43 @@ export default function BasicAnalysis() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Team</TableHead>
-                        <TableHead className="text-[9px]">Auto EPA</TableHead>
-                        <TableHead className="text-[9px]">Teleop EPA</TableHead>
-                        <TableHead className="text-[9px]">Matches Scouted</TableHead>
-                        <TableHead className="text-[9px]">AVG CLIMB</TableHead>
+                        <TableHead className="cursor-pointer hover:text-white select-none" onClick={() => handleTeamSort('team_number')}>
+                          <span className="inline-flex items-center gap-1">Team {teamSortField === 'team_number' && (teamSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                        </TableHead>
+                        <TableHead className="text-[9px] cursor-pointer hover:text-white select-none" onClick={() => handleTeamSort('avg_autonomous_points')}>
+                          <span className="inline-flex items-center gap-1">Auto EPA {teamSortField === 'avg_autonomous_points' && (teamSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                        </TableHead>
+                        <TableHead className="text-[9px] cursor-pointer hover:text-white select-none" onClick={() => handleTeamSort('avg_teleop_points')}>
+                          <span className="inline-flex items-center gap-1">Teleop EPA {teamSortField === 'avg_teleop_points' && (teamSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                        </TableHead>
+                        <TableHead className="text-[9px] cursor-pointer hover:text-white select-none" onClick={() => handleTeamSort('total_matches')}>
+                          <span className="inline-flex items-center gap-1">Matches Scouted {teamSortField === 'total_matches' && (teamSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                        </TableHead>
+                        <TableHead className="text-[9px] cursor-pointer hover:text-white select-none" onClick={() => handleTeamSort('avg_climb_pts')}>
+                          <span className="inline-flex items-center gap-1">AVG CLIMB {teamSortField === 'avg_climb_pts' && (teamSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                        </TableHead>
                         <TableHead className="text-[9px]">AUTO CLIMB</TableHead>
                         <TableHead className="text-[9px]">TELEOP CLIMB</TableHead>
                         <TableHead className="text-[9px]">AVG DOWNTIME</TableHead>
                         <TableHead className="text-[9px]">BROKE</TableHead>
-                        <TableHead>Average total</TableHead>
+                        <TableHead className="cursor-pointer hover:text-white select-none" onClick={() => handleTeamSort('avg_total_score')}>
+                          <span className="inline-flex items-center gap-1">Average total {teamSortField === 'avg_total_score' && (teamSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                        </TableHead>
                         <TableHead className="text-[9px]">Average balls/cycle</TableHead>
-                        <TableHead>Defense</TableHead>
+                        <TableHead className="cursor-pointer hover:text-white select-none" onClick={() => handleTeamSort('avg_defense_rating')}>
+                          <span className="inline-flex items-center gap-1">Defense {teamSortField === 'avg_defense_rating' && (teamSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                        </TableHead>
                         <TableHead className="text-[9px]">CLANK</TableHead>
                         <TableHead className="text-[9px]">Avg climb speed</TableHead>
                         <TableHead className="text-[9px]">RPMAGIC</TableHead>
                         <TableHead className="text-[9px]">GOBLIN</TableHead>
-                        <TableHead className="text-[9px]">EPA</TableHead>
+                        <TableHead className="text-[9px] cursor-pointer hover:text-white select-none" onClick={() => handleTeamSort('epa')}>
+                          <span className="inline-flex items-center gap-1">EPA {teamSortField === 'epa' && (teamSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredTeams.map((team) => (
+                      {sortedFilteredTeams.map((team) => (
                         <TableRow key={team.team_number}>
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-2">

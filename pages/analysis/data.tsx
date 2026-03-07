@@ -101,6 +101,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [clearingData, setClearingData] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  // Team stats sort: default greatest to least average score
+  type TeamStatSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'endgame_epa' | 'epa' | 'consistency_score' | 'team_number' | 'team_name';
+  const [teamStatsSortField, setTeamStatsSortField] = useState<TeamStatSortKey>('avg_total_score');
+  const [teamStatsSortDirection, setTeamStatsSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
+  const [minAvgScoreFilter, setMinAvgScoreFilter] = useState<number | ''>('');
 
   useEffect(() => {
     loadData();
@@ -412,9 +418,41 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         team.team_number.toString().includes(searchTerm) ||
         team.team_name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesTeam = selectedTeam === null || team.team_number === selectedTeam;
-      return matchesSearch && matchesTeam;
+      const matchesMinMatches = minMatchesFilter === '' || team.total_matches >= Number(minMatchesFilter);
+      const matchesMinAvgScore = minAvgScoreFilter === '' || (team.avg_total_score ?? 0) >= Number(minAvgScoreFilter);
+      return matchesSearch && matchesTeam && matchesMinMatches && matchesMinAvgScore;
     });
-  }, [teamStats, searchTerm, selectedTeam]);
+  }, [teamStats, searchTerm, selectedTeam, minMatchesFilter, minAvgScoreFilter]);
+
+  const sortedTeamStats = useMemo(() => {
+    return [...filteredTeamStats].sort((a, b) => {
+      type K = keyof typeof a;
+      const key = teamStatsSortField as K;
+      let aVal: number | string = (a as any)[key];
+      let bVal: number | string = (b as any)[key];
+      if (key === 'team_name') {
+        aVal = (aVal ?? '').toString().toLowerCase();
+        bVal = (bVal ?? '').toString().toLowerCase();
+      }
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return teamStatsSortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      const aStr = String(aVal ?? '');
+      const bStr = String(bVal ?? '');
+      return teamStatsSortDirection === 'asc'
+        ? aStr.localeCompare(bStr)
+        : bStr.localeCompare(aStr);
+    });
+  }, [filteredTeamStats, teamStatsSortField, teamStatsSortDirection]);
+
+  const handleTeamStatsSort = (field: TeamStatSortKey) => {
+    if (teamStatsSortField === field) {
+      setTeamStatsSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setTeamStatsSortField(field);
+      setTeamStatsSortDirection('desc');
+    }
+  };
 
   const handleSort = (field: keyof ScoutingData) => {
     if (sortField === field) {
@@ -575,6 +613,35 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                     </select>
                   </div>
 
+                  {/* Min Matches & Min Avg Score (Team Stats view) */}
+                  {viewMode === 'teams' && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">Min matches</label>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="Any"
+                          value={minMatchesFilter === '' ? '' : minMatchesFilter}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMinMatchesFilter(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))}
+                          className="h-9"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">Min avg score</label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.5}
+                          placeholder="Any"
+                          value={minAvgScoreFilter === '' ? '' : minAvgScoreFilter}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMinAvgScoreFilter(e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value) || 0))}
+                          className="h-9"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {/* View Mode Toggle */}
                   <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                     <span className="text-sm font-medium text-foreground">View:</span>
@@ -644,7 +711,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                 <CardTitle className="flex items-center gap-2">
                   <FileSpreadsheet className="w-5 h-5" />
                   {viewMode === 'teams'
-                    ? `Team Statistics (${filteredTeamStats.length} teams)`
+                    ? `Team Statistics (${sortedTeamStats.length} teams)`
                     : `Scouting Data (${sortedData.length} records)`
                   }
                 </CardTitle>
@@ -655,7 +722,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                   <div className="space-y-4">
                     {/* Mobile Card View for Team Stats */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:hidden gap-4">
-                      {filteredTeamStats
+                      {sortedTeamStats
                         .map((team, index) => (
                           <motion.div
                             key={team.team_number}
@@ -738,19 +805,35 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                       <table className="w-full border-collapse">
                         <thead>
                           <tr className="border-b border-white/5 text-muted-foreground font-medium uppercase tracking-wider text-[10px]">
-                            <th className="text-left p-4">Team</th>
-                            <th className="text-left p-4">Matches</th>
-                            <th className="text-left p-4">Avg Score</th>
-                            <th className="text-left p-4 text-[9px]">Auto EPA</th>
-                            <th className="text-left p-4 text-[9px]">Teleop EPA</th>
-                            <th className="text-left p-4 text-[9px]">Endgame EPA</th>
-                            <th className="text-left p-4 text-[9px]">EPA</th>
-                            <th className="text-left p-4 text-[11px]">Consistency</th>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none" onClick={() => handleTeamStatsSort('team_number')}>
+                              <span className="inline-flex items-center gap-1">Team {teamStatsSortField === 'team_number' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            </th>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none" onClick={() => handleTeamStatsSort('total_matches')}>
+                              <span className="inline-flex items-center gap-1">Matches {teamStatsSortField === 'total_matches' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            </th>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none" onClick={() => handleTeamStatsSort('avg_total_score')}>
+                              <span className="inline-flex items-center gap-1">Avg Score {teamStatsSortField === 'avg_total_score' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            </th>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('avg_autonomous_points')}>
+                              <span className="inline-flex items-center gap-1">Auto EPA {teamStatsSortField === 'avg_autonomous_points' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            </th>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('avg_teleop_points')}>
+                              <span className="inline-flex items-center gap-1">Teleop EPA {teamStatsSortField === 'avg_teleop_points' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            </th>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('endgame_epa')}>
+                              <span className="inline-flex items-center gap-1">Endgame EPA {teamStatsSortField === 'endgame_epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            </th>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('epa')}>
+                              <span className="inline-flex items-center gap-1">EPA {teamStatsSortField === 'epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            </th>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[11px]" onClick={() => handleTeamStatsSort('consistency_score')}>
+                              <span className="inline-flex items-center gap-1">Consistency {teamStatsSortField === 'consistency_score' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            </th>
                             <th className="text-right p-4 text-[11px]">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredTeamStats
+                          {sortedTeamStats
                             .map((team, index) => (
                               <motion.tr
                                 key={team.team_number}

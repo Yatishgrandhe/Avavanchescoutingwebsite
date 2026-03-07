@@ -101,6 +101,23 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
                 </div>
               </div>
 
+              {/* Downtime */}
+              <div className="space-y-2">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Downtime (sec)</h3>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  value={formData.average_downtime ?? ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    const v = e.target.value;
+                    handleInputChange('average_downtime', v === '' ? null : parseFloat(v));
+                  }}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 font-mono text-sm focus:ring-1 focus:ring-primary outline-none transition-all"
+                  placeholder="e.g. 15 (leave blank if none)"
+                />
+              </div>
+
               {/* Robot Broke */}
               <div className="space-y-2">
                   <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Robot Broke?</h3>

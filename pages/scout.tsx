@@ -510,10 +510,14 @@ export default function Scout() {
                               )}
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2 pt-2">
+                            <div className="grid grid-cols-3 gap-2 pt-2">
                               <div className="text-center">
                                 <span className="text-[9px] font-bold text-muted-foreground uppercase block">Defense</span>
                                 <span className="text-sm font-black">{formData.miscellaneous.defense_rating}/10</span>
+                              </div>
+                              <div className="text-center">
+                                <span className="text-[9px] font-bold text-muted-foreground uppercase block">Downtime</span>
+                                <span className="text-sm font-black">{formatDurationSec(formData.miscellaneous.average_downtime ?? 0)}</span>
                               </div>
                               <div className="text-center">
                                 <span className="text-[9px] font-bold text-muted-foreground uppercase block">Broke</span>

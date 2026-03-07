@@ -140,14 +140,18 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
     [drawSketchPath]
   );
 
+  /** Draw only paths on canvas; background is the visible img element so the field is always visible (no black). */
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     const img = imageRef.current;
-    if (!ctx || !canvas || !img || !imgLoaded) return;
+    if (!ctx || !canvas) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    // If image is loaded, draw it on canvas for consistent path coordinates; otherwise canvas is transparent over img
+    if (img?.complete && img.naturalWidth > 0) {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    }
 
     paths.forEach((p) => drawPathWithSegments(ctx, p, p.id === selectedPathId));
 
@@ -163,7 +167,7 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
       ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
       ctx.fill();
     }
-  }, [paths, currentSegments, selectedPathId, editingPathId, imgLoaded, drawSketchPath, drawPathWithSegments]);
+  }, [paths, currentSegments, selectedPathId, editingPathId, drawSketchPath, drawPathWithSegments]);
 
   useEffect(() => {
     redraw();
@@ -173,30 +177,50 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
     const canvas = canvasRef.current;
     const container = containerRef.current;
     const img = imageRef.current;
-    if (!canvas || !container || !img || !img.naturalWidth) return;
-
-    const iw = img.naturalWidth;
-    const ih = img.naturalHeight;
-    const cw = container.clientWidth;
-    const ch = container.clientHeight;
-    const scaleX = cw / iw;
-    const scaleY = ch / ih;
+    if (!canvas || !container) return;
+    const iw = Math.max(1, img?.naturalWidth ?? 1);
+    const ih = Math.max(1, img?.naturalHeight ?? 1);
+    let cw = container.clientWidth;
+    let ch = container.clientHeight;
+    if (typeof window !== 'undefined' && (cw === 0 || ch === 0)) {
+      cw = cw || window.innerWidth;
+      ch = ch || window.innerHeight;
+    }
+    const width = Math.max(1, cw || 400);
+    const height = Math.max(1, ch || 400);
+    const scaleX = width / iw;
+    const scaleY = height / ih;
     const s = Math.min(scaleX, scaleY);
     canvas.width = iw;
     canvas.height = ih;
-    canvas.style.width = `${iw * s}px`;
-    canvas.style.height = `${ih * s}px`;
-  }, [imgLoaded]);
+    canvas.style.width = `${Math.max(1, iw * s)}px`;
+    canvas.style.height = `${Math.max(1, ih * s)}px`;
+    redraw();
+  }, [redraw]);
 
   useEffect(() => {
-    if (imgLoaded) setupCanvas();
-  }, [imgLoaded, setupCanvas]);
+    setupCanvas();
+  }, [setupCanvas, imgLoaded]);
 
   useEffect(() => {
-    const ro = new ResizeObserver(() => setupCanvas());
-    if (containerRef.current) ro.observe(containerRef.current);
+    const ro = new ResizeObserver(() => {
+      setupCanvas();
+    });
+    const el = containerRef.current;
+    if (el) ro.observe(el);
     return () => ro.disconnect();
   }, [setupCanvas]);
+
+  /** On fullscreen enter, resize and redraw after layout so the canvas doesn’t stay black */
+  useEffect(() => {
+    if (!isFullscreen && !pseudoFullscreen) return;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setupCanvas();
+      });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [isFullscreen, pseudoFullscreen, setupCanvas]);
 
   const addPointIfFarEnough = useCallback((pt: PathPoint) => {
     setCurrentSegments((prev) => {
@@ -558,14 +582,14 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
       <div
         ref={containerRef}
         className={cn(
-          'relative w-full bg-black/30 rounded-xl overflow-hidden',
-          'min-h-[400px] sm:min-h-[320px]'
+          'relative w-full rounded-xl overflow-hidden bg-muted/50',
+          'min-h-[320px] sm:min-h-[400px]'
         )}
         style={{
           ...(pseudoFullscreen
-            ? { position: 'fixed', inset: 0, zIndex: 9999, height: '100dvh', maxHeight: '100dvh', borderRadius: 0 }
+            ? { position: 'fixed', inset: 0, zIndex: 9999, width: '100vw', height: '100dvh', maxHeight: '100dvh', borderRadius: 0 }
             : isFullscreen
-              ? { height: '100%', maxHeight: '100dvh' }
+              ? { width: '100%', height: '100%', minHeight: '100dvh', maxHeight: '100dvh' }
               : { maxHeight: 500 }),
         }}
       >
@@ -581,7 +605,7 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
           }}
           src={resolvedFieldSrc}
           alt="2026 REBUILT field"
-          className="absolute inset-0 w-full h-full object-contain pointer-events-none opacity-0"
+          className="absolute inset-0 w-full h-full object-contain pointer-events-none"
           crossOrigin="anonymous"
           draggable={false}
           aria-hidden
@@ -594,7 +618,7 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
         <canvas
           ref={canvasRef}
           className={cn(
-            'absolute inset-0 touch-none',
+            'absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 touch-none select-none',
             mode === 'eraser' ? 'cursor-cell' : 'cursor-crosshair'
           )}
           style={{ touchAction: 'none' }}

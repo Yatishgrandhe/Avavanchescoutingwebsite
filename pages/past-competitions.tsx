@@ -469,9 +469,9 @@ export default function PastCompetitionsPage() {
                                     consistency: Math.round(consistencyScore * 100) / 100
                                   };
                                 })
-                                .filter(Boolean)
-                                .sort((a, b) => (b?.avg_score ?? 0) - (a?.avg_score ?? 0))
-                                .map((team, index) => (
+                                .filter((t): t is NonNullable<typeof t> => t != null)
+                                .sort((a, b) => (b.avg_score ?? 0) - (a.avg_score ?? 0))
+                                .map((team) => (
                                   <tr key={team.team_number} className="border-b hover:bg-muted/50 cursor-pointer" onClick={() => window.open(`/team-history/${team.team_number}`, '_blank')}>
                                     <td className="py-2">
                                       <div className="flex items-center gap-2">

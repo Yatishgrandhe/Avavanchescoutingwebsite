@@ -35,7 +35,7 @@ import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ScoutingData, Team } from '@/lib/types';
 import { useAdmin } from '@/hooks/use-admin';
-import { computeRebuiltMetrics, parseNotes, getUptimePct, getClimbPoints } from '@/lib/analytics';
+import { computeRebuiltMetrics, parseNotes, getClimbPoints } from '@/lib/analytics';
 import { getBallChoiceScoreFromRange, getBallChoiceLabel } from '@/lib/types';
 import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
@@ -1087,10 +1087,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                           <span className="text-xs font-bold">{data.average_downtime != null ? formatDurationSec(Number(data.average_downtime)) : '—'}</span>
                                         </div>
                                         <div className="bg-white/5 p-2 rounded-lg border border-white/5 text-center">
-                                          <span className="text-[8px] text-muted-foreground uppercase block">Uptime</span>
-                                          <span className="text-xs font-bold">{getUptimePct(data.average_downtime) != null ? `${getUptimePct(data.average_downtime)}%` : '—'}</span>
-                                        </div>
-                                        <div className="bg-white/5 p-2 rounded-lg border border-white/5 text-center">
                                           <span className="text-[8px] text-muted-foreground uppercase block">Broke</span>
                                           <span className="text-xs font-bold">{data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}</span>
                                         </div>
@@ -1347,10 +1343,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                                   <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
                                                     <span className="text-xs text-muted-foreground">Downtime</span>
                                                     <span className="text-sm font-medium">{data.average_downtime != null ? formatDurationSec(Number(data.average_downtime)) : '—'}</span>
-                                                  </div>
-                                                  <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                                    <span className="text-xs text-muted-foreground">Uptime</span>
-                                                    <span className="text-sm font-medium">{getUptimePct(data.average_downtime) != null ? `${getUptimePct(data.average_downtime)}%` : '—'}</span>
                                                   </div>
                                                   <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
                                                     <span className="text-xs text-muted-foreground">Broke</span>

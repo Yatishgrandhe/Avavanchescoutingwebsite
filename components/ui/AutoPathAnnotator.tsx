@@ -92,8 +92,8 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
     setImgLoaded(false);
   }, [fieldImageSrc]);
 
-  /** Eraser: remove points within this distance (canvas px) from pointer */
-  const ERASER_RADIUS = 24;
+  /** Eraser: remove path when pointer is within this distance (canvas px) of any segment */
+  const ERASER_RADIUS = 32;
 
   const getCanvasCoords = useCallback(
     (e: React.PointerEvent | PointerEvent): PathPoint | null => {
@@ -242,6 +242,19 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
     });
   }, []);
 
+  /** Hit-test: find path whose segment is within radius of point (canvas coords) */
+  const findPathAtPoint = useCallback((pt: PathPoint, radius: number): AutoPath | null => {
+    const currentPaths = pathsRef.current;
+    for (const p of currentPaths) {
+      const segs = p.segments && p.segments.length > 0 ? p.segments : (p.points.length >= 2 ? [p.points] : []);
+      const hit = segs.some((pts) =>
+        pts.some((_, i) => i < pts.length - 1 && distToSegment(pt, pts[i], pts[i + 1]) < radius)
+      );
+      if (hit) return p;
+    }
+    return null;
+  }, []);
+
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       e.preventDefault();
@@ -250,15 +263,11 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
       if (!pt || !canvas) return;
 
       if (mode === 'eraser') {
-        const hit = paths.find((p) => {
-          const segs = p.segments && p.segments.length > 0 ? p.segments : (p.points.length >= 2 ? [p.points] : []);
-          return segs.some((pts) =>
-            pts.some((pp, i) => i < pts.length - 1 && distToSegment(pt, pp, pts[i + 1]) < ERASER_RADIUS)
-          );
-        });
+        const hit = findPathAtPoint(pt, ERASER_RADIUS);
         if (hit) {
-          onPathsChange(paths.filter((p) => p.id !== hit.id));
-          if (selectedPathId === hit.id) setSelectedPathId(null);
+          const nextPaths = pathsRef.current.filter((p) => p.id !== hit.id);
+          onPathsChange([...nextPaths]);
+          setSelectedPathId((current) => (current === hit.id ? null : current));
         }
         return;
       }
@@ -273,16 +282,11 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
         });
         canvas.setPointerCapture(e.pointerId);
       } else {
-        const hit = paths.find((p) => {
-          const segs = p.segments && p.segments.length > 0 ? p.segments : (p.points.length >= 2 ? [p.points] : []);
-          return segs.some((pts) =>
-            pts.some((pp, i) => i < pts.length - 1 && distToSegment(pt, pp, pts[i + 1]) < 18)
-          );
-        });
+        const hit = findPathAtPoint(pt, 18);
         setSelectedPathId(hit?.id ?? null);
       }
     },
-    [mode, paths, getCanvasCoords, onPathsChange, selectedPathId]
+    [mode, getCanvasCoords, findPathAtPoint, onPathsChange]
   );
 
   const handlePointerMove = useCallback(
@@ -380,30 +384,37 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
     const currentPaths = pathsRef.current;
     if (currentPaths.length === 0) return;
     const last = currentPaths[currentPaths.length - 1];
-    onPathsChange(currentPaths.slice(0, -1));
-    setSelectedPathId((current) => (current === last.id ? (currentPaths.length > 1 ? currentPaths[currentPaths.length - 2].id : null) : current));
-  }, [onPathsChange]);
+    const nextPaths = currentPaths.slice(0, -1);
+    onPathsChange([...nextPaths]);
+    setSelectedPathId((current) => (current === last.id ? (nextPaths.length > 0 ? nextPaths[nextPaths.length - 1].id : null) : current));
+    if (editingPathId === last.id) {
+      setEditingPathId(null);
+      setCurrentSegments([]);
+      setMode('idle');
+    }
+  }, [onPathsChange, editingPathId]);
 
   /** Single Undo action: while drawing, undo last point; otherwise undo last completed path */
   const handleUndo = useCallback(() => {
     if (mode === 'drawing' && currentSegments.flat().length > 1) {
       undoLastPoint();
-    } else if (paths.length > 0) {
+    } else if (pathsRef.current.length > 0) {
       undoLastPath();
     }
-  }, [mode, currentSegments, paths.length, undoLastPoint, undoLastPath]);
+  }, [mode, currentSegments, undoLastPoint, undoLastPath]);
 
   const deletePath = useCallback(
     (id: string) => {
-      onPathsChange(paths.filter((p) => p.id !== id));
-      if (selectedPathId === id) setSelectedPathId(null);
+      const nextPaths = pathsRef.current.filter((p) => p.id !== id);
+      onPathsChange([...nextPaths]);
+      setSelectedPathId((current) => (current === id ? null : current));
       if (editingPathId === id) {
         setEditingPathId(null);
         setCurrentSegments([]);
         setMode('idle');
       }
     },
-    [paths, selectedPathId, editingPathId, onPathsChange]
+    [editingPathId, onPathsChange]
   );
 
   const editPath = useCallback(

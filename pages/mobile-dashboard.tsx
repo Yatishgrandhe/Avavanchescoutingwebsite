@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useSupabase } from '@/pages/_app';
 import { useRefreshHandler } from '@/lib/refresh-handler';
+import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
 import Layout from '../components/layout/Layout';
 
 // Types for dashboard data (all real from DB)
@@ -63,19 +64,25 @@ export default function MobileDashboard() {
     setLoadingStats(true);
     try {
       const [
-        { count: matchesCount },
+        { data: scoutingMatchIds },
         { count: teamsCount },
         { count: scoutingDataCount },
         { count: pitCount },
       ] = await Promise.all([
-        supabase.from('matches').select('*', { count: 'exact', head: true }),
+        // Matches scouted = distinct match_id from scouting_data (from DB), not form count or event match list
+        supabase
+          .from('scouting_data')
+          .select('match_id')
+          .like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN),
         supabase.from('teams').select('*', { count: 'exact', head: true }),
         supabase.from('scouting_data').select('*', { count: 'exact', head: true }),
         supabase.from('pit_scouting_data').select('*', { count: 'exact', head: true }),
       ]);
 
+      const matchesScouted = new Set((scoutingMatchIds || []).map((r: { match_id: string }) => r.match_id).filter(Boolean)).size;
+
       setDashboardStats({
-        totalMatches: matchesCount || 0,
+        totalMatches: matchesScouted,
         teamsCount: teamsCount || 0,
         dataPoints: scoutingDataCount || 0,
         pitProfiles: pitCount || 0,
@@ -292,7 +299,7 @@ export default function MobileDashboard() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-muted-foreground">Matches in schedule</p>
+                    <p className="text-sm font-medium text-muted-foreground">Matches scouted</p>
                     {loadingStats ? (
                       <div className="flex items-center space-x-2">
                         <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -302,7 +309,7 @@ export default function MobileDashboard() {
                       <>
                         <p className="text-2xl font-bold text-card-foreground">{dashboardStats.totalMatches}</p>
                         <p className="text-xs text-primary font-medium">
-                          {dashboardStats.totalMatches > 0 ? 'From event' : 'No matches yet'}
+                          {dashboardStats.totalMatches > 0 ? 'Matches scouted' : 'No matches yet'}
                         </p>
                       </>
                     )}

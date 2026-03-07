@@ -190,12 +190,14 @@ export default function BasicAnalysis() {
       const uniqueMatchIds = new Set(sortedScoutingData.map((sd: any) => sd.match_id));
       setUniqueMatchesCount(uniqueMatchIds.size);
 
-      // Calculate team stats from scouting data
+      // Calculate team stats from scouting data. Use all form scores for averages; matches scouted = distinct match_id (not form count).
       const teamsWithStats = allTeams.map((team: any) => {
         const teamScoutingData = sortedScoutingData.filter((sd: any) => sd.team_number === team.team_number);
-        const totalMatches = teamScoutingData.length;
+        const uniqueMatchIds = new Set(teamScoutingData.map((sd: any) => sd.match_id).filter(Boolean));
+        const totalMatches = uniqueMatchIds.size; // matches scouted from data (distinct match_id)
+        const formCount = teamScoutingData.length; // all forms submitted for this team
 
-        if (totalMatches === 0) {
+        if (formCount === 0) {
           return {
             team_number: team.team_number,
             team_name: team.team_name,
@@ -209,16 +211,17 @@ export default function BasicAnalysis() {
           };
         }
 
-        const avgAutonomous = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.autonomous_points || 0), 0) / totalMatches;
-        const avgTeleop = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.teleop_points || 0), 0) / totalMatches;
-        const avgTotal = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.final_score || 0), 0) / totalMatches;
-        const avgDefense = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.defense_rating || 0), 0) / totalMatches;
+        // Averages use all form scores (every submission)
+        const avgAutonomous = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.autonomous_points || 0), 0) / formCount;
+        const avgTeleop = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.teleop_points || 0), 0) / formCount;
+        const avgTotal = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.final_score || 0), 0) / formCount;
+        const avgDefense = teamScoutingData.reduce((sum: number, sd: any) => sum + (sd.defense_rating || 0), 0) / formCount;
         const downtimeValues = teamScoutingData.map((sd: any) => sd.average_downtime).filter((v: any) => v != null && !Number.isNaN(Number(v)));
         const avgDowntime = downtimeValues.length > 0
           ? downtimeValues.reduce((s: number, v: number) => s + Number(v), 0) / downtimeValues.length
           : null;
-        const brokeCount = teamScoutingData.filter((sd: any) => sd.broke === true).length;
-        const brokeRate = totalMatches > 0 ? Math.round((brokeCount / totalMatches) * 100) : 0;
+        const brokeMatchIds = new Set(teamScoutingData.filter((sd: any) => sd.broke === true).map((sd: any) => sd.match_id));
+        const brokeRate = totalMatches > 0 ? Math.round((brokeMatchIds.size / totalMatches) * 100) : 0;
         const rebuilt = computeRebuiltMetrics(teamScoutingData);
 
         return {
@@ -231,7 +234,7 @@ export default function BasicAnalysis() {
           avg_defense_rating: avgDefense,
           avg_downtime: avgDowntime,
           avg_downtime_sec: rebuilt.avg_downtime_sec,
-          broke_count: rebuilt.broke_count,
+          broke_count: brokeMatchIds.size,
           broke_rate: brokeRate,
           avg_auto_fuel: rebuilt.avg_auto_fuel,
           avg_teleop_fuel: rebuilt.avg_teleop_fuel,

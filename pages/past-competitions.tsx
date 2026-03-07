@@ -426,54 +426,40 @@ export default function PastCompetitionsPage() {
                           </thead>
                           <tbody>
                             {(() => {
-                              // Calculate team statistics from scouting data
-                              const teamStatsMap = new Map();
-                              
-                              // Initialize team stats
-                              selectedCompetition.teams.forEach(team => {
-                                teamStatsMap.set(team.team_number, {
-                                  team_number: team.team_number,
-                                  team_name: team.team_name,
-                                  total_matches: 0,
-                                  scores: [],
-                                  autonomous_points: [],
-                                  teleop_points: [],
-                                  endgame_points: [],
-                                  defense_ratings: []
-                                });
+                              // Calculate team statistics: total_matches = distinct match_id; averages use all form scores
+                              const teamToRecords = new Map<number, any[]>();
+                              selectedCompetition.teams.forEach((team: { team_number: number; team_name: string }) => {
+                                teamToRecords.set(team.team_number, []);
+                              });
+                              selectedCompetition.scoutingData.forEach((data: any) => {
+                                const arr = teamToRecords.get(data.team_number);
+                                if (arr) arr.push(data);
                               });
 
-                              // Aggregate scouting data
-                              selectedCompetition.scoutingData.forEach(data => {
-                                const teamStat = teamStatsMap.get(data.team_number);
-                                if (teamStat) {
-                                  teamStat.total_matches++;
-                                  teamStat.scores.push(data.final_score || 0);
-                                  teamStat.autonomous_points.push(data.autonomous_points || 0);
-                                  teamStat.teleop_points.push(data.teleop_points || 0);
-                                  teamStat.endgame_points.push(0); // endgame_points not in database schema
-                                  teamStat.defense_ratings.push(data.defense_rating || 0);
-                                }
-                              });
-
-                              // Calculate averages and return sorted by average score
-                              return Array.from(teamStatsMap.values())
-                                .filter(stat => stat.total_matches > 0)
-                                .map(stat => {
-                                  const avgScore = stat.scores.reduce((sum: number, val: number) => sum + val, 0) / stat.total_matches;
-                                  const avgAuto = stat.autonomous_points.reduce((sum: number, val: number) => sum + val, 0) / stat.total_matches;
-                                  const avgTeleop = stat.teleop_points.reduce((sum: number, val: number) => sum + val, 0) / stat.total_matches;
-                                  const avgEndgame = stat.endgame_points.reduce((sum: number, val: number) => sum + val, 0) / stat.total_matches;
-                                  const avgDefense = stat.defense_ratings.reduce((sum: number, val: number) => sum + val, 0) / stat.total_matches;
-                                  const bestScore = Math.max(...stat.scores);
-                                  
-                                  // Calculate consistency
-                                  const variance = stat.scores.reduce((sum: number, score: number) => sum + Math.pow(score - avgScore, 2), 0) / stat.total_matches;
-                                  const standardDeviation = Math.sqrt(variance);
-                                  const consistencyScore = Math.max(0, 100 - (standardDeviation / avgScore) * 100);
-
+                              return Array.from(teamToRecords.entries())
+                                .map(([team_number, records]) => {
+                                  const team = selectedCompetition.teams.find((t: any) => t.team_number === team_number);
+                                  const team_name = team?.team_name ?? `Team ${team_number}`;
+                                  if (!records.length) return null;
+                                  const total_matches = new Set(records.map((d: any) => d.match_id).filter(Boolean)).size;
+                                  const scores = records.map((d: any) => d.final_score || 0);
+                                  const autonomous_points = records.map((d: any) => d.autonomous_points || 0);
+                                  const teleop_points = records.map((d: any) => d.teleop_points || 0);
+                                  const endgame_points = records.map(() => 0);
+                                  const defense_ratings = records.map((d: any) => d.defense_rating || 0);
+                                  const n = records.length;
+                                  const avgScore = scores.reduce((sum: number, val: number) => sum + val, 0) / n;
+                                  const avgAuto = autonomous_points.reduce((sum: number, val: number) => sum + val, 0) / n;
+                                  const avgTeleop = teleop_points.reduce((sum: number, val: number) => sum + val, 0) / n;
+                                  const avgEndgame = endgame_points.reduce((sum: number, val: number) => sum + val, 0) / n;
+                                  const avgDefense = defense_ratings.reduce((sum: number, val: number) => sum + val, 0) / n;
+                                  const bestScore = Math.max(...scores);
+                                  const variance = n > 1 ? scores.reduce((sum: number, score: number) => sum + Math.pow(score - avgScore, 2), 0) / n : 0;
+                                  const consistencyScore = avgScore > 0 ? Math.max(0, 100 - (Math.sqrt(variance) / avgScore) * 100) : 0;
                                   return {
-                                    ...stat,
+                                    team_number,
+                                    team_name,
+                                    total_matches,
                                     avg_score: Math.round(avgScore * 100) / 100,
                                     avg_auto: Math.round(avgAuto * 100) / 100,
                                     avg_teleop: Math.round(avgTeleop * 100) / 100,
@@ -483,7 +469,8 @@ export default function PastCompetitionsPage() {
                                     consistency: Math.round(consistencyScore * 100) / 100
                                   };
                                 })
-                                .sort((a, b) => b.avg_score - a.avg_score)
+                                .filter(Boolean)
+                                .sort((a, b) => (b?.avg_score ?? 0) - (a?.avg_score ?? 0))
                                 .map((team, index) => (
                                   <tr key={team.team_number} className="border-b hover:bg-muted/50 cursor-pointer" onClick={() => window.open(`/team-history/${team.team_number}`, '_blank')}>
                                     <td className="py-2">

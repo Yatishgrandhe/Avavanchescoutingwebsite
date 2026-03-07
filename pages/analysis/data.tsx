@@ -249,6 +249,21 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   };
 
   const calculateTeamStats = (scoutingData: ScoutingData[], teams: Team[]) => {
+    // Build a map of team_number -> team_name from the teams table
+    const teamNameMap = new Map<number, string>();
+    teams.forEach(team => {
+      teamNameMap.set(team.team_number, team.team_name);
+    });
+
+    // Group all scouting data by team. Use ALL form scores for averages; matches scouted = distinct match_id count.
+    const teamToRecords = new Map<number, ScoutingData[]>();
+    scoutingData.forEach(data => {
+      if (!teamToRecords.has(data.team_number)) {
+        teamToRecords.set(data.team_number, []);
+      }
+      teamToRecords.get(data.team_number)!.push(data);
+    });
+
     const teamStatsMap = new Map<number, {
       team_number: number;
       team_name: string;
@@ -262,83 +277,78 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       downtime_values: (number | null)[];
       broke_count: number;
       teleop_fuel_shifts: number[][];
+      recordsUsed: ScoutingData[];
     }>();
 
-    // Build a map of team_number -> team_name from the teams table
-    const teamNameMap = new Map<number, string>();
-    teams.forEach(team => {
-      teamNameMap.set(team.team_number, team.team_name);
+    teamToRecords.forEach((records, teamNumber) => {
+      const teamName = teamNameMap.get(teamNumber) || `Team ${teamNumber}`;
+      // Matches scouted = distinct match_id count (from database), not form count
+      const uniqueMatchIds = new Set(records.map(r => r.match_id ?? '').filter(Boolean));
+      const total_matches = uniqueMatchIds.size;
+      // Broke count = number of distinct matches where robot broke (not number of forms)
+      const broke_count = new Set(records.filter(r => r.broke === true).map(r => r.match_id ?? '')).size;
+
+      const teamStat = {
+        team_number: teamNumber,
+        team_name: teamName,
+        total_matches,
+        autonomous_points: [] as number[],
+        teleop_points: [] as number[],
+        total_scores: [] as number[],
+        defense_ratings: [] as number[],
+        autonomous_cleansing: [] as number[],
+        teleop_cleansing: [] as number[],
+        downtime_values: [] as (number | null)[],
+        broke_count,
+        teleop_fuel_shifts: [] as number[][],
+        recordsUsed: records
+      };
+      records.forEach(data => {
+        teamStat.autonomous_points.push(data.autonomous_points || 0);
+        teamStat.teleop_points.push(data.teleop_points || 0);
+        teamStat.total_scores.push(data.final_score || 0);
+        teamStat.defense_ratings.push(data.defense_rating || 0);
+        teamStat.autonomous_cleansing.push(data.autonomous_cleansing ?? 0);
+        teamStat.teleop_cleansing.push(data.teleop_cleansing ?? 0);
+        if (data.average_downtime != null && !Number.isNaN(Number(data.average_downtime))) {
+          teamStat.downtime_values.push(Number(data.average_downtime));
+        }
+        const formNotes = parseFormNotes(data.notes);
+        const shifts = formNotes.teleop?.teleop_fuel_shifts || [];
+        if (shifts.length > 0) {
+          teamStat.teleop_fuel_shifts.push(shifts);
+        }
+      });
+      teamStatsMap.set(teamNumber, teamStat);
     });
 
-    // Aggregate scouting data - include ALL teams that have scouting data
-    // This ensures that second submissions and all match scouting forms are counted
-    scoutingData.forEach(data => {
-      let teamStat = teamStatsMap.get(data.team_number);
-      if (!teamStat) {
-        // Team not yet in map - add it (may not be in teams table yet)
-        const teamName = teamNameMap.get(data.team_number) || `Team ${data.team_number}`;
-        teamStat = {
-          team_number: data.team_number,
-          team_name: teamName,
-          total_matches: 0,
-          autonomous_points: [],
-          teleop_points: [],
-          total_scores: [],
-          defense_ratings: [],
-          autonomous_cleansing: [],
-          teleop_cleansing: [],
-          downtime_values: [],
-          broke_count: 0,
-          teleop_fuel_shifts: []
-        };
-        teamStatsMap.set(data.team_number, teamStat);
-      }
-      teamStat.total_matches++;
-      teamStat.autonomous_points.push(data.autonomous_points || 0);
-      teamStat.teleop_points.push(data.teleop_points || 0);
-      teamStat.total_scores.push(data.final_score || 0);
-      teamStat.defense_ratings.push(data.defense_rating || 0);
-      teamStat.autonomous_cleansing.push(data.autonomous_cleansing ?? 0);
-      teamStat.teleop_cleansing.push(data.teleop_cleansing ?? 0);
-      if (data.average_downtime != null && !Number.isNaN(Number(data.average_downtime))) {
-        teamStat.downtime_values.push(Number(data.average_downtime));
-      }
-      if (data.broke === true) teamStat.broke_count++;
-
-      const formNotes = parseFormNotes(data.notes);
-      const shifts = formNotes.teleop?.teleop_fuel_shifts || [];
-      if (shifts.length > 0) {
-        teamStat.teleop_fuel_shifts.push(shifts);
-      }
-    });
-
-    // Calculate averages and statistics
+    // Calculate averages and statistics (use all form scores; denominator = number of forms)
+    const scoreCount = (stat: { total_scores: number[] }) => stat.total_scores.length || 1;
     return Array.from(teamStatsMap.values()).map(stat => {
-      const avgAutonomous = stat.autonomous_points.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
-      const avgTeleop = stat.teleop_points.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
-      const avgTotal = stat.total_scores.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
-      const avgDefense = stat.defense_ratings.reduce((sum, val) => sum + val, 0) / stat.total_matches || 0;
+      const n = scoreCount(stat);
+      const avgAutonomous = stat.autonomous_points.reduce((sum, val) => sum + val, 0) / n || 0;
+      const avgTeleop = stat.teleop_points.reduce((sum, val) => sum + val, 0) / n || 0;
+      const avgTotal = stat.total_scores.reduce((sum, val) => sum + val, 0) / n || 0;
+      const avgDefense = stat.defense_ratings.reduce((sum, val) => sum + val, 0) / n || 0;
       const downtimeVals = stat.downtime_values.filter((v): v is number => v != null);
       const avgDowntime = downtimeVals.length > 0
         ? downtimeVals.reduce((s, v) => s + v, 0) / downtimeVals.length
         : null;
       const brokeRate = stat.total_matches > 0 ? Math.round((stat.broke_count / stat.total_matches) * 100) : 0;
 
-      const bestScore = Math.max(...stat.total_scores);
-      const worstScore = Math.min(...stat.total_scores);
+      const bestScore = stat.total_scores.length ? Math.max(...stat.total_scores) : 0;
+      const worstScore = stat.total_scores.length ? Math.min(...stat.total_scores) : 0;
 
-      // Calculate consistency (lower coefficient of variation = higher consistency; guard div by zero)
-      const variance = stat.total_matches > 1
-        ? stat.total_scores.reduce((sum, score) => sum + Math.pow(score - avgTotal, 2), 0) / stat.total_matches
+      // Consistency from all form scores
+      const variance = stat.total_scores.length > 1
+        ? stat.total_scores.reduce((sum, score) => sum + Math.pow(score - avgTotal, 2), 0) / stat.total_scores.length
         : 0;
       const standardDeviation = Math.sqrt(variance);
-      const consistencyScore = (avgTotal > 0 && stat.total_matches > 0)
+      const consistencyScore = (avgTotal > 0 && stat.total_scores.length > 0)
         ? Math.max(0, Math.min(100, 100 - (standardDeviation / avgTotal) * 100))
         : 0;
 
-      const rebuilt = computeRebuiltMetrics(
-        scoutingData.filter(d => d.team_number === stat.team_number)
-      );
+      const rebuilt = computeRebuiltMetrics(stat.recordsUsed);
       return {
         team_number: stat.team_number,
         team_name: stat.team_name,

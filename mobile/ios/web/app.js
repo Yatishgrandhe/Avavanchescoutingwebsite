@@ -309,22 +309,22 @@
     appEl.innerHTML = '<div class="loading">Loading dashboard…</div>';
     let teams = [], matches = [], scouting = [], activity = [];
     try {
-      const [t, m, s, a] = await Promise.all([
+      const [t, s, a] = await Promise.all([
         supabase.from('teams').select('team_number,team_name').order('team_number'),
-        supabase.from('matches').select('match_id'),
-        supabase.from('scouting_data').select('match_id').order('created_at', { ascending: false }).limit(100),
+        supabase.from('scouting_data').select('match_id').order('created_at', { ascending: false }),
         supabase.from('scouting_data').select('id,team_number,match_id,created_at,matches(match_number,event_key),teams(team_name)').order('created_at', { ascending: false }).limit(5)
       ]);
       teams = t.data || [];
-      matches = m.data || [];
       scouting = s.data || [];
       activity = a.data || [];
     } catch (e) {
       console.error(e);
     }
-    const totalMatches = matches.length;
-    const uniqueWithData = new Set(scouting.map(x => x.match_id)).size;
-    const successRate = totalMatches > 0 ? Math.round(uniqueWithData / totalMatches * 100) : 0;
+    // Matches scouted = distinct match_id from scouting_data (from DB), not form count or event match list
+    const matchesScouted = new Set((scouting || []).map(x => x.match_id).filter(Boolean)).size;
+    const totalMatches = matchesScouted;
+    const formCount = (scouting || []).length;
+    const successRate = formCount > 0 ? 100 : 0;
     const userName = (currentSession && currentSession.user && (currentSession.user.user_metadata?.full_name || currentSession.user.email || 'Scout').split(' ')[0]) || 'Scout';
     const activityHtml = activity.length
       ? activity.map(row => `
@@ -338,9 +338,9 @@
       `).join('')
       : '<div class="empty-state"><p class="mb-0">No recent activity</p></div>';
     const statsOverviewHtml = `
-      <div class="flex justify-between mb-2"><span class="card-desc">Total Matches</span><span class="card-title" style="margin:0;font-size:0.875rem;">${totalMatches}</span></div>
+      <div class="flex justify-between mb-2"><span class="card-desc">Matches Scouted</span><span class="card-title" style="margin:0;font-size:0.875rem;">${totalMatches}</span></div>
       <div class="flex justify-between mb-2"><span class="card-desc">Teams Tracked</span><span class="card-title" style="margin:0;font-size:0.875rem;">${teams.length}</span></div>
-      <div class="flex justify-between mb-2"><span class="card-desc">Data Points</span><span class="card-title" style="margin:0;font-size:0.875rem;">${scouting.length}</span></div>
+      <div class="flex justify-between mb-2"><span class="card-desc">Form Submissions</span><span class="card-title" style="margin:0;font-size:0.875rem;">${formCount}</span></div>
       <div class="flex justify-between mt-2 pt-2" style="border-top:1px solid var(--border);"><span class="card-title" style="margin:0;font-size:0.875rem;">Success Rate</span><span class="badge ${successRate > 80 ? 'badge-online' : ''}">${successRate}%</span></div>
     `;
     appEl.innerHTML = `
@@ -359,9 +359,9 @@
         </div>
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-label">Total Matches</div>
+            <div class="stat-label">Matches Scouted</div>
             <div class="stat-value">${totalMatches}</div>
-            <p class="card-desc mb-0" style="font-size:0.75rem;">Matches scouted</p>
+            <p class="card-desc mb-0" style="font-size:0.75rem;">From database</p>
           </div>
           <div class="stat-card">
             <div class="stat-label">Teams Tracked</div>
@@ -525,10 +525,11 @@
       const teamStats = teams.map(team => {
         const entries = byTeam[team.team_number] || [];
         if (!entries.length) return null;
+        const matchCount = new Set(entries.map(e => e.match_id).filter(Boolean)).size; // matches scouted, not form count
         const avgAuto = entries.reduce((s, e) => s + (e.autonomous_points || 0), 0) / entries.length;
         const avgTeleop = entries.reduce((s, e) => s + (e.teleop_points || 0), 0) / entries.length;
         const avgFinal = entries.reduce((s, e) => s + (e.final_score || 0), 0) / entries.length;
-        return { team, count: entries.length, avgAuto, avgTeleop, avgFinal };
+        return { team, count: matchCount, avgAuto, avgTeleop, avgFinal };
       }).filter(Boolean);
       const dataRows = filtered.slice(0, 50).map(r => `
         <div class="link-row">

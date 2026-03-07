@@ -71,13 +71,19 @@ interface TeamComparison {
   epa?: number;
 }
 
-/** Build TeamComparison from scouting rows (for competition-scoped comparison). */
+/** Build TeamComparison from scouting rows (for competition-scoped comparison). Uses all form scores; total_matches = distinct match_id. */
 function buildTeamComparisonFromRows(
   teamNumber: number,
   teamName: string,
   scoutingData: any[],
 ): TeamComparison {
-  const totalMatches = scoutingData.length;
+  const formCount = scoutingData.length;
+  const uniqueMatchIds = new Set(scoutingData.map((m: any) => m.match_id).filter(Boolean));
+  const totalMatches = uniqueMatchIds.size; // matches scouted, not form count
+  const brokeMatchIds = new Set(scoutingData.filter((m: any) => m.broke === true).map((m: any) => m.match_id));
+  const brokeCount = brokeMatchIds.size;
+  const brokeRate = totalMatches > 0 ? Math.round((brokeCount / totalMatches) * 100) : 0;
+
   const scores = scoutingData.map((m: any) => m.final_score || 0);
   const autonomousScores = scoutingData.map((m: any) => m.autonomous_points || 0);
   const teleopScores = scoutingData.map((m: any) => m.teleop_points || 0);
@@ -87,18 +93,17 @@ function buildTeamComparisonFromRows(
   const avgDowntime = downtimeValues.length > 0
     ? downtimeValues.reduce((s: number, v: number) => s + Number(v), 0) / downtimeValues.length
     : null;
-  const brokeCount = scoutingData.filter((m: any) => m.broke === true).length;
-  const brokeRate = totalMatches > 0 ? Math.round((brokeCount / totalMatches) * 100) : 0;
   const rebuilt = computeRebuiltMetrics(scoutingData);
-  const avgAutonomous = autonomousScores.reduce((a: number, b: number) => a + b, 0) / totalMatches;
-  const avgTeleop = teleopScores.reduce((a: number, b: number) => a + b, 0) / totalMatches;
-  const avgEndgame = endgameScores.reduce((a: number, b: number) => a + b, 0) / totalMatches;
-  const avgTotal = scores.reduce((a: number, b: number) => a + b, 0) / totalMatches;
-  const avgDefense = defenseRatings.reduce((a: number, b: number) => a + b, 0) / totalMatches;
-  const variance = totalMatches > 1
-    ? scores.reduce((sum: number, s: number) => sum + Math.pow(s - avgTotal, 2), 0) / totalMatches
+  const n = formCount || 1; // use all form scores for averages
+  const avgAutonomous = autonomousScores.reduce((a: number, b: number) => a + b, 0) / n;
+  const avgTeleop = teleopScores.reduce((a: number, b: number) => a + b, 0) / n;
+  const avgEndgame = endgameScores.reduce((a: number, b: number) => a + b, 0) / n;
+  const avgTotal = scores.reduce((a: number, b: number) => a + b, 0) / n;
+  const avgDefense = defenseRatings.reduce((a: number, b: number) => a + b, 0) / n;
+  const variance = scores.length > 1
+    ? scores.reduce((sum: number, s: number) => sum + Math.pow(s - avgTotal, 2), 0) / scores.length
     : 0;
-  const consistencyScore = (avgTotal > 0 && totalMatches > 0)
+  const consistencyScore = (avgTotal > 0 && scores.length > 0)
     ? Math.max(0, Math.min(100, 100 - (Math.sqrt(variance) / avgTotal) * 100))
     : 0;
   return {
@@ -112,7 +117,7 @@ function buildTeamComparisonFromRows(
     avg_defense_rating: Math.round(avgDefense * 100) / 100,
     avg_downtime: avgDowntime != null ? Math.round(avgDowntime * 100) / 100 : null,
     avg_downtime_sec: rebuilt.avg_downtime_sec,
-    broke_count: rebuilt.broke_count,
+    broke_count: brokeCount,
     broke_rate: brokeRate,
     avg_auto_fuel: rebuilt.avg_auto_fuel,
     avg_teleop_fuel: rebuilt.avg_teleop_fuel,

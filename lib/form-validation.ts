@@ -129,22 +129,12 @@ export const pitScoutingRules = {
     }
   },
   autonomousCapabilities: {
-    required: true,
-    custom: (value: string[]) => {
-      if (!value || value.length === 0) {
-        return 'At least one autonomous capability is required';
-      }
-      return null;
-    }
+    required: false,
+    custom: () => null,
   },
   teleopCapabilities: {
-    required: true,
-    custom: (value: string[]) => {
-      if (!value || value.length === 0) {
-        return 'At least one teleop capability is required';
-      }
-      return null;
-    }
+    required: false,
+    custom: () => null,
   },
   canClimb: {
     required: false,

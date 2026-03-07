@@ -101,25 +101,8 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
                 </div>
               </div>
 
-              {/* Average Downtime & Broke */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Downtime (sec)</h3>
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.001}
-                    value={formData.average_downtime ?? ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                      const v = e.target.value;
-                      handleInputChange('average_downtime', v === '' ? null : parseFloat(v));
-                    }}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 font-mono text-sm focus:ring-1 focus:ring-primary outline-none transition-all"
-                    placeholder="0.0"
-                  />
-                </div>
-
-                <div className="space-y-2">
+              {/* Robot Broke */}
+              <div className="space-y-2">
                   <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Robot Broke?</h3>
                   <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 h-[42px]">
                     <button
@@ -144,7 +127,6 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
                     </button>
                   </div>
                 </div>
-              </div>
             </div>
 
             {/* Comments */}
@@ -157,26 +139,6 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
                 placeholder="Notes on robot behavior, specific scores missed, etc..."
               />
             </div>
-          </div>
-
-          {/* Average Downtime */}
-          <div className="space-y-2 sm:space-y-4">
-            <h3 className="text-foreground font-semibold text-base sm:text-lg">Average Downtime (seconds)</h3>
-            <input
-              type="number"
-              min={0}
-              step={0.5}
-              value={formData.average_downtime ?? ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                const v = e.target.value;
-                handleInputChange('average_downtime', v === '' ? null : parseFloat(v));
-              }}
-              className="w-full max-w-xs bg-background border border-border text-foreground rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary text-sm sm:text-base"
-              placeholder="e.g. 15 (leave blank if none)"
-            />
-            <p className="text-muted-foreground text-xs sm:text-sm">
-              Estimated average time the robot was disabled or not operating (in seconds). Leave blank if no significant downtime.
-            </p>
           </div>
 
           {/* Game Mechanics (Simplified) */}

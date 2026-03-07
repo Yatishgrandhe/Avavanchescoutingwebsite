@@ -428,13 +428,12 @@ export default function BasicAnalysis() {
                   <CardTitle className="text-base text-white">Overview metrics — how they are calculated</CardTitle>
                 </CardHeader>
                 <CardContent className="text-xs text-slate-300 space-y-1">
-                  <p><strong className="text-white">AVG AUTO</strong> — Average fuel (game pieces) scored during the 15-second autonomous period.</p>
-                  <p><strong className="text-white">AVG TELEOP</strong> — Average fuel scored during the 2:15 teleop period.</p>
+                  <p><strong className="text-white">AUTO EPA</strong> — Expected points from autonomous phase (average autonomous points per match).</p>
+                  <p><strong className="text-white">TELEOP EPA</strong> — Expected points from teleop phase (average teleop points per match).</p>
                   <p><strong className="text-white">MATCHES SCOUTED</strong> — Total count of matches for which scouting data has been submitted.</p>
                   <p><strong className="text-white">AVG CLIMB</strong> — Average point value earned from climbing at end of match.</p>
                   <p><strong className="text-white">AUTO CLIMB</strong> — Points earned for climbing/moving during autonomous.</p>
                   <p><strong className="text-white">TELEOP CLIMB</strong> — Points earned for climbing during end-game/teleop.</p>
-                  <p><strong className="text-white">AVG UPTIME</strong> — Average % of match time the robot was functional and active.</p>
                   <p><strong className="text-white">AVG DOWNTIME</strong> — Average time (seconds) per match robot was disabled.</p>
                   <p><strong className="text-white">BROKE</strong> — Count of matches where robot suffered failure (e.g. X/N or rate).</p>
                 </CardContent>
@@ -508,13 +507,12 @@ export default function BasicAnalysis() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Team</TableHead>
-                        <TableHead className="text-[9px]">Average auto</TableHead>
-                        <TableHead className="text-[9px]">Average teleop</TableHead>
+                        <TableHead className="text-[9px]">Auto EPA</TableHead>
+                        <TableHead className="text-[9px]">Teleop EPA</TableHead>
                         <TableHead className="text-[9px]">Matches Scouted</TableHead>
                         <TableHead className="text-[9px]">AVG CLIMB</TableHead>
                         <TableHead className="text-[9px]">AUTO CLIMB</TableHead>
                         <TableHead className="text-[9px]">TELEOP CLIMB</TableHead>
-                        <TableHead className="text-[9px]">AVG UPTIME</TableHead>
                         <TableHead className="text-[9px]">AVG DOWNTIME</TableHead>
                         <TableHead className="text-[9px]">BROKE</TableHead>
                         <TableHead>Average total</TableHead>
@@ -542,7 +540,6 @@ export default function BasicAnalysis() {
                           <TableCell className="text-sm">{team.avg_climb_pts ?? '—'}</TableCell>
                           <TableCell className="text-sm">{team.avg_auto_climb_pts ?? '—'}</TableCell>
                           <TableCell className="text-sm">{team.avg_teleop_climb_pts ?? '—'}</TableCell>
-                          <TableCell className="text-sm">{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</TableCell>
                           <TableCell className="text-sm">{team.avg_downtime_sec != null ? `${team.avg_downtime_sec}s` : (team.avg_downtime != null ? `${Number(team.avg_downtime).toFixed(1)}s` : '—')}</TableCell>
                           <TableCell className="text-sm">{team.total_matches ? `${team.broke_count ?? 0}/${team.total_matches}` : '—'}</TableCell>
                           <TableCell className="font-medium">{team.avg_total_score ?? 0}</TableCell>

@@ -357,7 +357,7 @@ export default function PitScoutingMobile() {
       } catch {}
       setSubmitSuccess(true);
       
-      // Reset form after successful submission
+      // Refresh page after successful submission
       setTimeout(() => {
         setFormData({
           teamNumber: 0,
@@ -384,9 +384,7 @@ export default function PitScoutingMobile() {
           weaknesses: [],
           overallRating: 1,
         });
-        setCurrentStep(1);
-        setSubmitSuccess(false);
-        router.push('/');
+        window.location.href = '/';
       }, 2000);
       
     } catch (error) {

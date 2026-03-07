@@ -476,37 +476,10 @@ export default function PitScouting() {
       setTimeout(() => {
         exportedAnnotatedBlobRef.current = null;
         if (isEditMode) {
-          router.push('/pit-scouting-data');
+          window.location.href = '/pit-scouting-data';
         } else {
-          setFormData({
-            teamNumber: 0,
-            robotName: '',
-            robotImageUrl: null,
-            photos: [],
-            autoPaths: [],
-            annotatedImageUrl: null,
-            climbLocation: '',
-            driveType: '',
-            driveTrainOther: '',
-            autonomousCapabilities: [],
-            teleopCapabilities: [],
-            canAutoalign: false,
-            canClimb: false,
-            climbLevels: [],
-            navigationLocations: [],
-            ballHoldAmount: 0,
-            downtimeStrategy: [],
-            robotDimensions: { height: 0 },
-            weight: 0,
-            cameraCount: 0,
-            shootingLocations: [],
-            programmingLanguage: '',
-            notes: '',
-          });
-          setCurrentStep(1);
+          window.location.reload();
         }
-        setSubmitSuccess(false);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 2000);
 
     } catch (error) {

@@ -56,8 +56,11 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
   className,
 }: AutoPathAnnotatorProps, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
+  /** Wrapper that includes drawing area + toolbar + paths list; used for fullscreen so controls stay visible */
+  const fullscreenWrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const pathsRef = useRef<AutoPath[]>(paths);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mode, setMode] = useState<'idle' | 'drawing' | 'eraser'>('idle');
   /** Current path as segments - each segment is one continuous stroke */
@@ -76,6 +79,10 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
   );
   const lastPointRef = useRef<PathPoint | null>(null);
   const isPointerDownRef = useRef(false);
+
+  useEffect(() => {
+    pathsRef.current = paths;
+  }, [paths]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -370,11 +377,12 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
   }, []);
 
   const undoLastPath = useCallback(() => {
-    if (paths.length === 0) return;
-    const last = paths[paths.length - 1];
-    onPathsChange(paths.slice(0, -1));
-    setSelectedPathId((current) => (current === last.id ? (paths.length > 1 ? paths[paths.length - 2].id : null) : current));
-  }, [paths, onPathsChange]);
+    const currentPaths = pathsRef.current;
+    if (currentPaths.length === 0) return;
+    const last = currentPaths[currentPaths.length - 1];
+    onPathsChange(currentPaths.slice(0, -1));
+    setSelectedPathId((current) => (current === last.id ? (currentPaths.length > 1 ? currentPaths[currentPaths.length - 2].id : null) : current));
+  }, [onPathsChange]);
 
   /** Single Undo action: while drawing, undo last point; otherwise undo last completed path */
   const handleUndo = useCallback(() => {
@@ -420,8 +428,8 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
   );
 
   const toggleFullscreen = () => {
-    const container = containerRef.current;
-    if (!container) return;
+    const wrapper = fullscreenWrapperRef.current;
+    if (!wrapper) return;
     if (isFullscreen || pseudoFullscreen) {
       if (document.fullscreenElement) document.exitFullscreen?.();
       setPseudoFullscreen(false);
@@ -429,12 +437,12 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
       return;
     }
     const enterFullscreen = () => {
-      container.requestFullscreen?.().then(() => setIsFullscreen(true)).catch(() => {
+      wrapper.requestFullscreen?.().then(() => setIsFullscreen(true)).catch(() => {
         setPseudoFullscreen(true);
         setIsFullscreen(true);
       });
     };
-    if (typeof container.requestFullscreen === 'function') {
+    if (typeof wrapper.requestFullscreen === 'function') {
       enterFullscreen();
     } else {
       setPseudoFullscreen(true);
@@ -524,8 +532,85 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
   const currentTotalPoints = currentSegments.flat().length;
   const canUndo = (mode === 'drawing' && currentTotalPoints > 1) || (paths.length > 0);
 
+  const inFullscreen = isFullscreen || pseudoFullscreen;
+
   return (
     <div className={cn('flex flex-col gap-4', className)}>
+      <div
+        ref={fullscreenWrapperRef}
+        className={cn(
+          'flex flex-col gap-4',
+          inFullscreen && 'h-[100dvh] max-h-[100dvh] overflow-auto bg-background'
+        )}
+        style={
+          inFullscreen
+            ? pseudoFullscreen
+              ? { position: 'fixed', inset: 0, zIndex: 9999, width: '100vw', height: '100dvh' }
+              : { height: '100%', minHeight: '100dvh' }
+            : undefined
+        }
+      >
+        {/* Drawing area — top in fullscreen */}
+        <div
+          ref={containerRef}
+          className={cn(
+            'relative w-full rounded-xl overflow-hidden bg-muted/50',
+            'min-h-[320px] sm:min-h-[400px]',
+            inFullscreen && 'flex-1 min-h-[240px] shrink-0'
+          )}
+          style={{
+            ...(inFullscreen ? { maxHeight: inFullscreen ? '60vh' : undefined } : { maxHeight: 500 }),
+          }}
+        >
+        <img
+          ref={(el) => {
+            imageRef.current = el;
+            if (!el) return;
+            if (el.complete && el.naturalWidth > 0) setImgLoaded(true);
+            else {
+              el.onload = () => setImgLoaded(true);
+              el.onerror = () => setImgError(true);
+            }
+          }}
+          src={resolvedFieldSrc}
+          alt="2026 REBUILT field"
+          className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+          crossOrigin="anonymous"
+          draggable={false}
+          aria-hidden
+        />
+        {imgError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-xl text-muted-foreground text-sm p-4 text-center">
+            Field image could not be loaded. You can still draw paths on the canvas.
+          </div>
+        )}
+        <canvas
+          ref={canvasRef}
+          className={cn(
+            'absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 touch-none select-none',
+            mode === 'eraser' ? 'cursor-cell' : 'cursor-crosshair'
+          )}
+          style={{ touchAction: 'none' }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerLeave}
+        />
+        {inFullscreen && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="absolute top-3 right-3 z-10 shadow-lg"
+            onClick={toggleFullscreen}
+          >
+            <Minimize2 className="w-4 h-4 mr-1" />
+            Exit fullscreen
+          </Button>
+        )}
+      </div>
+
+      {/* Toolbar: under the image in fullscreen so user can control drawing and finalize paths */}
       <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
@@ -577,68 +662,6 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
           {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           <span className="ml-1">{isFullscreen ? 'Exit' : 'Fullscreen'}</span>
         </Button>
-      </div>
-
-      <div
-        ref={containerRef}
-        className={cn(
-          'relative w-full rounded-xl overflow-hidden bg-muted/50',
-          'min-h-[320px] sm:min-h-[400px]'
-        )}
-        style={{
-          ...(pseudoFullscreen
-            ? { position: 'fixed', inset: 0, zIndex: 9999, width: '100vw', height: '100dvh', maxHeight: '100dvh', borderRadius: 0 }
-            : isFullscreen
-              ? { width: '100%', height: '100%', minHeight: '100dvh', maxHeight: '100dvh' }
-              : { maxHeight: 500 }),
-        }}
-      >
-        <img
-          ref={(el) => {
-            imageRef.current = el;
-            if (!el) return;
-            if (el.complete && el.naturalWidth > 0) setImgLoaded(true);
-            else {
-              el.onload = () => setImgLoaded(true);
-              el.onerror = () => setImgError(true);
-            }
-          }}
-          src={resolvedFieldSrc}
-          alt="2026 REBUILT field"
-          className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-          crossOrigin="anonymous"
-          draggable={false}
-          aria-hidden
-        />
-        {imgError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-xl text-muted-foreground text-sm p-4 text-center">
-            Field image could not be loaded. You can still draw paths on the canvas.
-          </div>
-        )}
-        <canvas
-          ref={canvasRef}
-          className={cn(
-            'absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 touch-none select-none',
-            mode === 'eraser' ? 'cursor-cell' : 'cursor-crosshair'
-          )}
-          style={{ touchAction: 'none' }}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerLeave}
-        />
-        {isFullscreen && (
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="absolute top-3 right-3 z-10 shadow-lg"
-            onClick={toggleFullscreen}
-          >
-            <Minimize2 className="w-4 h-4 mr-1" />
-            Exit fullscreen
-          </Button>
-        )}
       </div>
 
       <p className="text-xs text-muted-foreground">
@@ -699,6 +722,7 @@ export const AutoPathAnnotator = forwardRef<AutoPathAnnotatorRef, AutoPathAnnota
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 });

@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { PickList, PickListTeam } from '@/lib/types';
-import { CURRENT_EVENT_KEY } from '@/lib/constants';
+import { CURRENT_EVENT_KEY, PICKLIST_BLOCKED_ADMIN_USER_IDS } from '@/lib/constants';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -25,6 +25,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   
   if (error || !user) {
     res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  if (PICKLIST_BLOCKED_ADMIN_USER_IDS.includes(user.id)) {
+    res.status(403).json({ error: 'Access to pick lists is not allowed for this account.' });
     return;
   }
 

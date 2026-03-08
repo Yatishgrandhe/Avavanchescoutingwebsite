@@ -41,11 +41,13 @@ interface SidebarProps {
     image?: string;
   };
   isAdmin?: boolean;
+  canAccessPickList?: boolean;
 }
 
 const AppSidebar: React.FC<SidebarProps> = ({
   user,
-  isAdmin = false
+  isAdmin = false,
+  canAccessPickList = false
 }) => {
   const router = useRouter();
   const { state } = useSidebar();
@@ -82,20 +84,20 @@ const AppSidebar: React.FC<SidebarProps> = ({
         },
       ],
     },
-    ...(isAdmin ? [{
+    ...(isAdmin || canAccessPickList ? [{
       title: 'Strategy',
       items: [
-        {
+        ...(canAccessPickList ? [{
           label: 'Pick Lists',
           href: '/pick-list',
           icon: List,
-        },
-        {
+        }] : []),
+        ...(isAdmin ? [{
           label: 'Scouting Stats',
           href: '/admin/scouting-stats',
           icon: Users,
-        },
-      ],
+        }] : []),
+      ].filter(Boolean),
     }] : []),
     {
       title: 'Analysis',

@@ -15,7 +15,7 @@ import { Plus, List, Trophy, Target, Users, GraduationCap, Shield, AlertCircle, 
 export default function PickListMobilePage() {
   const router = useRouter();
   const { supabase, user, session } = useSupabase();
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  const { canAccessPickList, loading: adminLoading } = useAdmin();
   const [pickLists, setPickLists] = useState<PickListType[]>([]);
   const [selectedPickList, setSelectedPickList] = useState<PickListType | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -24,10 +24,10 @@ export default function PickListMobilePage() {
   const [showEducation, setShowEducation] = useState(false);
 
   useEffect(() => {
-    if (session && isAdmin) {
+    if (session && canAccessPickList) {
       loadPickLists();
     }
-  }, [session, isAdmin]);
+  }, [session, canAccessPickList]);
 
   const loadPickLists = async () => {
     if (!session) return;
@@ -135,7 +135,7 @@ export default function PickListMobilePage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canAccessPickList) {
     return (
       <div className="min-h-screen bg-background">
         <div className="flex items-center justify-center h-64">

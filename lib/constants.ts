@@ -9,3 +9,6 @@ export const CURRENT_EVENT_KEY = '2026cabbbarus';
 
 /** Current event display name (e.g. shown in UI and in Google Drive uploads). */
 export const CURRENT_EVENT_NAME = 'Cabbbarus 2026';
+
+/** Supabase auth user IDs of admins who are blocked from the pick list page (e.g. Colin). Only these admins are denied; all other admins can access. */
+export const PICKLIST_BLOCKED_ADMIN_USER_IDS: string[] = ['e9cf2206-eb46-4d49-8948-d005e4698e6f'];

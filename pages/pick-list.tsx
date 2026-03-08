@@ -32,7 +32,7 @@ import {
 export default function PickListPage() {
   const router = useRouter();
   const { session } = useSupabase();
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  const { isAdmin, canAccessPickList, loading: adminLoading } = useAdmin();
   const [pickLists, setPickLists] = useState<PickListType[]>([]);
   const [selectedPickList, setSelectedPickList] = useState<PickListType | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -42,10 +42,10 @@ export default function PickListPage() {
   const [isListsCollapsed, setIsListsCollapsed] = useState(false);
 
   useEffect(() => {
-    if (session && isAdmin) {
+    if (session && canAccessPickList) {
       loadPickLists();
     }
-  }, [session, isAdmin]);
+  }, [session, canAccessPickList]);
 
   const loadPickLists = async () => {
     if (!session) return;
@@ -154,7 +154,7 @@ export default function PickListPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canAccessPickList) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">

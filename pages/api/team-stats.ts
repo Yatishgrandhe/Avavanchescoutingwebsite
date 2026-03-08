@@ -1,5 +1,24 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+
+async function getRobotImageUrlsByTeam(supabaseClient: SupabaseClient, teamNumbers: number[]): Promise<Map<number, string>> {
+  if (teamNumbers.length === 0) return new Map();
+  const { data: rows } = await supabaseClient
+    .from('pit_scouting_data')
+    .select('team_number, robot_image_url, photos, created_at')
+    .in('team_number', teamNumbers)
+    .order('created_at', { ascending: false });
+
+  const map = new Map<number, string>();
+  for (const row of rows || []) {
+    if (map.has(row.team_number)) continue;
+    const url = (row.robot_image_url && String(row.robot_image_url).trim()) ||
+      (Array.isArray(row.photos) && row.photos[0] ? String(row.photos[0]).trim() : '');
+    if (url) map.set(row.team_number, url);
+  }
+  return map;
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
@@ -51,10 +70,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         console.log('Raw stats from database:', stats?.length || 0, 'teams');
 
+        const teamNumbers = (stats || []).map((s: any) => s.team_number);
+        const imageByTeam = await getRobotImageUrlsByTeam(supabase, teamNumbers);
+
         // Enrich with additional metrics and map column names
         const enrichedStats = (stats || []).map((stat: any) => ({
           team_number: stat.team_number,
           team_name: stat.team_name,
+          robot_image_url: imageByTeam.get(stat.team_number) || null,
           total_matches: stat.match_count || 0,
           avg_autonomous_points: parseFloat(stat.avg_autonomous_points) || 0,
           avg_teleop_points: parseFloat(stat.avg_teleop_points) || 0,

@@ -196,10 +196,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-// Helper function to enrich pick list teams with stats
+// Helper to get one robot image URL per team from pit_scouting_data (latest record with image)
+async function getRobotImageUrlsByTeam(teamNumbers: number[]): Promise<Map<number, string>> {
+  if (teamNumbers.length === 0) return new Map();
+  const { data: rows } = await supabase
+    .from('pit_scouting_data')
+    .select('team_number, robot_image_url, photos, created_at')
+    .in('team_number', teamNumbers)
+    .order('created_at', { ascending: false });
+
+  const map = new Map<number, string>();
+  for (const row of rows || []) {
+    if (map.has(row.team_number)) continue;
+    const url = (row.robot_image_url && String(row.robot_image_url).trim()) ||
+      (Array.isArray(row.photos) && row.photos[0] ? String(row.photos[0]).trim() : '');
+    if (url) map.set(row.team_number, url);
+  }
+  return map;
+}
+
+// Helper function to enrich pick list teams with stats and robot image
 async function enrichPickListWithStats(pickList: any): Promise<PickList> {
   const teams = pickList.teams || [];
-  
+  const teamNumbers = teams.map((t: PickListTeam) => t.team_number);
+  const imageByTeam = await getRobotImageUrlsByTeam(teamNumbers);
+
   const enrichedTeams = await Promise.all(
     teams.map(async (team: PickListTeam) => {
       try {
@@ -210,13 +231,16 @@ async function enrichPickListWithStats(pickList: any): Promise<PickList> {
           .eq('team_number', team.team_number)
           .single();
 
+        const robot_image_url = imageByTeam.get(team.team_number) || null;
+
         if (error || !stats) {
           console.warn(`No stats found for team ${team.team_number}`);
-          return team;
+          return { ...team, robot_image_url };
         }
 
         return {
           ...team,
+          robot_image_url,
           stats: {
             team_number: stats.team_number,
             team_name: stats.team_name,
@@ -226,13 +250,13 @@ async function enrichPickListWithStats(pickList: any): Promise<PickList> {
             avg_endgame_points: parseFloat(stats.avg_endgame_points) || 0,
             avg_total_score: parseFloat(stats.avg_final_score) || 0,
             avg_defense_rating: parseFloat(stats.avg_defense_rating) || 0,
-            win_rate: 0, // Calculate this if needed
-            consistency_score: 0, // Calculate this if needed
+            win_rate: 0,
+            consistency_score: 0,
           },
         };
       } catch (error) {
         console.error(`Error enriching team ${team.team_number}:`, error);
-        return team;
+        return { ...team, robot_image_url: imageByTeam.get(team.team_number) || null };
       }
     })
   );

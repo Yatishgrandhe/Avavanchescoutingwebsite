@@ -63,6 +63,8 @@ function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemPro
     setIsEditingNotes(false);
   };
 
+  const imageUrl = (team.robot_image_url || (team.stats as any)?.robot_image_url)?.trim() || null;
+
   return (
     <div ref={setNodeRef} style={style} className="relative">
       <div className="glass-card p-4 sm:p-6 mb-3 border-l-4 border-l-primary rounded-xl hover:bg-white/5 transition-all duration-300">
@@ -75,6 +77,16 @@ function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemPro
             >
               <GripVertical className="h-5 w-5" />
             </div>
+
+            {imageUrl ? (
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden bg-white/5 flex-shrink-0 border border-white/10">
+                <img src={imageUrl} alt={`Team ${team.team_number} robot`} className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-white/5 flex-shrink-0 border border-white/10 flex items-center justify-center text-muted-foreground/50">
+                <Target className="h-6 w-6" />
+              </div>
+            )}
             
             <div className="flex-1 min-w-0">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
@@ -160,7 +172,7 @@ function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemPro
 }
 
 interface TeamSelectorProps {
-  availableTeams: Array<{ team_number: number; team_name: string; stats?: TeamStats }>;
+  availableTeams: Array<{ team_number: number; team_name: string; stats?: TeamStats; robot_image_url?: string | null }>;
   onAddTeam: (team: PickListTeam) => void;
   selectedTeamNumbers: number[];
 }
@@ -195,6 +207,7 @@ function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSe
         team_name: team.team_name,
         pick_order: 0, // Will be updated when added to list
         stats: team.stats,
+        robot_image_url: team.robot_image_url ?? (team.stats as any)?.robot_image_url ?? null,
       });
       setSelectedTeam(''); // Reset selection
     }
@@ -315,10 +328,11 @@ export function PickList({ pickListId, eventKey = CURRENT_EVENT_KEY, onSave, ses
       
       // Filter out Team Avalanche and map the data
       const teamsWithStats = (statsData.stats || [])
-        .filter((team: any) => !team.team_name.toLowerCase().includes('avalanche'))
+        .filter((team: any) => !team.team_name?.toLowerCase().includes('avalanche'))
         .map((team: any) => ({
           team_number: team.team_number,
           team_name: team.team_name,
+          robot_image_url: team.robot_image_url || null,
           stats: team,
         }));
 

@@ -215,6 +215,8 @@ export interface PickListTeam {
   pick_order: number;
   notes?: string;
   stats?: TeamStats;
+  /** Pit scouting robot image URL for display on pick list */
+  robot_image_url?: string | null;
 }
 
 export interface PickListFilters {

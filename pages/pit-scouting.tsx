@@ -245,7 +245,8 @@ export default function PitScouting() {
 
           if (existingData) {
             const photoArr = Array.isArray(existingData.photos) ? existingData.photos : (existingData.robot_image_url ? [existingData.robot_image_url] : []);
-            const photosPadded: (string | null)[] = [...photoArr.slice(0, 6)];
+            const validUrls = photoArr.filter((p): p is string => typeof p === 'string' && p.trim().length > 0);
+            const photosPadded: (string | null)[] = [...validUrls.slice(0, 6)];
             while (photosPadded.length < 6) photosPadded.push(null);
             const autoPaths = Array.isArray(existingData.auto_paths) ? existingData.auto_paths : [];
             setFormData({
@@ -336,7 +337,8 @@ export default function PitScouting() {
       for (const item of photoItems) {
         if (!item) continue;
         if (typeof item === 'string') {
-          photoUrls.push(item);
+          const url = item.trim();
+          if (url) photoUrls.push(url);
         } else {
           const fd = new FormData();
           fd.append('image', item);
@@ -443,11 +445,13 @@ export default function PitScouting() {
 
       if (isEditMode && editingId) {
         const { submitted_by, submitted_by_email, submitted_by_name, submitted_at, ...updateFields } = submissionData;
-        console.log('Updating existing record:', editingId);
+        const payload = { ...updateFields, robot_image_url: submissionData.robot_image_url, photos: submissionData.photos };
+        console.log('Updating existing record:', editingId, 'robot_image_url:', payload.robot_image_url, 'photos count:', payload.photos?.length);
         const result = await supabase
           .from('pit_scouting_data')
-          .update(updateFields)
-          .eq('id', editingId);
+          .update(payload)
+          .eq('id', editingId)
+          .select();
         error = result.error;
         if (result.data) console.log('Update result:', result.data);
       } else {

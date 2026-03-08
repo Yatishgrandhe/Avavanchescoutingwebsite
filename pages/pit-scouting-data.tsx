@@ -37,6 +37,7 @@ import { useAdmin } from '@/hooks/use-admin';
 export interface PitScoutingData {
   id: string;
   team_number: number;
+  team_name?: string;
   robot_name: string;
   robot_image_url?: string | null;
   photos?: string[];
@@ -114,11 +115,16 @@ export default function PitScoutingData() {
 
         const pitScoutingData = pitScoutingResult.data;
         const teamsData = teamsResult.data || [];
+        const teamNameByNumber = new Map<number, string>();
+        (teamsData as Array<{ team_number: number; team_name: string }>).forEach((t) => {
+          teamNameByNumber.set(t.team_number, t.team_name || '');
+        });
 
-        // Transform the data to match our interface
+        // Transform the data to match our interface (include team_name from teams table)
         const transformedData: PitScoutingData[] = (pitScoutingData || []).map((item: any) => ({
           id: item.id,
           team_number: item.team_number,
+          team_name: teamNameByNumber.get(item.team_number) || undefined,
           robot_name: item.robot_name || 'Unknown Robot',
           robot_image_url: item.robot_image_url || null,
           photos: Array.isArray(item.photos) ? item.photos : (item.robot_image_url ? [item.robot_image_url] : []),
@@ -180,10 +186,12 @@ export default function PitScoutingData() {
     let filtered = pitData;
 
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter(item =>
-        item.robot_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.robot_name.toLowerCase().includes(term) ||
         item.team_number.toString().includes(searchTerm) ||
-        item.drive_type.toLowerCase().includes(searchTerm.toLowerCase())
+        (item.team_name || '').toLowerCase().includes(term) ||
+        item.drive_type.toLowerCase().includes(term)
       );
     }
 
@@ -251,10 +259,13 @@ export default function PitScoutingData() {
         throw new Error(`Failed to load pit scouting data: ${error.message}`);
       }
 
-      // Transform the data to match our interface
+      const teamNameByNumber = new Map<number, string>();
+      allTeams.forEach((t) => { teamNameByNumber.set(t.team_number, t.team_name || ''); });
+
       const transformedData: PitScoutingData[] = (pitScoutingData || []).map((item: any) => ({
         id: item.id,
         team_number: item.team_number,
+        team_name: teamNameByNumber.get(item.team_number) || undefined,
         robot_name: item.robot_name || 'Unknown Robot',
         robot_image_url: item.robot_image_url || null,
         photos: Array.isArray(item.photos) ? item.photos : (item.robot_image_url ? [item.robot_image_url] : []),
@@ -419,7 +430,7 @@ export default function PitScoutingData() {
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <Input
-                        placeholder="Search by robot name, team number, or drive type..."
+                        placeholder="Search by team name, robot name, team number, or drive type..."
                         value={searchTerm}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                         className="pl-10 bg-gray-800 border-gray-600 text-white"
@@ -432,11 +443,14 @@ export default function PitScoutingData() {
                     </SelectTrigger>
                     <SelectContent className="bg-gray-800 border-gray-600">
                       <SelectItem value="all" className="text-white hover:bg-gray-700">All Teams</SelectItem>
-                      {Array.from(new Set(pitData.map(item => item.team_number))).map(teamNum => (
-                        <SelectItem key={teamNum} value={teamNum.toString()} className="text-white hover:bg-gray-700">
-                          Team {teamNum}
-                        </SelectItem>
-                      ))}
+                      {Array.from(new Set(pitData.map(item => item.team_number))).map(teamNum => {
+                        const name = allTeams.find(t => t.team_number === teamNum)?.team_name;
+                        return (
+                          <SelectItem key={teamNum} value={teamNum.toString()} className="text-white hover:bg-gray-700">
+                            {name ? `Team ${teamNum} — ${name}` : `Team ${teamNum}`}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                   <Select value={selectedView} onValueChange={setSelectedView}>
@@ -498,7 +512,10 @@ export default function PitScoutingData() {
                       <TableBody>
                         {filteredData.map((item) => (
                           <TableRow key={item.id}>
-                            <TableCell className="font-medium">Team {item.team_number}</TableCell>
+                            <TableCell className="font-medium">
+                              <span>Team {item.team_number}</span>
+                              {item.team_name && <span className="block text-muted-foreground text-sm font-normal">{item.team_name}</span>}
+                            </TableCell>
                             <TableCell>{item.robot_name}</TableCell>
                             <TableCell>{item.drive_type}</TableCell>
                             <TableCell>
@@ -562,7 +579,7 @@ export default function PitScoutingData() {
                   <Card key={item.id} className="bg-gray-800/50 backdrop-blur-sm border-gray-700 hover:bg-gray-800/70 transition-all duration-200 hover:scale-105 hover:shadow-lg">
                     <CardHeader>
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-white">Team {item.team_number}</CardTitle>
+                        <CardTitle className="text-white">Team {item.team_number}{item.team_name ? ` — ${item.team_name}` : ''}</CardTitle>
                       </div>
                       <p className="text-gray-400">{item.robot_name}</p>
                     </CardHeader>
@@ -677,7 +694,7 @@ export default function PitScoutingData() {
                     <h3 className="text-lg font-semibold text-white">Confirm Delete</h3>
                   </div>
                   <p className="text-gray-300 mb-6">
-                    Are you sure you want to delete the pit scouting data for Team {deletingItem.team_number} - {deletingItem.robot_name}?
+                    Are you sure you want to delete the pit scouting data for Team {deletingItem.team_number}{deletingItem.team_name ? ` — ${deletingItem.team_name}` : ''} ({deletingItem.robot_name})?
                     This action cannot be undone.
                   </p>
                   <div className="flex space-x-3">
@@ -727,7 +744,7 @@ export default function PitScoutingData() {
                   <div className="p-6">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-2xl font-bold text-white">
-                        Team {selectedDetailItem.team_number} - {selectedDetailItem.robot_name}
+                        Team {selectedDetailItem.team_number}{selectedDetailItem.team_name ? ` — ${selectedDetailItem.team_name}` : ''} · {selectedDetailItem.robot_name}
                       </h2>
                       <Button
                         variant="ghost"
@@ -816,6 +833,12 @@ export default function PitScoutingData() {
                             <span className="text-gray-300">Team Number:</span>
                             <span className="text-white font-medium">{selectedDetailItem.team_number}</span>
                           </div>
+                          {selectedDetailItem.team_name && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-300">Team Name:</span>
+                              <span className="text-white font-medium">{selectedDetailItem.team_name}</span>
+                            </div>
+                          )}
                           <div className="flex justify-between">
                             <span className="text-gray-300">Robot Name:</span>
                             <span className="text-white font-medium">{selectedDetailItem.robot_name}</span>

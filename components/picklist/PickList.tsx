@@ -26,15 +26,17 @@ import { TeamComparisonModal, QuickComparison } from './TeamComparisonModal';
 import { AdvancedTeamAnalysis } from './AdvancedTeamAnalysis';
 import { TeamStats, PickListTeam } from '@/lib/types';
 import { CURRENT_EVENT_KEY } from '@/lib/constants';
-import { GripVertical, Plus, Save, Trash2, Edit3, Brain, Target, BarChart3, Shield, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { GripVertical, Plus, Save, Trash2, Edit3, Brain, Target, BarChart3, Shield, ExternalLink, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface SortableTeamItemProps {
   team: PickListTeam;
   onUpdateNotes: (teamNumber: number, notes: string) => void;
   onRemove: (teamNumber: number) => void;
+  onImageClick?: (url: string) => void;
 }
 
-function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemProps) {
+function SortableTeamItem({ team, onUpdateNotes, onRemove, onImageClick }: SortableTeamItemProps) {
   const router = useRouter();
   const {
     attributes,
@@ -79,9 +81,13 @@ function SortableTeamItem({ team, onUpdateNotes, onRemove }: SortableTeamItemPro
             </div>
 
             {imageUrl ? (
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden bg-white/5 flex-shrink-0 border border-white/10">
+              <button
+                type="button"
+                onClick={() => onImageClick?.(imageUrl)}
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden bg-white/5 flex-shrink-0 border border-white/10 hover:ring-2 hover:ring-primary/50 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
                 <img src={imageUrl} alt={`Team ${team.team_number} robot`} className="w-full h-full object-cover" />
-              </div>
+              </button>
             ) : (
               <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-white/5 flex-shrink-0 border border-white/10 flex items-center justify-center text-muted-foreground/50">
                 <Target className="h-6 w-6" />
@@ -297,6 +303,7 @@ export function PickList({ pickListId, eventKey = CURRENT_EVENT_KEY, onSave, ses
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
+  const [fullScreenImageUrl, setFullScreenImageUrl] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -310,6 +317,13 @@ export function PickList({ pickListId, eventKey = CURRENT_EVENT_KEY, onSave, ses
       loadData();
     }
   }, [pickListId, eventKey, session]);
+
+  useEffect(() => {
+    if (!fullScreenImageUrl) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setFullScreenImageUrl(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [fullScreenImageUrl]);
 
   const loadData = async () => {
     if (!session) return;
@@ -530,6 +544,7 @@ export function PickList({ pickListId, eventKey = CURRENT_EVENT_KEY, onSave, ses
                       team={team}
                       onUpdateNotes={handleUpdateNotes}
                       onRemove={handleRemoveTeam}
+                      onImageClick={setFullScreenImageUrl}
                     />
                   ))
                 )}
@@ -559,6 +574,34 @@ export function PickList({ pickListId, eventKey = CURRENT_EVENT_KEY, onSave, ses
         isOpen={showComparison}
         onClose={() => setShowComparison(false)}
       />
+
+      {/* Full-screen image lightbox when clicking team picture */}
+      <AnimatePresence>
+        {fullScreenImageUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+            onClick={() => setFullScreenImageUrl(null)}
+          >
+            <button
+              type="button"
+              aria-label="Close"
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+              onClick={() => setFullScreenImageUrl(null)}
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img
+              src={fullScreenImageUrl}
+              alt="Robot full size"
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

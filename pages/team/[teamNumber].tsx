@@ -23,6 +23,7 @@ import {
   AlertCircle,
   Target,
   Route,
+  X,
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import GuestLayout from '@/components/layout/GuestLayout';
@@ -107,6 +108,14 @@ const TeamDetail: React.FC = () => {
   const [pitData, setPitData] = useState<PitScoutingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
+  const [fullScreenImageUrl, setFullScreenImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!fullScreenImageUrl) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setFullScreenImageUrl(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [fullScreenImageUrl]);
 
   const getMatchLabel = (matchId: string) => {
     if (!matchId) return 'N/A';
@@ -207,11 +216,15 @@ const TeamDetail: React.FC = () => {
 
       if (scoutingError) throw scoutingError;
 
-      const { data: pitDataResult, error: pitError } = await supabase
+      const { data: pitDataRows } = await supabase
         .from('pit_scouting_data')
         .select('*')
         .eq('team_number', teamNum)
-        .maybeSingle();
+        .order('created_at', { ascending: false })
+        .limit(10);
+      const pitDataResult = (pitDataRows && pitDataRows.length > 0)
+        ? pitDataRows.find((r: any) => (r.robot_image_url && r.robot_image_url.trim()) || (Array.isArray(r.photos) && r.photos.length > 0)) || pitDataRows[0]
+        : null;
 
       setTeam(teamData);
       setScoutingData(scoutingDataResult || []);
@@ -426,16 +439,31 @@ const TeamDetail: React.FC = () => {
     <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 pb-10 px-4">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mt-2">
-        <div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">Team Analysis</Badge>
-            <span>•</span>
-            <span className="font-mono">Season 2026</span>
+        <div className="flex items-end gap-4 flex-1 min-w-0">
+          {pitData && (pitData.photos?.[0] || pitData.robot_image_url) && (
+            <button
+              type="button"
+              onClick={() => setFullScreenImageUrl(pitData.photos?.[0] || pitData.robot_image_url || null)}
+              className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 border-white/10 hover:border-primary/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <img
+                src={pitData.photos?.[0] || pitData.robot_image_url || ''}
+                alt={`${team.team_name} robot`}
+                className="w-full h-full object-cover"
+              />
+            </button>
+          )}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">Team Analysis</Badge>
+              <span>•</span>
+              <span className="font-mono">Season 2026</span>
+            </div>
+            <h1 className="text-4xl md:text-6xl font-heading font-black tracking-tight text-foreground flex items-baseline gap-4 flex-wrap">
+              <span className="text-primary">{team.team_number}</span>
+              <span className="text-2xl md:text-4xl font-bold opacity-90">{team.team_name}</span>
+            </h1>
           </div>
-          <h1 className="text-4xl md:text-6xl font-heading font-black tracking-tight text-foreground flex items-baseline gap-4">
-            <span className="text-primary">{team.team_number}</span>
-            <span className="text-2xl md:text-4xl font-bold opacity-90">{team.team_name}</span>
-          </h1>
         </div>
 
         <div className="flex items-center gap-2">
@@ -643,13 +671,17 @@ const TeamDetail: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                   <div className="lg:col-span-4 lg:sticky lg:top-24 h-fit space-y-4">
                     <Card className="glass bg-white/5 border-white/10 overflow-hidden p-1">
-                      <div className="aspect-[4/3] rounded-lg overflow-hidden relative group">
+                      <button
+                        type="button"
+                        onClick={() => setFullScreenImageUrl(pitData.photos?.[0] || pitData.robot_image_url || null)}
+                        className="aspect-[4/3] rounded-lg overflow-hidden relative group block w-full text-left"
+                      >
                         <img
                           src={pitData.photos?.[0] || pitData.robot_image_url || '/placeholder-robot.png'}
                           alt={team.team_name}
                           className="w-full h-full object-cover transition-transform group-hover:scale-105"
                         />
-                      </div>
+                      </button>
                     </Card>
                     <div className="space-y-2">
                       <h3 className="text-xl font-bold">{pitData.robot_name || 'Generic Bot'}</h3>
@@ -931,6 +963,34 @@ const TeamDetail: React.FC = () => {
           </TabsContent>
         </Tabs>
       )}
+
+      {/* Full-screen image lightbox */}
+      <AnimatePresence>
+        {fullScreenImageUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+            onClick={() => setFullScreenImageUrl(null)}
+          >
+            <button
+              type="button"
+              aria-label="Close"
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+              onClick={() => setFullScreenImageUrl(null)}
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img
+              src={fullScreenImageUrl}
+              alt="Robot full size"
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 

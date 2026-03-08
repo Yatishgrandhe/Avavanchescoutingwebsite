@@ -183,11 +183,12 @@ async function parseForm(req: NextApiRequest): Promise<{ fields: Fields; files: 
             filter: (part: { mimetype?: string | null; originalFilename?: string | null }) => {
                 const mimetype = part.mimetype ?? null;
                 const originalFilename = part.originalFilename ?? null;
-                const byMime = mimetype ? mimetype.startsWith('image/') : false;
+                const byMime = mimetype ? (mimetype.startsWith('image/') || mimetype === 'image') : false;
                 const ext = (originalFilename || '').toLowerCase();
                 const byExt = /\.(jpe?g|png|gif|webp|bmp)$/.test(ext);
-                const isImage = byMime || (!mimetype && byExt);
-                console.log('[API/upload-robot-image] File filter check:', { mimetype, originalFilename, isImage });
+                const fromMobile = !mimetype && !originalFilename;
+                const isImage = byMime || (!mimetype && byExt) || fromMobile;
+                console.log('[API/upload-robot-image] File filter check:', { mimetype, originalFilename, isImage, fromMobile });
                 return isImage;
             },
         });

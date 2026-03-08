@@ -355,7 +355,7 @@ export default function PitScouting() {
           if (url) photoUrls.push(url);
         } else {
           const fd = new FormData();
-          const name = item.name && /\.(jpe?g|png|gif|webp)$/i.test(item.name) ? item.name : `robot_${formData.teamNumber}_${Date.now()}.jpg`;
+          const name = item.name && /\.(jpe?g|png|gif|webp|heic)$/i.test(item.name) ? item.name : `robot_${formData.teamNumber}_${Date.now()}.jpg`;
           fd.append('image', item, name);
           fd.append('teamNumber', formData.teamNumber.toString());
           fd.append('teamName', formData.robotName || 'Unknown');

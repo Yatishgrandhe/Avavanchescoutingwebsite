@@ -18,6 +18,7 @@ export function PitPhotosUpload({
   onPhotosChange,
   className,
 }: PitPhotosUploadProps) {
+  const fileInputId = React.useId();
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlCacheRef = useRef<Map<number, string>>(new Map());
@@ -58,7 +59,12 @@ export function PitPhotosUpload({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      if (!file.type.startsWith('image/')) {
+      const mime = (file.type || '').toLowerCase();
+      const name = (file.name || '').toLowerCase();
+      const hasImageExt = /\.(jpe?g|png|gif|webp|bmp|heic)$/.test(name);
+      const hasImageMime = mime.startsWith('image/') || mime === 'image';
+      const looksLikeImage = hasImageMime || hasImageExt || (!mime && !name);
+      if (!looksLikeImage && mime) {
         setUploadError('Please select an image file (JPEG, PNG, WebP, etc.)');
         return;
       }
@@ -78,10 +84,10 @@ export function PitPhotosUpload({
     [paddedPhotos, onPhotosChange]
   );
 
-  const handleAddClick = () => {
+  const handleAddClick = useCallback(() => {
     if (!canAdd) return;
     fileInputRef.current?.click();
-  };
+  }, [canAdd]);
 
   const handleRemove = (index: number) => {
     const current = paddedPhotos();
@@ -98,11 +104,13 @@ export function PitPhotosUpload({
         Pit Photos (up to {MAX_PHOTOS})
       </label>
       <input
+        id={fileInputId}
         ref={fileInputRef}
         type="file"
         accept="image/*"
         onChange={handleFileSelect}
         className="hidden"
+        aria-label="Upload pit photo"
       />
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {list.map((item, index) => {
@@ -135,12 +143,14 @@ export function PitPhotosUpload({
                 type="button"
                 onClick={handleAddClick}
                 disabled={!canAdd}
-                className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground hover:bg-white/10 hover:text-foreground transition-colors disabled:opacity-50"
+                className={cn(
+                  'w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground hover:bg-white/10 hover:text-foreground active:bg-white/15 transition-colors cursor-pointer min-h-[80px] touch-manipulation',
+                  !canAdd && 'pointer-events-none opacity-50'
+                )}
+                aria-label="Add pit photo"
               >
-                <>
-                  <ImageIcon size={24} />
-                  <span className="text-xs">Add photo</span>
-                </>
+                <ImageIcon size={24} />
+                <span className="text-xs">Add photo</span>
               </button>
             )}
           </div>

@@ -269,23 +269,35 @@ export default function PitScoutingMobile() {
       // Upload photos only on Submit (Files → URLs)
       const photoItems = (formData.photos || []).slice(0, 6);
       const photoUrls: string[] = [];
+      const uploadFailures: string[] = [];
       for (const item of photoItems) {
         if (!item) continue;
         if (typeof item === 'string') {
-          photoUrls.push(item);
+          const url = item.trim();
+          if (url) photoUrls.push(url);
         } else {
           const fd = new FormData();
-          fd.append('image', item);
+          const name = item.name && /\.(jpe?g|png|gif|webp|heic)$/i.test(item.name) ? item.name : `robot_${formData.teamNumber}_${Date.now()}.jpg`;
+          fd.append('image', item, name);
           fd.append('teamNumber', formData.teamNumber.toString());
           fd.append('teamName', formData.robotName || 'Unknown');
           try {
             const upRes = await fetch('/api/upload-robot-image', { method: 'POST', body: fd });
             const upData = await upRes.json();
-            if (upRes.ok && upData.directViewUrl) photoUrls.push(upData.directViewUrl);
-          } catch {
-            console.warn('Failed to upload photo');
+            if (upRes.ok && upData.directViewUrl) {
+              photoUrls.push(upData.directViewUrl);
+            } else {
+              uploadFailures.push(upData?.error || upData?.details || upRes.statusText || 'Upload failed');
+            }
+          } catch (err) {
+            uploadFailures.push(err instanceof Error ? err.message : 'Network error');
           }
         }
+      }
+      if (uploadFailures.length > 0) {
+        setSubmitError(`Image upload failed: ${uploadFailures[0]}. ${uploadFailures.length > 1 ? `(${uploadFailures.length} failed)` : ''}`);
+        setSubmitting(false);
+        return;
       }
 
       // Prepare the data with submitter information

@@ -245,7 +245,7 @@ export default function PitScouting() {
 
           if (existingData) {
             const photoArr = Array.isArray(existingData.photos) ? existingData.photos : (existingData.robot_image_url ? [existingData.robot_image_url] : []);
-            const validUrls = photoArr.filter((p): p is string => typeof p === 'string' && p.trim().length > 0);
+            const validUrls = photoArr.filter((p: unknown): p is string => typeof p === 'string' && p.trim().length > 0);
             const photosPadded: (string | null)[] = [...validUrls.slice(0, 6)];
             while (photosPadded.length < 6) photosPadded.push(null);
             const autoPaths = Array.isArray(existingData.auto_paths) ? existingData.auto_paths : [];

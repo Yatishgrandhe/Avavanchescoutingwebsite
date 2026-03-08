@@ -157,9 +157,20 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       setTeams(teamsResult || []);
       setAllTeams(allTeamsResult || []);
 
-      // Calculate team statistics using ALL teams (allTeamsResult) so that teams with scouting data
-      // are included even if they're not in the filtered teams list (e.g., Avalanche)
-      const stats = calculateTeamStats(sortedScoutingData, allTeamsResult || []);
+      // Matches scouted per team from database (distinct match_id count, not form count)
+      let matchCountsFromDb: Record<number, number> = {};
+      try {
+        const countsRes = await fetch('/api/analysis/team-match-counts');
+        if (countsRes.ok) {
+          const { counts } = await countsRes.json();
+          if (counts && typeof counts === 'object') matchCountsFromDb = counts;
+        }
+      } catch (_) {
+        // Fall back to computing from loaded data
+      }
+
+      // Calculate team statistics: use ALL form scores for averages; matches = distinct match_id from DB
+      const stats = calculateTeamStats(sortedScoutingData, allTeamsResult || [], matchCountsFromDb);
       setTeamStats(stats);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -248,14 +259,17 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     }
   };
 
-  const calculateTeamStats = (scoutingData: ScoutingData[], teams: Team[]) => {
-    // Build a map of team_number -> team_name from the teams table
+  const calculateTeamStats = (
+    scoutingData: ScoutingData[],
+    teams: Team[],
+    matchCountsFromDb?: Record<number, number>
+  ) => {
     const teamNameMap = new Map<number, string>();
     teams.forEach(team => {
       teamNameMap.set(team.team_number, team.team_name);
     });
 
-    // Group all scouting data by team. Use ALL form scores for averages; matches scouted = distinct match_id count.
+    // Group all scouting data by team. Use ALL form scores for averages.
     const teamToRecords = new Map<number, ScoutingData[]>();
     scoutingData.forEach(data => {
       if (!teamToRecords.has(data.team_number)) {
@@ -282,9 +296,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
     teamToRecords.forEach((records, teamNumber) => {
       const teamName = teamNameMap.get(teamNumber) || `Team ${teamNumber}`;
-      // Matches scouted = distinct match_id count (from database), not form count
+      // Matches scouted = from DB API (distinct match_id) when available; else derive from records
       const uniqueMatchIds = new Set(records.map(r => r.match_id ?? '').filter(Boolean));
-      const total_matches = uniqueMatchIds.size;
+      const total_matches =
+        matchCountsFromDb != null && typeof matchCountsFromDb[teamNumber] === 'number'
+          ? matchCountsFromDb[teamNumber]
+          : uniqueMatchIds.size;
       // Broke count = number of distinct matches where robot broke (not number of forms)
       const broke_count = new Set(records.filter(r => r.broke === true).map(r => r.match_id ?? '')).size;
 
@@ -757,7 +774,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
                             <div className="grid grid-cols-2 gap-3 mb-4">
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Matches</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Matches scouted</span>
                                 <span className="text-sm font-semibold">{team.total_matches}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
@@ -818,8 +835,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 cursor-pointer hover:text-foreground select-none" onClick={() => handleTeamStatsSort('team_number')}>
                               <span className="inline-flex items-center gap-1">Team {teamStatsSortField === 'team_number' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
-                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none" onClick={() => handleTeamStatsSort('total_matches')}>
-                              <span className="inline-flex items-center gap-1">Matches {teamStatsSortField === 'total_matches' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none" onClick={() => handleTeamStatsSort('total_matches')} title="Distinct matches with scouting data (from database, not form count)">
+                              <span className="inline-flex items-center gap-1">Matches scouted {teamStatsSortField === 'total_matches' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
                             <th className="text-left p-4 cursor-pointer hover:text-foreground select-none" onClick={() => handleTeamStatsSort('avg_total_score')}>
                               <span className="inline-flex items-center gap-1">Avg Score {teamStatsSortField === 'avg_total_score' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>

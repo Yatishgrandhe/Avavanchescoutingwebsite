@@ -228,62 +228,75 @@ export default function PitScouting() {
     loadTeams();
   }, []);
 
+  // Normalize value from DB to array (handles string or array)
+  const toArray = (v: unknown): string[] => {
+    if (Array.isArray(v)) return v.map((x) => (typeof x === 'string' ? x : String(x)));
+    if (typeof v === 'string' && v.trim()) return v.split(',').map((s) => s.trim()).filter(Boolean);
+    return [];
+  };
+
   useEffect(() => {
     const loadExistingData = async () => {
-      if (edit === 'true' && id && typeof id === 'string') {
-        setIsEditMode(true);
-        setEditingId(id);
+      if (!router.isReady || edit !== 'true' || !id || typeof id !== 'string') return;
 
-        try {
-          const { data: existingData, error } = await supabase
-            .from('pit_scouting_data')
-            .select('*')
-            .eq('id', id)
-            .single();
+      setIsEditMode(true);
+      setEditingId(id);
 
-          if (error) throw new Error('Failed to load existing data');
+      try {
+        const { data: existingData, error } = await supabase
+          .from('pit_scouting_data')
+          .select('*')
+          .eq('id', id)
+          .single();
 
-          if (existingData) {
-            const photoArr = Array.isArray(existingData.photos) ? existingData.photos : (existingData.robot_image_url ? [existingData.robot_image_url] : []);
-            const validUrls = photoArr.filter((p: unknown): p is string => typeof p === 'string' && p.trim().length > 0);
-            const photosPadded: (string | null)[] = [...validUrls.slice(0, 6)];
-            while (photosPadded.length < 6) photosPadded.push(null);
-            const autoPaths = Array.isArray(existingData.auto_paths) ? existingData.auto_paths : [];
-            setFormData({
-              teamNumber: existingData.team_number,
-              robotName: existingData.robot_name || '',
-              robotImageUrl: existingData.robot_image_url || null,
-              photos: photosPadded,
-              autoPaths,
-              annotatedImageUrl: existingData.annotated_image_url || null,
-              climbLocation: existingData.climb_location || '',
-              driveType: existingData.drive_type || '',
-              driveTrainOther: existingData.drive_type === 'Other' ? existingData.drive_type : '',
-              autonomousCapabilities: existingData.autonomous_capabilities || [],
-              teleopCapabilities: existingData.teleop_capabilities || [],
-              canAutoalign: !!existingData.can_autoalign,
-              canClimb: (existingData.drive_train_details?.climb_levels?.length ?? 0) > 0 || !!existingData.drive_train_details?.can_climb,
-              climbLevels: existingData.drive_train_details?.climb_levels || [],
-              navigationLocations: existingData.drive_train_details?.navigation_locations || [],
-              ballHoldAmount: existingData.drive_train_details?.ball_hold_amount || 0,
-              downtimeStrategy: existingData.drive_train_details?.downtime_strategy || [],
-              robotDimensions: existingData.robot_dimensions || { height: 0 },
-              weight: existingData.weight || 0,
-              cameraCount: existingData.camera_count || 0,
-              shootingLocations: existingData.shooting_locations || [],
-              programmingLanguage: existingData.programming_language || '',
-              notes: existingData.notes || '',
-            });
-          }
-        } catch (err) {
-          console.error('Error loading existing data:', err);
-          setSubmitError('Failed to load existing data for editing');
+        if (error) throw new Error('Failed to load existing data');
+
+        if (existingData) {
+          const photoArr = Array.isArray(existingData.photos) ? existingData.photos : (existingData.robot_image_url ? [existingData.robot_image_url] : []);
+          const validUrls = photoArr.filter((p: unknown): p is string => typeof p === 'string' && p.trim().length > 0);
+          const photosPadded: (string | null)[] = [...validUrls.slice(0, 6)];
+          while (photosPadded.length < 6) photosPadded.push(null);
+          const autoPaths = Array.isArray(existingData.auto_paths) ? existingData.auto_paths : [];
+
+          const rawDriveType = existingData.drive_type || '';
+          const isKnownDrive = rawDriveType === 'Tank Drive' || rawDriveType === 'Swerve Drive';
+          const driveType = isKnownDrive ? rawDriveType : 'Other';
+          const driveTrainOther = isKnownDrive ? '' : (rawDriveType || existingData.drive_train_details?.type || '');
+
+          setFormData({
+            teamNumber: existingData.team_number ?? 0,
+            robotName: existingData.robot_name || '',
+            robotImageUrl: existingData.robot_image_url || null,
+            photos: photosPadded,
+            autoPaths,
+            annotatedImageUrl: existingData.annotated_image_url || null,
+            climbLocation: existingData.climb_location || '',
+            driveType,
+            driveTrainOther,
+            autonomousCapabilities: toArray(existingData.autonomous_capabilities),
+            teleopCapabilities: toArray(existingData.teleop_capabilities),
+            canAutoalign: !!existingData.can_autoalign,
+            canClimb: (existingData.drive_train_details?.climb_levels?.length ?? 0) > 0 || !!existingData.drive_train_details?.can_climb,
+            climbLevels: toArray(existingData.drive_train_details?.climb_levels),
+            navigationLocations: toArray(existingData.drive_train_details?.navigation_locations),
+            ballHoldAmount: existingData.drive_train_details?.ball_hold_amount ?? 0,
+            downtimeStrategy: toArray(existingData.drive_train_details?.downtime_strategy),
+            robotDimensions: existingData.robot_dimensions || { height: 0 },
+            weight: existingData.weight ?? 0,
+            cameraCount: existingData.camera_count ?? 0,
+            shootingLocations: toArray(existingData.shooting_locations),
+            programmingLanguage: existingData.programming_language || '',
+            notes: existingData.notes || '',
+          });
         }
+      } catch (err) {
+        console.error('Error loading existing data:', err);
+        setSubmitError('Failed to load existing data for editing');
       }
     };
 
     loadExistingData();
-  }, [edit, id]);
+  }, [router.isReady, edit, id]);
 
   const validateStep = (step: number): ValidationResult => {
     return validatePitScoutingStep(step, formData);

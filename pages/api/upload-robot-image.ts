@@ -4,7 +4,6 @@ import fs from 'fs';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
 import { google } from 'googleapis';
-import { Readable } from 'stream';
 import { CURRENT_EVENT_NAME } from '@/lib/constants';
 
 // Disable Next.js body parsing for file uploads
@@ -131,6 +130,9 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
         // Include event name in file name for Google Drive (e.g. "Event Cabbbarus 2026 - team_900_...")
         const driveFileName = `Event ${CURRENT_EVENT_NAME} - ${fileName}`;
 
+        // Use buffer instead of stream for serverless (Vercel) reliability; streams can be closed early
+        const fileBuffer = fs.readFileSync(filePath);
+
         const response = await drive.files.create({
             requestBody: {
                 name: driveFileName,
@@ -139,7 +141,7 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
             },
             media: {
                 mimeType: mimeType,
-                body: fs.createReadStream(filePath)
+                body: fileBuffer,
             },
             fields: 'id',
             supportsAllDrives: true
@@ -325,7 +327,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         console.log(`[API/upload-robot-image] Starting upload for team ${teamNumber} (${teamName}), file: ${fileName}, mimeType: ${mimeType}, size: ${imageFile.size} bytes`);
 
-        // Storage attempts: try Supabase first (reliable, no OAuth), then Google Drive as backup
+        // Storage attempts: Google Drive primary, Supabase as backup
         let imageUrl: string | null = null;
         let storageMethodUsed = '';
         const uploadErrors: string[] = [];
@@ -337,22 +339,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             process.env.GOOGLE_DRIVE_FOLDER_ID
         );
 
-        // Attempt 1: Supabase (works without OAuth; prefer for serverless)
-        try {
-            console.log('[API/upload-robot-image] Attempting Supabase Storage upload...');
-            imageUrl = await uploadToSupabaseStorage(filePath, fileName, mimeType);
-            storageMethodUsed = 'Supabase Storage';
-            console.log(`[API/upload-robot-image] Supabase upload successful: ${imageUrl}`);
-        } catch (supabaseError) {
-            const msg = supabaseError instanceof Error ? supabaseError.message : 'Unknown Supabase error';
-            console.warn('[API/upload-robot-image] Supabase upload failed:', msg);
-            uploadErrors.push(`Supabase: ${msg}`);
-        }
-
-        // Attempt 2: Google Drive (backup when configured)
-        if (!imageUrl && hasGoogleDrive) {
+        // Attempt 1: Google Drive (primary)
+        if (hasGoogleDrive) {
             try {
-                console.log('[API/upload-robot-image] Attempting Google Drive upload as backup...');
+                console.log('[API/upload-robot-image] Attempting Google Drive upload (primary)...');
                 imageUrl = await uploadToGoogleDrive(filePath, fileName, mimeType);
                 storageMethodUsed = 'Google Drive';
                 console.log(`[API/upload-robot-image] Google Drive upload successful: ${imageUrl}`);
@@ -360,6 +350,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const msg = driveError instanceof Error ? driveError.message : 'Unknown Google Drive error';
                 console.warn('[API/upload-robot-image] Google Drive upload failed:', msg);
                 uploadErrors.push(`Google Drive: ${msg}`);
+            }
+        }
+
+        // Attempt 2: Supabase Storage (backup)
+        if (!imageUrl) {
+            try {
+                console.log('[API/upload-robot-image] Attempting Supabase Storage upload (backup)...');
+                imageUrl = await uploadToSupabaseStorage(filePath, fileName, mimeType);
+                storageMethodUsed = 'Supabase Storage';
+                console.log(`[API/upload-robot-image] Supabase upload successful: ${imageUrl}`);
+            } catch (supabaseError) {
+                const msg = supabaseError instanceof Error ? supabaseError.message : 'Unknown Supabase error';
+                console.warn('[API/upload-robot-image] Supabase upload failed:', msg);
+                uploadErrors.push(`Supabase: ${msg}`);
             }
         }
 

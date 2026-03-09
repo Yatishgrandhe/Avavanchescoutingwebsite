@@ -183,7 +183,10 @@ const TeamDetail: React.FC = () => {
         const teamScouting = allScouting.filter((r: any) => r.team_number === teamNum);
         const teamInfo = teamsList.find((t: any) => t.team_number === teamNum);
         const pitList = data.pitScoutingData || [];
-        const teamPit = pitList.find((p: any) => p.team_number === teamNum) || null;
+        const teamPits = pitList.filter((p: any) => p.team_number === teamNum);
+        const teamPit = teamPits.length > 0
+          ? teamPits.find((p: any) => (Array.isArray(p.photos) && p.photos.length > 0) || (p.robot_image_url && String(p.robot_image_url).trim())) || teamPits[teamPits.length - 1]
+          : null;
         setTeam(teamInfo ? { ...teamInfo } : { team_number: teamNum, team_name: `Team ${teamNum}` });
         setScoutingData(teamScouting);
         setPitData(teamPit);
@@ -697,9 +700,10 @@ const TeamDetail: React.FC = () => {
                     </Card>
                     <div className="space-y-2">
                       <h3 className="text-xl font-bold">{pitData.robot_name || 'Generic Bot'}</h3>
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-primary/20 text-primary border-primary/20">{pitData.drive_type}</Badge>
-                        <Badge variant="outline" className="border-white/10">{pitData.weight} lbs</Badge>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {pitData.drive_type && <Badge className="bg-primary/20 text-primary border-primary/20">{pitData.drive_type}</Badge>}
+                        {(pitData.weight != null && pitData.weight > 0) && <Badge variant="outline" className="border-white/10">{pitData.weight} lbs</Badge>}
+                        {(pitData.overall_rating != null && pitData.overall_rating > 0) && <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">★ {pitData.overall_rating}/10</Badge>}
                       </div>
                     </div>
                   </div>
@@ -717,11 +721,15 @@ const TeamDetail: React.FC = () => {
                           </div>
                           <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Dimensions</span>
-                            <span className="font-bold">{pitData.robot_dimensions?.length}"x{pitData.robot_dimensions?.width}"x{pitData.robot_dimensions?.height}"</span>
+                            <span className="font-bold">
+                              {pitData.robot_dimensions?.length != null || pitData.robot_dimensions?.width != null || pitData.robot_dimensions?.height != null
+                                ? `${pitData.robot_dimensions?.length ?? '?'}"×${pitData.robot_dimensions?.width ?? '?'}"×${pitData.robot_dimensions?.height ?? '?'}"
+                                : '—'}
+                            </span>
                           </div>
                           <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Motor Count</span>
-                            <span className="font-bold">{pitData.drive_train_details?.drive_camps || '—'}</span>
+                            <span className="font-bold">{pitData.drive_train_details?.drive_camps ?? (pitData.drive_train_details as any)?.motor_count ?? '—'}</span>
                           </div>
                         </div>
                       </div>
@@ -734,6 +742,60 @@ const TeamDetail: React.FC = () => {
                           {pitData.autonomous_capabilities?.map((cap: string, i: number) => (
                             <Badge key={i} variant="secondary" className="bg-white/5 border-white/10">{cap}</Badge>
                           )) || <span className="text-muted-foreground text-sm italic">None documented</span>}
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-bold text-muted-foreground uppercase flex items-center gap-2">
+                          <Target className="w-4 h-4" /> Teleop
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {pitData.teleop_capabilities?.map((cap: string, i: number) => (
+                            <Badge key={i} variant="secondary" className="bg-white/5 border-white/10">{cap}</Badge>
+                          )) || <span className="text-muted-foreground text-sm italic">None documented</span>}
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-bold text-muted-foreground uppercase flex items-center gap-2">
+                          <Award className="w-4 h-4" /> Endgame
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {pitData.endgame_capabilities?.map((cap: string, i: number) => (
+                            <Badge key={i} variant="secondary" className="bg-white/5 border-white/10">{cap}</Badge>
+                          )) || <span className="text-muted-foreground text-sm italic">None documented</span>}
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-bold text-muted-foreground uppercase flex items-center gap-2">
+                          <BarChart3 className="w-4 h-4" /> Other
+                        </h4>
+                        <div className="glass-card p-4 rounded-xl space-y-2">
+                          {(pitData.programming_language != null && pitData.programming_language !== '') && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Programming</span>
+                              <span className="font-bold">{pitData.programming_language}</span>
+                            </div>
+                          )}
+                          {(pitData.overall_rating != null && pitData.overall_rating > 0) && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Overall rating</span>
+                              <span className="font-bold">{pitData.overall_rating}/10</span>
+                            </div>
+                          )}
+                          {(pitData.drive_teams_count != null && pitData.drive_teams_count > 0) && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Drive teams</span>
+                              <span className="font-bold">{pitData.drive_teams_count}</span>
+                            </div>
+                          )}
+                          {(pitData.submitted_by_name || pitData.submitted_at) && (
+                            <div className="flex justify-between text-sm pt-2 border-t border-white/5">
+                              <span className="text-muted-foreground">Scouted by</span>
+                              <span className="font-medium text-foreground/90">{pitData.submitted_by_name || '—'} {pitData.submitted_at ? ` · ${new Date(pitData.submitted_at).toLocaleDateString()}` : ''}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

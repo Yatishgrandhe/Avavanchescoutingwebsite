@@ -450,9 +450,16 @@ export default function ViewDataPage() {
                     <Wrench className="w-12 h-12 text-muted-foreground/50" />
                   )}
                 </div>
-                <CardContent className="p-3">
+                <CardContent className="p-3 space-y-1.5">
                   <p className="font-bold text-foreground truncate">#{row.team_number} · {teamName}</p>
                   <p className="text-sm text-muted-foreground truncate">{row.robot_name || '—'}</p>
+                  {(row.drive_type || row.weight != null || (row.overall_rating != null && row.overall_rating > 0)) && (
+                    <div className="flex flex-wrap gap-1.5 pt-1 text-[11px] text-muted-foreground">
+                      {row.drive_type && <Badge variant="outline" className="font-normal text-[10px] px-1.5 py-0">{row.drive_type}</Badge>}
+                      {row.weight != null && row.weight > 0 && <span>{row.weight} lbs</span>}
+                      {row.overall_rating != null && row.overall_rating > 0 && <span>★ {row.overall_rating}/10</span>}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </Link>

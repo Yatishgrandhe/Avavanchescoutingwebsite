@@ -4,6 +4,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useSupabase } from '@/pages/_app';
 import { useAdmin } from '@/hooks/use-admin';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   ClipboardList,
@@ -117,7 +118,7 @@ export default function AdminScoutingStatsPage() {
                 Match Scouting Stats
               </h1>
               <p className="text-muted-foreground text-sm mt-1">
-                Forms submitted per person (name, not username)
+                Forms submitted per person (name, not username). Click a name to see all their forms.
               </p>
             </div>
             <Button
@@ -176,7 +177,7 @@ export default function AdminScoutingStatsPage() {
                     Forms by Person
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Name entered in the match scouting form (not Discord username) and number of forms submitted
+                    Name entered in the match scouting form (not Discord username) and number of forms submitted. Click a name to view all their forms.
                   </p>
                 </CardHeader>
                 <CardContent>
@@ -191,13 +192,18 @@ export default function AdminScoutingStatsPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {data.byPerson.map((row, i) => (
+                        {data.byPerson.map((row) => (
                           <TableRow
                             key={row.name}
-                            className="border-white/5"
+                            className="border-white/5 hover:bg-white/5"
                           >
                             <TableCell className="font-medium text-foreground">
-                              {row.name}
+                              <Link
+                                href={`/admin/scouting-stats/forms?name=${encodeURIComponent(row.name)}`}
+                                className="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary/50 rounded"
+                              >
+                                {row.name}
+                              </Link>
                             </TableCell>
                             <TableCell className="text-right font-mono font-bold text-primary">
                               {row.formCount}

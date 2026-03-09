@@ -38,9 +38,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const [liveRes, pastRes, namesRes] = await Promise.all([
+    const [liveRes, namesRes] = await Promise.all([
       supabase.from('scouting_data').select('submitted_by_name'),
-      supabase.from('past_scouting_data').select('submitted_by_name'),
       supabase.from('scout_names').select('name').order('sort_order', { ascending: true }).order('name', { ascending: true }),
     ]);
 
@@ -48,19 +47,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error('scouting_data error:', liveRes.error);
       return res.status(500).json({ error: 'Failed to load scouting data' });
     }
-    if (pastRes.error) {
-      console.error('past_scouting_data error:', pastRes.error);
-      return res.status(500).json({ error: 'Failed to load past scouting data' });
-    }
     if (namesRes.error) {
       console.error('scout_names error:', namesRes.error);
       return res.status(500).json({ error: 'Failed to load scout names' });
     }
 
-    const allRows = [
-      ...(liveRes.data || []).map((r: { submitted_by_name?: string | null }) => r.submitted_by_name ?? 'Unknown'),
-      ...(pastRes.data || []).map((r: { submitted_by_name?: string | null }) => r.submitted_by_name ?? 'Unknown'),
-    ];
+    // Count only live scouting_data so forms are not double-counted when past data was restored to live
+    const allRows = (liveRes.data || []).map((r: { submitted_by_name?: string | null }) => r.submitted_by_name ?? 'Unknown');
 
     const countByPerson = new Map<string, number>();
     for (const name of allRows) {

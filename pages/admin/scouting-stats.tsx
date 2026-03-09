@@ -164,7 +164,7 @@ export default function AdminScoutingStatsPage() {
                 <CardContent>
                   <p className="text-4xl font-bold text-primary">{data.totalForms}</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Combined from live and past competitions
+                    Current live match scouting forms
                   </p>
                 </CardContent>
               </Card>

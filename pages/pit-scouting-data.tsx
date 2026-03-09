@@ -52,6 +52,7 @@ export interface PitScoutingData {
   };
   autonomous_capabilities: string[];
   teleop_capabilities: string[];
+  endgame_capabilities?: string[];
   can_autoalign?: boolean;
   robot_dimensions: {
     length?: number;
@@ -65,6 +66,8 @@ export interface PitScoutingData {
   notes: string;
   strengths: string[];
   weaknesses: string[];
+  overall_rating?: number;
+  drive_teams_count?: number;
   auto_paths?: Array<{ id: string; points: { x: number; y: number }[]; color: string; comment: string }>;
   annotated_image_url?: string | null;
   submitted_by: string;

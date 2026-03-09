@@ -723,7 +723,7 @@ const TeamDetail: React.FC = () => {
                             <span className="text-muted-foreground">Dimensions</span>
                             <span className="font-bold">
                               {pitData.robot_dimensions?.length != null || pitData.robot_dimensions?.width != null || pitData.robot_dimensions?.height != null
-                                ? `${pitData.robot_dimensions?.length ?? '?'}"×${pitData.robot_dimensions?.width ?? '?'}"×${pitData.robot_dimensions?.height ?? '?'}"
+                                ? (pitData.robot_dimensions?.length ?? '?') + '"×' + (pitData.robot_dimensions?.width ?? '?') + '"×' + (pitData.robot_dimensions?.height ?? '?') + '"'
                                 : '—'}
                             </span>
                           </div>
@@ -793,7 +793,10 @@ const TeamDetail: React.FC = () => {
                           {(pitData.submitted_by_name || pitData.submitted_at) && (
                             <div className="flex justify-between text-sm pt-2 border-t border-white/5">
                               <span className="text-muted-foreground">Scouted by</span>
-                              <span className="font-medium text-foreground/90">{pitData.submitted_by_name || '—'} {pitData.submitted_at ? ` · ${new Date(pitData.submitted_at).toLocaleDateString()}` : ''}</span>
+                              <span className="font-medium text-foreground/90">
+                                {pitData.submitted_by_name || '—'}
+                                {pitData.submitted_at ? ' · ' + new Date(pitData.submitted_at).toLocaleDateString() : ''}
+                              </span>
                             </div>
                           )}
                         </div>

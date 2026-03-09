@@ -17,6 +17,8 @@ interface CompetitionDataLayoutProps {
   backHref?: string;
   /** e.g. ?event_key=avalanche_2026 or ?id=xxx */
   queryString?: string;
+  /** Show Pit Scouting tab in sidebar (when past competition has pit data) */
+  showPitTab?: boolean;
 }
 
 export default function CompetitionDataLayout({
@@ -25,6 +27,7 @@ export default function CompetitionDataLayout({
   onTabChange,
   backHref = '/competition-history',
   queryString = '',
+  showPitTab = false,
 }: CompetitionDataLayoutProps) {
   const backUrl = backHref;
 
@@ -35,6 +38,7 @@ export default function CompetitionDataLayout({
         onTabChange={onTabChange}
         backHref={backHref}
         queryString={queryString}
+        showPitTab={showPitTab}
       />
       <SidebarInset>
         <div className="flex flex-col min-h-screen">

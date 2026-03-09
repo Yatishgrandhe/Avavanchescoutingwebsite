@@ -25,6 +25,7 @@ import {
   BarChart3,
   GitCompare,
   LayoutDashboard,
+  Wrench,
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import CompetitionDataLayout from '@/components/layout/CompetitionDataLayout';
@@ -68,6 +69,7 @@ export default function ViewDataPage() {
   const [competition, setCompetition] = useState<CompetitionInfo | null>(null);
   const [scoutingData, setScoutingData] = useState<ViewDataRow[]>([]);
   const [teams, setTeams] = useState<Array<{ team_number: number; team_name: string }>>([]);
+  const [pitScoutingData, setPitScoutingData] = useState<Array<{ team_number: number; robot_name?: string | null; photos?: string[] | null; [key: string]: unknown }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<string>('match_id');
@@ -103,11 +105,13 @@ export default function ViewDataPage() {
       setCompetition(data.competition || null);
       setScoutingData(Array.isArray(data.scoutingData) ? data.scoutingData : []);
       setTeams(Array.isArray(data.teams) ? data.teams : []);
+      setPitScoutingData(Array.isArray(data.pitScoutingData) ? data.pitScoutingData : []);
     } catch (e: any) {
       setError(e?.message || 'Failed to load competition data.');
       setCompetition(null);
       setScoutingData([]);
       setTeams([]);
+      setPitScoutingData([]);
     } finally {
       setLoading(false);
     }
@@ -412,6 +416,59 @@ export default function ViewDataPage() {
       ? `/analysis/comparison?event_key=${encodeURIComponent(event_key as string)}`
       : '/analysis/comparison';
 
+  const getPitImageUrl = (row: { photos?: string[] | null; robot_image_url?: string | null }) => {
+    if (row.robot_image_url && String(row.robot_image_url).trim()) return row.robot_image_url!.trim();
+    const arr = Array.isArray(row.photos) ? row.photos : [];
+    const first = arr.find((u: unknown) => typeof u === 'string' && (u as string).trim());
+    return first ? (first as string).trim() : null;
+  };
+
+  const pitContent = (
+    <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-1">Pit Scouting</h1>
+        <p className="text-muted-foreground text-sm">
+          Teams with pit scouting data for {competition?.competition_name ?? 'this competition'}. Click a team to view details and robot images.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {pitScoutingData.map((row, idx) => {
+          const teamName = getTeamName(row.team_number);
+          const imgUrl = getPitImageUrl(row);
+          const teamUrl = id
+            ? `/team/${row.team_number}?competition_id=${encodeURIComponent(id as string)}`
+            : event_key
+              ? `/team/${row.team_number}?event_key=${encodeURIComponent(event_key as string)}`
+              : `/team/${row.team_number}`;
+          return (
+            <Link key={(row as { id?: string }).id ?? `pit-${row.team_number}-${idx}`} href={teamUrl}>
+              <Card className="overflow-hidden border border-white/10 bg-card/50 hover:border-primary/30 hover:bg-white/5 transition-all h-full">
+                <div className="aspect-[4/3] bg-muted/20 flex items-center justify-center overflow-hidden">
+                  {imgUrl ? (
+                    <img src={imgUrl} alt={row.robot_name || teamName} className="w-full h-full object-cover" />
+                  ) : (
+                    <Wrench className="w-12 h-12 text-muted-foreground/50" />
+                  )}
+                </div>
+                <CardContent className="p-3">
+                  <p className="font-bold text-foreground truncate">#{row.team_number} · {teamName}</p>
+                  <p className="text-sm text-muted-foreground truncate">{row.robot_name || '—'}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
+      {pitScoutingData.length === 0 && (
+        <Card className="p-12 border border-white/10 bg-card/50 text-center">
+          <Wrench className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-2">No Pit Scouting Data</h3>
+          <p className="text-muted-foreground text-sm">No pit scouting records for this competition.</p>
+        </Card>
+      )}
+    </main>
+  );
+
   const comparisonContent = (
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="mb-6">
@@ -431,7 +488,14 @@ export default function ViewDataPage() {
     </main>
   );
 
-  const tabContent = activeTab === 'overview' ? overviewContent : activeTab === 'comparison' ? comparisonContent : mainContent;
+  const tabContent =
+    activeTab === 'overview'
+      ? overviewContent
+      : activeTab === 'comparison'
+        ? comparisonContent
+        : activeTab === 'pit'
+          ? pitContent
+          : mainContent;
 
   return (
     <CompetitionDataLayout
@@ -439,6 +503,7 @@ export default function ViewDataPage() {
       onTabChange={setActiveTab}
       backHref="/competition-history"
       queryString={queryPrefix}
+      showPitTab={pitScoutingData.length > 0}
     >
       {tabContent}
     </CompetitionDataLayout>

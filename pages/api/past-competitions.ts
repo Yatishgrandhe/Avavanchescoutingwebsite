@@ -137,16 +137,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .select('*')
           .eq('competition_id', id as string);
 
-        // Guests see only match scouting data; omit pit and pick lists
-        let pitScoutingData: any[] = [];
+        // Pit scouting data (including photos/robot images) is returned for everyone so team pages can show robot images
+        const { data: pitScoutingData = [] } = await supabaseAdmin
+          .from('past_pit_scouting_data')
+          .select('*')
+          .eq('competition_id', id as string);
+
+        // Pick lists only for authenticated users
         let pickLists: any[] = [];
         if (!isGuest) {
-          const [pitRes, pickRes] = await Promise.all([
-            supabaseAdmin.from('past_pit_scouting_data').select('*').eq('competition_id', id as string),
-            supabaseAdmin.from('past_pick_lists').select('*').eq('competition_id', id as string),
-          ]);
-          pitScoutingData = pitRes.data || [];
-          pickLists = pickRes.data || [];
+          const { data: pickData } = await supabaseAdmin
+            .from('past_pick_lists')
+            .select('*')
+            .eq('competition_id', id as string);
+          pickLists = pickData || [];
         }
 
         res.status(200).json({

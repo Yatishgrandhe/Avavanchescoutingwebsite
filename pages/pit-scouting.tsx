@@ -298,6 +298,10 @@ export default function PitScouting() {
     loadExistingData();
   }, [router.isReady, edit, id]);
 
+  useEffect(() => {
+    if (submitError) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [submitError]);
+
   const validateStep = (step: number): ValidationResult => {
     return validatePitScoutingStep(step, formData);
   };
@@ -561,6 +565,17 @@ export default function PitScouting() {
 
         {/* Validation/Status Messages */}
         <AnimatePresence>
+          {submitError && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="bg-red-500/10 border border-red-500/20 text-red-200 p-4 rounded-xl flex items-center gap-3 text-sm"
+            >
+              <AlertCircle size={18} />
+              {submitError}
+            </motion.div>
+          )}
           {validationError && hasInteracted && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
@@ -1164,14 +1179,16 @@ export default function PitScouting() {
               </Button>
             ) : (
               <Button
+                type="button"
+                disabled={submitting}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleSubmit();
                 }}
-                disabled={submitting}
-                type="button"
-                className={cn("min-w-[140px]", submitting ? "opacity-80" : "hover:scale-105 active:scale-95 transition-transform bg-primary hover:bg-primary/90 text-white")}
+                className={cn("min-w-[140px] touch-manipulation", submitting ? "opacity-80" : "hover:scale-105 active:scale-95 transition-transform bg-primary hover:bg-primary/90 text-white")}
+                aria-busy={submitting}
+                aria-live="polite"
               >
                 {submitting ? (
                   <><Loader2 size={16} className="animate-spin mr-2" /> Saving...</>

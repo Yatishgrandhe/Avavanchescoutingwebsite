@@ -1267,7 +1267,16 @@ export default function PitScoutingMobile() {
                     <ArrowLeft className="mr-2 w-4 h-4" />
                     Back
                   </Button>
-                  <Button onClick={handleSubmit} disabled={submitting}>
+                  <Button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleSubmit();
+                    }}
+                    disabled={submitting}
+                    className="touch-manipulation"
+                    aria-busy={submitting}
+                  >
                     {submitting ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (

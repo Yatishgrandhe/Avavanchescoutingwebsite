@@ -6,7 +6,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BarChart3, LayoutDashboard, GitCompare } from 'lucide-react';
+import { ArrowLeft, BarChart3, LayoutDashboard, GitCompare, Wrench } from 'lucide-react';
 import { Badge, Logo } from '../ui';
 import {
   Sidebar,
@@ -23,11 +23,13 @@ import {
 } from '../ui/sidebar';
 import { Sparkles } from 'lucide-react';
 
-export type CompetitionViewTab = 'overview' | 'comparison' | 'teams';
+export type CompetitionViewTab = 'overview' | 'comparison' | 'teams' | 'pit';
 
 interface CompetitionDataSidebarProps {
-  /** Current tab (overview | comparison | teams) */
+  /** Current tab (overview | comparison | teams | pit) */
   activeTab: CompetitionViewTab;
+  /** If false, Pit Scouting tab is hidden (e.g. no pit data for this competition) */
+  showPitTab?: boolean;
   /** Called when user selects a tab (for in-page switching without nav) */
   onTabChange?: (tab: CompetitionViewTab) => void;
   /** e.g. /competition-history */
@@ -40,6 +42,7 @@ const tabs: { id: CompetitionViewTab; label: string; icon: React.ElementType }[]
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'comparison', label: 'Comparison', icon: GitCompare },
   { id: 'teams', label: 'Data Analysis', icon: BarChart3 },
+  { id: 'pit', label: 'Pit Scouting', icon: Wrench },
 ];
 
 export default function CompetitionDataSidebar({
@@ -47,6 +50,7 @@ export default function CompetitionDataSidebar({
   onTabChange,
   backHref,
   queryString = '',
+  showPitTab = true,
 }: CompetitionDataSidebarProps) {
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
@@ -111,7 +115,7 @@ export default function CompetitionDataSidebar({
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {tabs.map((tab) => {
+              {tabs.filter((tab) => tab.id !== 'pit' || showPitTab).map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
                 return (

@@ -117,6 +117,18 @@ const TeamDetail: React.FC = () => {
     return () => window.removeEventListener('keydown', onKey);
   }, [fullScreenImageUrl]);
 
+  /** Primary robot image: robot_image_url (live) or first valid URL in photos (past/live). */
+  const getRobotImageUrl = (pit: PitScoutingData | null): string | null => {
+    if (!pit) return null;
+    const fromMain = pit.robot_image_url && String(pit.robot_image_url).trim();
+    if (fromMain) return fromMain;
+    const arr = Array.isArray(pit.photos) ? pit.photos : [];
+    const first = arr.find((u: unknown) => typeof u === 'string' && (u as string).trim());
+    return first ? (first as string).trim() : null;
+  };
+
+  const robotImageUrl = getRobotImageUrl(pitData);
+
   const getMatchLabel = (matchId: string) => {
     if (!matchId) return 'N/A';
     const parts = matchId.split('_');
@@ -440,15 +452,15 @@ const TeamDetail: React.FC = () => {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mt-2">
         <div className="flex items-end gap-4 flex-1 min-w-0">
-          {pitData && (pitData.photos?.[0] || pitData.robot_image_url) && (
+          {robotImageUrl && (
             <button
               type="button"
-              onClick={() => setFullScreenImageUrl(pitData.photos?.[0] || pitData.robot_image_url || null)}
+              onClick={() => setFullScreenImageUrl(robotImageUrl)}
               className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 border-white/10 hover:border-primary/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               <img
-                src={pitData.photos?.[0] || pitData.robot_image_url || ''}
-                alt={`${team.team_name} robot`}
+                src={robotImageUrl}
+                alt={`${team?.team_name ?? 'Team'} robot`}
                 className="w-full h-full object-cover"
               />
             </button>
@@ -511,7 +523,7 @@ const TeamDetail: React.FC = () => {
               >
                 ADVANCED
               </TabsTrigger>
-              {user && (
+              {(user || pitData) && (
                 <TabsTrigger
                   value="pit"
                   className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 font-bold transition-all text-muted-foreground data-[state=active]:text-foreground"
@@ -665,7 +677,7 @@ const TeamDetail: React.FC = () => {
             )}
           </TabsContent>
 
-          {user && (
+          {(user || pitData) && (
             <TabsContent value="pit" className="outline-none">
               {pitData ? (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -673,12 +685,12 @@ const TeamDetail: React.FC = () => {
                     <Card className="glass bg-white/5 border-white/10 overflow-hidden p-1">
                       <button
                         type="button"
-                        onClick={() => setFullScreenImageUrl(pitData.photos?.[0] || pitData.robot_image_url || null)}
+                        onClick={() => setFullScreenImageUrl(robotImageUrl)}
                         className="aspect-[4/3] rounded-lg overflow-hidden relative group block w-full text-left"
                       >
                         <img
-                          src={pitData.photos?.[0] || pitData.robot_image_url || '/placeholder-robot.png'}
-                          alt={team.team_name}
+                          src={robotImageUrl || '/placeholder-robot.png'}
+                          alt={team?.team_name ?? 'Robot'}
                           className="w-full h-full object-cover transition-transform group-hover:scale-105"
                         />
                       </button>

@@ -153,10 +153,9 @@ const TeamDetail: React.FC = () => {
   };
 
   useEffect(() => {
-    if (teamNumber) {
-      loadTeamData();
-    }
-  }, [teamNumber, user, router.query.competition_id, router.query.event_key]);
+    if (!router.isReady || !teamNumber) return;
+    loadTeamData();
+  }, [router.isReady, teamNumber, user, router.query.competition_id, router.query.event_key]);
 
   const loadTeamData = async () => {
     try {
@@ -167,13 +166,16 @@ const TeamDetail: React.FC = () => {
       const competitionId = router.query.competition_id as string | undefined;
       const eventKey = router.query.event_key as string | undefined;
 
-      // When coming from view-data (competition or event context), load that competition's data and filter by team
-      if (!user && (competitionId || eventKey)) {
+      // When coming from view-data (past or live event), always load that competition's data and filter by team
+      if (competitionId || eventKey) {
         const params = eventKey
           ? `event_key=${encodeURIComponent(eventKey)}`
           : `id=${encodeURIComponent(competitionId!)}`;
         const res = await fetch(`/api/past-competitions?${params}`);
         if (!res.ok) {
+          setTeam({ team_number: teamNum, team_name: `Team ${teamNum}`, team_color: '', created_at: '' });
+          setScoutingData([]);
+          setPitData(null);
           setLoading(false);
           return;
         }

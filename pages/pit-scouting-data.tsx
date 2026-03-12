@@ -61,6 +61,7 @@ export interface PitScoutingData {
   };
   weight: number;
   camera_count?: number;
+  shooting_locations_count?: number;
   shooting_locations: string[];
   programming_language: string;
   notes: string;

@@ -107,6 +107,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [teamStatsSortDirection, setTeamStatsSortDirection] = useState<'asc' | 'desc'>('desc');
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
   const [minAvgScoreFilter, setMinAvgScoreFilter] = useState<number | ''>('');
+  const [pitByTeam, setPitByTeam] = useState<Record<number, { robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }>>({});
 
   useEffect(() => {
     loadData();
@@ -172,6 +173,24 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       // Calculate team statistics: use ALL form scores for averages; matches = distinct match_id from DB
       const stats = calculateTeamStats(sortedScoutingData, allTeamsResult || [], matchCountsFromDb);
       setTeamStats(stats);
+
+      // Load pit scouting data so we can show robot name / drive type per team
+      const { data: pitDataResult } = await supabase
+        .from('pit_scouting_data')
+        .select('team_number, robot_name, drive_type, weight, overall_rating')
+        .order('created_at', { ascending: false });
+      const pitMap: Record<number, { robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }> = {};
+      (pitDataResult || []).forEach((row: { team_number: number; robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }) => {
+        if (!pitMap[row.team_number]) {
+          pitMap[row.team_number] = {
+            robot_name: row.robot_name ?? null,
+            drive_type: row.drive_type ?? null,
+            weight: row.weight ?? null,
+            overall_rating: row.overall_rating ?? null,
+          };
+        }
+      });
+      setPitByTeam(pitMap);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -799,6 +818,16 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               </div>
                             </div>
 
+                            {pitByTeam[team.team_number] && (
+                              <div className="mb-4 p-3 rounded-xl border border-white/5 bg-white/[0.02]">
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Pit</span>
+                                <span className="text-sm font-medium text-foreground">{pitByTeam[team.team_number].robot_name || '—'}</span>
+                                {pitByTeam[team.team_number].drive_type && <span className="text-sm text-muted-foreground"> · {pitByTeam[team.team_number].drive_type}</span>}
+                                {(pitByTeam[team.team_number].weight != null && pitByTeam[team.team_number].weight! > 0) && <span className="text-sm text-muted-foreground"> · {pitByTeam[team.team_number].weight} lbs</span>}
+                                {(pitByTeam[team.team_number].overall_rating != null && pitByTeam[team.team_number].overall_rating! > 0) && <span className="text-sm text-muted-foreground"> ★{pitByTeam[team.team_number].overall_rating}/10</span>}
+                              </div>
+                            )}
+
                             <div className="flex gap-2 pt-2 border-t border-white/5">
                               <Button
                                 size="sm"
@@ -856,12 +885,15 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[11px]" onClick={() => handleTeamStatsSort('consistency_score')}>
                               <span className="inline-flex items-center gap-1">Consistency {teamStatsSortField === 'consistency_score' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
+                            <th className="text-left p-4 text-[11px]">Pit</th>
                             <th className="text-right p-4 text-[11px]">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
                           {sortedTeamStats
-                            .map((team, index) => (
+                            .map((team, index) => {
+                              const pit = pitByTeam[team.team_number];
+                              return (
                               <motion.tr
                                 key={team.team_number}
                                 initial={{ opacity: 0, y: 10 }}
@@ -898,6 +930,24 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                     {team.consistency_score}%
                                   </span>
                                 </td>
+                                <td className="p-4">
+                                  {pit ? (
+                                    <a
+                                      href={`/team/${team.team_number}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="block text-sm text-muted-foreground hover:text-primary transition-colors"
+                                    >
+                                      <span className="font-medium text-foreground">{pit.robot_name || '—'}</span>
+                                      {pit.drive_type && <span className="ml-1 text-xs"> · {pit.drive_type}</span>}
+                                      {pit.weight != null && pit.weight > 0 && <span className="ml-1 text-xs"> · {pit.weight} lbs</span>}
+                                      {pit.overall_rating != null && pit.overall_rating > 0 && <span className="ml-1 text-xs"> ★{pit.overall_rating}/10</span>}
+                                    </a>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
+                                </td>
                                 <td className="p-4 text-right">
                                   <div className="flex justify-end gap-2">
                                     <Button
@@ -928,7 +978,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                   </div>
                                 </td>
                               </motion.tr>
-                            ))}
+                            );
+                            })}
                         </tbody>
                       </table>
                     </div>

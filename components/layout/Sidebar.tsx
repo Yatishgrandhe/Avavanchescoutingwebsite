@@ -15,7 +15,8 @@ import {
   BookOpen,
   Archive,
   Sparkles,
-  Users
+  Users,
+  Trophy
 } from 'lucide-react';
 import { Badge, Logo, Avatar, AvatarFallback, AvatarImage } from '../ui';
 import {
@@ -102,6 +103,11 @@ const AppSidebar: React.FC<SidebarProps> = ({
     {
       title: 'Analysis',
       items: [
+        {
+          label: 'Leaderboard',
+          href: '/leaderboard',
+          icon: Trophy,
+        },
         {
           label: 'Past Competitions',
           href: '/past-competitions',

@@ -790,6 +790,40 @@ const TeamDetail: React.FC = () => {
                               <span className="font-bold">{pitData.drive_teams_count}</span>
                             </div>
                           )}
+                          {(pitData.camera_count != null && pitData.camera_count > 0) && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Cameras</span>
+                              <span className="font-bold">{pitData.camera_count}</span>
+                            </div>
+                          )}
+                          {(pitData.shooting_locations_count != null && pitData.shooting_locations_count > 0) && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Shooting locations count</span>
+                              <span className="font-bold">{pitData.shooting_locations_count}</span>
+                            </div>
+                          )}
+                          {(pitData.climb_location != null && String(pitData.climb_location).trim() !== '') && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Climb location</span>
+                              <span className="font-bold">{pitData.climb_location}</span>
+                            </div>
+                          )}
+                          {pitData.can_autoalign === true && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Can auto-align</span>
+                              <span className="font-bold">Yes</span>
+                            </div>
+                          )}
+                          {Array.isArray(pitData.shooting_locations) && pitData.shooting_locations.length > 0 && (
+                            <div className="text-sm pt-2 border-t border-white/5">
+                              <span className="text-muted-foreground block mb-1">Shooting locations</span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {pitData.shooting_locations.filter((s: unknown) => typeof s === 'string' && (s as string).trim()).map((loc: string, i: number) => (
+                                  <Badge key={i} variant="secondary" className="font-normal text-xs">{loc.trim()}</Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           {(pitData.submitted_by_name || pitData.submitted_at) && (
                             <div className="flex justify-between text-sm pt-2 border-t border-white/5">
                               <span className="text-muted-foreground">Scouted by</span>
@@ -837,7 +871,7 @@ const TeamDetail: React.FC = () => {
                       </h4>
                       <Card className="glass-card p-6 bg-white/5 border-white/10">
                         <p className="text-muted-foreground text-sm italic leading-relaxed whitespace-pre-wrap">
-                          "{pitData.notes || 'No notes provided by the scout.'}"
+                          {pitData.notes || 'No notes provided by the scout.'}
                         </p>
                       </Card>
                     </div>

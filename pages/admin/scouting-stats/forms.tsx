@@ -38,9 +38,19 @@ interface FormRow {
   created_at?: string;
 }
 
+interface PitFormRow {
+  id: string;
+  team_number: number;
+  robot_name?: string | null;
+  overall_rating?: number | null;
+  notes?: string | null;
+  created_at?: string;
+}
+
 interface FormsResponse {
   name: string;
   forms: FormRow[];
+  pitForms: PitFormRow[];
   teams: Record<number, string>;
 }
 
@@ -361,6 +371,75 @@ export default function AdminScoutingFormsPage() {
                   )}
                 </CardContent>
               </Card>
+
+              {data.pitForms && data.pitForms.length > 0 && (
+                <Card className="border border-white/10 bg-card/50 overflow-hidden">
+                  <CardHeader className="border-b border-white/5 bg-white/[0.02]">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Database className="w-5 h-5 text-primary" />
+                      Pit Scouting forms
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {data.pitForms.length} pit scouting record{data.pitForms.length !== 1 ? 's' : ''}.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto scrollbar-hide">
+                      <table className="w-full border-collapse min-w-[600px]">
+                        <thead>
+                          <tr className="border-b border-white/5 text-muted-foreground font-medium uppercase tracking-wider text-[10px]">
+                            <th className="text-left py-3 px-4">Team</th>
+                            <th className="text-left py-3 px-4">Robot Name</th>
+                            <th className="text-left py-3 px-4 text-center">Rating</th>
+                            <th className="text-left py-3 px-4">Notes</th>
+                            <th className="text-left py-3 px-4">Date</th>
+                            <th className="text-right py-3 px-4">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {data.pitForms.map((row) => (
+                            <tr key={row.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                              <td className="py-3 px-4 align-middle">
+                                <Link href={`/team/${row.team_number}`} className="flex items-center gap-2 group">
+                                  <span className="font-bold text-foreground group-hover:text-primary transition-colors truncate max-w-[140px]">
+                                    {getTeamName(row.team_number)}
+                                  </span>
+                                  <span className="font-mono text-[10px] shrink-0 text-muted-foreground">#{row.team_number}</span>
+                                </Link>
+                              </td>
+                              <td className="py-3 px-4 text-muted-foreground align-middle">{row.robot_name || '—'}</td>
+                              <td className="py-3 px-4 align-middle text-center">
+                                {row.overall_rating ? (
+                                  <span className="font-bold text-primary">{row.overall_rating}/10</span>
+                                ) : '—'}
+                              </td>
+                              <td className="py-3 px-4 align-middle">
+                                <div className="max-w-[180px] truncate italic text-sm text-muted-foreground" title={row.notes ?? undefined}>
+                                  {row.notes || '—'}
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 text-muted-foreground text-xs align-middle">
+                                {row.created_at ? new Date(row.created_at).toLocaleDateString() : '—'}
+                              </td>
+                              <td className="py-3 px-4 text-right align-middle">
+                                <Link href={`/team/${row.team_number}`}>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 text-[10px] uppercase font-bold tracking-tight px-3 hover:bg-primary/10 hover:text-primary border-white/10"
+                                  >
+                                    View
+                                  </Button>
+                                </Link>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </motion.div>
           )}
         </div>

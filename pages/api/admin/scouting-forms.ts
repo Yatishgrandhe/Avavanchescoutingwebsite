@@ -33,22 +33,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Query parameter "name" is required' });
     }
 
-    const { data: rawForms, error: formsError } = await supabase
-      .from('scouting_data')
-      .select('*')
-      .not('submitted_by_name', 'is', null)
-      .order('created_at', { ascending: false });
+    const [matchRes, pitRes] = await Promise.all([
+      supabase.from('scouting_data')
+        .select('*')
+        .not('submitted_by_name', 'is', null)
+        .order('created_at', { ascending: false }),
+      supabase.from('pit_scouting_data')
+        .select('*')
+        .not('submitted_by_name', 'is', null)
+        .order('created_at', { ascending: false })
+    ]);
 
-    if (formsError) {
-      console.error('scouting_forms error:', formsError);
-      return res.status(500).json({ error: 'Failed to load scouting forms' });
+    if (matchRes.error) {
+      console.error('match_scouting_forms error:', matchRes.error);
+      return res.status(500).json({ error: 'Failed to load match scouting forms' });
+    }
+    if (pitRes.error) {
+      console.error('pit_scouting_forms error:', pitRes.error);
+      return res.status(500).json({ error: 'Failed to load pit scouting forms' });
     }
 
-    const forms = (rawForms || []).filter(
+    const matchForms = (matchRes.data || []).filter(
+      (r: { submitted_by_name?: string | null }) => (r.submitted_by_name || '').trim() === name
+    );
+    const pitForms = (pitRes.data || []).filter(
       (r: { submitted_by_name?: string | null }) => (r.submitted_by_name || '').trim() === name
     );
 
-    const teamNumbers = Array.from(new Set(forms.map((r: { team_number: number }) => r.team_number)));
+    const teamNumbers = Array.from(new Set([
+      ...matchForms.map((r: { team_number: number }) => r.team_number),
+      ...pitForms.map((r: { team_number: number }) => r.team_number)
+    ]));
+
     const { data: teams } = teamNumbers.length > 0
       ? await supabase.from('teams').select('team_number, team_name').in('team_number', teamNumbers)
       : { data: [] };
@@ -57,7 +73,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({
       name,
-      forms: forms || [],
+      forms: matchForms,
+      pitForms: pitForms,
       teams: Object.fromEntries(teamMap),
     });
   } catch (err) {

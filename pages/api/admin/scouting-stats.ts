@@ -38,25 +38,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const [liveRes, namesRes] = await Promise.all([
+    const [liveRes, pitRes, namesRes] = await Promise.all([
       supabase.from('scouting_data').select('submitted_by_name'),
+      supabase.from('pit_scouting_data').select('submitted_by_name'),
       supabase.from('scout_names').select('name').order('sort_order', { ascending: true }).order('name', { ascending: true }),
     ]);
 
     if (liveRes.error) {
       console.error('scouting_data error:', liveRes.error);
-      return res.status(500).json({ error: 'Failed to load scouting data' });
+      return res.status(500).json({ error: 'Failed to load match scouting data' });
+    }
+    if (pitRes.error) {
+      console.error('pit_scouting_data error:', pitRes.error);
+      return res.status(500).json({ error: 'Failed to load pit scouting data' });
     }
     if (namesRes.error) {
       console.error('scout_names error:', namesRes.error);
       return res.status(500).json({ error: 'Failed to load scout names' });
     }
 
-    // Count only live scouting_data so forms are not double-counted when past data was restored to live
-    const allRows = (liveRes.data || []).map((r: { submitted_by_name?: string | null }) => r.submitted_by_name ?? 'Unknown');
+    const matchRows = (liveRes.data || []).map((r: { submitted_by_name?: string | null }) => r.submitted_by_name ?? 'Unknown');
+    const pitRows = (pitRes.data || []).map((r: { submitted_by_name?: string | null }) => r.submitted_by_name ?? 'Unknown');
 
     const countByPerson = new Map<string, number>();
-    for (const name of allRows) {
+    for (const name of [...matchRows, ...pitRows]) {
       const displayName = (typeof name === 'string' && name.trim()) ? name.trim() : 'Unknown';
       countByPerson.set(displayName, (countByPerson.get(displayName) ?? 0) + 1);
     }
@@ -67,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       formCount: countByPerson.get(name) ?? 0,
     }));
 
-    const totalForms = allRows.length;
+    const totalForms = matchRows.length + pitRows.length;
 
     const response: ScoutingStatsResponse = {
       totalForms,

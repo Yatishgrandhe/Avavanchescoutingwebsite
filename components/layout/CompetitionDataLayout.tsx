@@ -6,13 +6,14 @@ import Link from 'next/link';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '../ui/sidebar';
 import CompetitionDataSidebar, { type CompetitionViewTab } from './CompetitionDataSidebar';
 import { Button } from '../ui/Button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Home } from 'lucide-react';
 import Logo from '../ui/Logo';
 
 interface CompetitionDataLayoutProps {
   children: React.ReactNode;
   activeTab: CompetitionViewTab;
-  onTabChange: (tab: CompetitionViewTab) => void;
+  /** When provided, tabs switch in-page; when omitted, sidebar tabs link to view-data */
+  onTabChange?: (tab: CompetitionViewTab) => void;
   /** e.g. /competition-history */
   backHref?: string;
   /** e.g. ?event_key=avalanche_2026 or ?id=xxx */
@@ -35,7 +36,7 @@ export default function CompetitionDataLayout({
     <SidebarProvider>
       <CompetitionDataSidebar
         activeTab={activeTab}
-        onTabChange={onTabChange}
+        onTabChange={onTabChange ?? undefined}
         backHref={backHref}
         queryString={queryString}
         showPitTab={showPitTab}
@@ -51,11 +52,18 @@ export default function CompetitionDataLayout({
                   <span className="font-semibold hidden sm:inline">Avalanche Scouting</span>
                 </Link>
               </div>
-              <Link href={backUrl}>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <ArrowLeft className="h-4 w-4" /> Back to Competition History
-                </Button>
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link href="/">
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <Home className="h-4 w-4" /> Current competition
+                  </Button>
+                </Link>
+                <Link href={backUrl}>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <ArrowLeft className="h-4 w-4" /> Back to Competition History
+                  </Button>
+                </Link>
+              </div>
             </div>
           </header>
           <main className="flex-1 overflow-y-auto overflow-x-hidden">

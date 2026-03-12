@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import GuestLayout from '@/components/layout/GuestLayout';
+import CompetitionDataLayout from '@/components/layout/CompetitionDataLayout';
 import { ScoutingData, Team } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
@@ -408,47 +409,57 @@ const TeamDetail: React.FC = () => {
     ? { href: backUrl, label: 'Back to Data' }
     : { href: '/competition-history', label: 'Back to Competition History' };
 
+  const competitionId = router.query.competition_id as string | undefined;
+  const eventKey = router.query.event_key as string | undefined;
+  const inCompetitionContext = Boolean(competitionId || eventKey);
+  const competitionQueryString = competitionId
+    ? `id=${encodeURIComponent(competitionId)}`
+    : eventKey
+      ? `event_key=${encodeURIComponent(eventKey)}`
+      : '';
+
+  const wrapWithCompetitionLayout = (content: React.ReactNode) => (
+    <CompetitionDataLayout
+      activeTab="teams"
+      backHref="/competition-history"
+      queryString={competitionQueryString}
+      showPitTab={true}
+    >
+      <div className="max-w-7xl mx-auto px-4 py-6">{content}</div>
+    </CompetitionDataLayout>
+  );
+
   if (loading) {
+    const spinner = (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+    if (inCompetitionContext) return wrapWithCompetitionLayout(spinner);
     return user ? (
-      <Layout>
-        <div className="min-h-[50vh] flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </Layout>
+      <Layout>{spinner}</Layout>
     ) : (
-      <GuestLayout backLink={guestBackLink}>
-        <div className="flex-1 flex items-center justify-center min-h-[50vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </GuestLayout>
+      <GuestLayout backLink={guestBackLink}>{spinner}</GuestLayout>
     );
   }
 
   if (!team) {
+    const notFoundContent = (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6 glass-card rounded-2xl mx-4">
+        <AlertCircle className="w-16 h-16 text-muted-foreground mb-4" />
+        <h3 className="text-xl font-bold text-foreground mb-2">Team Not Found</h3>
+        <p className="text-muted-foreground mb-6 max-w-md">The requested team number could not be found in our database.</p>
+        <Button onClick={() => router.push(backUrl || '/competition-history')} variant="outline" className="border-white/10 hover:bg-white/5">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back
+        </Button>
+      </div>
+    );
+    if (inCompetitionContext) return wrapWithCompetitionLayout(notFoundContent);
     return user ? (
-      <Layout>
-        <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6 glass-card rounded-2xl mx-4">
-          <AlertCircle className="w-16 h-16 text-muted-foreground mb-4" />
-          <h3 className="text-xl font-bold text-foreground mb-2">Team Not Found</h3>
-          <p className="text-muted-foreground mb-6 max-w-md">The requested team number could not be found in our database.</p>
-          <Button onClick={() => router.push(backUrl || '/competition-history')} variant="outline" className="border-white/10 hover:bg-white/5">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-        </div>
-      </Layout>
+      <Layout>{notFoundContent}</Layout>
     ) : (
-      <GuestLayout backLink={guestBackLink}>
-        <div className="flex-1 flex flex-col items-center justify-center text-center p-6 glass-card rounded-2xl mx-4 min-h-[50vh]">
-          <AlertCircle className="w-16 h-16 text-muted-foreground mb-4" />
-          <h3 className="text-xl font-bold text-foreground mb-2">Team Not Found</h3>
-          <p className="text-muted-foreground mb-6 max-w-md">The requested team number could not be found in our database.</p>
-          <Button onClick={() => router.push(backUrl || '/competition-history')} variant="outline" className="border-white/10 hover:bg-white/5">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-        </div>
-      </GuestLayout>
+      <GuestLayout backLink={guestBackLink}>{notFoundContent}</GuestLayout>
     );
   }
 
@@ -1106,6 +1117,10 @@ const TeamDetail: React.FC = () => {
       </AnimatePresence>
     </div>
   );
+
+  if (inCompetitionContext) {
+    return wrapWithCompetitionLayout(mainContent);
+  }
 
   return user ? (
     <Layout>{mainContent}</Layout>

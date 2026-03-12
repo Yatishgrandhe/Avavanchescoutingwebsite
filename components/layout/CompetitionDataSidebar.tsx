@@ -6,7 +6,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BarChart3, LayoutDashboard, GitCompare, Wrench } from 'lucide-react';
+import { ArrowLeft, BarChart3, LayoutDashboard, GitCompare, Wrench, Home } from 'lucide-react';
 import { Badge, Logo } from '../ui';
 import {
   Sidebar,
@@ -100,6 +100,14 @@ export default function CompetitionDataSidebar({
                   <Link href={backHref}>
                     <ArrowLeft className="h-4 w-4" />
                     <span>Back to Competition History</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip={isCollapsed ? 'Back to current competition' : undefined}>
+                  <Link href="/">
+                    <Home className="h-4 w-4" />
+                    <span>Back to current competition</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

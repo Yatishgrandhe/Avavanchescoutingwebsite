@@ -27,7 +27,6 @@ import {
   LayoutDashboard,
   Wrench,
 } from 'lucide-react';
-import Layout from '@/components/layout/Layout';
 import CompetitionDataLayout from '@/components/layout/CompetitionDataLayout';
 import type { CompetitionViewTab } from '@/components/layout/CompetitionDataSidebar';
 import { useSupabase } from '@/pages/_app';
@@ -149,37 +148,29 @@ export default function ViewDataPage() {
 
   if (loading) {
     return (
-      user ? (
-        <Layout><div className="flex-1" /></Layout>
-      ) : (
-        <CompetitionDataLayout activeTab="teams" onTabChange={() => {}} backHref="/competition-history" queryString={queryString}>
-          <div className="flex-1 flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2" />
-              <p className="text-muted-foreground">Loading competition data...</p>
-            </div>
+      <CompetitionDataLayout activeTab="teams" backHref="/competition-history" queryString={queryString}>
+        <div className="flex-1 flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2" />
+            <p className="text-muted-foreground">Loading competition data...</p>
           </div>
-        </CompetitionDataLayout>
-      )
+        </div>
+      </CompetitionDataLayout>
     );
   }
 
   if (error || !competition) {
     return (
-      user ? (
-        <Layout><div className="flex-1" /></Layout>
-      ) : (
-        <CompetitionDataLayout activeTab="teams" onTabChange={() => {}} backHref="/competition-history" queryString={queryString}>
-          <div className="flex-1 flex items-center justify-center p-4 min-h-[60vh]">
-            <Card className="max-w-md w-full p-6">
-              <p className="text-destructive mb-4">{error || 'Competition not found.'}</p>
-              <Link href="/competition-history">
-                <Button variant="outline">Back to Competition History</Button>
-              </Link>
-            </Card>
-          </div>
-        </CompetitionDataLayout>
-      )
+      <CompetitionDataLayout activeTab="teams" backHref="/competition-history" queryString={queryString}>
+        <div className="flex-1 flex items-center justify-center p-4 min-h-[60vh]">
+          <Card className="max-w-md w-full p-6">
+            <p className="text-destructive mb-4">{error || 'Competition not found.'}</p>
+            <Link href="/competition-history">
+              <Button variant="outline">Back to Competition History</Button>
+            </Link>
+          </Card>
+        </div>
+      </CompetitionDataLayout>
     );
   }
 
@@ -366,10 +357,6 @@ export default function ViewDataPage() {
       </Card>
     </main>
   );
-
-  if (user) {
-    return <Layout>{mainContent}</Layout>;
-  }
 
   const overviewContent = (
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

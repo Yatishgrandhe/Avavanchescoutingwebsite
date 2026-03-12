@@ -1,13 +1,16 @@
 /**
- * Layout for view-data page only: sidebar with Back to Competition History + Overview, Comparison, Data Analysis.
+ * Layout for view-data and team page in competition context: sidebar with Back to Competition History, Back to current competition, tabs.
+ * Shows user avatar and sign-out in header when logged in.
  */
 import React from 'react';
 import Link from 'next/link';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '../ui/sidebar';
 import CompetitionDataSidebar, { type CompetitionViewTab } from './CompetitionDataSidebar';
-import { Button } from '../ui/Button';
-import { ArrowLeft, Home } from 'lucide-react';
+import { Button, Avatar, AvatarFallback, AvatarImage, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui';
+import { ArrowLeft, Home, User, LogOut, Settings } from 'lucide-react';
 import Logo from '../ui/Logo';
+import { useSupabase } from '@/pages/_app';
+import { useAdmin } from '@/hooks/use-admin';
 
 interface CompetitionDataLayoutProps {
   children: React.ReactNode;
@@ -31,6 +34,13 @@ export default function CompetitionDataLayout({
   showPitTab = false,
 }: CompetitionDataLayoutProps) {
   const backUrl = backHref;
+  const { user, supabase } = useSupabase();
+  const { isAdmin } = useAdmin();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/auth/signin';
+  };
 
   return (
     <SidebarProvider>
@@ -63,6 +73,43 @@ export default function CompetitionDataLayout({
                     <ArrowLeft className="h-4 w-4" /> Back to Competition History
                   </Button>
                 </Link>
+                {user && (
+                  <div className="flex items-center gap-2 pl-2 border-l border-border">
+                    <div className="text-right hidden lg:block">
+                      <p className="text-sm font-medium leading-none text-foreground">{user.user_metadata?.full_name || 'User'}</p>
+                      <p className="text-xs text-muted-foreground">{isAdmin ? 'Administrator' : 'Team Member'}</p>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-2 ring-border hover:ring-primary/50 transition-all p-0 overflow-hidden">
+                          <Avatar className="h-full w-full">
+                            <AvatarImage src={user.user_metadata?.avatar_url} alt={user.user_metadata?.full_name || 'User'} />
+                            <AvatarFallback className="bg-primary/20 text-primary">
+                              {(user.user_metadata?.full_name || 'U').slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-56 glass border-border mt-2" align="end">
+                        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="cursor-pointer">
+                          <User className="mr-2 h-4 w-4" />
+                          <span>Profile</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer">
+                          <Settings className="mr-2 h-4 w-4" />
+                          <span>Settings</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive">
+                          <LogOut className="mr-2 h-4 w-4" />
+                          <span>Sign Out</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
               </div>
             </div>
           </header>

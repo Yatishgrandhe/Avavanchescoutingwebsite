@@ -88,6 +88,15 @@ export default function ViewDataPage() {
     }
   }, [event_key, id, router.isReady]);
 
+  const statsByPerson = React.useMemo(() => {
+    const map = new Map<string, number>();
+    scoutingData.forEach((r: ViewDataRow) => {
+      const name = (r.submitted_by_name != null && String(r.submitted_by_name).trim()) ? String(r.submitted_by_name).trim() : 'Unknown';
+      map.set(name, (map.get(name) || 0) + 1);
+    });
+    return Array.from(map.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+  }, [scoutingData]);
+
   const loadData = async () => {
     if (!event_key && !id) return;
     setLoading(true);
@@ -511,15 +520,6 @@ export default function ViewDataPage() {
       </Card>
     </main>
   );
-
-  const statsByPerson = React.useMemo(() => {
-    const map = new Map<string, number>();
-    scoutingData.forEach((r: ViewDataRow) => {
-      const name = (r.submitted_by_name != null && String(r.submitted_by_name).trim()) ? String(r.submitted_by_name).trim() : 'Unknown';
-      map.set(name, (map.get(name) || 0) + 1);
-    });
-    return Array.from(map.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
-  }, [scoutingData]);
 
   const statsContent = (
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

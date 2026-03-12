@@ -58,6 +58,7 @@ interface ViewDataRow {
   average_downtime?: number | null;
   broke?: boolean | null;
   created_at?: string;
+  submitted_by_name?: string | null;
 }
 
 export default function ViewDataPage() {
@@ -403,9 +404,20 @@ export default function ViewDataPage() {
       ? `/analysis/comparison?event_key=${encodeURIComponent(event_key as string)}`
       : '/analysis/comparison';
 
-  const getPitImageUrl = (row: { photos?: string[] | null; robot_image_url?: string | null }) => {
-    if (row.robot_image_url && String(row.robot_image_url).trim()) return row.robot_image_url!.trim();
-    const arr = Array.isArray(row.photos) ? row.photos : [];
+  const getPitImageUrl = (row: { photos?: string[] | null; robot_image_url?: string | null; [key: string]: unknown }) => {
+    const robotUrl = row.robot_image_url != null && String(row.robot_image_url).trim();
+    if (robotUrl) return String(row.robot_image_url).trim();
+    let arr: unknown[] = [];
+    if (Array.isArray(row.photos)) arr = row.photos;
+    else if (typeof row.photos === 'string') {
+      const str: string = row.photos;
+      try {
+        const parsed = JSON.parse(str);
+        arr = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        if (String(str).trim()) arr = [str];
+      }
+    }
     const first = arr.find((u: unknown) => typeof u === 'string' && (u as string).trim());
     return first ? (first as string).trim() : null;
   };
@@ -430,9 +442,27 @@ export default function ViewDataPage() {
           return (
             <Link key={(row as { id?: string }).id ?? `pit-${row.team_number}-${idx}`} href={teamUrl}>
               <Card className="overflow-hidden border border-white/10 bg-card/50 hover:border-primary/30 hover:bg-white/5 transition-all h-full">
-                <div className="aspect-[4/3] bg-muted/20 flex items-center justify-center overflow-hidden">
+                <div className="aspect-[4/3] bg-muted/20 flex items-center justify-center overflow-hidden relative">
                   {imgUrl ? (
-                    <img src={imgUrl} alt={row.robot_name || teamName} className="w-full h-full object-cover" />
+                    <>
+                      <img
+                        src={imgUrl}
+                        alt={row.robot_name || teamName}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                        onError={(e) => {
+                          const el = e.target as HTMLImageElement;
+                          el.style.display = 'none';
+                          const wrap = el.parentElement;
+                          const fallback = wrap?.querySelector('.pit-img-fallback');
+                          if (fallback instanceof HTMLElement) fallback.style.display = 'flex';
+                        }}
+                      />
+                      <div className="pit-img-fallback absolute inset-0 flex items-center justify-center bg-muted/20" style={{ display: 'none' }}>
+                        <Wrench className="w-12 h-12 text-muted-foreground/50" />
+                      </div>
+                    </>
                   ) : (
                     <Wrench className="w-12 h-12 text-muted-foreground/50" />
                   )}
@@ -482,6 +512,52 @@ export default function ViewDataPage() {
     </main>
   );
 
+  const statsByPerson = React.useMemo(() => {
+    const map = new Map<string, number>();
+    scoutingData.forEach((r: ViewDataRow) => {
+      const name = (r.submitted_by_name != null && String(r.submitted_by_name).trim()) ? String(r.submitted_by_name).trim() : 'Unknown';
+      map.set(name, (map.get(name) || 0) + 1);
+    });
+    return Array.from(map.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+  }, [scoutingData]);
+
+  const statsContent = (
+    <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-1">Scouting Stats</h1>
+        <p className="text-muted-foreground text-sm">
+          Match scouting forms by person for {competition?.competition_name ?? 'this competition'}.
+        </p>
+      </div>
+      <Card className="border border-white/10 bg-card/50 overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-white/10 text-left text-muted-foreground text-sm uppercase tracking-wider">
+              <th className="p-4 font-medium">Person</th>
+              <th className="p-4 font-medium text-right">Forms</th>
+            </tr>
+          </thead>
+          <tbody>
+            {statsByPerson.length === 0 ? (
+              <tr>
+                <td colSpan={2} className="p-8 text-center text-muted-foreground">
+                  No scouting forms in this competition yet.
+                </td>
+              </tr>
+            ) : (
+              statsByPerson.map(({ name, count }) => (
+                <tr key={name} className="border-b border-white/5 hover:bg-white/5">
+                  <td className="p-4 font-medium text-foreground">{name}</td>
+                  <td className="p-4 text-right font-mono">{count}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </Card>
+    </main>
+  );
+
   const tabContent =
     activeTab === 'overview'
       ? overviewContent
@@ -489,7 +565,9 @@ export default function ViewDataPage() {
         ? comparisonContent
         : activeTab === 'pit'
           ? pitContent
-          : mainContent;
+          : activeTab === 'stats'
+            ? statsContent
+            : mainContent;
 
   return (
     <CompetitionDataLayout
@@ -498,6 +576,7 @@ export default function ViewDataPage() {
       backHref="/competition-history"
       queryString={queryPrefix}
       showPitTab={pitScoutingData.length > 0}
+      showStatsTab={true}
     >
       {tabContent}
     </CompetitionDataLayout>

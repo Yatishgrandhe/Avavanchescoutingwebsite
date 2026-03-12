@@ -15,14 +15,12 @@ import { useAdmin } from '@/hooks/use-admin';
 interface CompetitionDataLayoutProps {
   children: React.ReactNode;
   activeTab: CompetitionViewTab;
-  /** When provided, tabs switch in-page; when omitted, sidebar tabs link to view-data */
   onTabChange?: (tab: CompetitionViewTab) => void;
-  /** e.g. /competition-history */
   backHref?: string;
-  /** e.g. ?event_key=avalanche_2026 or ?id=xxx */
   queryString?: string;
-  /** Show Pit Scouting tab in sidebar (when past competition has pit data) */
   showPitTab?: boolean;
+  /** Show Scouting Stats tab (default true) */
+  showStatsTab?: boolean;
 }
 
 export default function CompetitionDataLayout({
@@ -32,10 +30,12 @@ export default function CompetitionDataLayout({
   backHref = '/competition-history',
   queryString = '',
   showPitTab = false,
+  showStatsTab = true,
 }: CompetitionDataLayoutProps) {
   const backUrl = backHref;
   const { user, supabase } = useSupabase();
   const { isAdmin } = useAdmin();
+  const isLoggedIn = !!user;
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -50,6 +50,8 @@ export default function CompetitionDataLayout({
         backHref={backHref}
         queryString={queryString}
         showPitTab={showPitTab}
+        showStatsTab={showStatsTab}
+        isLoggedIn={isLoggedIn}
       />
       <SidebarInset>
         <div className="flex flex-col min-h-screen">
@@ -63,16 +65,20 @@ export default function CompetitionDataLayout({
                 </Link>
               </div>
               <div className="flex items-center gap-2">
-                <Link href="/">
-                  <Button variant="ghost" size="sm" className="gap-2">
-                    <Home className="h-4 w-4" /> Current competition
-                  </Button>
-                </Link>
-                <Link href={backUrl}>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <ArrowLeft className="h-4 w-4" /> Back to Competition History
-                  </Button>
-                </Link>
+                {isLoggedIn && (
+                  <Link href="/">
+                    <Button variant="ghost" size="sm" className="gap-2">
+                      <Home className="h-4 w-4" /> Current competition
+                    </Button>
+                  </Link>
+                )}
+                {!isLoggedIn && (
+                  <Link href={backUrl}>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <ArrowLeft className="h-4 w-4" /> Back to Competition History
+                    </Button>
+                  </Link>
+                )}
                 {user && (
                   <div className="flex items-center gap-2 pl-2 border-l border-border">
                     <div className="text-right hidden lg:block">

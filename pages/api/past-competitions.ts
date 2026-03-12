@@ -89,6 +89,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           total_matches: matches.length,
         };
 
+        const teamNumArr = Array.from(teamNumbers);
+        const { data: pitScoutingData = [] } = teamNumArr.length > 0
+          ? await supabaseAdmin
+              .from('pit_scouting_data')
+              .select('*')
+              .in('team_number', teamNumArr)
+              .order('created_at', { ascending: false })
+          : { data: [] };
+
         return res.status(200).json({
           competition,
           teams,
@@ -99,7 +108,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             blue_teams: m.blue_teams || [],
           })),
           scoutingData: scoutingData || [],
-          pitScoutingData: [],
+          pitScoutingData: pitScoutingData || [],
           pickLists: [],
         });
       }

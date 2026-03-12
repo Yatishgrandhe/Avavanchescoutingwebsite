@@ -6,7 +6,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BarChart3, LayoutDashboard, GitCompare, Wrench, Home } from 'lucide-react';
+import { ArrowLeft, BarChart3, LayoutDashboard, GitCompare, Wrench, Home, Users } from 'lucide-react';
 import { Badge, Logo } from '../ui';
 import {
   Sidebar,
@@ -23,19 +23,23 @@ import {
 } from '../ui/sidebar';
 import { Sparkles } from 'lucide-react';
 
-export type CompetitionViewTab = 'overview' | 'comparison' | 'teams' | 'pit';
+export type CompetitionViewTab = 'overview' | 'comparison' | 'teams' | 'pit' | 'stats';
 
 interface CompetitionDataSidebarProps {
-  /** Current tab (overview | comparison | teams | pit) */
+  /** Current tab */
   activeTab: CompetitionViewTab;
-  /** If false, Pit Scouting tab is hidden (e.g. no pit data for this competition) */
+  /** If false, Pit Scouting tab is hidden */
   showPitTab?: boolean;
-  /** Called when user selects a tab (for in-page switching without nav) */
+  /** If true, show Scouting Stats tab */
+  showStatsTab?: boolean;
+  /** Called when user selects a tab */
   onTabChange?: (tab: CompetitionViewTab) => void;
   /** e.g. /competition-history */
   backHref: string;
   /** Query string to preserve e.g. ?event_key=xxx or ?id=xxx */
   queryString?: string;
+  /** Logged-in user: show only "Back to current competition". Guest: show only "Back to Competition History" */
+  isLoggedIn?: boolean;
 }
 
 const tabs: { id: CompetitionViewTab; label: string; icon: React.ElementType }[] = [
@@ -43,6 +47,7 @@ const tabs: { id: CompetitionViewTab; label: string; icon: React.ElementType }[]
   { id: 'comparison', label: 'Comparison', icon: GitCompare },
   { id: 'teams', label: 'Data Analysis', icon: BarChart3 },
   { id: 'pit', label: 'Pit Scouting', icon: Wrench },
+  { id: 'stats', label: 'Scouting Stats', icon: Users },
 ];
 
 export default function CompetitionDataSidebar({
@@ -51,6 +56,8 @@ export default function CompetitionDataSidebar({
   backHref,
   queryString = '',
   showPitTab = true,
+  showStatsTab = true,
+  isLoggedIn = false,
 }: CompetitionDataSidebarProps) {
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
@@ -91,26 +98,29 @@ export default function CompetitionDataSidebar({
       </SidebarHeader>
 
       <SidebarContent className="relative z-10">
-        {/* Back to Competition History */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip={isCollapsed ? 'Back to Competition History' : undefined}>
-                  <Link href={backHref}>
-                    <ArrowLeft className="h-4 w-4" />
-                    <span>Back to Competition History</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip={isCollapsed ? 'Back to current competition' : undefined}>
-                  <Link href="/">
-                    <Home className="h-4 w-4" />
-                    <span>Back to current competition</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {!isLoggedIn && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip={isCollapsed ? 'Back to Competition History' : undefined}>
+                    <Link href={backHref}>
+                      <ArrowLeft className="h-4 w-4" />
+                      <span>Back to Competition History</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              {isLoggedIn && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip={isCollapsed ? 'Back to current competition' : undefined}>
+                    <Link href="/">
+                      <Home className="h-4 w-4" />
+                      <span>Back to current competition</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -123,7 +133,7 @@ export default function CompetitionDataSidebar({
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {tabs.filter((tab) => tab.id !== 'pit' || showPitTab).map((tab) => {
+              {tabs.filter((tab) => (tab.id !== 'pit' || showPitTab) && (tab.id !== 'stats' || showStatsTab)).map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
                 return (

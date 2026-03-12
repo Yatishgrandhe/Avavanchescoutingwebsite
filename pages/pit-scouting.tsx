@@ -65,6 +65,7 @@ interface PitScoutingData {
   shootingLocations: string[];
   programmingLanguage: string;
   notes: string;
+  scoutName: string;
 }
 
 export default function PitScouting() {
@@ -101,6 +102,7 @@ export default function PitScouting() {
     shootingLocations: [],
     programmingLanguage: '',
     notes: '',
+    scoutName: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -109,6 +111,7 @@ export default function PitScouting() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const [scoutedTeamNumbers, setScoutedTeamNumbers] = useState<Set<number>>(new Set());
+  const [scoutNames, setScoutNames] = useState<string[]>([]);
   const annotatorRef = React.useRef<AutoPathAnnotatorRef>(null);
   /** Stored blob when leaving step 2 so we can upload it on submit (annotator unmounted on step 3) */
   const exportedAnnotatedBlobRef = useRef<Blob | null>(null);
@@ -162,6 +165,7 @@ export default function PitScouting() {
         shootingLocations: Array.isArray(fd.shootingLocations) ? fd.shootingLocations : prev.shootingLocations,
         programmingLanguage: fd.programmingLanguage ?? prev.programmingLanguage,
         notes: fd.notes ?? prev.notes,
+        scoutName: fd.scoutName ?? prev.scoutName,
       }));
       if (typeof draft.currentStep === 'number' && draft.currentStep >= 1 && draft.currentStep <= totalSteps) {
         setCurrentStep(draft.currentStep);
@@ -205,21 +209,23 @@ export default function PitScouting() {
       setTeamsError(null);
 
       try {
-        const [teamsResult, scoutedResult] = await Promise.all([
+        const [teamsResult, scoutedResult, scoutNamesResult] = await Promise.all([
           supabase.from('teams').select('team_number, team_name, team_color').order('team_number'),
-          supabase.from('pit_scouting_data').select('team_number')
+          supabase.from('pit_scouting_data').select('team_number'),
+          fetch('/api/scout-names').then(res => res.ok ? res.json() : { names: [] })
         ]);
 
         if (teamsResult.error) throw new Error('Failed to load teams');
         if (scoutedResult.error) console.warn('Failed to load scouted teams:', scoutedResult.error);
 
         setTeams(teamsResult.data || []);
+        setScoutNames(scoutNamesResult.names || []);
 
         const scoutedNumbers = new Set<number>(scoutedResult.data?.map((item: { team_number: number }) => item.team_number) || []);
         setScoutedTeamNumbers(scoutedNumbers);
       } catch (err) {
-        console.error('Error loading teams:', err);
-        setTeamsError(err instanceof Error ? err.message : 'Failed to load teams');
+        console.error('Error loading data:', err);
+        setTeamsError(err instanceof Error ? err.message : 'Failed to load data');
       } finally {
         setLoadingTeams(false);
       }
@@ -287,6 +293,7 @@ export default function PitScouting() {
             shootingLocations: toArray(existingData.shooting_locations),
             programmingLanguage: existingData.programming_language || '',
             notes: existingData.notes || '',
+            scoutName: existingData.submitted_by_name || '',
           });
         }
       } catch (err) {
@@ -457,7 +464,7 @@ export default function PitScouting() {
         weaknesses: [],
         submitted_by: user.id,
         submitted_by_email: user.email,
-        submitted_by_name: user?.user_metadata?.full_name || user?.email,
+        submitted_by_name: formData.scoutName || user?.user_metadata?.full_name || user?.email,
         submitted_at: new Date().toISOString(),
       };
 
@@ -634,6 +641,29 @@ export default function PitScouting() {
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Scout Name <span className="text-red-400">*</span></label>
+                        <Select
+                          value={formData.scoutName}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, scoutName: value }))}
+                        >
+                          <SelectTrigger className="glass-input w-full border-white/10">
+                            <SelectValue placeholder="Select Your Name" />
+                          </SelectTrigger>
+                          <SelectContent className="glass border-white/10 max-h-[300px]">
+                            {scoutNames.length === 0 ? (
+                              <SelectItem value="no-names" disabled>No names found</SelectItem>
+                            ) : (
+                              scoutNames.map((name) => (
+                                <SelectItem key={name} value={name} className="focus:bg-white/10">
+                                  {name}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Team Number <span className="text-red-400">*</span></label>
                         {loadingTeams ? (

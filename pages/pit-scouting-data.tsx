@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui';
 import { Button } from '../components/ui';
 import { Badge } from '../components/ui/badge';
@@ -78,6 +79,14 @@ export interface PitScoutingData {
   created_at: string;
 }
 
+function getPitImageUrl(item: PitScoutingData): string | null {
+  const robotUrl = item.robot_image_url != null && String(item.robot_image_url).trim();
+  if (robotUrl) return String(item.robot_image_url).trim();
+  const arr = Array.isArray(item.photos) ? item.photos : item.robot_image_url ? [item.robot_image_url] : [];
+  const first = arr.find((u): u is string => typeof u === 'string' && (u as string).trim().length > 0);
+  return first ? first.trim() : null;
+}
+
 export default function PitScoutingData() {
   const { user, loading, supabase } = useSupabase();
   const { isAdmin } = useAdmin();
@@ -97,6 +106,21 @@ export default function PitScoutingData() {
   const [showUnscoutedTeams, setShowUnscoutedTeams] = useState(false);
   const [selectedDetailItem, setSelectedDetailItem] = useState<PitScoutingData | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+
+  const pitDisplayList = React.useMemo(() => {
+    const byTeam = new Map<number, PitScoutingData>();
+    const hasImage = (row: PitScoutingData) => !!getPitImageUrl(row);
+    filteredData.forEach((row) => {
+      const teamNum = row.team_number;
+      const existing = byTeam.get(teamNum);
+      if (!existing) {
+        byTeam.set(teamNum, row);
+        return;
+      }
+      if (hasImage(row) && !hasImage(existing)) byTeam.set(teamNum, row);
+    });
+    return Array.from(byTeam.values());
+  }, [filteredData]);
 
   // Load pit scouting data
   useEffect(() => {
@@ -578,113 +602,69 @@ export default function PitScoutingData() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredData.map((item) => (
-                  <Card key={item.id} className="bg-gray-800/50 backdrop-blur-sm border-gray-700 hover:bg-gray-800/70 transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-white">Team {item.team_number}{item.team_name ? ` — ${item.team_name}` : ''}</CardTitle>
-                      </div>
-                      <p className="text-gray-400">{item.robot_name}</p>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Robot Image Preview (first of photos or robot_image_url) */}
-                      {(item.photos?.[0] || item.robot_image_url) && (
-                        <div className="relative w-full rounded-lg overflow-hidden border border-gray-700 bg-gray-900 aspect-video">
-                          <img
-                            src={item.photos?.[0] || item.robot_image_url || ''}
-                            alt={`Team ${item.team_number} - ${item.robot_name}`}
-                            className="w-full h-full object-contain"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const parent = target.parentElement;
-                              if (parent) {
-                                parent.innerHTML = '<div class="p-4 text-center text-gray-400 text-sm">Failed to load image</div>';
-                              }
-                            }}
-                          />
-                          {item.photos && item.photos.length > 1 && (
-                            <span className="absolute bottom-1 right-1 bg-black/70 text-xs text-white px-2 py-0.5 rounded">
-                              +{item.photos.length - 1} more
-                            </span>
+              <>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-white mb-1">Pit Scouting</h2>
+                <p className="text-gray-400 text-sm">
+                  Teams with pit scouting data. Click a team to view details and robot images.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {pitDisplayList.map((item, idx) => {
+                  const teamName = item.team_name || `Team ${item.team_number}`;
+                  const imgUrl = getPitImageUrl(item);
+                  return (
+                    <Link key={item.id ?? `pit-${item.team_number}-${idx}`} href={`/team/${item.team_number}`}>
+                      <Card className="overflow-hidden border border-gray-700 bg-gray-800/50 hover:border-blue-500/30 hover:bg-gray-800/70 transition-all h-full">
+                        <div className="aspect-[4/3] bg-gray-900/50 flex items-center justify-center overflow-hidden relative">
+                          {imgUrl ? (
+                            <>
+                              <img
+                                src={imgUrl}
+                                alt={item.robot_name || teamName}
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                                loading="lazy"
+                                onError={(e) => {
+                                  const el = e.target as HTMLImageElement;
+                                  el.style.display = 'none';
+                                  const wrap = el.parentElement;
+                                  const fallback = wrap?.querySelector('.pit-img-fallback');
+                                  if (fallback instanceof HTMLElement) fallback.style.display = 'flex';
+                                }}
+                              />
+                              <div className="pit-img-fallback absolute inset-0 flex items-center justify-center bg-gray-900/50" style={{ display: 'none' }}>
+                                <Wrench className="w-12 h-12 text-gray-500" />
+                              </div>
+                            </>
+                          ) : (
+                            <Wrench className="w-12 h-12 text-gray-500" />
                           )}
                         </div>
-                      )}
-                      {item.climb_location && (
-                        <div>
-                          <p className="text-sm text-gray-400">Climb location</p>
-                          <p className="text-white capitalize">{item.climb_location}</p>
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-sm text-gray-400">Drive Type</p>
-                        <p className="text-white">{item.drive_type}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-400">Dimensions</p>
-                        <p className="text-white">
-                          {item.robot_dimensions.length && item.robot_dimensions.width
-                            ? `${item.robot_dimensions.length}" × ${item.robot_dimensions.width}" × ${item.robot_dimensions.height}"`
-                            : `${item.robot_dimensions.height}" (H only)`
-                          }
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-400">Weight</p>
-                        <p className="text-white">{item.weight} lbs</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-400">Drive Camps</p>
-                        <p className="text-white">{item.drive_train_details.drive_camps}</p>
-                      </div>
-                      <div className="flex items-center justify-between pt-2 border-t border-gray-700">
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                          <User className="h-4 w-4" />
-                          {item.submitted_by_name}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                          <Calendar className="h-4 w-4" />
-                          {new Date(item.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <div className="pt-3 space-y-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-                          onClick={() => handleViewDetails(item)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View Details
-                        </Button>
-                        {isAdmin && (
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 bg-blue-800 border-blue-600 text-white hover:bg-blue-700"
-                              onClick={() => handleEdit(item)}
-                            >
-                              <Edit className="h-4 w-4 mr-1" />
-                              Edit
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 bg-red-800 border-red-600 text-white hover:bg-red-700"
-                              onClick={() => handleDelete(item)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Delete
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                        <CardContent className="p-3 space-y-1.5">
+                          <p className="font-bold text-white truncate">#{item.team_number} · {teamName}</p>
+                          <p className="text-sm text-gray-400 truncate">{item.robot_name || '—'}</p>
+                          {(item.drive_type || (item.weight != null && Number(item.weight) > 0) || (item.overall_rating != null && Number(item.overall_rating) > 0)) && (
+                            <div className="flex flex-wrap gap-1.5 pt-1 text-[11px] text-gray-400">
+                              {item.drive_type ? <Badge variant="outline" className="font-normal text-[10px] px-1.5 py-0 border-gray-600 text-gray-300">{String(item.drive_type)}</Badge> : null}
+                              {item.weight != null && Number(item.weight) > 0 && <span>{Number(item.weight)} lbs</span>}
+                              {item.overall_rating != null && Number(item.overall_rating) > 0 && <span>★ {Number(item.overall_rating)}/10</span>}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  );
+                })}
               </div>
+              {pitDisplayList.length === 0 && (
+                <Card className="p-12 border border-gray-700 bg-gray-800/50 text-center mt-4">
+                  <Wrench className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-white mb-2">No Pit Scouting Data</h3>
+                  <p className="text-gray-400 text-sm">No pit scouting records match your filters.</p>
+                </Card>
+              )}
+              </>
             )}
 
             {/* Delete Confirmation Dialog */}

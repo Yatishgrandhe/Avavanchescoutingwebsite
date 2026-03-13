@@ -688,13 +688,6 @@ export default function PitScoutingData() {
                   );
                 })}
               </div>
-              {pitDisplayList.length === 0 && (
-                <Card className="p-12 border border-white/10 bg-card/50 text-center mt-4">
-                  <Wrench className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">No Pit Scouting Data</h3>
-                  <p className="text-muted-foreground text-sm">No pit scouting records match your filters.</p>
-                </Card>
-              )}
               </>
             )}
 
@@ -733,16 +726,29 @@ export default function PitScoutingData() {
             )}
 
             {filteredData.length === 0 && !loadingData && (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <Wrench className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">No Pit Scouting Data</h3>
-                  <p className="text-gray-400">
+              <Card className="border border-white/10 bg-card/50 shadow-lg">
+                <CardContent className="p-16 text-center">
+                  <div className="bg-muted/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/5">
+                    <Wrench className="h-10 w-10 text-muted-foreground/40" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-foreground mb-3">No Pit Scouting Data</h3>
+                  <p className="text-muted-foreground max-w-sm mx-auto leading-relaxed">
                     {searchTerm || selectedTeam !== 'all'
-                      ? 'No data matches your current filters.'
-                      : 'No pit scouting data has been submitted yet.'
-                    }
+                      ? 'We couldn\'t find any pit scouting records that match your current search or filters. Try adjusting them or clearing the search.'
+                      : 'It looks like no pit scouting reports have been submitted yet for this competition. Be the first to start scouting teams in the pits!'}
                   </p>
+                  {(searchTerm || selectedTeam !== 'all') && (
+                    <Button 
+                      variant="outline" 
+                      className="mt-8 border-white/10 hover:bg-white/5"
+                      onClick={() => {
+                        setSearchTerm('');
+                        setSelectedTeam('all');
+                      }}
+                    >
+                      Clear All Filters
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}

@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import {
   ArrowLeft,
   Database,
+  FileSpreadsheet,
   Target,
   Activity,
   Award,
@@ -59,6 +60,7 @@ interface ViewDataRow {
   average_downtime?: number | null;
   broke?: boolean | null;
   created_at?: string;
+  submitted_at?: string;
   submitted_by_name?: string | null;
 }
 
@@ -324,11 +326,11 @@ export default function ViewDataPage() {
       <Card className="rounded-xl border border-white/10 bg-card/50 overflow-hidden">
         <CardHeader className="border-b border-white/5 bg-white/[0.02]">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Database className="w-5 h-5 text-primary" />
-            Individual forms — Data Analysis view
+            <FileSpreadsheet className="w-5 h-5 text-primary" />
+            Scouting Data ({scoutingData.length} record{scoutingData.length !== 1 ? 's' : ''})
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            {scoutingData.length} scouting record{scoutingData.length !== 1 ? 's' : ''}. Click Team to view full analysis. 2026 Rebuilt format.
+            Click Team to view full analysis. 2026 Rebuilt format.
           </p>
         </CardHeader>
         <CardContent className="p-0">
@@ -336,27 +338,33 @@ export default function ViewDataPage() {
             <table className="w-full border-collapse min-w-[880px]">
               <thead>
                 <tr className="border-b border-white/5 text-muted-foreground font-medium uppercase tracking-wider text-[10px]">
-                  <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('team_number')}>
+                  <th className="text-left p-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('team_number')}>
                     Team {sortField === 'team_number' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('match_id')}>
+                  <th className="text-left p-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('match_id')}>
                     Match {sortField === 'match_id' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left py-3 px-4 whitespace-nowrap">Alliance</th>
-                  <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('autonomous_points')}>
+                  <th className="text-left p-4 whitespace-nowrap">Alliance</th>
+                  <th className="text-left p-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('autonomous_points')}>
                     Auto {sortField === 'autonomous_points' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('teleop_points')}>
+                  <th className="text-left p-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('teleop_points')}>
                     Teleop {sortField === 'teleop_points' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left py-3 px-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('final_score')}>
+                  <th className="text-left p-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('final_score')}>
                     Total {sortField === 'final_score' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="text-left py-3 px-4 whitespace-nowrap">Defense</th>
-                  <th className="text-left py-3 px-4 whitespace-nowrap">Downtime</th>
-                  <th className="text-left py-3 px-4 whitespace-nowrap">Broke</th>
-                  <th className="text-left py-3 px-4 min-w-[120px]">Comments</th>
-                  <th className="text-right py-3 px-4 whitespace-nowrap">Action</th>
+                  <th className="text-left p-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('defense_rating')}>
+                    Defense {sortField === 'defense_rating' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th className="text-left p-4 whitespace-nowrap">Downtime</th>
+                  <th className="text-left p-4 whitespace-nowrap">Broke</th>
+                  <th className="text-left p-4 whitespace-nowrap">Uploaded By</th>
+                  <th className="text-left p-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('created_at')}>
+                    Date {sortField === 'created_at' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th className="text-left p-4 min-w-[120px]">Comments</th>
+                  <th className="text-left p-4 whitespace-nowrap">Details</th>
                 </tr>
               </thead>
               <tbody>
@@ -429,12 +437,22 @@ export default function ViewDataPage() {
                       <td className="py-3 px-4 text-muted-foreground text-sm align-middle">
                         {data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}
                       </td>
+                      <td className="py-3 px-4 align-middle text-sm text-muted-foreground">
+                        {(data as ViewDataRow).submitted_by_name ? String((data as ViewDataRow).submitted_by_name).trim() : '—'}
+                      </td>
+                      <td className="py-3 px-4 align-middle text-sm text-muted-foreground">
+                        {(data as ViewDataRow).created_at
+                          ? new Date((data as ViewDataRow).created_at!).toLocaleDateString()
+                          : (data as ViewDataRow).submitted_at
+                            ? new Date((data as ViewDataRow).submitted_at!).toLocaleDateString()
+                            : '—'}
+                      </td>
                       <td className="py-3 px-4 align-middle">
                         <div className="max-w-[180px] truncate italic text-sm text-muted-foreground" title={data.comments}>
                           {data.comments || '—'}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-right align-middle">
+                      <td className="py-3 px-4 align-middle">
                         <div className="flex items-center justify-end gap-2">
                           <Button
                             size="sm"
@@ -465,7 +483,7 @@ export default function ViewDataPage() {
                           exit={{ opacity: 0, height: 0 }}
                           className="bg-white/[0.02] border-b border-white/5"
                         >
-                          <td colSpan={11} className="py-4 px-6">
+                          <td colSpan={13} className="py-4 px-6">
                             <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">2026 Rebuilt · Shooting runs &amp; estimated score</h4>
                             <ScoutingRunsBreakdown notes={data.notes} />
                           </td>

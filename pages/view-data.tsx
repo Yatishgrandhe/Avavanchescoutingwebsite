@@ -37,7 +37,7 @@ import CompetitionDataLayout from '@/components/layout/CompetitionDataLayout';
 import type { CompetitionViewTab } from '@/components/layout/CompetitionDataSidebar';
 import { useSupabase } from '@/pages/_app';
 import { parseNotes, computeRebuiltMetrics } from '@/lib/analytics';
-import { formatDurationSec } from '@/lib/utils';
+import { formatDurationSec, roundToTenth } from '@/lib/utils';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
 import { Input } from '@/components/ui/Input';
 
@@ -82,7 +82,7 @@ export default function ViewDataPage() {
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<string>('match_id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [activeTab, setActiveTab] = useState<CompetitionViewTab>('teams');
+  const [activeTab, setActiveTab] = useState<CompetitionViewTab>('overview');
   const [expandedRowKey, setExpandedRowKey] = useState<string | null>(null);
   const [dataViewMode, setDataViewMode] = useState<'teams' | 'individual'>('teams');
   type TeamStatSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'endgame_epa' | 'epa' | 'consistency_score' | 'team_number' | 'team_name';
@@ -206,13 +206,13 @@ export default function ViewDataPage() {
         team_number: teamNumber,
         team_name: teamName,
         total_matches,
-        avg_autonomous_points: Math.round(avgAutonomous * 100) / 100,
-        avg_teleop_points: Math.round(avgTeleop * 100) / 100,
-        avg_total_score: Math.round(avgTotal * 100) / 100,
-        avg_defense_rating: Math.round(avgDefense * 100) / 100,
+        avg_autonomous_points: roundToTenth(avgAutonomous),
+        avg_teleop_points: roundToTenth(avgTeleop),
+        avg_total_score: roundToTenth(avgTotal),
+        avg_defense_rating: roundToTenth(avgDefense),
         best_score: bestScore,
         worst_score: worstScore,
-        consistency_score: Math.round(consistency_score * 100) / 100,
+        consistency_score: roundToTenth(consistency_score),
         ...rebuilt,
       });
     });
@@ -331,7 +331,7 @@ export default function ViewDataPage() {
 
   if (loading) {
     return (
-      <CompetitionDataLayout activeTab="teams" backHref="/competition-history" queryString={queryString}>
+      <CompetitionDataLayout activeTab="overview" backHref="/competition-history" queryString={queryString}>
         <div className="flex-1 flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2" />
@@ -344,7 +344,7 @@ export default function ViewDataPage() {
 
   if (error || !competition) {
     return (
-      <CompetitionDataLayout activeTab="teams" backHref="/competition-history" queryString={queryString}>
+      <CompetitionDataLayout activeTab="overview" backHref="/competition-history" queryString={queryString}>
         <div className="flex-1 flex items-center justify-center p-4 min-h-[60vh]">
           <Card className="max-w-md w-full p-6">
             <p className="text-destructive mb-4">{error || 'Competition not found.'}</p>
@@ -934,7 +934,7 @@ export default function ViewDataPage() {
         <Card className="p-6 border border-white/10 bg-card/50">
           <Target className="h-8 w-8 text-primary mb-2" />
           <p className="text-2xl font-bold text-foreground">
-            {scoutingData.length ? Math.round(scoutingData.reduce((s, r) => s + (r.final_score ?? 0), 0) / scoutingData.length) : 0}
+            {scoutingData.length ? roundToTenth(scoutingData.reduce((s, r) => s + (r.final_score ?? 0), 0) / scoutingData.length) : 0}
           </p>
           <p className="text-sm text-muted-foreground">Avg score</p>
         </Card>

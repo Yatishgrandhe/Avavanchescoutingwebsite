@@ -13,13 +13,13 @@ export const config = {
     },
 };
 
-// Supabase Storage configuration
+// Pit scouting robot images: upload to Google Drive first (primary), Supabase Storage as backup.
+// Required Google Drive env keys: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, GOOGLE_DRIVE_FOLDER_ID
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const STORAGE_BUCKET = 'robot-images';
 
-// Google Drive configuration
-const GOOGLE_SERVICE_ACCOUNT_KEY_RAW = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
 const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
 // Initialize Supabase Storage client ONCE (reuse across requests)
@@ -217,11 +217,18 @@ async function parseForm(req: NextApiRequest): Promise<{ fields: Fields; files: 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     // Health check endpoint for debugging (allows GET)
-    if (req.method === 'GET' && req.query.health === 'check') {
+    if (req.method === 'GET' && (req.query.health === 'check' || req.query.health === 'drive')) {
         const hasUrl = !!SUPABASE_URL;
         const hasKey = !!SUPABASE_SERVICE_ROLE_KEY;
         const keyPrefix = SUPABASE_SERVICE_ROLE_KEY ? SUPABASE_SERVICE_ROLE_KEY.substring(0, 10) : 'missing';
         const keyStartsWithJWT = SUPABASE_SERVICE_ROLE_KEY ? SUPABASE_SERVICE_ROLE_KEY.startsWith('eyJ') : false;
+        const gdrive = {
+            GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
+            GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
+            GOOGLE_REFRESH_TOKEN: !!process.env.GOOGLE_REFRESH_TOKEN,
+            GOOGLE_DRIVE_FOLDER_ID: !!process.env.GOOGLE_DRIVE_FOLDER_ID,
+        };
+        const gdriveReady = gdrive.GOOGLE_CLIENT_ID && gdrive.GOOGLE_CLIENT_SECRET && gdrive.GOOGLE_REFRESH_TOKEN && gdrive.GOOGLE_DRIVE_FOLDER_ID;
 
         return res.status(200).json({
             configured: hasUrl && hasKey,
@@ -231,7 +238,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             keyIsJWTFormat: keyStartsWithJWT,
             bucket: STORAGE_BUCKET,
             supabaseUrl: SUPABASE_URL ? SUPABASE_URL.substring(0, 30) + '...' : 'missing',
-            note: 'Service Role Key should start with "eyJ" (JWT token). If keyIsJWTFormat is false, you may be using the anon key instead.'
+            googleDrive: gdrive,
+            googleDriveReady: gdriveReady,
+            uploadOrder: 'Google Drive first (primary), then Supabase Storage (backup)',
+            note: 'Pit scouting images upload to Google Drive when all 4 keys are set; otherwise Supabase only.'
         });
     }
 

@@ -28,13 +28,18 @@ import {
   GitCompare,
   LayoutDashboard,
   Wrench,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  RefreshCw,
 } from 'lucide-react';
 import CompetitionDataLayout from '@/components/layout/CompetitionDataLayout';
 import type { CompetitionViewTab } from '@/components/layout/CompetitionDataSidebar';
 import { useSupabase } from '@/pages/_app';
-import { parseNotes, getClimbPoints, getUptimePct } from '@/lib/analytics';
+import { parseNotes, computeRebuiltMetrics } from '@/lib/analytics';
 import { formatDurationSec } from '@/lib/utils';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
+import { Input } from '@/components/ui/Input';
 
 interface CompetitionInfo {
   id: string;
@@ -79,6 +84,12 @@ export default function ViewDataPage() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [activeTab, setActiveTab] = useState<CompetitionViewTab>('teams');
   const [expandedRowKey, setExpandedRowKey] = useState<string | null>(null);
+  const [dataViewMode, setDataViewMode] = useState<'teams' | 'individual'>('teams');
+  type TeamStatSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'endgame_epa' | 'epa' | 'consistency_score' | 'team_number' | 'team_name';
+  const [teamStatsSortField, setTeamStatsSortField] = useState<TeamStatSortKey>('avg_total_score');
+  const [teamStatsSortDirection, setTeamStatsSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
+  const [minAvgScoreFilter, setMinAvgScoreFilter] = useState<number | ''>('');
 
   useEffect(() => {
     if (!event_key && !id) return;
@@ -128,6 +139,136 @@ export default function ViewDataPage() {
     });
     return Array.from(byTeam.values());
   }, [pitScoutingData]);
+
+  type ViewDataTeamStat = {
+    team_number: number;
+    team_name: string;
+    total_matches: number;
+    avg_autonomous_points: number;
+    avg_teleop_points: number;
+    avg_total_score: number;
+    avg_defense_rating: number;
+    best_score: number;
+    worst_score: number;
+    consistency_score: number;
+    endgame_epa?: number;
+    avg_climb_pts?: number;
+    epa?: number;
+    [key: string]: unknown;
+  };
+
+  const teamStats = React.useMemo(() => {
+    const teamNameMap = new Map<number, string>();
+    teams.forEach((t) => { teamNameMap.set(t.team_number, t.team_name); });
+    const teamToRecords = new Map<number, ViewDataRow[]>();
+    scoutingData.forEach((data) => {
+      if (!teamToRecords.has(data.team_number)) teamToRecords.set(data.team_number, []);
+      teamToRecords.get(data.team_number)!.push(data);
+    });
+    const result: ViewDataTeamStat[] = [];
+    teamToRecords.forEach((records, teamNumber) => {
+      const teamName = teamNameMap.get(teamNumber) || `Team ${teamNumber}`;
+      const uniqueMatchIds = new Set(records.map((r) => r.match_id ?? '').filter(Boolean));
+      const total_matches = uniqueMatchIds.size;
+      const broke_count = new Set(records.filter((r) => r.broke === true).map((r) => r.match_id ?? '')).size;
+      const autonomous_points: number[] = [];
+      const teleop_points: number[] = [];
+      const total_scores: number[] = [];
+      const defense_ratings: number[] = [];
+      const downtime_values: (number | null)[] = [];
+      records.forEach((data) => {
+        autonomous_points.push(data.autonomous_points ?? 0);
+        teleop_points.push(data.teleop_points ?? 0);
+        total_scores.push(data.final_score ?? 0);
+        defense_ratings.push(data.defense_rating ?? 0);
+        if (data.average_downtime != null && !Number.isNaN(Number(data.average_downtime))) {
+          downtime_values.push(Number(data.average_downtime));
+        }
+      });
+      const n = total_scores.length || 1;
+      const avgAutonomous = autonomous_points.reduce((s, v) => s + v, 0) / n;
+      const avgTeleop = teleop_points.reduce((s, v) => s + v, 0) / n;
+      const avgTotal = total_scores.reduce((s, v) => s + v, 0) / n;
+      const avgDefense = defense_ratings.reduce((s, v) => s + v, 0) / n;
+      const downtimeVals = downtime_values.filter((v): v is number => v != null);
+      const avgDowntime = downtimeVals.length > 0 ? downtimeVals.reduce((s, v) => s + v, 0) / downtimeVals.length : null;
+      const bestScore = total_scores.length ? Math.max(...total_scores) : 0;
+      const worstScore = total_scores.length ? Math.min(...total_scores) : 0;
+      const variance = total_scores.length > 1
+        ? total_scores.reduce((sum, score) => sum + Math.pow(score - avgTotal, 2), 0) / total_scores.length
+        : 0;
+      const stdDev = Math.sqrt(variance);
+      const consistency_score = (avgTotal > 0 && total_scores.length > 0)
+        ? Math.max(0, Math.min(100, 100 - (stdDev / avgTotal) * 100))
+        : 0;
+      const rebuilt = computeRebuiltMetrics(records as unknown as Parameters<typeof computeRebuiltMetrics>[0]);
+      result.push({
+        team_number: teamNumber,
+        team_name: teamName,
+        total_matches,
+        avg_autonomous_points: Math.round(avgAutonomous * 100) / 100,
+        avg_teleop_points: Math.round(avgTeleop * 100) / 100,
+        avg_total_score: Math.round(avgTotal * 100) / 100,
+        avg_defense_rating: Math.round(avgDefense * 100) / 100,
+        best_score: bestScore,
+        worst_score: worstScore,
+        consistency_score: Math.round(consistency_score * 100) / 100,
+        ...rebuilt,
+      });
+    });
+    return result.filter((s) => s.total_matches > 0);
+  }, [scoutingData, teams]);
+
+  const pitByTeam = React.useMemo(() => {
+    const map: Record<number, { robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }> = {};
+    pitScoutingData.forEach((row) => {
+      if (!map[row.team_number]) {
+        map[row.team_number] = {
+          robot_name: row.robot_name ?? null,
+          drive_type: (row.drive_type as string) ?? null,
+          weight: row.weight != null ? Number(row.weight) : null,
+          overall_rating: row.overall_rating != null ? Number(row.overall_rating) : null,
+        };
+      }
+    });
+    return map;
+  }, [pitScoutingData]);
+
+  const filteredTeamStats = React.useMemo(() => {
+    return teamStats.filter((team) => {
+      const matchesMinMatches = minMatchesFilter === '' || team.total_matches >= Number(minMatchesFilter);
+      const matchesMinAvgScore = minAvgScoreFilter === '' || (team.avg_total_score ?? 0) >= Number(minAvgScoreFilter);
+      return matchesMinMatches && matchesMinAvgScore;
+    });
+  }, [teamStats, minMatchesFilter, minAvgScoreFilter]);
+
+  const sortedTeamStats = React.useMemo(() => {
+    return [...filteredTeamStats].sort((a, b) => {
+      type K = keyof ViewDataTeamStat;
+      const key = teamStatsSortField as K;
+      let aVal: number | string = a[key] as number | string;
+      let bVal: number | string = b[key] as number | string;
+      if (key === 'team_name') {
+        aVal = String(aVal ?? '').toLowerCase();
+        bVal = String(bVal ?? '').toLowerCase();
+      }
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return teamStatsSortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      const aStr = String(aVal ?? '');
+      const bStr = String(bVal ?? '');
+      return teamStatsSortDirection === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+    });
+  }, [filteredTeamStats, teamStatsSortField, teamStatsSortDirection]);
+
+  const handleTeamStatsSort = (field: TeamStatSortKey) => {
+    if (teamStatsSortField === field) {
+      setTeamStatsSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setTeamStatsSortField(field);
+      setTeamStatsSortDirection('desc');
+    }
+  };
 
   const loadData = async () => {
     if (!event_key && !id) return;
@@ -311,6 +452,12 @@ export default function ViewDataPage() {
     );
   }
 
+  const getTeamPageUrl = (teamNumber: number) => {
+    if (id) return `/team/${teamNumber}?competition_id=${encodeURIComponent(id as string)}`;
+    if (event_key) return `/team/${teamNumber}?event_key=${encodeURIComponent(event_key as string)}`;
+    return `/team/${teamNumber}`;
+  };
+
   const mainContent = (
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="mb-6">
@@ -323,17 +470,268 @@ export default function ViewDataPage() {
         </p>
       </div>
 
+      {/* Controls: view mode + filters + refresh */}
+      <Card className="rounded-xl border border-white/10 bg-card/50 overflow-hidden mb-6">
+        <CardContent className="pt-6">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-wrap">
+              <span className="text-sm font-medium text-foreground">View:</span>
+              <div className="flex bg-muted rounded-lg p-1">
+                <Button
+                  size="sm"
+                  variant={dataViewMode === 'teams' ? 'default' : 'ghost'}
+                  onClick={() => setDataViewMode('teams')}
+                  className="flex-1 sm:flex-none px-3 py-2 sm:py-1 text-xs sm:text-sm"
+                >
+                  Team Stats
+                </Button>
+                <Button
+                  size="sm"
+                  variant={dataViewMode === 'individual' ? 'default' : 'ghost'}
+                  onClick={() => setDataViewMode('individual')}
+                  className="flex-1 sm:flex-none px-3 py-2 sm:py-1 text-xs sm:text-sm"
+                >
+                  Individual Forms
+                </Button>
+              </div>
+              {dataViewMode === 'teams' && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">Min matches</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="Any"
+                      value={minMatchesFilter === '' ? '' : minMatchesFilter}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setMinMatchesFilter(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))
+                      }
+                      className="h-9 w-24"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">Min avg score</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      placeholder="Any"
+                      value={minAvgScoreFilter === '' ? '' : minAvgScoreFilter}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setMinAvgScoreFilter(e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value) || 0))
+                      }
+                      className="h-9 w-24"
+                    />
+                  </div>
+                </div>
+              )}
+              <Button onClick={loadData} variant="outline" size="sm" className="sm:ml-auto">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="rounded-xl border border-white/10 bg-card/50 overflow-hidden">
         <CardHeader className="border-b border-white/5 bg-white/[0.02]">
           <CardTitle className="flex items-center gap-2 text-lg">
             <FileSpreadsheet className="w-5 h-5 text-primary" />
-            Scouting Data ({scoutingData.length} record{scoutingData.length !== 1 ? 's' : ''})
+            {dataViewMode === 'teams'
+              ? `Team Statistics (${sortedTeamStats.length} teams)`
+              : `Scouting Data (${scoutingData.length} record${scoutingData.length !== 1 ? 's' : ''})`}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Click Team to view full analysis. 2026 Rebuilt format.
+            {dataViewMode === 'teams'
+              ? 'Aggregated stats from match scouting. Click team for details.'
+              : 'Click Team to view full analysis. 2026 Rebuilt format.'}
           </p>
         </CardHeader>
         <CardContent className="p-0">
+          {dataViewMode === 'teams' ? (
+            <div className="space-y-4 p-4">
+              {/* Mobile cards - Team Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:hidden gap-4">
+                {sortedTeamStats.map((team, index) => (
+                  <motion.div
+                    key={team.team_number}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="rounded-2xl border border-white/5 hover:border-primary/20 transition-all p-5 bg-white/[0.02]"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1 min-w-0 pr-2">
+                        <h3 className="text-lg font-bold text-foreground truncate">{team.team_name}</h3>
+                        <Badge variant="secondary" className="mt-1 bg-blue-500/10 text-blue-400 border-blue-500/20">
+                          #{team.team_number}
+                        </Badge>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest block">Avg Score</span>
+                        <span className="text-2xl font-bold text-primary">{team.avg_total_score}</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                        <span className="text-[10px] text-muted-foreground uppercase block mb-1">Matches scouted</span>
+                        <span className="text-sm font-semibold">{team.total_matches}</span>
+                      </div>
+                      <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                        <span className="text-[10px] text-muted-foreground uppercase block mb-1">Avg Score</span>
+                        <span className="text-sm font-semibold text-primary">{team.avg_total_score}</span>
+                      </div>
+                      <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                        <span className="text-[10px] text-muted-foreground uppercase block mb-1">Auto EPA</span>
+                        <span className="text-sm font-semibold text-blue-400">{team.avg_autonomous_points ?? '—'}</span>
+                      </div>
+                      <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                        <span className="text-[10px] text-muted-foreground uppercase block mb-1">Teleop EPA</span>
+                        <span className="text-sm font-semibold text-orange-400">{team.avg_teleop_points ?? '—'}</span>
+                      </div>
+                      <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                        <span className="text-[10px] text-muted-foreground uppercase block mb-1">Endgame EPA</span>
+                        <span className="text-sm font-semibold text-green-400">{team.endgame_epa ?? team.avg_climb_pts ?? '—'}</span>
+                      </div>
+                      <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                        <span className="text-[10px] text-muted-foreground uppercase block mb-1">Consistency</span>
+                        <span className={cn('text-sm font-semibold', team.consistency_score >= 80 ? 'text-green-400' : team.consistency_score >= 60 ? 'text-yellow-400' : 'text-red-400')}>
+                          {team.consistency_score}%
+                        </span>
+                      </div>
+                    </div>
+                    {pitByTeam[team.team_number] && (
+                      <div className="mb-4 p-3 rounded-xl border border-white/5 bg-white/[0.02]">
+                        <span className="text-[10px] text-muted-foreground uppercase block mb-1">Pit</span>
+                        <span className="text-sm font-medium text-foreground">{pitByTeam[team.team_number].robot_name || '—'}</span>
+                        {pitByTeam[team.team_number].drive_type && (
+                          <span className="text-sm text-muted-foreground"> · {pitByTeam[team.team_number].drive_type}</span>
+                        )}
+                        {pitByTeam[team.team_number].weight != null && pitByTeam[team.team_number].weight! > 0 && (
+                          <span className="text-sm text-muted-foreground"> · {pitByTeam[team.team_number].weight} lbs</span>
+                        )}
+                        {pitByTeam[team.team_number].overall_rating != null && pitByTeam[team.team_number].overall_rating! > 0 && (
+                          <span className="text-sm text-muted-foreground"> ★{pitByTeam[team.team_number].overall_rating}/10</span>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex gap-2 pt-2 border-t border-white/5">
+                      <Link href={getTeamPageUrl(team.team_number)} className="flex-1">
+                        <Button size="sm" variant="outline" className="w-full text-xs h-9 border-white/10">
+                          View Forms
+                        </Button>
+                      </Link>
+                      <Link href={getTeamPageUrl(team.team_number)} className="flex-1">
+                        <Button size="sm" className="w-full text-xs h-9">
+                          Team Details
+                        </Button>
+                      </Link>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              {/* Desktop table - Team Stats */}
+              <div className="hidden lg:block overflow-x-auto scrollbar-hide">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/5 text-muted-foreground font-medium uppercase tracking-wider text-[10px]">
+                      <th className="text-left p-4 cursor-pointer hover:text-foreground" onClick={() => handleTeamStatsSort('team_number')}>
+                        Team {teamStatsSortField === 'team_number' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
+                      </th>
+                      <th className="text-left p-4 cursor-pointer hover:text-foreground" onClick={() => handleTeamStatsSort('total_matches')}>
+                        Matches {teamStatsSortField === 'total_matches' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
+                      </th>
+                      <th className="text-left p-4 cursor-pointer hover:text-foreground" onClick={() => handleTeamStatsSort('avg_total_score')}>
+                        Avg Score {teamStatsSortField === 'avg_total_score' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
+                      </th>
+                      <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('avg_autonomous_points')}>
+                        Auto EPA {teamStatsSortField === 'avg_autonomous_points' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
+                      </th>
+                      <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('avg_teleop_points')}>
+                        Teleop EPA {teamStatsSortField === 'avg_teleop_points' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
+                      </th>
+                      <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('endgame_epa')}>
+                        Endgame EPA {teamStatsSortField === 'endgame_epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
+                      </th>
+                      <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('epa')}>
+                        EPA {teamStatsSortField === 'epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
+                      </th>
+                      <th className="text-left p-4 cursor-pointer hover:text-foreground text-[11px]" onClick={() => handleTeamStatsSort('consistency_score')}>
+                        Consistency {teamStatsSortField === 'consistency_score' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
+                      </th>
+                      <th className="text-left p-4 text-[11px]">Pit</th>
+                      <th className="text-right p-4 text-[11px]">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedTeamStats.map((team, index) => {
+                      const pit = pitByTeam[team.team_number];
+                      return (
+                        <motion.tr
+                          key={team.team_number}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="border-b border-white/5 hover:bg-white/5 transition-colors"
+                        >
+                          <td className="p-4">
+                            <div className="flex items-center space-x-3">
+                              <div className="bg-blue-500/10 p-2 rounded-lg">
+                                <Users className="w-4 h-4 text-blue-400" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-bold text-foreground">{team.team_name}</span>
+                                <span className="text-xs text-muted-foreground font-mono">#{team.team_number}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4 font-medium">{team.total_matches}</td>
+                          <td className="p-4">
+                            <span className="font-bold text-primary text-lg">{team.avg_total_score}</span>
+                          </td>
+                          <td className="p-4 text-blue-400 font-semibold text-sm">{team.avg_autonomous_points ?? '—'}</td>
+                          <td className="p-4 text-orange-400 font-semibold text-sm">{team.avg_teleop_points ?? '—'}</td>
+                          <td className="p-4 text-green-400 font-semibold text-sm">{team.endgame_epa ?? team.avg_climb_pts ?? '—'}</td>
+                          <td className="p-4 text-primary font-bold text-sm">{team.epa ?? team.avg_total_score ?? '—'}</td>
+                          <td className="p-4">
+                            <span className={cn('font-bold text-sm', team.consistency_score >= 80 ? 'text-green-400' : team.consistency_score >= 60 ? 'text-yellow-400' : 'text-red-400')}>
+                              {team.consistency_score}%
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            {pit ? (
+                              <Link href={getTeamPageUrl(team.team_number)} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                                <span className="font-medium text-foreground">{pit.robot_name || '—'}</span>
+                                {pit.drive_type && <span className="ml-1 text-xs"> · {pit.drive_type}</span>}
+                                {pit.weight != null && pit.weight > 0 && <span className="ml-1 text-xs"> · {pit.weight} lbs</span>}
+                                {pit.overall_rating != null && pit.overall_rating > 0 && <span className="ml-1 text-xs"> ★{pit.overall_rating}/10</span>}
+                              </Link>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="flex justify-end gap-2">
+                              <Link href={getTeamPageUrl(team.team_number)}>
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Team Details">
+                                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                </Button>
+                              </Link>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {sortedTeamStats.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">No team stats (need scouting data).</div>
+              )}
+            </div>
+          ) : (
+          <>
           <div className="overflow-x-auto scrollbar-hide">
             <table className="w-full border-collapse min-w-[880px]">
               <thead>
@@ -506,6 +904,8 @@ export default function ViewDataPage() {
           <div className="p-4 border-t border-white/5 bg-black/20">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center">2026 Rebuilt · Scoring from fuel, tower &amp; climb</p>
           </div>
+          </>
+          )}
         </CardContent>
       </Card>
     </main>

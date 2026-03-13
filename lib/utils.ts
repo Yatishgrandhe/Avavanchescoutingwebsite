@@ -6,6 +6,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Round a number to one decimal place (tenth). */
+export function roundToTenth(n: number): number {
+  if (typeof n !== 'number' || Number.isNaN(n)) return 0
+  return Math.round(n * 10) / 10
+}
+
 /** Format duration in seconds with milliseconds (e.g. "12.345s") */
 export function formatDurationSec(sec: number): string {
   if (typeof sec !== 'number' || Number.isNaN(sec)) return '0.000s';

@@ -12,9 +12,22 @@ import {
   Target,
   CheckCircle,
   AlertCircle,
+  XCircle,
   FileText,
   ArrowLeft,
-  Home
+  Home,
+  Clock,
+  Zap,
+  Award,
+  Activity,
+  BarChart3,
+  Search,
+  Route,
+  FileSpreadsheet,
+  Users,
+  Eye,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -241,372 +254,261 @@ export default function PitScoutingDetails() {
   return (
     <ProtectedRoute>
       <Layout>
-        <div className="min-h-full p-6">
-          <div className="max-w-7xl mx-auto">
-            {/* Header */}
+        <div className="min-h-screen bg-gray-950 text-gray-100">
+          <div className="max-w-7xl mx-auto px-4 py-8">
+            {/* Header / Breadcrumbs */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="mb-8"
+              className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4"
             >
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleBack}
-                    className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back
-                  </Button>
-                  <div className="flex items-center space-x-3">
-                    <motion.div
-                      animate={{ rotate: [0, 10, -10, 0] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <Wrench className="w-8 h-8 text-blue-400" />
-                    </motion.div>
-                    <div>
-                      <h1 className="text-3xl font-bold text-white">
-                        Team {pitData.team_number} - {pitData.robot_name}
-                      </h1>
-                      <p className="mt-2 text-gray-400">
-                        Pit Scouting Details
-                      </p>
-                    </div>
-                  </div>
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBack}
+                  className="text-gray-400 hover:text-white gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </Button>
+                <div className="h-4 w-px bg-gray-800 hidden md:block" />
+                <div>
+                  <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                    Team {pitData.team_number}
+                  </h1>
+                  <p className="text-gray-500 text-sm font-medium mt-1 uppercase tracking-wider">
+                    {pitData.robot_name || 'Pit Scouting Record'}
+                  </p>
                 </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 px-3 py-1">
+                  2026 Season
+                </Badge>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleHome}
-                  className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+                  className="border-gray-800 text-gray-400 hover:text-white"
                 >
-                  <Home className="h-4 w-4 mr-2" />
-                  Home
+                  <Home className="w-4 h-4" />
                 </Button>
               </div>
             </motion.div>
 
-            {/* Content */}
-            <div className="space-y-8">
-              {/* Climb location */}
-              {pitData.climb_location && (
-                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                  <h3 className="text-lg font-bold text-white mb-2">Climb location</h3>
-                  <p className="text-gray-300 capitalize">{pitData.climb_location}</p>
-                </div>
-              )}
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              
+              {/* Left Column: Visuals & Quick Data */}
+              <div className="lg:col-span-4 space-y-8">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <Card className="bg-gray-900 border-gray-800 overflow-hidden p-1 shadow-2xl">
+                    <div className="aspect-[4/3] rounded-xl overflow-hidden relative group bg-gray-800">
+                      <img
+                        src={pitData.robot_image_url || (pitData.photos && pitData.photos[0]) || '/placeholder-robot.png'}
+                        alt={pitData.robot_name}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
+                        <p className="text-white font-bold text-lg">{pitData.robot_name}</p>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
 
-              {/* Auto Paths (annotated field) */}
-              {pitData.annotated_image_url && (
-                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                  <h3 className="text-xl font-bold text-white mb-3">Auto Paths</h3>
-                  <div className="rounded-lg overflow-hidden border border-gray-700 bg-gray-900">
-                    <img
-                      src={pitData.annotated_image_url}
-                      alt="Annotated auto paths"
-                      className="w-full h-auto object-contain max-h-96"
-                    />
+                {/* Status Badges */}
+                <div className="flex flex-wrap gap-3">
+                  <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex-1 min-w-[140px] shadow-lg">
+                    <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">Drivetrain</span>
+                    <span className="text-lg font-bold text-blue-400">{pitData.drive_type}</span>
                   </div>
-                  {pitData.auto_paths && pitData.auto_paths.length > 0 && (
-                    <div className="mt-3 space-y-2">
-                      {pitData.auto_paths.map((p: { id: string; comment: string; color: string }, i: number) =>
-                        p.comment ? (
-                          <div key={p.id} className="flex items-center gap-2 text-sm text-gray-300">
-                            <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                            <span>Path {i + 1}:</span>
-                            <span className="text-white">{p.comment}</span>
-                          </div>
-                        ) : null
-                      )}
-                    </div>
-                  )}
+                  <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex-1 min-w-[140px] shadow-lg">
+                    <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">Rating</span>
+                    <span className="text-lg font-bold text-amber-400">★ {pitData.overall_rating}/10</span>
+                  </div>
                 </div>
-              )}
 
-              {/* Pit / Robot Photos (up to 6) */}
-              {((pitData.photos?.length ?? 0) > 0 || pitData.robot_image_url) && (
-                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-blue-600 rounded-full p-2">
-                      <FileText className="h-5 w-5 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white">
-                      {(pitData.photos?.length ?? 0) > 1 ? 'Pit Photos' : 'Robot Image'}
+                {/* Auto Paths */}
+                {pitData.annotated_image_url && (
+                  <Card className="bg-gray-900 border-gray-800 p-6 shadow-xl">
+                    <h3 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                      <Route className="w-4 h-4" /> Planned Auto Paths
                     </h3>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {(pitData.photos && pitData.photos.length > 0
-                      ? pitData.photos
-                      : pitData.robot_image_url
-                        ? [pitData.robot_image_url]
-                        : []
-                    ).map((url, i) => (
-                      <div key={i} className="relative rounded-lg overflow-hidden border border-gray-700 bg-gray-900 aspect-square">
-                        <img
-                          src={url}
-                          alt={`Team ${pitData.team_number} photo ${i + 1}`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                          }}
-                        />
+                    <div className="rounded-xl overflow-hidden border border-gray-800 bg-black/40">
+                      <img
+                        src={pitData.annotated_image_url}
+                        alt="Auto Paths"
+                        className="w-full h-auto object-contain max-h-72"
+                      />
+                    </div>
+                    {pitData.auto_paths && pitData.auto_paths.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        {pitData.auto_paths.map((p, i) => (
+                          <div key={p.id} className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-xl border border-gray-700/50">
+                            <div className="w-3 h-3 rounded-full mt-1 shrink-0" style={{ backgroundColor: p.color }} />
+                            <div>
+                              <p className="text-xs font-bold text-gray-400">Path {i + 1}</p>
+                              <p className="text-sm text-gray-200">{p.comment}</p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    )}
+                  </Card>
+                )}
+              </div>
 
-              {/* Basic Information */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-blue-600 rounded-full p-2">
-                      <User className="h-5 w-5 text-white" />
+              {/* Right Column: Detailed Breakdown */}
+              <div className="lg:col-span-8 space-y-8">
+                {/* 2x2 Specs Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Capabilities sections */}
+                  <CapabilityCard
+                    title="Autonomous"
+                    icon={<Clock className="w-5 h-5 text-orange-400" />}
+                    items={pitData.autonomous_capabilities}
+                    accent="orange"
+                    footer={pitData.can_autoalign ? "Supports Auto-Align" : null}
+                  />
+                  <CapabilityCard
+                    title="Teleop"
+                    icon={<Zap className="w-5 h-5 text-yellow-400" />}
+                    items={pitData.teleop_capabilities}
+                    accent="yellow"
+                  />
+                  <CapabilityCard
+                    title="Drivetrain Specs"
+                    icon={<Activity className="w-5 h-5 text-blue-400" />}
+                    accent="blue"
+                  >
+                    <div className="space-y-3 mt-4">
+                      <DetailRow label="Weight" value={`${pitData.weight} lbs`} />
+                      <DetailRow label="Height" value={`${pitData.robot_dimensions.height}"`} />
+                      <DetailRow label="Width/Length" value={`${pitData.robot_dimensions.width || '?'}" × ${pitData.robot_dimensions.length || '?'}"`} />
+                      <DetailRow label="Motor Count" value={pitData.drive_train_details.drive_camps} />
                     </div>
-                    <h3 className="text-xl font-bold text-white">Basic Information</h3>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400 font-medium">Team Number</span>
-                      <span className="text-white font-bold text-lg">{pitData.team_number}</span>
+                  </CapabilityCard>
+                  <CapabilityCard
+                    title="Performance Summary"
+                    icon={<Award className="w-5 h-5 text-purple-400" />}
+                    accent="purple"
+                  >
+                    <div className="space-y-3 mt-4">
+                      <DetailRow label="Programming" value={pitData.programming_language} />
+                      <DetailRow label="Climb Level" value={pitData.climb_location || 'None'} />
+                      <DetailRow label="Cameras" value={pitData.camera_count} />
+                      <DetailRow label="Submission" value={new Date(pitData.submitted_at).toLocaleDateString()} />
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400 font-medium">Robot Name</span>
-                      <span className="text-white font-semibold">{pitData.robot_name}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400 font-medium">Drive Type</span>
-                      <span className="text-white font-semibold">{pitData.drive_type}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2">
-                      <span className="text-gray-400 font-medium">Programming</span>
-                      <span className="text-white font-semibold">{pitData.programming_language || 'N/A'}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-green-600 rounded-full p-2">
-                      <Target className="h-5 w-5 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white">Specifications</h3>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400 font-medium">Dimensions</span>
-                      <span className="text-white font-semibold text-sm">
-                        {pitData.robot_dimensions.length && pitData.robot_dimensions.width 
-                          ? `${pitData.robot_dimensions.length}" × ${pitData.robot_dimensions.width}" × ${pitData.robot_dimensions.height}"`
-                          : `${pitData.robot_dimensions.height}" (H only)`
-                        }
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400 font-medium">Weight</span>
-                      <span className="text-white font-semibold">{pitData.weight} lbs</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400 font-medium">Number of Cameras</span>
-                      <span className="text-white font-semibold">{pitData.camera_count !== undefined && pitData.camera_count !== null ? pitData.camera_count : 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400 font-medium">Number of Shooting Locations</span>
-                      <span className="text-white font-semibold">{pitData.shooting_locations_count !== undefined && pitData.shooting_locations_count !== null ? pitData.shooting_locations_count : 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2">
-                      <span className="text-gray-400 font-medium">Rating</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-16 bg-gray-700 rounded-full h-2">
-                          <div 
-                            className="bg-yellow-400 h-2 rounded-full" 
-                            style={{ width: `${(pitData.overall_rating / 10) * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-white font-bold">{pitData.overall_rating}/10</span>
-                      </div>
-                    </div>
-                  </div>
+                  </CapabilityCard>
                 </div>
 
-                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-purple-600 rounded-full p-2">
-                      <Calendar className="h-5 w-5 text-white" />
+                {/* Full Width Notes */}
+                <Card className="bg-gray-900 border-gray-800 p-8 shadow-xl">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="bg-gray-800 p-3 rounded-2xl">
+                      <FileSpreadsheet className="w-6 h-6 text-gray-400" />
                     </div>
-                    <h3 className="text-xl font-bold text-white">Submission Info</h3>
+                    <h3 className="text-xl font-bold text-white">Scout's Observations</h3>
                   </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400 font-medium">Submitted by</span>
-                      <span className="text-white font-semibold text-sm">{pitData.submitted_by_name}</span>
+                  <div className="bg-black/20 rounded-2xl p-6 border border-gray-800">
+                    <p className="text-gray-300 leading-relaxed text-lg italic whitespace-pre-wrap">
+                      "{pitData.notes || 'No notes were provided for this entry.'}"
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                    <div>
+                      <h4 className="text-xs font-black text-green-500 uppercase tracking-widest mb-4">Core Strengths</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {pitData.strengths?.map((s, i) => (
+                          <Badge key={i} className="bg-green-500/10 text-green-400 border-green-500/20 py-1.5 px-3">
+                            <CheckCircle className="w-3 h-3 mr-2" /> {s}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400 font-medium">Email</span>
-                      <span className="text-white font-semibold text-xs">{pitData.submitted_by_email}</span>
+                    <div>
+                      <h4 className="text-xs font-black text-red-500 uppercase tracking-widest mb-4">Identified Weaknesses</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {pitData.weaknesses?.map((w, i) => (
+                          <Badge key={i} className="bg-red-500/10 text-red-400 border-red-500/20 py-1.5 px-3">
+                            <XCircle className="w-3 h-3 mr-2" /> {w}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center py-2">
-                      <span className="text-gray-400 font-medium">Date</span>
-                      <span className="text-white font-semibold text-sm">{new Date(pitData.created_at).toLocaleDateString()}</span>
+                  </div>
+                </Card>
+
+                {/* Submitter Info Footer */}
+                <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-blue-600/20 p-2 rounded-full">
+                      <Users className="w-5 h-5 text-blue-400" />
                     </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">{pitData.submitted_by_name}</p>
+                      <p className="text-xs text-gray-500">{pitData.submitted_by_email}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Entry UID</p>
+                    <p className="text-xs font-mono text-gray-400">{pitData.id}</p>
                   </div>
                 </div>
               </div>
-
-              {/* Capabilities */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-yellow-500 rounded-full p-2">
-                      <CheckCircle className="h-5 w-5 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white">Autonomous</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {pitData.autonomous_capabilities && pitData.autonomous_capabilities.length > 0 ? (
-                      pitData.autonomous_capabilities.map((cap: string, index: number) => (
-                        <div key={index} className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg border border-gray-600">
-                          <CheckCircle className="h-4 w-4 text-yellow-400 flex-shrink-0" />
-                          <span className="text-white font-medium">{cap}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-4 bg-gray-700 rounded-lg border border-gray-600 text-center">
-                        <p className="text-gray-400">No autonomous capabilities specified</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-blue-600 rounded-full p-2">
-                      <CheckCircle className="h-5 w-5 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white">Teleop</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {pitData.teleop_capabilities && pitData.teleop_capabilities.length > 0 ? (
-                      pitData.teleop_capabilities.map((cap: string, index: number) => (
-                        <div key={index} className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg border border-gray-600">
-                          <CheckCircle className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                          <span className="text-white font-medium">{cap}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-4 bg-gray-700 rounded-lg border border-gray-600 text-center">
-                        <p className="text-gray-400">No teleop capabilities specified</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-purple-600 rounded-full p-2">
-                      <CheckCircle className="h-5 w-5 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white">Climb & Navigation</h3>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="p-3 bg-gray-700 rounded-lg border border-gray-600">
-                      <div className="text-white font-medium mb-2">Can Autoalign: {pitData.can_autoalign ? 'Yes' : 'No'}</div>
-                      <div className="text-white font-medium mb-2">Can Climb: {((pitData.drive_train_details as any)?.can_climb || (pitData.drive_train_details as any)?.climb_levels?.length > 0) ? 'Yes' : 'No'}</div>
-                      {(pitData.drive_train_details as any)?.climb_levels?.length > 0 && (
-                        <div className="text-white mb-2">
-                          <span className="font-medium">Levels: </span>
-                          {(pitData.drive_train_details as any).climb_levels.join(', ')}
-                        </div>
-                      )}
-                      <div className="text-white mb-2">
-                        <span className="font-medium">Navigation: </span>
-                        {(pitData.drive_train_details as any)?.navigation_locations?.join(', ') || 'N/A'}
-                      </div>
-                      <div className="text-white mb-2">
-                        <span className="font-medium">Ball Hold Amount: </span>
-                        {(pitData.drive_train_details as any)?.ball_hold_amount || 0} balls
-                      </div>
-                      <div className="text-white">
-                        <span className="font-medium">Downtime Strategy: </span>
-                        {(pitData.drive_train_details as any)?.downtime_strategy?.join(', ') || 'N/A'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Strengths and Weaknesses */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-green-600 rounded-full p-2">
-                      <CheckCircle className="h-5 w-5 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white">Strengths</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {pitData.strengths && pitData.strengths.length > 0 ? (
-                      pitData.strengths.map((strength: string, index: number) => (
-                        <div key={index} className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg border border-gray-600">
-                          <CheckCircle className="h-4 w-4 text-green-400 flex-shrink-0" />
-                          <span className="text-white font-medium">{strength}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-4 bg-gray-700 rounded-lg border border-gray-600 text-center">
-                        <p className="text-gray-400">No strengths specified</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-red-600 rounded-full p-2">
-                      <AlertCircle className="h-5 w-5 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white">Weaknesses</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {pitData.weaknesses && pitData.weaknesses.length > 0 ? (
-                      pitData.weaknesses.map((weakness: string, index: number) => (
-                        <div key={index} className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg border border-gray-600">
-                          <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
-                          <span className="text-white font-medium">{weakness}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-4 bg-gray-700 rounded-lg border border-gray-600 text-center">
-                        <p className="text-gray-400">No weaknesses specified</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Notes */}
-              {pitData.notes && (
-                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-sm">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-blue-600 rounded-full p-2">
-                      <FileText className="h-5 w-5 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white">Notes</h3>
-                  </div>
-                  <div className="p-4 bg-gray-700 rounded-lg border border-gray-600">
-                    <p className="text-white leading-relaxed">{pitData.notes}</p>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
       </Layout>
     </ProtectedRoute>
+  );
+}
+
+function CapabilityCard({ title, icon, items, children, accent, footer }: any) {
+  const accentClasses: any = {
+    orange: "border-orange-500/20 bg-orange-500/5",
+    yellow: "border-yellow-500/20 bg-yellow-500/5",
+    blue: "border-blue-500/20 bg-blue-500/5",
+    purple: "border-purple-500/20 bg-purple-500/5",
+  };
+
+  return (
+    <Card className={`p-6 border shadow-lg bg-gray-900 ${accentClasses[accent] || 'border-gray-800'}`}>
+      <div className="flex items-center gap-3 mb-4">
+        {icon}
+        <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">{title}</h3>
+      </div>
+      {items && (
+        <div className="flex flex-wrap gap-2">
+          {items.map((it: string, i: number) => (
+            <Badge key={i} variant="outline" className="border-gray-800 bg-black/20 text-gray-300 font-normal">
+              {it}
+            </Badge>
+          ))}
+          {items.length === 0 && <span className="text-xs text-gray-600 italic">None listed</span>}
+        </div>
+      )}
+      {children}
+      {footer && (
+        <div className="mt-4 pt-4 border-t border-gray-800 flex items-center gap-2 text-xs font-bold text-green-500">
+          <CheckCircle className="w-3.5 h-3.5" /> {footer}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: any }) {
+  return (
+    <div className="flex justify-between items-center text-sm">
+      <span className="text-gray-500 font-medium">{label}</span>
+      <span className="text-white font-bold">{value ?? '—'}</span>
+    </div>
   );
 }

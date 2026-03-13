@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
 import { google } from 'googleapis';
+import { CURRENT_EVENT_NAME } from '@/lib/constants';
 
 // Disable Next.js body parsing for file uploads
 export const config = {
@@ -93,9 +94,13 @@ async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeT
     return publicUrl;
 }
 
-// Upload to Google Drive (v2 Multipart Method - Best for bypassing Service Account quota issues)
-// Upload to Google Drive (OAuth2 User Method - Best for bypassing all quota issues)
-async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType: string): Promise<string> {
+// Upload to Google Drive (OAuth2 User flow)
+async function uploadToGoogleDrive(
+    filePath: string,
+    fileName: string,
+    mimeType: string,
+    opts?: { driveFileName?: string; driveDescription?: string }
+): Promise<string> {
     const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
     const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
     const GOOGLE_REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
@@ -124,11 +129,15 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
 
         const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
-        console.log(`[API/upload-robot-image] OAuth Uploading: ${fileName} to folder ${folderId}`);
+        const displayName = opts?.driveFileName ?? fileName;
+        const description = opts?.driveDescription ?? `Pit scouting - ${CURRENT_EVENT_NAME}`;
+
+        console.log(`[API/upload-robot-image] OAuth Uploading: ${displayName} to folder ${folderId}`);
 
         const response = await drive.files.create({
             requestBody: {
-                name: fileName,
+                name: displayName,
+                description,
                 parents: [folderId],
             },
             media: {
@@ -328,6 +337,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const fileName = `team_${teamNumber}_${sanitizedTeamName}_${date}_${timestamp}${extension}`;
         const mimeType = imageFile.mimetype || (extension.toLowerCase() === '.heic' ? 'image/heic' : 'image/jpeg');
 
+        const driveFileName = `${CURRENT_EVENT_NAME} - Team ${teamNumber} - ${teamName}${extension}`;
+        const driveDescription = `Pit scouting - ${CURRENT_EVENT_NAME} - Team ${teamNumber} - ${teamName}`;
+
         console.log(`[API/upload-robot-image] Starting upload for team ${teamNumber} (${teamName}), file: ${fileName}, mimeType: ${mimeType}, size: ${imageFile.size} bytes`);
 
         // Storage attempts: Google Drive primary, Supabase as backup
@@ -343,11 +355,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             process.env.GOOGLE_DRIVE_FOLDER_ID
         );
 
-        // Attempt 1: Google Drive (primary)
+        // Attempt 1: Google Drive (primary) — display name includes event, team number, robot name
         if (hasGoogleDrive) {
             try {
                 console.log('[API/upload-robot-image] Attempting Google Drive upload (primary)...');
-                imageUrl = await uploadToGoogleDrive(filePath, fileName, mimeType);
+                imageUrl = await uploadToGoogleDrive(filePath, fileName, mimeType, {
+                    driveFileName,
+                    driveDescription,
+                });
                 storageMethodUsed = 'Google Drive';
                 console.log(`[API/upload-robot-image] Google Drive upload successful: ${imageUrl}`);
             } catch (driveError) {

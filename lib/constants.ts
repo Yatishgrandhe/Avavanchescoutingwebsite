@@ -8,7 +8,7 @@ export const SCOUTING_MATCH_ID_SEASON_PATTERN = '%2026%';
 export const CURRENT_EVENT_KEY = '2026cabarrus';
 
 /** Current event display name (e.g. shown in UI and in Google Drive uploads). */
-export const CURRENT_EVENT_NAME = 'Cabarrus 2026';
+export const CURRENT_EVENT_NAME = 'Asheville 2026';
 
 /** Supabase auth user IDs of admins who are blocked from the pick list page (e.g. Colin). Only these admins are denied; all other admins can access. */
 export const PICKLIST_BLOCKED_ADMIN_USER_IDS: string[] = ['e9cf2206-eb46-4d49-8948-d005e4698e6f'];

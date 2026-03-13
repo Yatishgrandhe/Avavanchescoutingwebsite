@@ -29,7 +29,18 @@ import {
   Edit,
   Trash2,
   Shield,
-  XCircle
+  XCircle,
+  AlertCircle,
+  Zap,
+  Award,
+  Activity,
+  BarChart3,
+  Clock,
+  ArrowLeft,
+  Route,
+  FileSpreadsheet,
+  Users,
+  CheckCircle
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -718,315 +729,347 @@ export default function PitScoutingData() {
 
             {/* Detailed View Modal */}
             {showDetailModal && selectedDetailItem && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  className="bg-gray-900 border border-gray-700 rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
                 >
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-2xl font-bold text-white">
-                        Team {selectedDetailItem.team_number}{selectedDetailItem.team_name ? ` — ${selectedDetailItem.team_name}` : ''} · {selectedDetailItem.robot_name}
-                      </h2>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowDetailModal(false)}
-                        className="text-gray-400 hover:text-white"
-                      >
-                        <XCircle className="h-5 w-5" />
-                      </Button>
-                    </div>
-
-                    {/* Climb location */}
-                    {selectedDetailItem.climb_location && (
-                      <div className="mb-4">
-                        <h3 className="text-sm font-medium text-gray-400">Climb location</h3>
-                        <p className="text-white capitalize">{selectedDetailItem.climb_location}</p>
+                  {/* Modal Header */}
+                  <div className="p-6 border-b border-gray-700 flex items-center justify-between bg-gray-800/50">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-blue-500/10 p-2.5 rounded-xl border border-blue-500/20">
+                        <Wrench className="w-6 h-6 text-blue-400" />
                       </div>
-                    )}
-
-                    {/* Auto Paths (annotated field) */}
-                    {selectedDetailItem.annotated_image_url && (
-                      <div className="mb-6">
-                        <h3 className="text-lg font-semibold text-white mb-3">Auto Paths</h3>
-                        <div className="rounded-lg overflow-hidden border border-gray-700 bg-gray-900">
-                          <img
-                            src={selectedDetailItem.annotated_image_url}
-                            alt="Annotated auto paths"
-                            className="w-full h-auto object-contain max-h-96"
-                          />
+                      <div>
+                        <h2 className="text-2xl font-bold text-white leading-tight">
+                          Team {selectedDetailItem.team_number}
+                          {selectedDetailItem.team_name && <span className="text-gray-400 font-medium ml-2">— {selectedDetailItem.team_name}</span>}
+                        </h2>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="bg-blue-500/10 text-blue-300 border-blue-500/20 text-[10px] uppercase tracking-wider h-5">
+                            Pit Scouting Details
+                          </Badge>
+                          <span className="text-gray-500 text-xs font-mono">•</span>
+                          <span className="text-gray-400 text-xs font-mono">{selectedDetailItem.robot_name || 'Generic Bot'}</span>
                         </div>
-                        {selectedDetailItem.auto_paths && selectedDetailItem.auto_paths.length > 0 && (
-                          <div className="mt-3 space-y-2">
-                            {selectedDetailItem.auto_paths.map((p: { id: string; comment: string; color: string }, i: number) => (
-                              p.comment && (
-                                <div key={p.id} className="flex items-center gap-2 text-sm">
-                                  <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                                  <span className="text-gray-300">Path {i + 1}:</span>
-                                  <span className="text-white">{p.comment}</span>
-                                </div>
-                              )
-                            ))}
-                          </div>
-                        )}
                       </div>
-                    )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowDetailModal(false)}
+                      className="text-gray-400 hover:text-white hover:bg-white/5 rounded-full h-10 w-10 p-0"
+                    >
+                      <XCircle className="h-6 w-6" />
+                    </Button>
+                  </div>
 
-                    {/* Robot / Pit Photos (up to 6) */}
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold text-white mb-3">
-                        {((selectedDetailItem.photos?.length ?? 0) > 1) ? 'Pit Photos' : 'Robot Image'}
-                      </h3>
-                      {(selectedDetailItem.photos?.length ?? 0) > 0 || selectedDetailItem.robot_image_url ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          {(selectedDetailItem.photos && selectedDetailItem.photos.length > 0
-                            ? selectedDetailItem.photos
-                            : selectedDetailItem.robot_image_url
-                              ? [selectedDetailItem.robot_image_url]
-                              : []
-                          ).map((url, i) => (
-                            <div key={i} className="relative rounded-lg overflow-hidden border border-gray-700 bg-gray-900 aspect-square">
+                  {/* Modal Content */}
+                  <div className="p-0 overflow-y-auto flex-1 scrollbar-hide">
+                    <div className="p-6 space-y-8">
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        {/* Left Column: Image & Basic Info */}
+                        <div className="lg:col-span-4 space-y-6">
+                          <Card className="bg-gray-800/50 border-gray-700 overflow-hidden p-1 shadow-lg">
+                            <div className="aspect-[4/3] rounded-lg overflow-hidden relative group bg-gray-900">
                               <img
-                                src={url}
-                                alt={`Team ${selectedDetailItem.team_number} photo ${i + 1}`}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                }}
+                                src={getPitImageUrl(selectedDetailItem) || '/placeholder-robot.png'}
+                                alt={selectedDetailItem.robot_name || 'Robot'}
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                referrerPolicy="no-referrer"
                               />
                             </div>
-                          ))}
+                          </Card>
+                          
+                          <div className="space-y-4">
+                            <h3 className="text-xl font-bold text-white">{selectedDetailItem.robot_name || 'Robot Overview'}</h3>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedDetailItem.drive_type && (
+                                <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 font-medium">
+                                  {selectedDetailItem.drive_type}
+                                </Badge>
+                              )}
+                              {selectedDetailItem.weight > 0 && (
+                                <Badge variant="outline" className="border-gray-600 text-gray-300 font-medium">
+                                  {selectedDetailItem.weight} lbs
+                                </Badge>
+                              )}
+                              {selectedDetailItem.overall_rating && selectedDetailItem.overall_rating > 0 && (
+                                <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 font-bold">
+                                  ★ {selectedDetailItem.overall_rating}/10
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Quick Stats Grid */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                              <span className="text-[10px] text-gray-500 uppercase block mb-1">Programming</span>
+                              <span className="text-sm font-semibold text-white">{selectedDetailItem.programming_language || '—'}</span>
+                            </div>
+                            <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                              <span className="text-[10px] text-gray-500 uppercase block mb-1">Cameras</span>
+                              <span className="text-sm font-semibold text-white">{selectedDetailItem.camera_count ?? '—'}</span>
+                            </div>
+                          </div>
+
+                          {/* Auto Paths Section */}
+                          {selectedDetailItem.annotated_image_url && (
+                            <div className="space-y-3 pt-4 border-t border-gray-800">
+                              <h4 className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2">
+                                <Route className="w-3.5 h-3.5" /> Auto Paths
+                              </h4>
+                              <div className="rounded-xl overflow-hidden border border-gray-700 bg-gray-900 shadow-inner">
+                                <img
+                                  src={selectedDetailItem.annotated_image_url}
+                                  alt="Annotated auto paths"
+                                  className="w-full h-auto object-contain max-h-64"
+                                />
+                              </div>
+                              {selectedDetailItem.auto_paths && selectedDetailItem.auto_paths.length > 0 && (
+                                <div className="space-y-2 max-h-40 overflow-y-auto pr-2 scrollbar-hide">
+                                  {selectedDetailItem.auto_paths.map((p: any, i: number) => (
+                                    p.comment && (
+                                      <div key={p.id} className="flex items-start gap-2.5 text-xs bg-gray-800/30 p-2 rounded-lg border border-gray-700/50">
+                                        <div className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5" style={{ backgroundColor: p.color }} />
+                                        <div className="flex flex-col">
+                                          <span className="text-gray-400 font-bold">Path {i + 1}</span>
+                                          <span className="text-gray-200">{p.comment}</span>
+                                        </div>
+                                      </div>
+                                    )
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        <div className="relative w-full max-w-2xl mx-auto rounded-lg overflow-hidden border border-gray-700 bg-gray-900 p-8 text-center">
-                          <p className="text-gray-400">No robot image available</p>
+
+                        {/* Right Column: Detailed Specs */}
+                        <div className="lg:col-span-8 space-y-8">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {/* Drivetrain Section */}
+                            <div className="space-y-4">
+                              <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                <Activity className="w-4 h-4 text-blue-400" /> Drivetrain
+                              </h4>
+                              <div className="bg-gray-800/40 p-5 rounded-2xl border border-gray-700/50 space-y-3 shadow-sm">
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="text-gray-400">Drive Type</span>
+                                  <span className="font-bold text-white">{selectedDetailItem.drive_type}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="text-gray-400">Dimensions</span>
+                                  <span className="font-bold text-white">
+                                    {selectedDetailItem.robot_dimensions?.length != null || selectedDetailItem.robot_dimensions?.width != null || selectedDetailItem.robot_dimensions?.height != null
+                                      ? (selectedDetailItem.robot_dimensions?.length ?? '?') + '"×' + (selectedDetailItem.robot_dimensions?.width ?? '?') + '"×' + (selectedDetailItem.robot_dimensions?.height ?? '?') + '"'
+                                      : '—'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="text-gray-400">Motor Count</span>
+                                  <span className="font-bold text-white">{selectedDetailItem.drive_train_details?.drive_camps ?? (selectedDetailItem.drive_train_details as any)?.motor_count ?? '—'}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="text-gray-400">Weight</span>
+                                  <span className="font-bold text-white">{selectedDetailItem.weight} lbs</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Autonomous Capabilities */}
+                            <div className="space-y-4">
+                              <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                <Clock className="w-4 h-4 text-orange-400" /> Autonomous
+                              </h4>
+                              <div className="bg-gray-800/40 p-5 rounded-2xl border border-gray-700/50 min-h-[140px] shadow-sm">
+                                <div className="flex flex-wrap gap-2">
+                                  {selectedDetailItem.autonomous_capabilities?.length > 0 ? (
+                                    selectedDetailItem.autonomous_capabilities.map((cap: string, i: number) => (
+                                      <Badge key={i} variant="secondary" className="bg-orange-500/10 text-orange-300 border-orange-500/20 font-normal">
+                                        {cap}
+                                      </Badge>
+                                    ))
+                                  ) : (
+                                    <span className="text-gray-500 text-sm italic">No autonomous capabilities documented</span>
+                                  )}
+                                </div>
+                                {selectedDetailItem.can_autoalign && (
+                                  <div className="mt-4 pt-4 border-t border-gray-700/50 flex items-center gap-2 text-sm text-green-400">
+                                    <CheckCircle className="w-4 h-4" />
+                                    <span>Supports Auto-Align</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Teleop Section */}
+                            <div className="space-y-4">
+                              <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                <Zap className="w-4 h-4 text-yellow-400" /> Teleop
+                              </h4>
+                              <div className="bg-gray-800/40 p-5 rounded-2xl border border-gray-700/50 min-h-[120px] shadow-sm">
+                                <div className="flex flex-wrap gap-2">
+                                  {selectedDetailItem.teleop_capabilities?.length > 0 ? (
+                                    selectedDetailItem.teleop_capabilities.map((cap: string, i: number) => (
+                                      <Badge key={i} variant="secondary" className="bg-yellow-500/10 text-yellow-300 border-yellow-500/20 font-normal">
+                                        {cap}
+                                      </Badge>
+                                    ))
+                                  ) : (
+                                    <span className="text-gray-500 text-sm italic">No teleop capabilities documented</span>
+                                  )}
+                                </div>
+                                {selectedDetailItem.shooting_locations?.length > 0 && (
+                                  <div className="mt-4 pt-4 border-t border-gray-700/50">
+                                    <span className="text-[10px] text-gray-500 uppercase block mb-2">Shooting Locations</span>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {selectedDetailItem.shooting_locations.map((loc: string, i: number) => (
+                                        <Badge key={i} variant="outline" className="text-[10px] border-gray-700 text-gray-400">{loc}</Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Endgame Section */}
+                            <div className="space-y-4">
+                              <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                <Award className="w-4 h-4 text-green-400" /> Endgame
+                              </h4>
+                              <div className="bg-gray-800/40 p-5 rounded-2xl border border-gray-700/50 min-h-[120px] shadow-sm">
+                                <div className="flex flex-wrap gap-2">
+                                  {(selectedDetailItem.endgame_capabilities?.length ?? 0) > 0 ? (
+                                    selectedDetailItem.endgame_capabilities?.map((cap: string, i: number) => (
+                                      <Badge key={i} variant="secondary" className="bg-green-500/10 text-green-300 border-green-500/20 font-normal">
+                                        {cap}
+                                      </Badge>
+                                    ))
+                                  ) : (
+                                    <span className="text-gray-500 text-sm italic">No endgame capabilities documented</span>
+                                  )}
+                                </div>
+                                {selectedDetailItem.climb_location && (
+                                  <div className="mt-4 pt-4 border-t border-gray-700/50 flex items-center justify-between text-sm">
+                                    <span className="text-gray-400">Climb Location</span>
+                                    <span className="font-bold text-white capitalize">{selectedDetailItem.climb_location}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Strengths & Weaknesses */}
+                            <div className="space-y-4">
+                              <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                <BarChart3 className="w-4 h-4 text-blue-400" /> Strengths
+                              </h4>
+                              <div className="bg-green-500/5 p-5 rounded-2xl border border-green-500/10 shadow-sm">
+                                <ul className="space-y-2">
+                                  {selectedDetailItem.strengths?.length > 0 ? (
+                                    selectedDetailItem.strengths.map((str: string, i: number) => (
+                                      <li key={i} className="flex items-start gap-2 text-sm text-green-200/80">
+                                        <CheckCircle className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
+                                        <span>{str}</span>
+                                      </li>
+                                    ))
+                                  ) : (
+                                    <li className="text-gray-500 text-sm italic">No strengths listed</li>
+                                  )}
+                                </ul>
+                              </div>
+                            </div>
+
+                            <div className="space-y-4">
+                              <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4 text-red-400" /> Weaknesses
+                              </h4>
+                              <div className="bg-red-500/5 p-5 rounded-2xl border border-red-500/10 shadow-sm">
+                                <ul className="space-y-2">
+                                  {selectedDetailItem.weaknesses?.length > 0 ? (
+                                    selectedDetailItem.weaknesses.map((weak: string, i: number) => (
+                                      <li key={i} className="flex items-start gap-2 text-sm text-red-200/80">
+                                        <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                                        <span>{weak}</span>
+                                      </li>
+                                    ))
+                                  ) : (
+                                    <li className="text-gray-500 text-sm italic">No weaknesses listed</li>
+                                  )}
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Notes Section */}
+                          <div className="space-y-4 h-full">
+                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                              <FileSpreadsheet className="w-4 h-4 text-gray-400" /> Additional Notes
+                            </h4>
+                            <div className="bg-gray-800/40 p-5 rounded-2xl border border-gray-700/50 shadow-sm h-full">
+                              <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+                                {selectedDetailItem.notes || 'No additional notes provided for this robot.'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Photos Gallery (if more than 1) */}
+                      {selectedDetailItem.photos && selectedDetailItem.photos.length > 1 && (
+                        <div className="space-y-4 pt-4 border-t border-gray-800">
+                          <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Robot Gallery</h4>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                            {selectedDetailItem.photos.map((url: string, i: number) => (
+                              <div key={i} className="aspect-square rounded-xl overflow-hidden border border-gray-700 bg-gray-900 group relative">
+                                <img
+                                  src={url}
+                                  alt={`Robot photo ${i + 1}`}
+                                  className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <Eye className="w-5 h-5 text-white" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
+                  </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {/* Basic Information */}
-                      <div className="bg-gray-700/50 p-4 rounded-lg">
-                        <h3 className="font-semibold text-white mb-3">Basic Information</h3>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-300">Team Number:</span>
-                            <span className="text-white font-medium">{selectedDetailItem.team_number}</span>
-                          </div>
-                          {selectedDetailItem.team_name && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-300">Team Name:</span>
-                              <span className="text-white font-medium">{selectedDetailItem.team_name}</span>
-                            </div>
-                          )}
-                          <div className="flex justify-between">
-                            <span className="text-gray-300">Robot Name:</span>
-                            <span className="text-white font-medium">{selectedDetailItem.robot_name}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-300">Drive Type:</span>
-                            <span className="text-white font-medium">{selectedDetailItem.drive_type}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-300">Programming Language:</span>
-                            <span className="text-white font-medium">{selectedDetailItem.programming_language || 'N/A'}</span>
-                          </div>
-                        </div>
+                  {/* Modal Footer */}
+                  <div className="p-4 border-t border-gray-700 bg-gray-800/80 flex items-center justify-between">
+                    <div className="flex items-center gap-4 text-xs text-gray-400">
+                      <div className="flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5" />
+                        <span>Scouted by <span className="text-white font-medium">{selectedDetailItem.submitted_by_name}</span></span>
                       </div>
-
-                      {/* Robot Dimensions */}
-                      <div className="bg-gray-700/50 p-4 rounded-lg">
-                        <h3 className="font-semibold text-white mb-3">Robot Specifications</h3>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-300">Length:</span>
-                            <span className="text-white font-medium">
-                              {selectedDetailItem.robot_dimensions &&
-                                selectedDetailItem.robot_dimensions.length !== undefined &&
-                                selectedDetailItem.robot_dimensions.length !== null
-                                ? `${selectedDetailItem.robot_dimensions.length}"`
-                                : 'N/A'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-300">Width:</span>
-                            <span className="text-white font-medium">
-                              {selectedDetailItem.robot_dimensions &&
-                                selectedDetailItem.robot_dimensions.width !== undefined &&
-                                selectedDetailItem.robot_dimensions.width !== null
-                                ? `${selectedDetailItem.robot_dimensions.width}"`
-                                : 'N/A'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-300">Height:</span>
-                            <span className="text-white font-medium">
-                              {selectedDetailItem.robot_dimensions &&
-                                selectedDetailItem.robot_dimensions.height !== undefined &&
-                                selectedDetailItem.robot_dimensions.height !== null
-                                ? `${selectedDetailItem.robot_dimensions.height}"`
-                                : 'N/A'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-300">Weight:</span>
-                            <span className="text-white font-medium">{selectedDetailItem.weight !== undefined && selectedDetailItem.weight !== null ? `${selectedDetailItem.weight} lbs` : 'N/A'}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-300">Number of Cameras:</span>
-                            <span className="text-white font-medium">{selectedDetailItem.camera_count !== undefined && selectedDetailItem.camera_count !== null ? selectedDetailItem.camera_count : 'N/A'}</span>
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <span className="text-gray-300">Shooting/Passing Locations:</span>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {selectedDetailItem.shooting_locations && selectedDetailItem.shooting_locations.length > 0 ? (
-                                selectedDetailItem.shooting_locations.map((loc, index) => (
-                                  <Badge key={index} variant="secondary" className="bg-primary/20 text-blue-300 border-primary/30 text-[10px]">
-                                    {loc}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <span className="text-gray-400 text-xs">None specified</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Capabilities */}
-                      <div className="bg-gray-700/50 p-4 rounded-lg">
-                        <h3 className="font-semibold text-white mb-3">Capabilities</h3>
-                        <div className="space-y-3 text-sm">
-                          <div>
-                            <span className="text-gray-300 font-medium">Autonomous:</span>
-                            <div className="mt-1">
-                              {selectedDetailItem.autonomous_capabilities.length > 0 ? (
-                                selectedDetailItem.autonomous_capabilities.map((cap, index) => (
-                                  <div key={index} className="text-white">• {cap}</div>
-                                ))
-                              ) : (
-                                <div className="text-gray-400">None specified</div>
-                              )}
-                            </div>
-                          </div>
-                          <div>
-                            <span className="text-gray-300 font-medium">Teleop:</span>
-                            <div className="mt-1">
-                              {selectedDetailItem.teleop_capabilities.length > 0 ? (
-                                selectedDetailItem.teleop_capabilities.map((cap, index) => (
-                                  <div key={index} className="text-white">• {cap}</div>
-                                ))
-                              ) : (
-                                <div className="text-gray-400">None specified</div>
-                              )}
-                            </div>
-                          </div>
-                          <div>
-                            <span className="text-gray-300 font-medium">Can Autoalign:</span>
-                            <span className="text-white ml-2">{selectedDetailItem.can_autoalign ? 'Yes' : 'No'}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-300 font-medium">Climb & Navigation:</span>
-                            <div className="mt-1 space-y-2">
-                              <div>
-                                <span className="text-white font-medium">Can Climb: </span>
-                                <span className="text-white">
-                                  {((selectedDetailItem.drive_train_details as any)?.can_climb || (selectedDetailItem.drive_train_details as any)?.climb_levels?.length > 0) ? 'Yes' : 'No'}
-                                </span>
-                              </div>
-                              {(selectedDetailItem.drive_train_details as any)?.climb_levels?.length > 0 && (
-                                <div>
-                                  <span className="text-white font-medium">Levels: </span>
-                                  <span className="text-white">
-                                    {(selectedDetailItem.drive_train_details as any).climb_levels.join(', ')}
-                                  </span>
-                                </div>
-                              )}
-                              <div>
-                                <span className="text-white font-medium">Navigation: </span>
-                                <span className="text-white">
-                                  {(selectedDetailItem.drive_train_details as any)?.navigation_locations?.join(', ') || 'N/A'}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-white font-medium">Ball Hold: </span>
-                                <span className="text-white">
-                                  {(selectedDetailItem.drive_train_details as any)?.ball_hold_amount || 0} balls
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-white font-medium">Downtime Strategy: </span>
-                                <span className="text-white">
-                                  {(selectedDetailItem.drive_train_details as any)?.downtime_strategy?.join(', ') || 'N/A'}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Strengths & Weaknesses */}
-                      <div className="bg-gray-700/50 p-4 rounded-lg">
-                        <h3 className="font-semibold text-white mb-3">Strengths</h3>
-                        <div className="text-sm">
-                          {selectedDetailItem.strengths.length > 0 ? (
-                            selectedDetailItem.strengths.map((strength, index) => (
-                              <div key={index} className="text-green-300 mb-1">• {strength}</div>
-                            ))
-                          ) : (
-                            <div className="text-gray-400">None specified</div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="bg-gray-700/50 p-4 rounded-lg">
-                        <h3 className="font-semibold text-white mb-3">Weaknesses</h3>
-                        <div className="text-sm">
-                          {selectedDetailItem.weaknesses.length > 0 ? (
-                            selectedDetailItem.weaknesses.map((weakness, index) => (
-                              <div key={index} className="text-red-300 mb-1">• {weakness}</div>
-                            ))
-                          ) : (
-                            <div className="text-gray-400">None specified</div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Notes & Metadata */}
-                      <div className="bg-gray-700/50 p-4 rounded-lg md:col-span-2 lg:col-span-1">
-                        <h3 className="font-semibold text-white mb-3">Notes & Metadata</h3>
-                        <div className="space-y-3 text-sm">
-                          <div>
-                            <span className="text-gray-300 font-medium">Notes:</span>
-                            <p className="text-white mt-1 text-xs">{selectedDetailItem.notes || 'No notes provided'}</p>
-                          </div>
-                          <div className="pt-2 border-t border-gray-600">
-                            <div className="flex justify-between">
-                              <span className="text-gray-300">Submitted by:</span>
-                              <span className="text-white font-medium">{selectedDetailItem.submitted_by_name}</span>
-                            </div>
-                            <div className="flex justify-between mt-1">
-                              <span className="text-gray-300">Date:</span>
-                              <span className="text-white font-medium">
-                                {new Date(selectedDetailItem.submitted_at).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                      <div className="h-3 w-px bg-gray-700" />
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>{new Date(selectedDetailItem.submitted_at).toLocaleDateString()}</span>
                       </div>
                     </div>
-
-                    <div className="flex justify-end mt-6">
+                    <div className="flex gap-3">
                       <Button
+                        variant="ghost"
                         onClick={() => setShowDetailModal(false)}
-                        className="bg-gray-600 hover:bg-gray-500 text-white"
+                        className="text-gray-400 hover:text-white"
                       >
                         Close
                       </Button>
+                      {isAdmin && (
+                        <Button
+                          onClick={() => handleEdit(selectedDetailItem)}
+                          className="bg-blue-600 hover:bg-blue-500 text-white gap-2 shadow-lg shadow-blue-500/20"
+                        >
+                          <Edit className="w-4 h-4" /> Edit Data
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </motion.div>

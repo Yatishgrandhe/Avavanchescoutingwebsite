@@ -185,7 +185,7 @@ async function parseForm(req: NextApiRequest): Promise<{ fields: Fields; files: 
                 const originalFilename = part.originalFilename ?? null;
                 const byMime = mimetype ? (mimetype.startsWith('image/') || mimetype === 'image') : false;
                 const ext = (originalFilename || '').toLowerCase();
-                const byExt = /\.(jpe?g|png|gif|webp|bmp)$/.test(ext);
+                const byExt = /\.(jpe?g|png|gif|webp|bmp|heic)$/.test(ext);
                 const fromMobile = !mimetype && !originalFilename;
                 const isImage = byMime || (!mimetype && byExt) || fromMobile;
                 console.log('[API/upload-robot-image] File filter check:', { mimetype, originalFilename, isImage, fromMobile });
@@ -334,7 +334,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const sanitizedTeamName = teamName.replace(/[^a-z0-9]/gi, '_');
         const extension = path.extname(imageFile.originalFilename || '.jpg');
         const fileName = `team_${teamNumber}_${sanitizedTeamName}_${date}_${timestamp}${extension}`;
-        const mimeType = imageFile.mimetype || 'image/jpeg';
+        const mimeType = imageFile.mimetype || (extension.toLowerCase() === '.heic' ? 'image/heic' : 'image/jpeg');
 
         console.log(`[API/upload-robot-image] Starting upload for team ${teamNumber} (${teamName}), file: ${fileName}, mimeType: ${mimeType}, size: ${imageFile.size} bytes`);
 

@@ -72,7 +72,7 @@ interface ViewDataRow {
   submitted_by_name?: string | null;
 }
 
-type PitRow = { id?: string; team_number: number; robot_name?: string | null; photos?: string[] | null; [key: string]: unknown };
+type PitRow = { id?: string; team_number: number; robot_name?: string | null; photos?: string[] | null; auto_fuel_count?: number; [key: string]: unknown };
 
 export default function ViewDataPage() {
   const router = useRouter();
@@ -1047,6 +1047,7 @@ export default function ViewDataPage() {
                       {row.drive_type ? <Badge variant="outline" className="font-normal text-[10px] px-1.5 py-0">{String(row.drive_type)}</Badge> : null}
                       {row.weight != null && Number(row.weight) > 0 && <span>{Number(row.weight)} lbs</span>}
                       {row.overall_rating != null && Number(row.overall_rating) > 0 && <span>★ {Number(row.overall_rating)}/10</span>}
+                      {row.auto_fuel_count != null && Number(row.auto_fuel_count) > 0 && <span>Auto Fuel: {Number(row.auto_fuel_count)}</span>}
                     </div>
                   )}
                 </CardContent>

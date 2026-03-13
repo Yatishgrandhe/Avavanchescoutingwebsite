@@ -22,6 +22,7 @@ import {
   Route,
 } from 'lucide-react';
 import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, ValidationResult } from '@/lib/form-validation';
+import { compressImageForUpload } from '@/lib/image-upload';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import PitPhotosUpload, { PhotoItem } from '@/components/ui/PitPhotosUpload';
@@ -371,7 +372,9 @@ export default function PitScouting() {
         } else {
           const fd = new FormData();
           const name = item.name && /\.(jpe?g|png|gif|webp|heic)$/i.test(item.name) ? item.name : `robot_${formData.teamNumber}_${Date.now()}.jpg`;
-          fd.append('image', item, name);
+          const toUpload = await compressImageForUpload(item);
+          const uploadName = toUpload.type === 'image/jpeg' ? (name.replace(/\.[a-z]+$/i, '') + '.jpg') : name;
+          fd.append('image', toUpload, uploadName);
           fd.append('teamNumber', formData.teamNumber.toString());
           fd.append('teamName', formData.robotName || 'Unknown');
           try {
@@ -409,7 +412,8 @@ export default function PitScouting() {
         const blob = exportedAnnotatedBlobRef.current ?? (await annotatorRef.current?.exportToBlob?.());
         if (blob) {
           const fd = new FormData();
-          fd.append('image', blob, `auto_paths_team_${formData.teamNumber}_${Date.now()}.jpg`);
+          const compressedBlob = await compressImageForUpload(blob);
+          fd.append('image', compressedBlob, `auto_paths_team_${formData.teamNumber}_${Date.now()}.jpg`);
           fd.append('teamNumber', formData.teamNumber.toString());
           fd.append('teamName', formData.robotName || 'Unknown');
           try {

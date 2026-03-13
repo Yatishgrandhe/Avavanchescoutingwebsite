@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/router';
 import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, ValidationResult } from '@/lib/form-validation';
+import { compressImageForUpload } from '@/lib/image-upload';
 import PitPhotosUpload, { PhotoItem } from '@/components/ui/PitPhotosUpload';
 
 interface Team {
@@ -281,7 +282,9 @@ export default function PitScoutingMobile() {
         } else {
           const fd = new FormData();
           const name = item.name && /\.(jpe?g|png|gif|webp|heic)$/i.test(item.name) ? item.name : `robot_${formData.teamNumber}_${Date.now()}.jpg`;
-          fd.append('image', item, name);
+          const toUpload = await compressImageForUpload(item);
+          const uploadName = toUpload.type === 'image/jpeg' ? (name.replace(/\.[a-z]+$/i, '') + '.jpg') : name;
+          fd.append('image', toUpload, uploadName);
           fd.append('teamNumber', formData.teamNumber.toString());
           fd.append('teamName', formData.robotName || 'Unknown');
           try {

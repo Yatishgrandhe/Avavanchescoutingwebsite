@@ -88,6 +88,7 @@ export interface PitScoutingData {
   submitted_by_name: string;
   submitted_at: string;
   created_at: string;
+  auto_fuel_count?: number;
 }
 
 function getPitImageUrl(item: PitScoutingData): string | null {
@@ -193,7 +194,8 @@ export default function PitScoutingData() {
           submitted_by_email: item.submitted_by_email,
           submitted_by_name: item.submitted_by_name,
           submitted_at: item.submitted_at,
-          created_at: item.created_at
+          created_at: item.created_at,
+          auto_fuel_count: item.auto_fuel_count ?? 0
         }));
 
         setPitData(transformedData);
@@ -334,7 +336,8 @@ export default function PitScoutingData() {
         submitted_by_email: item.submitted_by_email,
         submitted_by_name: item.submitted_by_name,
         submitted_at: item.submitted_at,
-        created_at: item.created_at
+        created_at: item.created_at,
+        auto_fuel_count: item.auto_fuel_count ?? 0
       }));
 
       setPitData(transformedData);
@@ -628,13 +631,13 @@ export default function PitScoutingData() {
                   return (
                     <Card key={item.id ?? `pit-${item.team_number}-${idx}`} className="overflow-hidden border border-white/10 bg-card/50 hover:border-primary/30 hover:bg-white/5 transition-all h-full flex flex-col">
                       <Link href={teamUrl} className="block flex-1 min-w-0">
-                        <div className="robot-image-container bg-muted/20 flex items-center justify-center">
+                        <div className="aspect-[4/3] bg-muted/20 flex items-center justify-center overflow-hidden relative">
                           {imgUrl ? (
                             <>
                               <img
                                 src={imgUrl}
                                 alt={item.robot_name || teamName}
-                                className="robot-image-hover w-full h-full object-cover"
+                                className="w-full h-full object-cover"
                                 referrerPolicy="no-referrer"
                                 loading="lazy"
                                 onError={(e) => {
@@ -929,6 +932,10 @@ export default function PitScoutingData() {
                                     <span>Supports Auto-Align</span>
                                   </div>
                                 )}
+                                <div className="mt-4 pt-4 border-t border-gray-700/50 flex justify-between items-center text-sm">
+                                  <span className="text-gray-400">Auto Fuel Scored</span>
+                                  <span className="font-bold text-white text-lg">{selectedDetailItem.auto_fuel_count ?? 0}</span>
+                                </div>
                               </div>
                             </div>
 

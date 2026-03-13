@@ -764,6 +764,12 @@ const TeamDetail: React.FC = () => {
                             <Badge key={i} variant="secondary" className="bg-white/5 border-white/10">{cap}</Badge>
                           )) || <span className="text-muted-foreground text-sm italic">None documented</span>}
                         </div>
+                        {pitData.auto_fuel_count != null && pitData.auto_fuel_count > 0 && (
+                          <div className="mt-3 pt-3 border-t border-white/5 flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Auto Fuel Scored</span>
+                            <span className="font-bold text-orange-400">{pitData.auto_fuel_count}</span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="space-y-4">

@@ -70,6 +70,7 @@ interface PitScoutingData {
   submitted_by_name: string;
   submitted_at: string;
   created_at: string;
+  auto_fuel_count?: number;
 }
 
 export default function PitScoutingDetails() {
@@ -137,7 +138,8 @@ export default function PitScoutingDetails() {
           submitted_by_email: pitScoutingData.submitted_by_email,
           submitted_by_name: pitScoutingData.submitted_by_name,
           submitted_at: pitScoutingData.submitted_at,
-          created_at: pitScoutingData.created_at
+          created_at: pitScoutingData.created_at,
+          auto_fuel_count: pitScoutingData.auto_fuel_count ?? 0
         };
         
         setPitData(transformedData);
@@ -374,7 +376,14 @@ export default function PitScoutingDetails() {
                     items={pitData.autonomous_capabilities}
                     accent="orange"
                     footer={pitData.can_autoalign ? "Supports Auto-Align" : null}
-                  />
+                  >
+                    {pitData.auto_fuel_count != null && pitData.auto_fuel_count > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-800 flex justify-between items-center text-sm">
+                        <span className="text-gray-400">Auto Fuel Scored</span>
+                        <span className="font-bold text-orange-400 text-lg">{pitData.auto_fuel_count}</span>
+                      </div>
+                    )}
+                  </CapabilityCard>
                   <CapabilityCard
                     title="Teleop"
                     icon={<Zap className="w-5 h-5 text-yellow-400" />}

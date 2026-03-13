@@ -66,6 +66,7 @@ interface PitScoutingData {
   programmingLanguage: string;
   notes: string;
   scoutName: string;
+  autoFuelCount: number;
 }
 
 export default function PitScouting() {
@@ -103,6 +104,7 @@ export default function PitScouting() {
     programmingLanguage: '',
     notes: '',
     scoutName: '',
+    autoFuelCount: 0,
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -166,6 +168,7 @@ export default function PitScouting() {
         programmingLanguage: fd.programmingLanguage ?? prev.programmingLanguage,
         notes: fd.notes ?? prev.notes,
         scoutName: fd.scoutName ?? prev.scoutName,
+        autoFuelCount: fd.autoFuelCount ?? prev.autoFuelCount,
       }));
       if (typeof draft.currentStep === 'number' && draft.currentStep >= 1 && draft.currentStep <= totalSteps) {
         setCurrentStep(draft.currentStep);
@@ -294,6 +297,7 @@ export default function PitScouting() {
             programmingLanguage: existingData.programming_language || '',
             notes: existingData.notes || '',
             scoutName: existingData.submitted_by_name || '',
+            autoFuelCount: existingData.auto_fuel_count ?? 0,
           });
         }
       } catch (err) {
@@ -460,6 +464,7 @@ export default function PitScouting() {
         auto_paths: formData.autoPaths || [],
         annotated_image_url: annotatedImageUrl,
         notes: formData.notes,
+        auto_fuel_count: formData.autoFuelCount,
         strengths: [],
         weaknesses: [],
         submitted_by: user.id,
@@ -883,6 +888,25 @@ export default function PitScouting() {
                             <span className="text-sm font-medium">{opt}</span>
                           </div>
                         ))}
+                      </div>
+
+                      {/* Auto Fuel Count */}
+                      <div className="space-y-2 pt-4 border-t border-white/5">
+                        <label className="text-sm font-medium flex items-center gap-2">
+                          <Badge className="bg-blue-500/10 text-blue-400">Auto</Badge> Fuel Count
+                        </label>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          className="glass-input text-center h-10 border-white/10"
+                          value={formData.autoFuelCount || ''}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 0;
+                            setFormData(prev => ({ ...prev, autoFuelCount: val >= 0 ? val : 0 }));
+                          }}
+                        />
+                        <p className="text-[10px] text-muted-foreground uppercase pl-1">Number of fuel units scored in autonomous</p>
                       </div>
 
                       {/* Auto Paths (multiple paths supported) */}

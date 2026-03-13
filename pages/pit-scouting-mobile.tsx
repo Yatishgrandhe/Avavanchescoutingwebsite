@@ -57,6 +57,7 @@ interface PitScoutingData {
   strengths: string[];
   weaknesses: string[];
   overallRating: number;
+  autoFuelCount: number;
 }
 
 export default function PitScoutingMobile() {
@@ -92,6 +93,7 @@ export default function PitScoutingMobile() {
     strengths: [],
     weaknesses: [],
     overallRating: 1,
+    autoFuelCount: 0,
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -149,6 +151,7 @@ export default function PitScoutingMobile() {
         strengths: Array.isArray(fd.strengths) ? fd.strengths : prev.strengths,
         weaknesses: Array.isArray(fd.weaknesses) ? fd.weaknesses : prev.weaknesses,
         overallRating: fd.overallRating ?? prev.overallRating,
+        autoFuelCount: fd.autoFuelCount ?? prev.autoFuelCount,
       }));
       if (typeof draft.currentStep === 'number' && draft.currentStep >= 1 && draft.currentStep <= totalSteps) {
         setCurrentStep(draft.currentStep);
@@ -347,6 +350,7 @@ export default function PitScoutingMobile() {
         submitted_by_email: user.email,
         submitted_by_name: user.user_metadata?.full_name || user.email,
         submitted_at: new Date().toISOString(),
+        auto_fuel_count: formData.autoFuelCount,
       };
 
       console.log('User info:', { id: user.id, email: user.email });
@@ -395,6 +399,7 @@ export default function PitScoutingMobile() {
           strengths: [],
           weaknesses: [],
           overallRating: 1,
+          autoFuelCount: 0,
         });
         window.location.href = '/';
       }, 2000);
@@ -788,6 +793,24 @@ export default function PitScoutingMobile() {
                           </label>
                         </div>
                       ))}
+                    </div>
+
+                    {/* Auto Fuel Count */}
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <label className="block text-sm font-medium mb-2 text-foreground">
+                        Auto Fuel Count
+                      </label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={formData.autoFuelCount || ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const val = parseInt(e.target.value) || 0;
+                          setFormData(prev => ({ ...prev, autoFuelCount: val >= 0 ? val : 0 }));
+                        }}
+                      />
+                      <p className="text-[10px] text-muted-foreground mt-1 uppercase">Number of fuel units scored in autonomous</p>
                     </div>
                   </div>
 

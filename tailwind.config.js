@@ -20,12 +20,14 @@ module.exports = {
   		fontFamily: {
   			sans: [
   				'Inter',
-  				'system-ui',
+  				'Roboto',
+  				'Helvetica Neue',
+  				'Arial',
   				'sans-serif'
   			],
   			heading: [
-  				'Outfit',
   				'Poppins',
+  				'Inter',
   				'sans-serif'
   			],
   			mono: [
@@ -41,6 +43,18 @@ module.exports = {
   			secondary: {
   				DEFAULT: 'hsl(var(--secondary))',
   				foreground: 'hsl(var(--secondary-foreground))'
+  			},
+  			neutral: {
+  				'50': '#F9FAFB',
+  				'100': '#F3F4F6',
+  				'200': '#E5E7EB',
+  				'300': '#D1D5DB',
+  				'400': '#9CA3AF',
+  				'500': '#6B7280',
+  				'600': '#4B5563',
+  				'700': '#374151',
+  				'800': '#1F2937',
+  				'900': '#111827'
   			},
   			success: '#22C55E',
   			warning: '#EAB308',
@@ -97,12 +111,10 @@ module.exports = {
   			card: '0 4px 14px rgba(0, 0, 0, 0.08)',
   			'card-dark': '0 4px 14px rgba(0, 0, 0, 0.35)',
   			'card-hover': '0 8px 25px rgba(0, 0, 0, 0.15)',
-  			'card-hover-dark': '0 8px 25px rgba(0, 0, 0, 0.5)',
-  			'primary-glow': '0 0 40px rgba(59, 130, 246, 0.15)'
+  			'card-hover-dark': '0 8px 25px rgba(0, 0, 0, 0.5)'
   		},
   		transitionDuration: {
-  			'400': '400ms',
-  			'500': '500ms'
+  			'400': '400ms'
   		},
   		keyframes: {
   			'accordion-down': {
@@ -132,28 +144,30 @@ module.exports = {
   			slideUp: {
   				'0%': {
   					opacity: '0',
-  					transform: 'translateY(16px)'
+  					transform: 'translateY(20px)'
   				},
   				'100%': {
   					opacity: '1',
   					transform: 'translateY(0)'
   				}
   			},
-  			shimmer: {
+  			slideIn: {
   				'0%': {
-  					transform: 'translateX(-100%)'
+  					opacity: '0',
+  					transform: 'translateX(-20px)'
   				},
   				'100%': {
-  					transform: 'translateX(100%)'
+  					opacity: '1',
+  					transform: 'translateX(0)'
   				}
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
-  			fadeIn: 'fadeIn 0.4s ease-out',
-  			slideUp: 'slideUp 0.4s ease-out',
-  			shimmer: 'shimmer 1.8s ease-in-out infinite'
+  			fadeIn: 'fadeIn 0.3s ease-out',
+  			slideUp: 'slideUp 0.3s ease-out',
+  			slideIn: 'slideIn 0.3s ease-out'
   		}
   	}
   },

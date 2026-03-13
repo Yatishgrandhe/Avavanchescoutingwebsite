@@ -1011,10 +1011,10 @@ export default function ViewDataPage() {
           const teamName = getTeamName(row.team_number);
           const imgUrl = getPitImageUrl(row);
           const teamUrl = id
-            ? `/team/${row.team_number}?competition_id=${encodeURIComponent(id as string)}`
+            ? `/team/${row.team_number}?competition_id=${encodeURIComponent(id as string)}&tab=pit`
             : event_key
-              ? `/team/${row.team_number}?event_key=${encodeURIComponent(event_key as string)}`
-              : `/team/${row.team_number}`;
+              ? `/team/${row.team_number}?event_key=${encodeURIComponent(event_key as string)}&tab=pit`
+              : `/team/${row.team_number}?tab=pit`;
           const rowId = (row as PitRow).id;
           const isLive = !!event_key;
           return (

@@ -110,6 +110,7 @@ const TeamDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [fullScreenImageUrl, setFullScreenImageUrl] = useState<string | null>(null);
+  const [activeTeamTab, setActiveTeamTab] = useState<string>('overview');
 
   useEffect(() => {
     if (!fullScreenImageUrl) return;
@@ -117,6 +118,13 @@ const TeamDetail: React.FC = () => {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [fullScreenImageUrl]);
+
+  useEffect(() => {
+    const tab = router.query.tab as string | undefined;
+    if (tab === 'pit' || tab === 'overview' || tab === 'advanced' || tab === 'matches') {
+      setActiveTeamTab(tab);
+    }
+  }, [router.query.tab]);
 
   /** Primary robot image: robot_image_url (live) or first valid URL in photos (past/live). */
   const getRobotImageUrl = (pit: PitScoutingData | null): string | null => {
@@ -524,7 +532,7 @@ const TeamDetail: React.FC = () => {
       </div>
 
       {(
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs value={activeTeamTab} onValueChange={setActiveTeamTab} className="w-full">
           <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-px overflow-x-auto">
             <TabsList className="bg-transparent h-12 p-0 gap-8 justify-start">
               <TabsTrigger

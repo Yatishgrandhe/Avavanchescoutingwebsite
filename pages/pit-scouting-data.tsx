@@ -624,10 +624,10 @@ export default function PitScoutingData() {
                 {pitDisplayList.map((item, idx) => {
                   const teamName = item.team_name || `Team ${item.team_number}`;
                   const imgUrl = getPitImageUrl(item);
-                  const teamUrl = `/team/${item.team_number}`;
+                  const teamUrl = `/team/${item.team_number}?tab=pit`;
                   return (
-                    <Link key={item.id ?? `pit-${item.team_number}-${idx}`} href={teamUrl}>
-                      <Card className="overflow-hidden border border-white/10 bg-card/50 hover:border-primary/30 hover:bg-white/5 transition-all h-full">
+                    <Card key={item.id ?? `pit-${item.team_number}-${idx}`} className="overflow-hidden border border-white/10 bg-card/50 hover:border-primary/30 hover:bg-white/5 transition-all h-full flex flex-col">
+                      <Link href={teamUrl} className="block flex-1 min-w-0">
                         <div className="aspect-[4/3] bg-muted/20 flex items-center justify-center overflow-hidden relative">
                           {imgUrl ? (
                             <>
@@ -664,8 +664,27 @@ export default function PitScoutingData() {
                             </div>
                           )}
                         </CardContent>
-                      </Card>
-                    </Link>
+                      </Link>
+                      {isAdmin && item.id && (
+                        <div className="flex items-center gap-2 p-2 border-t border-white/10 bg-black/20" onClick={(e) => e.stopPropagation()}>
+                          <Link href={`/pit-scouting?id=${encodeURIComponent(item.id)}&edit=true`} className="flex-1">
+                            <Button size="sm" variant="outline" className="w-full h-8 text-xs bg-gray-800 border-gray-600 text-white hover:bg-gray-700">
+                              <Edit className="h-3 w-3 mr-1" />
+                              Edit
+                            </Button>
+                          </Link>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 h-8 text-xs bg-red-900/30 border-red-600/50 text-red-300 hover:bg-red-900/50"
+                            onClick={() => handleDelete(item)}
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
+                      )}
+                    </Card>
                   );
                 })}
               </div>

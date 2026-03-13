@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import {
+  ArrowLeft,
   Database,
   Target,
   Activity,
@@ -97,6 +98,35 @@ export default function ViewDataPage() {
     return Array.from(map.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
   }, [scoutingData]);
 
+  const pitDisplayList = React.useMemo(() => {
+    const byTeam = new Map<number, typeof pitScoutingData[0]>();
+    const hasImage = (row: typeof pitScoutingData[0]) => {
+      const url = row.robot_image_url != null && String(row.robot_image_url).trim();
+      if (url) return true;
+      let arr: unknown[] = [];
+      if (Array.isArray(row.photos)) arr = row.photos;
+      else if (typeof row.photos === 'string') {
+        try {
+          const parsed = JSON.parse(row.photos);
+          arr = Array.isArray(parsed) ? parsed : [parsed];
+        } catch {
+          if (String(row.photos).trim()) arr = [row.photos];
+        }
+      }
+      return arr.some((u: unknown) => typeof u === 'string' && (u as string).trim());
+    };
+    pitScoutingData.forEach((row) => {
+      const teamNum = row.team_number;
+      const existing = byTeam.get(teamNum);
+      if (!existing) {
+        byTeam.set(teamNum, row);
+        return;
+      }
+      if (hasImage(row) && !hasImage(existing)) byTeam.set(teamNum, row);
+    });
+    return Array.from(byTeam.values());
+  }, [pitScoutingData]);
+
   const loadData = async () => {
     if (!event_key && !id) return;
     setLoading(true);
@@ -180,6 +210,101 @@ export default function ViewDataPage() {
             </Link>
           </Card>
         </div>
+      </CompetitionDataLayout>
+    );
+  }
+
+  const personName = typeof router.query.name === 'string' ? router.query.name.trim() : undefined;
+  const backToStatsHref = id
+    ? `/view-data?id=${encodeURIComponent(id as string)}`
+    : event_key
+      ? `/view-data?event_key=${encodeURIComponent(event_key as string)}`
+      : '/view-data';
+
+  if (personName) {
+    const personForms = scoutingData.filter(
+      (r: ViewDataRow) => (r.submitted_by_name != null && String(r.submitted_by_name).trim() === personName)
+    );
+    const sortedPersonForms = [...personForms].sort((a, b) => {
+      const aVal = (a as any)[sortField];
+      const bVal = (b as any)[sortField];
+      if (sortField === 'match_id') {
+        const aM = a.match_id ?? a.match_number ?? aVal;
+        const bM = b.match_id ?? b.match_number ?? bVal;
+        return sortDirection === 'asc' ? String(aM).localeCompare(String(bM)) : String(bM).localeCompare(String(aM));
+      }
+      if (aVal == null && bVal == null) return 0;
+      if (aVal == null) return sortDirection === 'asc' ? 1 : -1;
+      if (bVal == null) return sortDirection === 'asc' ? -1 : 1;
+      const cmp = typeof aVal === 'number' && typeof bVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+      return sortDirection === 'asc' ? cmp : -cmp;
+    });
+    const personFormsContent = (
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="mb-6 flex items-center gap-4 flex-wrap">
+          <Link href={backToStatsHref}>
+            <Button variant="outline" size="sm" className="gap-2">
+              <ArrowLeft className="h-4 w-4" /> Back to Scouting Stats
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold text-foreground">Forms by {personName}</h1>
+          <span className="text-muted-foreground text-sm">{personForms.length} form{personForms.length !== 1 ? 's' : ''}</span>
+        </div>
+        <Card className="rounded-xl border border-white/10 bg-card/50 overflow-hidden">
+          <div className="overflow-x-auto scrollbar-hide">
+            <table className="w-full border-collapse min-w-[700px]">
+              <thead>
+                <tr className="border-b border-white/5 text-muted-foreground font-medium uppercase tracking-wider text-[10px]">
+                  <th className="text-left py-3 px-4">Team</th>
+                  <th className="text-left py-3 px-4">Match</th>
+                  <th className="text-left py-3 px-4">Alliance</th>
+                  <th className="text-left py-3 px-4">Auto</th>
+                  <th className="text-left py-3 px-4">Teleop</th>
+                  <th className="text-left py-3 px-4">Total</th>
+                  <th className="text-left py-3 px-4">Defense</th>
+                  <th className="text-left py-3 px-4">Comments</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedPersonForms.map((data, index) => {
+                  const teamUrl = id
+                    ? `/team/${data.team_number}?competition_id=${encodeURIComponent(id as string)}`
+                    : event_key
+                      ? `/team/${data.team_number}?event_key=${encodeURIComponent(event_key as string)}`
+                      : `/team/${data.team_number}`;
+                  return (
+                    <tr key={data.id || `${data.match_id}-${data.team_number}-${index}`} className="border-b border-white/5 hover:bg-white/5">
+                      <td className="py-3 px-4">
+                        <Link href={teamUrl} className="font-bold text-foreground hover:text-primary">
+                          {getTeamName(data.team_number)} #{data.team_number}
+                        </Link>
+                      </td>
+                      <td className="py-3 px-4 font-mono">{data.match_id ?? data.match_number ?? '—'}</td>
+                      <td className="py-3 px-4">
+                        <Badge variant={data.alliance_color === 'red' ? 'destructive' : 'default'} className="text-[9px]">
+                          {data.alliance_color || '—'}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-blue-400 font-bold">{data.autonomous_points ?? '—'}</td>
+                      <td className="py-3 px-4 text-orange-400 font-bold">{data.teleop_points ?? '—'}</td>
+                      <td className="py-3 px-4 font-black">{data.final_score ?? '—'}</td>
+                      <td className="py-3 px-4">{data.defense_rating ?? '—'}</td>
+                      <td className="py-3 px-4 max-w-[180px] truncate italic text-sm text-muted-foreground" title={data.comments}>{data.comments || '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {sortedPersonForms.length === 0 && (
+            <div className="p-8 text-center text-muted-foreground">No forms found for this person in this competition.</div>
+          )}
+        </Card>
+      </main>
+    );
+    return (
+      <CompetitionDataLayout activeTab="stats" backHref="/competition-history" queryString={queryString} showStatsTab={true}>
+        {personFormsContent}
       </CompetitionDataLayout>
     );
   }
@@ -440,7 +565,7 @@ export default function ViewDataPage() {
         </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {pitScoutingData.map((row, idx) => {
+        {pitDisplayList.map((row, idx) => {
           const teamName = getTeamName(row.team_number);
           const imgUrl = getPitImageUrl(row);
           const teamUrl = id
@@ -492,7 +617,7 @@ export default function ViewDataPage() {
           );
         })}
       </div>
-      {pitScoutingData.length === 0 && (
+      {pitDisplayList.length === 0 && (
         <Card className="p-12 border border-white/10 bg-card/50 text-center">
           <Wrench className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-foreground mb-2">No Pit Scouting Data</h3>
@@ -545,12 +670,23 @@ export default function ViewDataPage() {
                 </td>
               </tr>
             ) : (
-              statsByPerson.map(({ name, count }) => (
-                <tr key={name} className="border-b border-white/5 hover:bg-white/5">
-                  <td className="p-4 font-medium text-foreground">{name}</td>
-                  <td className="p-4 text-right font-mono">{count}</td>
-                </tr>
-              ))
+              statsByPerson.map(({ name, count }) => {
+                const formsHref = id
+                  ? `/view-data?id=${encodeURIComponent(id as string)}&name=${encodeURIComponent(name)}`
+                  : event_key
+                    ? `/view-data?event_key=${encodeURIComponent(event_key as string)}&name=${encodeURIComponent(name)}`
+                    : '#';
+                return (
+                  <tr key={name} className="border-b border-white/5 hover:bg-white/5">
+                    <td className="p-4">
+                      <Link href={formsHref} className="font-medium text-foreground hover:text-primary transition-colors">
+                        {name}
+                      </Link>
+                    </td>
+                    <td className="p-4 text-right font-mono">{count}</td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

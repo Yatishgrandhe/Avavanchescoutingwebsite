@@ -376,7 +376,15 @@ export default function PitScouting() {
           fd.append('teamName', formData.robotName || 'Unknown');
           try {
             const upRes = await fetch('/api/upload-robot-image', { method: 'POST', body: fd });
-            const upData = await upRes.json();
+            const text = await upRes.text();
+            let upData: { directViewUrl?: string; error?: string; details?: string; driveError?: string } = {};
+            try {
+              if (text && text.trim().startsWith('{')) upData = JSON.parse(text);
+            } catch {
+              if (upRes.status === 413) upData = { error: 'Image too large (max 10MB). Try a smaller image.' };
+              else if (text) upData = { error: text.length > 80 ? text.slice(0, 80) + '…' : text };
+              else upData = { error: upRes.statusText || 'Upload failed' };
+            }
             if (upRes.ok && upData.directViewUrl) {
               photoUrls.push(upData.directViewUrl);
             } else {
@@ -406,7 +414,13 @@ export default function PitScouting() {
           fd.append('teamName', formData.robotName || 'Unknown');
           try {
             const upRes = await fetch('/api/upload-robot-image', { method: 'POST', body: fd });
-            const upData = await upRes.json();
+            const text = await upRes.text();
+            let upData: { directViewUrl?: string } = {};
+            try {
+              if (text && text.trim().startsWith('{')) upData = JSON.parse(text);
+            } catch {
+              // non-JSON response (e.g. 413 Request Entity Too Large)
+            }
             if (upRes.ok && upData.directViewUrl) annotatedImageUrl = upData.directViewUrl;
           } catch {
             console.warn('Failed to upload annotated image');

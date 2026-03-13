@@ -376,7 +376,7 @@ export default function PitScouting() {
             if (upRes.ok && upData.directViewUrl) {
               photoUrls.push(upData.directViewUrl);
             } else {
-              const msg = upData?.error || upData?.details || upRes.statusText || 'Upload failed';
+              const msg = upData?.driveError || upData?.details || upData?.error || upRes.statusText || 'Upload failed';
               uploadFailures.push(msg);
             }
           } catch (err) {

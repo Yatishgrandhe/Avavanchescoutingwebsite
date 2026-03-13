@@ -4,7 +4,6 @@ import fs from 'fs';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
 import { google } from 'googleapis';
-import { CURRENT_EVENT_NAME } from '@/lib/constants';
 
 // Disable Next.js body parsing for file uploads
 export const config = {
@@ -127,21 +126,14 @@ async function uploadToGoogleDrive(filePath: string, fileName: string, mimeType:
 
         console.log(`[API/upload-robot-image] OAuth Uploading: ${fileName} to folder ${folderId}`);
 
-        // Include event name in file name for Google Drive (e.g. "Event Cabbbarus 2026 - team_900_...")
-        const driveFileName = `Event ${CURRENT_EVENT_NAME} - ${fileName}`;
-
-        // Use buffer instead of stream for serverless (Vercel) reliability; streams can be closed early
-        const fileBuffer = fs.readFileSync(filePath);
-
         const response = await drive.files.create({
             requestBody: {
-                name: driveFileName,
-                description: `Event: ${CURRENT_EVENT_NAME}`,
+                name: fileName,
                 parents: [folderId],
             },
             media: {
                 mimeType: mimeType,
-                body: fileBuffer,
+                body: fs.createReadStream(filePath),
             },
             fields: 'id',
             supportsAllDrives: true
@@ -341,7 +333,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Storage attempts: Google Drive primary, Supabase as backup
         let imageUrl: string | null = null;
         let storageMethodUsed = '';
-        const uploadErrors: string[] = [];
+        let driveErrorMsg: string | null = null;
+        let supabaseErrorMsg: string | null = null;
 
         const hasGoogleDrive = !!(
             process.env.GOOGLE_CLIENT_ID &&
@@ -358,9 +351,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 storageMethodUsed = 'Google Drive';
                 console.log(`[API/upload-robot-image] Google Drive upload successful: ${imageUrl}`);
             } catch (driveError) {
-                const msg = driveError instanceof Error ? driveError.message : 'Unknown Google Drive error';
-                console.warn('[API/upload-robot-image] Google Drive upload failed:', msg);
-                uploadErrors.push(`Google Drive: ${msg}`);
+                driveErrorMsg = driveError instanceof Error ? driveError.message : 'Unknown Google Drive error';
+                console.warn('[API/upload-robot-image] Google Drive upload failed:', driveErrorMsg);
             }
         }
 
@@ -372,18 +364,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 storageMethodUsed = 'Supabase Storage';
                 console.log(`[API/upload-robot-image] Supabase upload successful: ${imageUrl}`);
             } catch (supabaseError) {
-                const msg = supabaseError instanceof Error ? supabaseError.message : 'Unknown Supabase error';
-                console.warn('[API/upload-robot-image] Supabase upload failed:', msg);
-                uploadErrors.push(`Supabase: ${msg}`);
+                supabaseErrorMsg = supabaseError instanceof Error ? supabaseError.message : 'Unknown Supabase error';
+                console.warn('[API/upload-robot-image] Supabase upload failed:', supabaseErrorMsg);
             }
         }
 
-        // If both failed, throw error
         if (!imageUrl) {
-            const combinedErrors = uploadErrors.join(' | ');
+            const details = [driveErrorMsg, supabaseErrorMsg].filter(Boolean).join(' | ') || 'No storage method succeeded.';
             return res.status(500).json({
                 error: 'All upload methods failed',
-                details: combinedErrors
+                details,
+                driveError: driveErrorMsg ?? undefined,
+                supabaseError: supabaseErrorMsg ?? undefined
             });
         }
 

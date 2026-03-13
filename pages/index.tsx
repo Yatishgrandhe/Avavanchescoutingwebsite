@@ -397,7 +397,7 @@ export default function Home() {
                   label: "Teams",
                   value: dashboardStats.teamsCount,
                   icon: Users,
-                  description: "In database",
+                  description: "Event roster (North Carolina)",
                 },
                 {
                   label: "Match scouting forms",
@@ -512,7 +512,7 @@ export default function Home() {
                           <span className="text-sm font-medium">{loadingStats ? '...' : dashboardStats.totalMatches}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Teams</span>
+                          <span className="text-sm text-muted-foreground">Teams (event roster)</span>
                           <span className="text-sm font-medium">{loadingStats ? '...' : dashboardStats.teamsCount}</span>
                         </div>
                         <div className="flex items-center justify-between">

@@ -287,7 +287,7 @@ export default function PitScoutingMobile() {
             if (upRes.ok && upData.directViewUrl) {
               photoUrls.push(upData.directViewUrl);
             } else {
-              uploadFailures.push(upData?.error || upData?.details || upRes.statusText || 'Upload failed');
+              uploadFailures.push(upData?.driveError || upData?.details || upData?.error || upRes.statusText || 'Upload failed');
             }
           } catch (err) {
             uploadFailures.push(err instanceof Error ? err.message : 'Network error');

@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { roundToTenth } from '@/lib/utils';
 
 async function getRobotImageUrlsByTeam(supabaseClient: SupabaseClient, teamNumbers: number[]): Promise<Map<number, string>> {
   if (teamNumbers.length === 0) return new Map();
@@ -43,16 +44,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           team_number: stats.team_number,
           team_name: stats.team_name,
           total_matches: stats.match_count || 0,
-          avg_autonomous_points: parseFloat(stats.avg_autonomous_points) || 0,
-          avg_teleop_points: parseFloat(stats.avg_teleop_points) || 0,
-          avg_endgame_points: parseFloat(stats.avg_endgame_points) || 0,
-          avg_total_score: parseFloat(stats.avg_final_score) || 0,
-          avg_defense_rating: parseFloat(stats.avg_defense_rating) || 0,
+          avg_autonomous_points: roundToTenth(parseFloat(stats.avg_autonomous_points) || 0),
+          avg_teleop_points: roundToTenth(parseFloat(stats.avg_teleop_points) || 0),
+          avg_endgame_points: roundToTenth(parseFloat(stats.avg_endgame_points) || 0),
+          avg_total_score: roundToTenth(parseFloat(stats.avg_final_score) || 0),
+          avg_defense_rating: roundToTenth(parseFloat(stats.avg_defense_rating) || 0),
           win_rate: 0, // This would need to be calculated from match results
-          consistency_score: calculateConsistencyScore({
+          consistency_score: roundToTenth(calculateConsistencyScore({
             total_matches: stats.match_count || 0,
             avg_total_score: parseFloat(stats.avg_final_score) || 0,
-          }),
+          })),
         };
 
         res.status(200).json(enrichedStats);
@@ -79,16 +80,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           team_name: stat.team_name,
           robot_image_url: imageByTeam.get(stat.team_number) || null,
           total_matches: stat.match_count || 0,
-          avg_autonomous_points: parseFloat(stat.avg_autonomous_points) || 0,
-          avg_teleop_points: parseFloat(stat.avg_teleop_points) || 0,
-          avg_endgame_points: parseFloat(stat.avg_endgame_points) || 0,
-          avg_total_score: parseFloat(stat.avg_final_score) || 0,
-          avg_defense_rating: parseFloat(stat.avg_defense_rating) || 0,
+          avg_autonomous_points: roundToTenth(parseFloat(stat.avg_autonomous_points) || 0),
+          avg_teleop_points: roundToTenth(parseFloat(stat.avg_teleop_points) || 0),
+          avg_endgame_points: roundToTenth(parseFloat(stat.avg_endgame_points) || 0),
+          avg_total_score: roundToTenth(parseFloat(stat.avg_final_score) || 0),
+          avg_defense_rating: roundToTenth(parseFloat(stat.avg_defense_rating) || 0),
           win_rate: 0, // This would need to be calculated from match results
-          consistency_score: calculateConsistencyScore({
+          consistency_score: roundToTenth(calculateConsistencyScore({
             total_matches: stat.match_count || 0,
             avg_total_score: parseFloat(stat.avg_final_score) || 0,
-          }),
+          })),
         }));
 
         res.status(200).json({ stats: enrichedStats });
@@ -110,5 +111,5 @@ function calculateConsistencyScore(stats: any): number {
   const matchWeight = Math.min(stats.total_matches / 10, 1); // Max weight at 10+ matches
   const scoreWeight = Math.min(stats.avg_total_score / 100, 1); // Max weight at 100+ score
   
-  return Math.round((matchWeight * scoreWeight) * 100) / 100;
+  return roundToTenth(matchWeight * scoreWeight);
 }

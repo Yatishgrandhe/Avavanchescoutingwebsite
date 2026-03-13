@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui';
 import { Button } from '../../components/ui';
 import { Input } from '../../components/ui';
 import { Badge } from '../../components/ui/badge';
-import { cn, formatDurationSec } from '@/lib/utils';
+import { cn, formatDurationSec, roundToTenth } from '@/lib/utils';
 import {
   Database,
   Filter,
@@ -389,14 +389,14 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         team_number: stat.team_number,
         team_name: stat.team_name,
         total_matches: stat.total_matches,
-        avg_autonomous_points: Math.round(avgAutonomous * 100) / 100,
-        avg_teleop_points: Math.round(avgTeleop * 100) / 100,
-        avg_total_score: Math.round(avgTotal * 100) / 100,
-        avg_defense_rating: Math.round(avgDefense * 100) / 100,
-        avg_downtime: avgDowntime != null ? Math.round(avgDowntime * 100) / 100 : null,
+        avg_autonomous_points: roundToTenth(avgAutonomous),
+        avg_teleop_points: roundToTenth(avgTeleop),
+        avg_total_score: roundToTenth(avgTotal),
+        avg_defense_rating: roundToTenth(avgDefense),
+        avg_downtime: avgDowntime != null ? roundToTenth(avgDowntime) : null,
         best_score: bestScore,
         worst_score: worstScore,
-        consistency_score: Math.round(consistencyScore * 100) / 100,
+        consistency_score: roundToTenth(consistencyScore),
         ...rebuilt,
         // epa from rebuilt: actual score when available, else estimated from notes (fuel + climb)
       };

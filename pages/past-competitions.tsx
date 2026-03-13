@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useSupabase } from '@/pages/_app';
 import { useAdmin } from '@/hooks/use-admin';
+import { roundToTenth } from '@/lib/utils';
 import { 
   Calendar, 
   Trophy, 
@@ -460,13 +461,13 @@ export default function PastCompetitionsPage() {
                                     team_number,
                                     team_name,
                                     total_matches,
-                                    avg_score: Math.round(avgScore * 100) / 100,
-                                    avg_auto: Math.round(avgAuto * 100) / 100,
-                                    avg_teleop: Math.round(avgTeleop * 100) / 100,
-                                    avg_endgame: Math.round(avgEndgame * 100) / 100,
-                                    avg_defense: Math.round(avgDefense * 100) / 100,
+                                    avg_score: roundToTenth(avgScore),
+                                    avg_auto: roundToTenth(avgAuto),
+                                    avg_teleop: roundToTenth(avgTeleop),
+                                    avg_endgame: roundToTenth(avgEndgame),
+                                    avg_defense: roundToTenth(avgDefense),
                                     best_score: bestScore,
-                                    consistency: Math.round(consistencyScore * 100) / 100
+                                    consistency: roundToTenth(consistencyScore)
                                   };
                                 })
                                 .filter((t): t is NonNullable<typeof t> => t != null)

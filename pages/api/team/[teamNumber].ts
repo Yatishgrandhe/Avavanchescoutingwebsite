@@ -77,14 +77,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const stats = {
         totalMatches,
-        avgAutonomous: Math.round(avgAutonomous * 100) / 100,
-        avgTeleop: Math.round(avgTeleop * 100) / 100,
-        avgEndgame: Math.round(avgEndgame * 100) / 100,
-        avgTotal: Math.round(avgTotal * 100) / 100,
-        avgDefense: Math.round(avgDefense * 100) / 100,
+        avgAutonomous: Math.round(avgAutonomous * 10) / 10,
+        avgTeleop: Math.round(avgTeleop * 10) / 10,
+        avgEndgame: Math.round(avgEndgame * 10) / 10,
+        avgTotal: Math.round(avgTotal * 10) / 10,
+        avgDefense: Math.round(avgDefense * 10) / 10,
         bestScore,
         worstScore,
-        consistencyScore: Math.round(consistencyScore * 100) / 100
+        consistencyScore: Math.round(consistencyScore * 10) / 10
       };
 
       res.status(200).json({

@@ -280,13 +280,13 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
                 </div>
                 <div className="text-center">
                   <div className="text-xl font-bold text-warning">
-                    {Math.round(sortedData.reduce((sum, d) => sum + d.final_score, 0) / sortedData.length) || 0}
+                    {sortedData.length ? Math.round((sortedData.reduce((sum, d) => sum + d.final_score, 0) / sortedData.length) * 10) / 10 : 0}
                   </div>
                   <div className="text-xs text-muted-foreground">Avg Score</div>
                 </div>
                 <div className="text-center">
                   <div className="text-xl font-bold text-success">
-                    {Math.round(sortedData.reduce((sum, d) => sum + d.defense_rating, 0) / sortedData.length) || 0}
+                    {sortedData.length ? Math.round((sortedData.reduce((sum, d) => sum + d.defense_rating, 0) / sortedData.length) * 10) / 10 : 0}
                   </div>
                   <div className="text-xs text-muted-foreground">Avg Defense</div>
                 </div>

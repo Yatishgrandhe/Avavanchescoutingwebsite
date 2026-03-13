@@ -32,10 +32,13 @@ import {
   ChevronUp,
   ChevronDown,
   RefreshCw,
+  Edit,
+  Trash2,
 } from 'lucide-react';
 import CompetitionDataLayout from '@/components/layout/CompetitionDataLayout';
 import type { CompetitionViewTab } from '@/components/layout/CompetitionDataSidebar';
 import { useSupabase } from '@/pages/_app';
+import { useAdmin } from '@/hooks/use-admin';
 import { parseNotes, computeRebuiltMetrics } from '@/lib/analytics';
 import { formatDurationSec, roundToTenth } from '@/lib/utils';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
@@ -69,15 +72,19 @@ interface ViewDataRow {
   submitted_by_name?: string | null;
 }
 
+type PitRow = { id?: string; team_number: number; robot_name?: string | null; photos?: string[] | null; [key: string]: unknown };
+
 export default function ViewDataPage() {
   const router = useRouter();
-  const { user } = useSupabase();
+  const { user, supabase } = useSupabase();
+  const { isAdmin } = useAdmin();
   const { event_key, id } = router.query;
 
   const [competition, setCompetition] = useState<CompetitionInfo | null>(null);
   const [scoutingData, setScoutingData] = useState<ViewDataRow[]>([]);
   const [teams, setTeams] = useState<Array<{ team_number: number; team_name: string }>>([]);
-  const [pitScoutingData, setPitScoutingData] = useState<Array<{ team_number: number; robot_name?: string | null; photos?: string[] | null; [key: string]: unknown }>>([]);
+  const [pitScoutingData, setPitScoutingData] = useState<PitRow[]>([]);
+  const [deletingPitRow, setDeletingPitRow] = useState<PitRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<string>('match_id');
@@ -303,6 +310,23 @@ export default function ViewDataPage() {
     const t = teams.find((x) => x.team_number === teamNumber);
     return t?.team_name || `Team ${teamNumber}`;
   };
+
+  const confirmPitDelete = async () => {
+    if (!deletingPitRow?.id) return;
+    const rowId = deletingPitRow.id;
+    const table = id ? 'past_pit_scouting_data' : 'pit_scouting_data';
+    try {
+      const { error } = await supabase.from(table).delete().eq('id', rowId);
+      if (error) throw error;
+      setPitScoutingData((prev) => prev.filter((r) => r.id !== rowId));
+      setDeletingPitRow(null);
+    } catch (e: any) {
+      console.error('Pit delete error:', e);
+      alert(e?.message || 'Failed to delete pit record.');
+    }
+  };
+
+  const cancelPitDelete = () => setDeletingPitRow(null);
 
   const handleSort = (field: string) => {
     if (sortField === field) setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -991,9 +1015,11 @@ export default function ViewDataPage() {
             : event_key
               ? `/team/${row.team_number}?event_key=${encodeURIComponent(event_key as string)}`
               : `/team/${row.team_number}`;
+          const rowId = (row as PitRow).id;
+          const isLive = !!event_key;
           return (
-            <Link key={(row as { id?: string }).id ?? `pit-${row.team_number}-${idx}`} href={teamUrl}>
-              <Card className="overflow-hidden border border-white/10 bg-card/50 hover:border-primary/30 hover:bg-white/5 transition-all h-full">
+            <Card key={rowId ?? `pit-${row.team_number}-${idx}`} className="overflow-hidden border border-white/10 bg-card/50 hover:border-primary/30 hover:bg-white/5 transition-all h-full flex flex-col">
+              <Link href={teamUrl} className="block flex-1 min-w-0">
                 <div className="aspect-[4/3] bg-muted/20 flex items-center justify-center overflow-hidden relative">
                   {imgUrl ? (
                     <>
@@ -1030,8 +1056,29 @@ export default function ViewDataPage() {
                     </div>
                   )}
                 </CardContent>
-              </Card>
-            </Link>
+              </Link>
+              {isAdmin && rowId && (
+                <div className="flex items-center gap-2 p-2 border-t border-white/10 bg-background/30" onClick={(e) => e.stopPropagation()}>
+                  {isLive && (
+                    <Link href={`/pit-scouting?id=${encodeURIComponent(rowId)}&edit=true`} className="flex-1">
+                      <Button size="sm" variant="outline" className="w-full h-8 text-xs">
+                        <Edit className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                    </Link>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className={cn('h-8 text-xs text-destructive hover:text-destructive', isLive ? 'flex-1' : 'w-full')}
+                    onClick={() => setDeletingPitRow(row as PitRow)}
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Delete
+                  </Button>
+                </div>
+              )}
+            </Card>
           );
         })}
       </div>
@@ -1124,15 +1171,36 @@ export default function ViewDataPage() {
             : mainContent;
 
   return (
-    <CompetitionDataLayout
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      backHref="/competition-history"
-      queryString={queryPrefix}
-      showPitTab={pitScoutingData.length > 0}
-      showStatsTab={true}
-    >
-      {tabContent}
-    </CompetitionDataLayout>
+    <>
+      <CompetitionDataLayout
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        backHref="/competition-history"
+        queryString={queryPrefix}
+        showPitTab={pitScoutingData.length > 0}
+        showStatsTab={true}
+      >
+        {tabContent}
+      </CompetitionDataLayout>
+      {deletingPitRow && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-full bg-destructive/10">
+                <Trash2 className="h-5 w-5 text-destructive" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">Delete pit record</h3>
+            </div>
+            <p className="text-muted-foreground text-sm mb-6">
+              Delete pit scouting for Team {deletingPitRow.team_number} ({deletingPitRow.robot_name || '—'})? This cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={cancelPitDelete}>Cancel</Button>
+              <Button variant="destructive" onClick={confirmPitDelete}>Delete</Button>
+            </div>
+          </Card>
+        </div>
+      )}
+    </>
   );
 }

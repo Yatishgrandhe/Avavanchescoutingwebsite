@@ -150,7 +150,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
                 transition={{ duration: 0.2 }}
                 className="flex items-center gap-2"
               >
-                <h2 className="font-heading font-bold text-lg tracking-tight text-sidebar-foreground">
+                <h2 className="font-heading font-bold text-xl md:text-lg tracking-tight text-sidebar-foreground">
                   Avalanche
                 </h2>
                 <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 border-primary/30 text-primary">

@@ -620,20 +620,29 @@ export default function PitScoutingData() {
                   Teams with pit scouting data. Click a team to view details and robot images.
                 </p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {pitDisplayList.map((item, idx) => {
                   const teamName = item.team_name || `Team ${item.team_number}`;
                   const imgUrl = getPitImageUrl(item);
                   return (
-                    <Link key={item.id ?? `pit-${item.team_number}-${idx}`} href={`/team/${item.team_number}`}>
-                      <Card className="overflow-hidden border border-gray-700 bg-gray-800/50 hover:border-blue-500/30 hover:bg-gray-800/70 transition-all h-full">
-                        <div className="aspect-[4/3] bg-gray-900/50 flex items-center justify-center overflow-hidden relative">
+                    <motion.div
+                      key={item.id ?? `pit-${item.team_number}-${idx}`}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: idx * 0.05 }}
+                    >
+                      <Card 
+                        className="group overflow-hidden border border-white/10 bg-gray-900/40 hover:border-blue-500/30 hover:bg-white/5 transition-all duration-300 h-full flex flex-col shadow-lg cursor-pointer"
+                        onClick={() => handleViewDetails(item)}
+                      >
+                        {/* Image Section */}
+                        <div className="aspect-[16/10] bg-gray-950 flex items-center justify-center overflow-hidden relative">
                           {imgUrl ? (
                             <>
                               <img
                                 src={imgUrl}
                                 alt={item.robot_name || teamName}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                 referrerPolicy="no-referrer"
                                 loading="lazy"
                                 onError={(e) => {
@@ -645,26 +654,79 @@ export default function PitScoutingData() {
                                 }}
                               />
                               <div className="pit-img-fallback absolute inset-0 flex items-center justify-center bg-gray-900/50" style={{ display: 'none' }}>
-                                <Wrench className="w-12 h-12 text-gray-500" />
+                                <Wrench className="w-10 h-10 text-gray-700" />
                               </div>
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60" />
                             </>
                           ) : (
-                            <Wrench className="w-12 h-12 text-gray-500" />
-                          )}
-                        </div>
-                        <CardContent className="p-3 space-y-1.5">
-                          <p className="font-bold text-white truncate">#{item.team_number} · {teamName}</p>
-                          <p className="text-sm text-gray-400 truncate">{item.robot_name || '—'}</p>
-                          {(item.drive_type || (item.weight != null && Number(item.weight) > 0) || (item.overall_rating != null && Number(item.overall_rating) > 0)) && (
-                            <div className="flex flex-wrap gap-1.5 pt-1 text-[11px] text-gray-400">
-                              {item.drive_type ? <Badge variant="outline" className="font-normal text-[10px] px-1.5 py-0 border-gray-600 text-gray-300">{String(item.drive_type)}</Badge> : null}
-                              {item.weight != null && Number(item.weight) > 0 && <span>{Number(item.weight)} lbs</span>}
-                              {item.overall_rating != null && Number(item.overall_rating) > 0 && <span>★ {Number(item.overall_rating)}/10</span>}
+                            <div className="flex flex-col items-center gap-2">
+                              <Wrench className="w-10 h-10 text-gray-700" />
+                              <span className="text-[10px] text-gray-600 font-black uppercase tracking-widest">No Image</span>
                             </div>
                           )}
+                          
+                          {/* Top Badges */}
+                          <div className="absolute top-3 left-3 flex gap-2">
+                            <Badge className="bg-blue-600/20 text-blue-400 border-none px-2 py-0.5 text-[9px] font-black uppercase tracking-tighter">
+                              #{item.team_number}
+                            </Badge>
+                          </div>
+                          
+                          {/* Bottom Info Overlay */}
+                          <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
+                            <div className="min-w-0">
+                              <p className="text-white font-black text-sm truncate uppercase tracking-tight">
+                                {item.robot_name || 'Generic Bot'}
+                              </p>
+                            </div>
+                            {item.overall_rating != null && Number(item.overall_rating) > 0 && (
+                              <div className="bg-amber-500/10 backdrop-blur-md px-2 py-0.5 rounded border border-amber-500/20 text-amber-500 text-[10px] font-black">
+                                ★ {item.overall_rating}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Content Section */}
+                        <CardContent className="p-4 flex-1 flex flex-col justify-between">
+                          <div>
+                            <p className="text-gray-100 font-bold text-base truncate mb-1">
+                              {teamName}
+                            </p>
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {item.drive_type && (
+                                <Badge variant="outline" className="bg-white/5 border-white/10 text-gray-400 font-medium text-[10px] px-1.5 py-0">
+                                  {item.drive_type}
+                                </Badge>
+                              )}
+                              {item.weight != null && Number(item.weight) > 0 && (
+                                <Badge variant="outline" className="bg-white/5 border-white/10 text-gray-400 font-medium text-[10px] px-1.5 py-0">
+                                  {item.weight} lbs
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="pt-4 mt-auto flex items-center justify-between border-t border-white/5">
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                                <User className="w-3 h-3 text-blue-400" />
+                              </div>
+                              <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">
+                                {item.submitted_by_name?.split(' ')[0] || 'Scout'}
+                              </span>
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0 text-gray-500 hover:text-white group-hover:bg-blue-500/20"
+                            >
+                              <ArrowLeft className="w-3 h-3 rotate-180" />
+                            </Button>
+                          </div>
                         </CardContent>
                       </Card>
-                    </Link>
+                    </motion.div>
                   );
                 })}
               </div>

@@ -30,7 +30,7 @@ export default function GuestNavbar({ backLink, forceShow = false, leftElement }
   if (!showNavbar) return null;
 
   return (
-    <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
+    <header className="border-b border-white/10 bg-[rgba(15,23,42,0.8)] backdrop-blur-[20px] sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {leftElement}

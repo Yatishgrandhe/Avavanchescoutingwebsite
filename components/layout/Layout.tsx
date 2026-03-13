@@ -59,7 +59,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <motion.header
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between h-16 px-4 md:px-6 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40"
+            className="flex items-center justify-between h-16 px-4 md:px-6 border-b border-white/10 bg-[rgba(15,23,42,0.8)] backdrop-blur-[20px] sticky top-0 z-40"
           >
             <div className="flex items-center space-x-4 flex-1 min-w-0">
               <SidebarTrigger className="-ml-1" />
@@ -119,9 +119,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
           {/* Main Content Area */}
           <motion.main
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
             className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6"
           >
             <div className="max-w-7xl mx-auto space-y-6 pb-10">

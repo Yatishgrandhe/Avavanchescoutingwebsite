@@ -131,7 +131,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
     <Sidebar
       collapsible="icon"
       variant="sidebar"
-      className="border-r border-sidebar-border bg-background/60 backdrop-blur-xl"
+      className="border-r border-white/10 bg-background"
     >
       {/* Decorative gradient blob */}
       <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none z-0" />

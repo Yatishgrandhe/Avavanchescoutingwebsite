@@ -2,17 +2,26 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+import { motion, HTMLMotionProps } from "framer-motion"
+
 const Card = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
+  React.HTMLAttributes<HTMLDivElement> & { index?: number }
+>(({ className, index = 0, ...props }, ref) => (
+  <motion.div
+    ref={ref as any}
+    initial={{ opacity: 0, y: 16 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ 
+      duration: 0.4, 
+      delay: index * 0.08,
+      ease: [0.23, 1, 0.32, 1] 
+    }}
     className={cn(
-      "rounded-xl border bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm text-white shadow-lg border-slate-700/50",
+      "glass-card text-foreground",
       className
     )}
-    {...props}
+    {...(props as any)}
   />
 ))
 Card.displayName = "Card"
@@ -35,7 +44,7 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("font-semibold leading-none tracking-tight font-inter", className)}
+    className={cn("font-semibold leading-none tracking-tight font-heading", className)}
     {...props}
   />
 ))

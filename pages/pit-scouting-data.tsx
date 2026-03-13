@@ -628,13 +628,13 @@ export default function PitScoutingData() {
                   return (
                     <Card key={item.id ?? `pit-${item.team_number}-${idx}`} className="overflow-hidden border border-white/10 bg-card/50 hover:border-primary/30 hover:bg-white/5 transition-all h-full flex flex-col">
                       <Link href={teamUrl} className="block flex-1 min-w-0">
-                        <div className="aspect-[4/3] bg-muted/20 flex items-center justify-center overflow-hidden relative">
+                        <div className="robot-image-container bg-muted/20 flex items-center justify-center">
                           {imgUrl ? (
                             <>
                               <img
                                 src={imgUrl}
                                 alt={item.robot_name || teamName}
-                                className="w-full h-full object-cover"
+                                className="robot-image-hover w-full h-full object-cover"
                                 referrerPolicy="no-referrer"
                                 loading="lazy"
                                 onError={(e) => {

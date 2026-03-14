@@ -26,6 +26,8 @@ interface MatchDetailsFormProps {
   currentStep: number;
   totalSteps: number;
   isDarkMode?: boolean;
+  /** Match IDs this user has already submitted for (one per person per match); these are hidden from the dropdown */
+  submittedMatchIds?: string[];
   initialData?: {
     matchData?: Match;
     teamNumber?: number;
@@ -41,6 +43,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   currentStep,
   totalSteps,
   isDarkMode = true,
+  submittedMatchIds = [],
   initialData,
 }) => {
   const [matches, setMatches] = useState<Match[]>([]);
@@ -215,15 +218,27 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
                   <SelectValue placeholder="CHOOSE A MATCH..." />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-white/10 rounded-xl">
-                  {matches.map((match) => (
-                    <SelectItem
-                      key={match.match_id}
-                      value={match.match_id}
-                      className="font-mono text-sm py-3"
-                    >
-                      MATCH {match.match_number} — {match.event_key}
-                    </SelectItem>
-                  ))}
+                  {(() => {
+                    const availableMatches = matches.filter(
+                      (match) => !submittedMatchIds.includes(match.match_id) || match.match_id === selectedMatch?.match_id
+                    );
+                    if (availableMatches.length === 0) {
+                      return (
+                        <div className="py-4 px-3 text-center text-sm text-muted-foreground">
+                          You have already submitted a form for every match. Only one submission per person per match is allowed.
+                        </div>
+                      );
+                    }
+                    return availableMatches.map((match) => (
+                      <SelectItem
+                        key={match.match_id}
+                        value={match.match_id}
+                        className="font-mono text-sm py-3"
+                      >
+                        MATCH {match.match_number} — {match.event_key}
+                      </SelectItem>
+                    ));
+                  })()}
                 </SelectContent>
               </Select>
             )}

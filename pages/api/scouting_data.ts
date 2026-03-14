@@ -128,6 +128,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           ? finalAlliancePosition
           : null;
 
+        // One submission per person per match: reject if this user already submitted for this match
+        const { data: existing } = await supabase
+          .from('scouting_data')
+          .select('id')
+          .eq('scout_id', user.id)
+          .eq('match_id', finalMatchId)
+          .limit(1);
+        if (existing && existing.length > 0) {
+          return res.status(400).json({
+            error: 'You have already submitted a match scouting form for this match. Only one submission per person per match is allowed.',
+          });
+        }
+
         // Create scouting data
         const scoutingData = {
           scout_id: user.id,
@@ -192,7 +205,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     } else if (req.method === 'GET') {
       try {
-        const { match_id, team_number, alliance_color } = req.query;
+        const { match_id, team_number, alliance_color, my_submitted_match_ids: myMatchIdsParam } = req.query;
+
+        if (myMatchIdsParam === '1' || myMatchIdsParam === 'true') {
+          const { data: rows, error: fetchErr } = await supabase
+            .from('scouting_data')
+            .select('match_id')
+            .eq('scout_id', user.id);
+          if (fetchErr) {
+            return res.status(200).json({ match_ids: [] });
+          }
+          const matchIds = Array.from(new Set((rows || []).map((r: { match_id: string }) => r.match_id).filter(Boolean)));
+          return res.status(200).json({ match_ids: matchIds });
+        }
 
         let query = supabase.from('scouting_data').select('*').order('created_at', { ascending: false });
 

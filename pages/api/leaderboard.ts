@@ -36,10 +36,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Fetch data from all sources
+    // Fetch data from all sources (pit needs team_number to count unique teams = one form per team)
     const [matchRes, pitRes, namesRes] = await Promise.all([
       supabase.from('scouting_data').select('submitted_by_name'),
-      supabase.from('pit_scouting_data').select('submitted_by_name'),
+      supabase.from('pit_scouting_data').select('submitted_by_name, team_number'),
       supabase.from('scout_names').select('name').order('sort_order', { ascending: true }).order('name', { ascending: true }),
     ]);
 
@@ -56,17 +56,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'Failed to load scout names' });
     }
 
+    // Match scouting: each row = one form
     const matchCounts = new Map<string, number>();
     for (const row of (matchRes.data || [])) {
       const name = (row.submitted_by_name || '').trim() || 'Unknown';
       matchCounts.set(name, (matchCounts.get(name) ?? 0) + 1);
     }
 
-    const pitCounts = new Map<string, number>();
+    // Pit scouting: one form per unique team (multiple submissions for same team count as one)
+    const pitCountByScout = new Map<string, Set<number>>();
+    const pitUniqueTeams = new Set<number>();
     for (const row of (pitRes.data || [])) {
       const name = (row.submitted_by_name || '').trim() || 'Unknown';
-      pitCounts.set(name, (pitCounts.get(name) ?? 0) + 1);
+      const teamNumber = row.team_number as number;
+      if (teamNumber == null) continue;
+      pitUniqueTeams.add(teamNumber);
+      if (!pitCountByScout.has(name)) pitCountByScout.set(name, new Set());
+      pitCountByScout.get(name)!.add(teamNumber);
     }
+    const pitCounts = new Map<string, number>();
+    pitCountByScout.forEach((teams, name) => pitCounts.set(name, teams.size));
 
     const allScoutNames = (namesRes.data || []).map((r: { name: string }) => r.name);
     
@@ -97,7 +106,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     const response: LeaderboardResponse = {
-      totalForms: (matchRes.data?.length || 0) + (pitRes.data?.length || 0),
+      totalForms: (matchRes.data?.length || 0) + pitUniqueTeams.size,
       leaderboard,
     };
 

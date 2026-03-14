@@ -704,16 +704,18 @@ export default function PitScouting() {
                             <SelectContent className="glass border-white/10 max-h-[300px]">
                               {teams.length === 0 ? (
                                 <SelectItem value="no-teams" disabled>No teams found</SelectItem>
-                              ) : (
-                                teams.map((team) => (
+                              ) : (() => {
+                                const availableTeams = teams.filter((team) => !scoutedTeamNumbers.has(team.team_number) || team.team_number === formData.teamNumber);
+                                if (availableTeams.length === 0) {
+                                  return <SelectItem value="no-teams" disabled>All teams scouted</SelectItem>;
+                                }
+                                return availableTeams.map((team) => (
                                   <SelectItem key={team.team_number} value={team.team_number.toString()} className="focus:bg-white/10">
-                                    <span className={scoutedTeamNumbers.has(team.team_number) ? "text-green-400" : ""}>
-                                      {team.team_number}
-                                    </span>
+                                    <span>{team.team_number}</span>
                                     {team.team_name && <span className="text-muted-foreground ml-2">— {team.team_name}</span>}
                                   </SelectItem>
-                                ))
-                              )}
+                                ));
+                              })()}
                             </SelectContent>
                           </Select>
                         )}

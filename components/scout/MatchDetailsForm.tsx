@@ -26,8 +26,8 @@ interface MatchDetailsFormProps {
   currentStep: number;
   totalSteps: number;
   isDarkMode?: boolean;
-  /** Match IDs this user has already submitted for (one per person per match); these are hidden from the dropdown */
-  submittedMatchIds?: string[];
+  /** Fetches match IDs already submitted by the given scout name (one per person per match); dropdown hides these */
+  fetchSubmittedMatchIdsForName?: (name: string) => Promise<string[]>;
   initialData?: {
     matchData?: Match;
     teamNumber?: number;
@@ -43,7 +43,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   currentStep,
   totalSteps,
   isDarkMode = true,
-  submittedMatchIds = [],
+  fetchSubmittedMatchIdsForName,
   initialData,
 }) => {
   const [matches, setMatches] = useState<Match[]>([]);
@@ -53,6 +53,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   const [alliancePosition, setAlliancePosition] = useState<1 | 2 | 3 | null>(initialData?.alliancePosition || null);
   const [scoutName, setScoutName] = useState<string>(initialData?.scoutName || '');
   const [scoutNames, setScoutNames] = useState<string[]>([]);
+  const [submittedMatchIdsForName, setSubmittedMatchIdsForName] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -86,6 +87,20 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
       if (initialData.scoutName) setScoutName(initialData.scoutName);
     }
   }, [initialData]);
+
+  // Fetch match IDs already submitted by this scout name; refetch when name changes or when back on step 1 (e.g. after submit)
+  useEffect(() => {
+    const name = scoutName.trim();
+    if (!name || !fetchSubmittedMatchIdsForName) {
+      setSubmittedMatchIdsForName([]);
+      return;
+    }
+    let cancelled = false;
+    fetchSubmittedMatchIdsForName(name).then((ids) => {
+      if (!cancelled) setSubmittedMatchIdsForName(ids);
+    });
+    return () => { cancelled = true; };
+  }, [scoutName, currentStep, fetchSubmittedMatchIdsForName]);
 
   const fetchMatches = async () => {
     setLoading(true);
@@ -220,7 +235,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
                 <SelectContent className="bg-card border-white/10 rounded-xl">
                   {(() => {
                     const availableMatches = matches.filter(
-                      (match) => !submittedMatchIds.includes(match.match_id) || match.match_id === selectedMatch?.match_id
+                      (match) => !submittedMatchIdsForName.includes(match.match_id) || match.match_id === selectedMatch?.match_id
                     );
                     if (availableMatches.length === 0) {
                       return (

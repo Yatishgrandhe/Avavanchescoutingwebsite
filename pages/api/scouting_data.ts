@@ -205,18 +205,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     } else if (req.method === 'GET') {
       try {
-        const { match_id, team_number, alliance_color, my_submitted_match_ids: myMatchIdsParam } = req.query;
+        const { match_id, team_number, alliance_color, my_submitted_match_ids: myMatchIdsParam, scout_name: scoutNameParam } = req.query;
 
         if (myMatchIdsParam === '1' || myMatchIdsParam === 'true') {
-          const { data: rows, error: fetchErr } = await supabase
-            .from('scouting_data')
-            .select('match_id')
-            .eq('scout_id', user.id);
-          if (fetchErr) {
-            return res.status(200).json({ match_ids: [] });
+          const scoutName = typeof scoutNameParam === 'string' ? scoutNameParam.trim() : '';
+          if (scoutName) {
+            const { data: rows, error: fetchErr } = await supabase
+              .from('scouting_data')
+              .select('match_id')
+              .eq('submitted_by_name', scoutName);
+            if (fetchErr) {
+              return res.status(200).json({ match_ids: [] });
+            }
+            const matchIds = Array.from(new Set((rows || []).map((r: { match_id: string }) => r.match_id).filter(Boolean)));
+            return res.status(200).json({ match_ids: matchIds });
           }
-          const matchIds = Array.from(new Set((rows || []).map((r: { match_id: string }) => r.match_id).filter(Boolean)));
-          return res.status(200).json({ match_ids: matchIds });
+          return res.status(200).json({ match_ids: [] });
         }
 
         let query = supabase.from('scouting_data').select('*').order('created_at', { ascending: false });

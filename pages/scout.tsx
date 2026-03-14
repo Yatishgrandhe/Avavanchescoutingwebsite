@@ -63,7 +63,6 @@ export default function Scout() {
   const { user, loading, supabase } = useSupabase();
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submittedMatchIds, setSubmittedMatchIds] = useState<string[]>([]);
   const [formData, setFormData] = useState<FormData>({
     scoutName: '',
     matchData: {
@@ -97,26 +96,22 @@ export default function Scout() {
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
   const progress = ((currentStepIndex) / (steps.length - 1)) * 100;
 
-  // Fetch match IDs this user has already submitted for (one per person per match)
-  React.useEffect(() => {
-    if (!user) return;
-    const fetchMySubmittedMatches = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) return;
-        const res = await fetch('/api/scouting_data?my_submitted_match_ids=1', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setSubmittedMatchIds(data.match_ids || []);
-        }
-      } catch {
-        // ignore
-      }
-    };
-    fetchMySubmittedMatches();
-  }, [user, supabase.auth]);
+  const fetchSubmittedMatchIdsForName = React.useCallback(async (name: string) => {
+    if (!name.trim()) return [];
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return [];
+      const res = await fetch(
+        `/api/scouting_data?my_submitted_match_ids=1&scout_name=${encodeURIComponent(name.trim())}`,
+        { headers: { Authorization: `Bearer ${session.access_token}` } }
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data.match_ids) ? data.match_ids : [];
+    } catch {
+      return [];
+    }
+  }, [supabase.auth]);
 
   const handleStepNext = (nextStep: ScoutingStep) => {
     setCurrentStep(nextStep);
@@ -169,7 +164,6 @@ export default function Scout() {
       });
 
       if (response.ok) {
-        setSubmittedMatchIds((prev) => [...prev, formData.matchData.match_id].filter(Boolean));
         setCurrentStep('match-details');
         setFormData({
           scoutName: '',
@@ -335,7 +329,7 @@ export default function Scout() {
                       }}
                       currentStep={currentStepIndex}
                       totalSteps={steps.length}
-                      submittedMatchIds={submittedMatchIds}
+                      fetchSubmittedMatchIdsForName={fetchSubmittedMatchIdsForName}
                       initialData={{
                         matchData: formData.matchData.match_id ? formData.matchData : undefined,
                         teamNumber: formData.teamNumber || undefined,

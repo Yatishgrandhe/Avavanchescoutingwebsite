@@ -128,16 +128,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           ? finalAlliancePosition
           : null;
 
-        // One submission per person per match: reject if this user already submitted for this match
+        const submittedByName = (requestSubmittedByName?.trim()
+          || user.user_metadata?.full_name
+          || user.user_metadata?.username
+          || user.user_metadata?.name
+          || user.email
+          || 'Unknown').trim() || 'Unknown';
+
+        // One submission per person per match: block by scout name, not account
         const { data: existing } = await supabase
           .from('scouting_data')
           .select('id')
-          .eq('scout_id', user.id)
           .eq('match_id', finalMatchId)
+          .eq('submitted_by_name', submittedByName)
           .limit(1);
         if (existing && existing.length > 0) {
           return res.status(400).json({
-            error: 'You have already submitted a match scouting form for this match. Only one submission per person per match is allowed.',
+            error: 'Someone with your name has already submitted a match scouting form for this match. Only one submission per person (by name) per match is allowed.',
           });
         }
 
@@ -158,14 +165,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           comments: comments || miscellaneous?.comments || '',
           average_downtime: average_downtime ?? miscellaneous?.average_downtime ?? null,
           broke: broke !== undefined ? broke : (miscellaneous?.broke ?? null),
-          // Use submitted_by_name from request if provided, otherwise get from user metadata
-          // For Discord: full_name, username, or name may be set in user_metadata
-          submitted_by_name: requestSubmittedByName?.trim()
-            || user.user_metadata?.full_name
-            || user.user_metadata?.username
-            || user.user_metadata?.name
-            || user.email
-            || 'Unknown',
+          submitted_by_name: submittedByName,
           submitted_by_email: requestSubmittedByEmail?.trim() || user.email || '',
           submitted_at: new Date().toISOString(),
         };

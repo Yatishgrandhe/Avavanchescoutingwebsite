@@ -710,15 +710,21 @@ export default function PitScouting() {
                                     <span className={scoutedTeamNumbers.has(team.team_number) ? "text-green-400" : ""}>
                                       {team.team_number}
                                     </span>
-                                    <span className="text-muted-foreground ml-2">
-                                      - {team.team_name}
-                                    </span>
                                   </SelectItem>
                                 ))
                               )}
                             </SelectContent>
                           </Select>
                         )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Team Name</label>
+                        <div className="glass-input min-h-10 flex items-center px-3 text-muted-foreground text-sm border-white/10 rounded-lg">
+                          {formData.teamNumber
+                            ? (teams.find(t => t.team_number === formData.teamNumber)?.team_name || '—')
+                            : '—'}
+                        </div>
                       </div>
 
                       <div className="space-y-2">

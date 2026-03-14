@@ -625,7 +625,6 @@ export default function PitScoutingData() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {pitDisplayList.map((item, idx) => {
-                  const teamName = item.team_name || `Team ${item.team_number}`;
                   const imgUrl = getPitImageUrl(item);
                   const teamUrl = `/team/${item.team_number}?tab=pit`;
                   return (
@@ -636,7 +635,7 @@ export default function PitScoutingData() {
                             <>
                               <img
                                 src={imgUrl}
-                                alt={item.robot_name || teamName}
+                                alt={item.robot_name || item.team_name || `Team ${item.team_number}`}
                                 className="w-full h-full object-cover"
                                 referrerPolicy="no-referrer"
                                 loading="lazy"
@@ -657,7 +656,8 @@ export default function PitScoutingData() {
                           )}
                         </div>
                         <CardContent className="p-3 space-y-1.5">
-                          <p className="font-bold text-foreground truncate">#{item.team_number} · {teamName}</p>
+                          <p className="font-bold text-foreground truncate">#{item.team_number}</p>
+                          {item.team_name ? <p className="text-sm text-muted-foreground truncate">{item.team_name}</p> : null}
                           <p className="text-sm text-muted-foreground truncate">{item.robot_name || '—'}</p>
                           {(item.drive_type || (item.weight != null && Number(item.weight) > 0) || (item.overall_rating != null && Number(item.overall_rating) > 0)) && (
                             <div className="flex flex-wrap gap-1.5 pt-1 text-[11px] text-muted-foreground">

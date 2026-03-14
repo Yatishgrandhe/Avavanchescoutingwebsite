@@ -710,6 +710,7 @@ export default function PitScouting() {
                                     <span className={scoutedTeamNumbers.has(team.team_number) ? "text-green-400" : ""}>
                                       {team.team_number}
                                     </span>
+                                    {team.team_name && <span className="text-muted-foreground ml-2">— {team.team_name}</span>}
                                   </SelectItem>
                                 ))
                               )}

@@ -555,8 +555,10 @@ export default function PitScoutingData() {
                         {filteredData.map((item) => (
                           <TableRow key={item.id}>
                             <TableCell className="font-medium">
-                              <span>Team {item.team_number}</span>
-                              {item.team_name && <span className="block text-muted-foreground text-sm font-normal">{item.team_name}</span>}
+                              <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80">Team number</span>
+                              <span className="block font-semibold">Team {item.team_number}</span>
+                              <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-1 block">Team name</span>
+                              <span className="block text-muted-foreground text-sm font-normal">{item.team_name || '—'}</span>
                             </TableCell>
                             <TableCell>{item.robot_name}</TableCell>
                             <TableCell>{item.drive_type}</TableCell>
@@ -656,8 +658,14 @@ export default function PitScoutingData() {
                           )}
                         </div>
                         <CardContent className="p-3 space-y-1.5">
-                          <p className="font-bold text-foreground truncate">#{item.team_number}</p>
-                          {item.team_name ? <p className="text-sm text-muted-foreground truncate">{item.team_name}</p> : null}
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80">Team number</span>
+                            <p className="font-bold text-foreground truncate">Team {item.team_number}</p>
+                          </div>
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80">Team name</span>
+                            <p className="text-sm text-muted-foreground truncate">{item.team_name || '—'}</p>
+                          </div>
                           <p className="text-sm text-muted-foreground truncate">{item.robot_name || '—'}</p>
                           {(item.drive_type || (item.weight != null && Number(item.weight) > 0) || (item.overall_rating != null && Number(item.overall_rating) > 0)) && (
                             <div className="flex flex-wrap gap-1.5 pt-1 text-[11px] text-muted-foreground">
@@ -772,10 +780,12 @@ export default function PitScoutingData() {
                         <Wrench className="w-6 h-6 text-blue-400" />
                       </div>
                       <div>
+                        <span className="text-[10px] uppercase tracking-wider text-gray-500">Team number</span>
                         <h2 className="text-2xl font-bold text-white leading-tight">
                           Team {selectedDetailItem.team_number}
-                          {selectedDetailItem.team_name && <span className="text-gray-400 font-medium ml-2">— {selectedDetailItem.team_name}</span>}
                         </h2>
+                        <span className="text-[10px] uppercase tracking-wider text-gray-500 mt-1 block">Team name</span>
+                        <p className="text-gray-400 font-medium">{selectedDetailItem.team_name || '—'}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="outline" className="bg-blue-500/10 text-blue-300 border-blue-500/20 text-[10px] uppercase tracking-wider h-5">
                             Pit Scouting Details

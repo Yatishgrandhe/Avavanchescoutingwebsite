@@ -67,87 +67,18 @@ interface TBATeam {
   motto: string;
 }
 
-/** Custom match row (e.g. from CSV import): match_key, match_number, red1..3, blue1..3 */
-interface CustomMatchRow {
-  match_key: string;
-  match_number: number;
-  red1: number;
-  red2: number;
-  red3: number;
-  blue1: number;
-  blue2: number;
-  blue3: number;
-}
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { eventKey, apiKey, matches: customMatches } = req.body as {
-    eventKey?: string;
-    apiKey?: string;
-    matches?: CustomMatchRow[];
-  };
+  const { eventKey, apiKey } = req.body;
 
-  const eventKeyStr = eventKey || (customMatches?.length ? customMatches[0].match_key.replace(/_qm\d+$/, '') : '');
-
-  if (!eventKeyStr) {
-    return res.status(400).json({ error: 'Event key or matches array is required' });
+  if (!eventKey) {
+    return res.status(400).json({ error: 'Event key is required' });
   }
 
   try {
-    // If custom matches array is provided, upsert them and skip TBA
-    if (customMatches && Array.isArray(customMatches) && customMatches.length > 0) {
-      const teamNumbers = new Set<number>();
-      customMatches.forEach((m: CustomMatchRow) => {
-        teamNumbers.add(m.red1); teamNumbers.add(m.red2); teamNumbers.add(m.red3);
-        teamNumbers.add(m.blue1); teamNumbers.add(m.blue2); teamNumbers.add(m.blue3);
-      });
-
-      const teamInserts = Array.from(teamNumbers).map(tn => ({
-        team_number: tn,
-        team_name: `Team ${tn}`,
-        team_color: null as string | null,
-      }));
-
-      const { error: teamsError } = await supabase
-        .from('teams')
-        .upsert(teamInserts, { onConflict: 'team_number' });
-
-      if (teamsError) {
-        console.error('Error upserting teams:', teamsError);
-        return res.status(500).json({ error: 'Failed to upsert teams', details: teamsError.message });
-      }
-
-      const matchInserts = customMatches.map((m: CustomMatchRow) => ({
-        match_id: m.match_key,
-        event_key: eventKeyStr,
-        match_number: m.match_number,
-        red_teams: [m.red1, m.red2, m.red3],
-        blue_teams: [m.blue1, m.blue2, m.blue3],
-      }));
-
-      const { error: matchesError } = await supabase
-        .from('matches')
-        .upsert(matchInserts, { onConflict: 'match_id' });
-
-      if (matchesError) {
-        console.error('Error upserting matches:', matchesError);
-        return res.status(500).json({ error: 'Failed to upsert matches', details: matchesError.message });
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: `Successfully upserted ${customMatches.length} matches for ${eventKeyStr}`,
-        data: { eventKey: eventKeyStr, teamsCount: teamNumbers.size, matchesCount: customMatches.length },
-      });
-    }
-
-    if (!eventKey) {
-      return res.status(400).json({ error: 'Event key is required' });
-    }
-
     // Fetch event data from TBA
     const eventResponse = await fetch(
       `https://www.thebluealliance.com/api/v3/event/${eventKey}`,

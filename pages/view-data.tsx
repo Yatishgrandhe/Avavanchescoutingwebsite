@@ -76,8 +76,9 @@ type PitRow = { id?: string; team_number: number; robot_name?: string | null; ph
 
 export default function ViewDataPage() {
   const router = useRouter();
-  const { user, supabase } = useSupabase();
+  const { user, session, supabase } = useSupabase();
   const { isAdmin } = useAdmin();
+  const showScoutingStatsTab = !!(user && isAdmin);
   const { event_key, id } = router.query;
 
   const [competition, setCompetition] = useState<CompetitionInfo | null>(null);
@@ -102,6 +103,10 @@ export default function ViewDataPage() {
     if (!event_key && !id) return;
     loadData();
   }, [event_key, id]);
+
+  useEffect(() => {
+    if (!showScoutingStatsTab && activeTab === 'stats') setActiveTab('overview');
+  }, [showScoutingStatsTab, activeTab]);
 
   useEffect(() => {
     if (!event_key && !id && router.isReady) {
@@ -285,7 +290,8 @@ export default function ViewDataPage() {
       const params = event_key
         ? `event_key=${encodeURIComponent(event_key as string)}`
         : `id=${encodeURIComponent(id as string)}`;
-      const res = await fetch(`/api/past-competitions?${params}`);
+      const headers: HeadersInit = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+      const res = await fetch(`/api/past-competitions?${params}`, { headers });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || `Failed to load (${res.status})`);
@@ -470,7 +476,7 @@ export default function ViewDataPage() {
       </main>
     );
     return (
-      <CompetitionDataLayout activeTab="stats" backHref="/competition-history" queryString={queryString} showStatsTab={true}>
+      <CompetitionDataLayout activeTab="stats" backHref="/competition-history" queryString={queryString} showStatsTab={showScoutingStatsTab}>
         {personFormsContent}
       </CompetitionDataLayout>
     );
@@ -1165,7 +1171,7 @@ export default function ViewDataPage() {
         backHref="/competition-history"
         queryString={queryPrefix}
         showPitTab={pitScoutingData.length > 0}
-        showStatsTab={true}
+        showStatsTab={showScoutingStatsTab}
       >
         {tabContent}
       </CompetitionDataLayout>

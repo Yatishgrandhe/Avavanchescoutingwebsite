@@ -102,7 +102,7 @@ const BreakdownItem = ({ label, value, points, isCleansing }: any) => (
 const TeamDetail: React.FC = () => {
   const router = useRouter();
   const { teamNumber } = router.query;
-  const { supabase, user } = useSupabase();
+  const { supabase, user, session } = useSupabase();
 
   const [team, setTeam] = useState<Team | null>(null);
   const [scoutingData, setScoutingData] = useState<ScoutingData[]>([]);
@@ -180,7 +180,8 @@ const TeamDetail: React.FC = () => {
         const params = eventKey
           ? `event_key=${encodeURIComponent(eventKey)}`
           : `id=${encodeURIComponent(competitionId!)}`;
-        const res = await fetch(`/api/past-competitions?${params}`);
+        const headers: HeadersInit = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+        const res = await fetch(`/api/past-competitions?${params}`, { headers });
         if (!res.ok) {
           setTeam({ team_number: teamNum, team_name: `Team ${teamNum}`, team_color: '', created_at: '' });
           setScoutingData([]);

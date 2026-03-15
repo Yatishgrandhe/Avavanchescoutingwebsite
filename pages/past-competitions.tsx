@@ -195,9 +195,11 @@ export default function PastCompetitionsPage() {
                           <p className="text-xs text-muted-foreground">Matches</p>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
-                        {ev.scouting_count} scouting records · Click to view analysis
-                      </p>
+                      {user && isAdmin && (
+                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
+                          {ev.scouting_count} scouting records · Click to view analysis
+                        </p>
+                      )}
                     </Card>
                   ))}
                 </div>
@@ -340,7 +342,7 @@ export default function PastCompetitionsPage() {
                     </div>
 
                     {/* Competition Stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className={`grid gap-4 mb-6 ${user && isAdmin ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2'}`}>
                       <Card className="p-4 text-center">
                         <Users className="h-8 w-8 text-blue-500 mx-auto mb-2" />
                         <p className="text-2xl font-bold text-foreground">{selectedCompetition.teams.length}</p>
@@ -351,16 +353,20 @@ export default function PastCompetitionsPage() {
                         <p className="text-2xl font-bold text-foreground">{selectedCompetition.matches.length}</p>
                         <p className="text-sm text-muted-foreground">Matches</p>
                       </Card>
-                      <Card className="p-4 text-center">
-                        <BarChart3 className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-                        <p className="text-2xl font-bold text-foreground">{selectedCompetition.scoutingData.length}</p>
-                        <p className="text-sm text-muted-foreground">Scouting Records</p>
-                      </Card>
-                      <Card className="p-4 text-center">
-                        <Trophy className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-                        <p className="text-2xl font-bold text-foreground">{selectedCompetition.pickLists.length}</p>
-                        <p className="text-sm text-muted-foreground">Pick Lists</p>
-                      </Card>
+                      {user && isAdmin && (
+                        <>
+                          <Card className="p-4 text-center">
+                            <BarChart3 className="h-8 w-8 text-purple-500 mx-auto mb-2" />
+                            <p className="text-2xl font-bold text-foreground">{selectedCompetition.scoutingData.length}</p>
+                            <p className="text-sm text-muted-foreground">Scouting Records</p>
+                          </Card>
+                          <Card className="p-4 text-center">
+                            <Trophy className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+                            <p className="text-2xl font-bold text-foreground">{selectedCompetition.pickLists.length}</p>
+                            <p className="text-sm text-muted-foreground">Pick Lists</p>
+                          </Card>
+                        </>
+                      )}
                     </div>
 
                     {/* Match Schedule */}
@@ -407,7 +413,8 @@ export default function PastCompetitionsPage() {
                       </div>
                     </Card>
 
-                    {/* Team Statistics Analysis */}
+                    {/* Team Statistics Analysis — only for logged-in admins */}
+                    {user && isAdmin && (
                     <Card className="p-6 mb-6">
                       <h3 className="text-lg font-semibold text-foreground mb-4">Team Performance Analysis</h3>
                       <div className="overflow-x-auto">
@@ -518,6 +525,7 @@ export default function PastCompetitionsPage() {
                         </p>
                       </div>
                     </Card>
+                    )}
 
                     {/* Teams List */}
                     <Card className="p-6">

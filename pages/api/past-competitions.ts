@@ -33,13 +33,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'GET') {
     try {
-      // Determine if request is from a guest (unauthenticated) for permission rules
+      // Determine if request is from a guest and if user is admin (scouting stats only for logged-in admins)
       let isGuest = true;
+      let isAdmin = false;
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.split(' ')[1];
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        if (!error && user) isGuest = false;
+        const { data: { user: authUser }, error } = await supabase.auth.getUser(token);
+        if (!error && authUser) {
+          isGuest = false;
+          isAdmin = authUser.user_metadata?.role === 'admin';
+        }
       }
 
       const { id, competition_key, year, event_key } = req.query;
@@ -75,10 +79,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           team_name: teamMap.get(tn) || '',
         }));
 
-        const { data: scoutingData } = await supabaseAdmin
-          .from('scouting_data')
-          .select('*')
-          .in('match_id', matchIds);
+        let scoutingData: unknown[] = [];
+        if (isAdmin) {
+          const { data } = await supabaseAdmin
+            .from('scouting_data')
+            .select('*')
+            .in('match_id', matchIds);
+          scoutingData = data || [];
+        }
 
         const competition = {
           id: eventKeyStr,
@@ -107,7 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             red_teams: m.red_teams || [],
             blue_teams: m.blue_teams || [],
           })),
-          scoutingData: scoutingData || [],
+          scoutingData,
           pitScoutingData: pitScoutingData || [],
           pickLists: [],
         });
@@ -140,11 +148,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .eq('competition_id', id as string)
           .order('match_number');
 
-        // Get scouting data for this competition (match scouting — always allowed)
-        const { data: scoutingData, error: scoutingError } = await supabaseAdmin
-          .from('past_scouting_data')
-          .select('*')
-          .eq('competition_id', id as string);
+        // Get scouting data for this competition (match scouting — only for logged-in admins)
+        let scoutingDataList: any[] = [];
+        if (isAdmin) {
+          const { data: scoutingData, error: scoutingError } = await supabaseAdmin
+            .from('past_scouting_data')
+            .select('*')
+            .eq('competition_id', id as string);
+          scoutingDataList = scoutingData || [];
+        }
 
         // Pit scouting data (including photos/robot images) is returned for everyone so team pages can show robot images
         const { data: pitScoutingData = [] } = await supabaseAdmin
@@ -166,7 +178,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           competition,
           teams: teams || [],
           matches: matches || [],
-          scoutingData: scoutingData || [],
+          scoutingData: scoutingDataList,
           pitScoutingData,
           pickLists,
         });
@@ -220,17 +232,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               (m.blue_teams || []).forEach((t: number) => teamSet.add(t));
             });
 
-            const { count: scoutingCount } = await supabaseAdmin
-              .from('scouting_data')
-              .select('*', { count: 'exact', head: true })
-              .in('match_id', matchIds);
+            let scoutingCount = 0;
+            if (isAdmin) {
+              const { count } = await supabaseAdmin
+                .from('scouting_data')
+                .select('*', { count: 'exact', head: true })
+                .in('match_id', matchIds);
+              scoutingCount = count ?? 0;
+            }
 
             live.push({
               event_key: eventKey,
               competition_name: eventKey,
               total_teams: teamSet.size,
               total_matches: eventMatches.length,
-              scouting_count: scoutingCount ?? 0,
+              scouting_count: scoutingCount,
             });
           }
           live.sort((a, b) => (b.scouting_count || 0) - (a.scouting_count || 0));

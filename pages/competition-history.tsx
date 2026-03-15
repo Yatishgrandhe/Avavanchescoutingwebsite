@@ -26,6 +26,7 @@ import {
 import Logo from '@/components/ui/Logo';
 import CompetitionHistoryHeader from '@/components/layout/CompetitionHistoryHeader';
 import { useSupabase } from '@/pages/_app';
+import { useAdmin } from '@/hooks/use-admin';
 
 interface PastCompetition {
   id: string;
@@ -60,7 +61,8 @@ interface LiveEvent {
 
 export default function PublicCompetitionHistoryPage() {
   const router = useRouter();
-  const { user } = useSupabase();
+  const { user, session } = useSupabase();
+  const { isAdmin } = useAdmin();
   const [competitions, setCompetitions] = useState<PastCompetition[]>([]);
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
   const [selectedCompetition, setSelectedCompetition] = useState<CompetitionDetails | null>(null);
@@ -75,7 +77,8 @@ export default function PublicCompetitionHistoryPage() {
 
   const loadCompetitions = async () => {
     try {
-      const response = await fetch('/api/past-competitions');
+      const headers: HeadersInit = session ? { Authorization: `Bearer ${session.access_token}` } : {};
+      const response = await fetch('/api/past-competitions', { headers });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       setCompetitions(data.competitions || []);
@@ -89,7 +92,8 @@ export default function PublicCompetitionHistoryPage() {
 
   const loadCompetitionDetails = async (competitionId: string) => {
     try {
-      const response = await fetch(`/api/past-competitions?id=${competitionId}`);
+      const headers: HeadersInit = session ? { Authorization: `Bearer ${session.access_token}` } : {};
+      const response = await fetch(`/api/past-competitions?id=${competitionId}`, { headers });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       setSelectedCompetition(data);
@@ -101,7 +105,8 @@ export default function PublicCompetitionHistoryPage() {
 
   const loadLiveEventDetails = async (eventKey: string) => {
     try {
-      const response = await fetch(`/api/past-competitions?event_key=${encodeURIComponent(eventKey)}`);
+      const headers: HeadersInit = session ? { Authorization: `Bearer ${session.access_token}` } : {};
+      const response = await fetch(`/api/past-competitions?event_key=${encodeURIComponent(eventKey)}`, { headers });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       setSelectedCompetition(data);
@@ -200,9 +205,11 @@ export default function PublicCompetitionHistoryPage() {
                       <p className="text-xs text-muted-foreground">Matches</p>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
-                    {ev.scouting_count} scouting records · Click to view
-                  </p>
+                  {user && isAdmin && (
+                    <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
+                      {ev.scouting_count} scouting records · Click to view
+                    </p>
+                  )}
                 </Card>
               ))}
             </div>
@@ -335,7 +342,7 @@ export default function PublicCompetitionHistoryPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className={`grid gap-4 mb-6 ${user && isAdmin ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2'}`}>
                   <Card className="p-4 text-center">
                     <Users className="h-8 w-8 text-blue-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold text-foreground">{selectedCompetition.teams.length}</p>
@@ -346,17 +353,21 @@ export default function PublicCompetitionHistoryPage() {
                     <p className="text-2xl font-bold text-foreground">{selectedCompetition.matches.length}</p>
                     <p className="text-sm text-muted-foreground">Matches</p>
                   </Card>
-                  <Card className="p-4 text-center">
-                    <BarChart3 className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-foreground">{selectedCompetition.scoutingData.length}</p>
-                    <p className="text-sm text-muted-foreground">Scouting Records</p>
-                  </Card>
-                  {selectedCompetition.pickLists.length > 0 && (
-                    <Card className="p-4 text-center">
-                      <Trophy className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-foreground">{selectedCompetition.pickLists.length}</p>
-                      <p className="text-sm text-muted-foreground">Pick Lists</p>
-                    </Card>
+                  {user && isAdmin && (
+                    <>
+                      <Card className="p-4 text-center">
+                        <BarChart3 className="h-8 w-8 text-purple-500 mx-auto mb-2" />
+                        <p className="text-2xl font-bold text-foreground">{selectedCompetition.scoutingData.length}</p>
+                        <p className="text-sm text-muted-foreground">Scouting Records</p>
+                      </Card>
+                      {selectedCompetition.pickLists.length > 0 && (
+                        <Card className="p-4 text-center">
+                          <Trophy className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+                          <p className="text-2xl font-bold text-foreground">{selectedCompetition.pickLists.length}</p>
+                          <p className="text-sm text-muted-foreground">Pick Lists</p>
+                        </Card>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -403,6 +414,7 @@ export default function PublicCompetitionHistoryPage() {
                   </div>
                 </Card>
 
+                {user && isAdmin && (
                 <Card className="p-6 mb-6">
                   <h3 className="text-lg font-semibold text-foreground mb-4">Team Performance (Match Scouting)</h3>
                   <div className="overflow-x-auto">
@@ -502,6 +514,7 @@ export default function PublicCompetitionHistoryPage() {
                     </p>
                   </div>
                 </Card>
+                )}
 
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold text-foreground mb-4">All Teams ({selectedCompetition.teams.length})</h3>

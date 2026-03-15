@@ -252,12 +252,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           live.sort((a, b) => (b.scouting_count || 0) - (a.scouting_count || 0));
         }
 
-        // Logged-in users do not see live events; only guests see them
-        const liveForResponse = isGuest ? live : [];
-
+        // Return live events to everyone (guests and logged-in); scouting_count is only non-zero for admins
         res.status(200).json({
           competitions: competitions || [],
-          live: liveForResponse,
+          live,
         });
       }
     } catch (error) {

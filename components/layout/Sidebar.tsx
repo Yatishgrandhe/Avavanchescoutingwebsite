@@ -85,7 +85,8 @@ const AppSidebar: React.FC<SidebarProps> = ({
         },
       ],
     },
-    ...(isAdmin || canAccessPickList ? [{
+    // Strategy (Pick Lists, Scouting Stats) only for logged-in users; Scouting Stats only for admins
+    ...(user && (isAdmin || canAccessPickList) ? [{
       title: 'Strategy',
       items: [
         ...(canAccessPickList ? [{
@@ -93,7 +94,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
           href: '/pick-list',
           icon: List,
         }] : []),
-        ...(isAdmin ? [{
+        ...(user && isAdmin ? [{
           label: 'Scouting Stats',
           href: '/admin/scouting-stats',
           icon: Users,

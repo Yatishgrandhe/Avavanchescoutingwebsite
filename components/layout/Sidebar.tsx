@@ -85,7 +85,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
         },
       ],
     },
-    // Strategy (Pick Lists, Scouting Stats) only for logged-in users; Scouting Stats only for admins
+    // Strategy section (incl. Scouting Stats) hidden for non–logged-in and non-admin users
     ...(user && (isAdmin || canAccessPickList) ? [{
       title: 'Strategy',
       items: [

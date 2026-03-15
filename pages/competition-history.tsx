@@ -23,8 +23,7 @@ import {
   Archive,
   Radio,
 } from 'lucide-react';
-import Logo from '@/components/ui/Logo';
-import CompetitionHistoryHeader from '@/components/layout/CompetitionHistoryHeader';
+import GuestLayout from '@/components/layout/GuestLayout';
 import { useSupabase } from '@/pages/_app';
 import { useAdmin } from '@/hooks/use-admin';
 
@@ -128,22 +127,20 @@ export default function PublicCompetitionHistoryPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <CompetitionHistoryHeader />
+      <GuestLayout backLink={{ href: '/', label: 'Back to Home' }} forceShowNavbar>
         <div className="flex-1 flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2" />
             <p className="text-muted-foreground">Loading competition history...</p>
           </div>
         </div>
-      </div>
+      </GuestLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <CompetitionHistoryHeader />
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <GuestLayout backLink={{ href: '/', label: 'Back to Home' }} forceShowNavbar>
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Title */}
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
@@ -543,7 +540,7 @@ export default function PublicCompetitionHistoryPage() {
             </div>
           </div>
         )}
-      </main>
+      </div>
 
       <footer className="border-t border-border py-4 mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center text-sm text-muted-foreground">
@@ -556,6 +553,6 @@ export default function PublicCompetitionHistoryPage() {
           )}
         </div>
       </footer>
-    </div>
+    </GuestLayout>
   );
 }

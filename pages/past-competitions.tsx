@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/layout/Layout';
+import GuestLayout from '@/components/layout/GuestLayout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -117,21 +118,16 @@ export default function PastCompetitionsPage() {
 
   const uniqueYears = Array.from(new Set(competitions.map(comp => comp.competition_year))).sort((a, b) => b - a);
 
-  if (isLoading) {
-    return (
-      <Layout>
+  const pageContent = (
+    <>
+      {isLoading ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
             <p className="text-muted-foreground">Loading competition history...</p>
           </div>
         </div>
-      </Layout>
-    );
-  }
-
-  return (
-    <Layout>
+      ) : (
         <div className="min-h-screen bg-background">
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             {/* Header Section */}
@@ -167,7 +163,7 @@ export default function PastCompetitionsPage() {
                     <Card
                       key={ev.event_key}
                       className="p-4 sm:p-6 rounded-lg shadow-sm border border-emerald-500/30 bg-emerald-500/5 hover:shadow-md transition-shadow duration-200 cursor-pointer"
-                      onClick={() => router.push(`/analysis/data?event_key=${encodeURIComponent(ev.event_key)}`)}
+                      onClick={() => router.push(user ? `/analysis/data?event_key=${encodeURIComponent(ev.event_key)}` : `/view-data?event_key=${encodeURIComponent(ev.event_key)}`)}
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
@@ -559,6 +555,15 @@ export default function PastCompetitionsPage() {
             )}
         </div>
       </div>
-    </Layout>
+      )}
+    </>
+  );
+
+  return user ? (
+    <Layout>{pageContent}</Layout>
+  ) : (
+    <GuestLayout backLink={{ href: '/', label: 'Back to Home' }} forceShowNavbar>
+      {pageContent}
+    </GuestLayout>
   );
 }

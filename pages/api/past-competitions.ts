@@ -33,7 +33,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'GET') {
     try {
-      // Determine if request is from a guest and if user is admin (scouting stats only for logged-in admins)
+      // GET is public: no auth required. List and detail return competitions, teams, matches, pitScoutingData to all.
+      // Only scoutingData and scouting_count are restricted to logged-in admins.
       let isGuest = true;
       let isAdmin = false;
       const authHeader = req.headers.authorization;

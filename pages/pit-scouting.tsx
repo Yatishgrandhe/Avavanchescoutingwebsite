@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, ValidationResult } from '@/lib/form-validation';
 import { compressImageForUpload } from '@/lib/image-upload';
+import { useScoutingLocks } from '@/hooks/use-scouting-locks';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import PitPhotosUpload, { PhotoItem } from '@/components/ui/PitPhotosUpload';
@@ -72,6 +73,7 @@ interface PitScoutingData {
 
 export default function PitScouting() {
   const { user, loading, supabase } = useSupabase();
+  const { pitScoutingLocked, loading: locksLoading } = useScoutingLocks();
   const router = useRouter();
   const { id, edit } = router.query;
   const [currentStep, setCurrentStep] = useState(1);
@@ -565,6 +567,26 @@ export default function PitScouting() {
   if (!user) {
     router.push('/');
     return null;
+  }
+
+  if (!locksLoading && pitScoutingLocked) {
+    return (
+      <Layout>
+        <div className="max-w-5xl mx-auto space-y-6">
+          <Card className="border-amber-500/50 bg-amber-500/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                <AlertCircle className="h-5 w-5" />
+                Pit scouting is locked
+              </CardTitle>
+              <CardDescription>
+                An administrator has locked the pit scouting form for the current competition. Submissions are disabled until it is unlocked from the sidebar (Current competition → Unlock Pit Scouting).
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </Layout>
+    );
   }
 
   return (

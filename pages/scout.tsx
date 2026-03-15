@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../components/ui';
 import { Button } from '../components/ui';
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
@@ -24,6 +24,7 @@ import TeleopForm from '@/components/scout/TeleopForm';
 import MiscellaneousForm from '@/components/scout/MiscellaneousForm';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { useScoutingLocks } from '@/hooks/use-scouting-locks';
 import { ScoringNotes, getBallChoiceLabel } from '@/lib/types';
 import { calculateScore, cn, formatDurationSec } from '@/lib/utils';
 
@@ -61,6 +62,7 @@ interface FormData {
 
 export default function Scout() {
   const { user, loading, supabase } = useSupabase();
+  const { matchScoutingLocked, loading: locksLoading } = useScoutingLocks();
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
@@ -209,6 +211,28 @@ export default function Scout() {
   }
 
   if (!user) return null;
+
+  if (!locksLoading && matchScoutingLocked) {
+    return (
+      <ProtectedRoute>
+        <Layout>
+          <div className="max-w-5xl mx-auto space-y-6">
+            <Card className="border-amber-500/50 bg-amber-500/10">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                  <AlertCircle className="h-5 w-5" />
+                  Match scouting is locked
+                </CardTitle>
+                <CardDescription>
+                  An administrator has locked the match scouting form for the current competition. Submissions are disabled until it is unlocked from the sidebar (Current competition → Unlock Match Scouting).
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </Layout>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>

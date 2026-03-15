@@ -23,9 +23,9 @@ import {
   Archive,
   Radio,
 } from 'lucide-react';
-import GuestLayout from '@/components/layout/GuestLayout';
+import Logo from '@/components/ui/Logo';
+import CompetitionHistoryHeader from '@/components/layout/CompetitionHistoryHeader';
 import { useSupabase } from '@/pages/_app';
-import { useAdmin } from '@/hooks/use-admin';
 
 interface PastCompetition {
   id: string;
@@ -60,8 +60,7 @@ interface LiveEvent {
 
 export default function PublicCompetitionHistoryPage() {
   const router = useRouter();
-  const { user, session } = useSupabase();
-  const { isAdmin } = useAdmin();
+  const { user } = useSupabase();
   const [competitions, setCompetitions] = useState<PastCompetition[]>([]);
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
   const [selectedCompetition, setSelectedCompetition] = useState<CompetitionDetails | null>(null);
@@ -76,8 +75,7 @@ export default function PublicCompetitionHistoryPage() {
 
   const loadCompetitions = async () => {
     try {
-      const headers: HeadersInit = session ? { Authorization: `Bearer ${session.access_token}` } : {};
-      const response = await fetch('/api/past-competitions', { headers });
+      const response = await fetch('/api/past-competitions');
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       setCompetitions(data.competitions || []);
@@ -91,8 +89,7 @@ export default function PublicCompetitionHistoryPage() {
 
   const loadCompetitionDetails = async (competitionId: string) => {
     try {
-      const headers: HeadersInit = session ? { Authorization: `Bearer ${session.access_token}` } : {};
-      const response = await fetch(`/api/past-competitions?id=${competitionId}`, { headers });
+      const response = await fetch(`/api/past-competitions?id=${competitionId}`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       setSelectedCompetition(data);
@@ -104,8 +101,7 @@ export default function PublicCompetitionHistoryPage() {
 
   const loadLiveEventDetails = async (eventKey: string) => {
     try {
-      const headers: HeadersInit = session ? { Authorization: `Bearer ${session.access_token}` } : {};
-      const response = await fetch(`/api/past-competitions?event_key=${encodeURIComponent(eventKey)}`, { headers });
+      const response = await fetch(`/api/past-competitions?event_key=${encodeURIComponent(eventKey)}`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       setSelectedCompetition(data);
@@ -127,20 +123,22 @@ export default function PublicCompetitionHistoryPage() {
 
   if (isLoading) {
     return (
-      <GuestLayout backLink={{ href: '/', label: 'Back to Home' }} forceShowNavbar>
+      <div className="min-h-screen bg-background flex flex-col">
+        <CompetitionHistoryHeader />
         <div className="flex-1 flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2" />
             <p className="text-muted-foreground">Loading competition history...</p>
           </div>
         </div>
-      </GuestLayout>
+      </div>
     );
   }
 
   return (
-    <GuestLayout backLink={{ href: '/', label: 'Back to Home' }} forceShowNavbar>
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="min-h-screen bg-background flex flex-col">
+      <CompetitionHistoryHeader />
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Title */}
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
@@ -202,11 +200,9 @@ export default function PublicCompetitionHistoryPage() {
                       <p className="text-xs text-muted-foreground">Matches</p>
                     </div>
                   </div>
-                  {user && isAdmin && (
-                    <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
-                      {ev.scouting_count} scouting records · Click to view
-                    </p>
-                  )}
+                  <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
+                    {ev.scouting_count} scouting records · Click to view
+                  </p>
                 </Card>
               ))}
             </div>
@@ -339,7 +335,7 @@ export default function PublicCompetitionHistoryPage() {
                   </div>
                 </div>
 
-                <div className={`grid gap-4 mb-6 ${user && isAdmin ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2'}`}>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                   <Card className="p-4 text-center">
                     <Users className="h-8 w-8 text-blue-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold text-foreground">{selectedCompetition.teams.length}</p>
@@ -350,21 +346,17 @@ export default function PublicCompetitionHistoryPage() {
                     <p className="text-2xl font-bold text-foreground">{selectedCompetition.matches.length}</p>
                     <p className="text-sm text-muted-foreground">Matches</p>
                   </Card>
-                  {user && isAdmin && (
-                    <>
-                      <Card className="p-4 text-center">
-                        <BarChart3 className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-                        <p className="text-2xl font-bold text-foreground">{selectedCompetition.scoutingData.length}</p>
-                        <p className="text-sm text-muted-foreground">Scouting Records</p>
-                      </Card>
-                      {selectedCompetition.pickLists.length > 0 && (
-                        <Card className="p-4 text-center">
-                          <Trophy className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-                          <p className="text-2xl font-bold text-foreground">{selectedCompetition.pickLists.length}</p>
-                          <p className="text-sm text-muted-foreground">Pick Lists</p>
-                        </Card>
-                      )}
-                    </>
+                  <Card className="p-4 text-center">
+                    <BarChart3 className="h-8 w-8 text-purple-500 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-foreground">{selectedCompetition.scoutingData.length}</p>
+                    <p className="text-sm text-muted-foreground">Scouting Records</p>
+                  </Card>
+                  {selectedCompetition.pickLists.length > 0 && (
+                    <Card className="p-4 text-center">
+                      <Trophy className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-foreground">{selectedCompetition.pickLists.length}</p>
+                      <p className="text-sm text-muted-foreground">Pick Lists</p>
+                    </Card>
                   )}
                 </div>
 
@@ -411,7 +403,6 @@ export default function PublicCompetitionHistoryPage() {
                   </div>
                 </Card>
 
-                {user && isAdmin && (
                 <Card className="p-6 mb-6">
                   <h3 className="text-lg font-semibold text-foreground mb-4">Team Performance (Match Scouting)</h3>
                   <div className="overflow-x-auto">
@@ -511,7 +502,6 @@ export default function PublicCompetitionHistoryPage() {
                     </p>
                   </div>
                 </Card>
-                )}
 
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold text-foreground mb-4">All Teams ({selectedCompetition.teams.length})</h3>
@@ -540,7 +530,7 @@ export default function PublicCompetitionHistoryPage() {
             </div>
           </div>
         )}
-      </div>
+      </main>
 
       <footer className="border-t border-border py-4 mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center text-sm text-muted-foreground">
@@ -553,6 +543,6 @@ export default function PublicCompetitionHistoryPage() {
           )}
         </div>
       </footer>
-    </GuestLayout>
+    </div>
   );
 }

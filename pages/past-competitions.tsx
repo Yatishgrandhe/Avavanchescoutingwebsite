@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/layout/Layout';
-import GuestLayout from '@/components/layout/GuestLayout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -118,16 +117,21 @@ export default function PastCompetitionsPage() {
 
   const uniqueYears = Array.from(new Set(competitions.map(comp => comp.competition_year))).sort((a, b) => b - a);
 
-  const pageContent = (
-    <>
-      {isLoading ? (
+  if (isLoading) {
+    return (
+      <Layout>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
             <p className="text-muted-foreground">Loading competition history...</p>
           </div>
         </div>
-      ) : (
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
         <div className="min-h-screen bg-background">
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             {/* Header Section */}
@@ -163,7 +167,7 @@ export default function PastCompetitionsPage() {
                     <Card
                       key={ev.event_key}
                       className="p-4 sm:p-6 rounded-lg shadow-sm border border-emerald-500/30 bg-emerald-500/5 hover:shadow-md transition-shadow duration-200 cursor-pointer"
-                      onClick={() => router.push(user ? `/analysis/data?event_key=${encodeURIComponent(ev.event_key)}` : `/view-data?event_key=${encodeURIComponent(ev.event_key)}`)}
+                      onClick={() => router.push(`/analysis/data?event_key=${encodeURIComponent(ev.event_key)}`)}
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
@@ -191,11 +195,9 @@ export default function PastCompetitionsPage() {
                           <p className="text-xs text-muted-foreground">Matches</p>
                         </div>
                       </div>
-                      {user && isAdmin && (
-                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
-                          {ev.scouting_count} scouting records · Click to view analysis
-                        </p>
-                      )}
+                      <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
+                        {ev.scouting_count} scouting records · Click to view analysis
+                      </p>
                     </Card>
                   ))}
                 </div>
@@ -338,7 +340,7 @@ export default function PastCompetitionsPage() {
                     </div>
 
                     {/* Competition Stats */}
-                    <div className={`grid gap-4 mb-6 ${user && isAdmin ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2'}`}>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                       <Card className="p-4 text-center">
                         <Users className="h-8 w-8 text-blue-500 mx-auto mb-2" />
                         <p className="text-2xl font-bold text-foreground">{selectedCompetition.teams.length}</p>
@@ -349,20 +351,16 @@ export default function PastCompetitionsPage() {
                         <p className="text-2xl font-bold text-foreground">{selectedCompetition.matches.length}</p>
                         <p className="text-sm text-muted-foreground">Matches</p>
                       </Card>
-                      {user && isAdmin && (
-                        <>
-                          <Card className="p-4 text-center">
-                            <BarChart3 className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-                            <p className="text-2xl font-bold text-foreground">{selectedCompetition.scoutingData.length}</p>
-                            <p className="text-sm text-muted-foreground">Scouting Records</p>
-                          </Card>
-                          <Card className="p-4 text-center">
-                            <Trophy className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-                            <p className="text-2xl font-bold text-foreground">{selectedCompetition.pickLists.length}</p>
-                            <p className="text-sm text-muted-foreground">Pick Lists</p>
-                          </Card>
-                        </>
-                      )}
+                      <Card className="p-4 text-center">
+                        <BarChart3 className="h-8 w-8 text-purple-500 mx-auto mb-2" />
+                        <p className="text-2xl font-bold text-foreground">{selectedCompetition.scoutingData.length}</p>
+                        <p className="text-sm text-muted-foreground">Scouting Records</p>
+                      </Card>
+                      <Card className="p-4 text-center">
+                        <Trophy className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+                        <p className="text-2xl font-bold text-foreground">{selectedCompetition.pickLists.length}</p>
+                        <p className="text-sm text-muted-foreground">Pick Lists</p>
+                      </Card>
                     </div>
 
                     {/* Match Schedule */}
@@ -409,8 +407,7 @@ export default function PastCompetitionsPage() {
                       </div>
                     </Card>
 
-                    {/* Team Statistics Analysis — only for logged-in admins */}
-                    {user && isAdmin && (
+                    {/* Team Statistics Analysis */}
                     <Card className="p-6 mb-6">
                       <h3 className="text-lg font-semibold text-foreground mb-4">Team Performance Analysis</h3>
                       <div className="overflow-x-auto">
@@ -521,7 +518,6 @@ export default function PastCompetitionsPage() {
                         </p>
                       </div>
                     </Card>
-                    )}
 
                     {/* Teams List */}
                     <Card className="p-6">
@@ -555,15 +551,6 @@ export default function PastCompetitionsPage() {
             )}
         </div>
       </div>
-      )}
-    </>
-  );
-
-  return user ? (
-    <Layout>{pageContent}</Layout>
-  ) : (
-    <GuestLayout backLink={{ href: '/', label: 'Back to Home' }} forceShowNavbar>
-      {pageContent}
-    </GuestLayout>
+    </Layout>
   );
 }

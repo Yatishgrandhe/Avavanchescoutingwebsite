@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui';
+import { Card, CardDescription, CardHeader, CardTitle, Button } from '@/components/ui';
 import { BarChart3, TrendingUp, ArrowLeftRight, Database, Users, FileSpreadsheet, ClipboardList } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useSupabase } from '@/pages/_app';
+import { cn } from '@/lib/utils';
 
 const quickAccess = [
   {
@@ -31,16 +32,27 @@ const quickAccess = [
 
 export default function AnalysisIndex() {
   const router = useRouter();
-  const { supabase } = useSupabase();
+  const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF
+  const { user, supabase } = useSupabase();
   const [stats, setStats] = useState<{ teams: number; matchForms: number; pitForms: number } | null>(null);
 
   useEffect(() => {
     const loadStats = async () => {
       try {
+        let matchQuery = supabase.from('scouting_data').select('team_number');
+        let matchCountQuery = supabase.from('scouting_data').select('*', { count: 'exact', head: true });
+        let pitCountQuery = supabase.from('pit_scouting_data').select('*', { count: 'exact', head: true });
+
+        if (teamDataOnly && user?.organization_id) {
+          matchQuery = matchQuery.eq('organization_id', user.organization_id);
+          matchCountQuery = matchCountQuery.eq('organization_id', user.organization_id);
+          pitCountQuery = pitCountQuery.eq('organization_id', user.organization_id);
+        }
+
         const [teamsRes, matchRes, pitRes] = await Promise.all([
-          supabase.from('scouting_data').select('team_number'),
-          supabase.from('scouting_data').select('*', { count: 'exact', head: true }),
-          supabase.from('pit_scouting_data').select('*', { count: 'exact', head: true }),
+          matchQuery,
+          matchCountQuery,
+          pitCountQuery,
         ]);
         const teamNumbers = new Set((teamsRes.data || []).map((r: { team_number: number }) => r.team_number));
         setStats({
@@ -53,21 +65,44 @@ export default function AnalysisIndex() {
       }
     };
     loadStats();
-  }, [supabase]);
+  }, [supabase, teamDataOnly, user?.organization_id]);
 
   return (
     <ProtectedRoute>
       <Layout>
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Hero — Polar Edge style */}
-          <div>
-            <h1 className="text-3xl font-heading font-bold text-foreground tracking-tight">
-              Scouting Data
-            </h1>
-            <p className="text-muted-foreground mt-1.5 text-base">
-              Match and team data collected across all events.
-            </p>
-          </div>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-heading font-bold text-foreground tracking-tight">
+                  Scouting Data
+                </h1>
+                <p className="text-muted-foreground mt-1.5 text-base">
+                  Match and team data collected across all events.
+                </p>
+              </div>
+
+              {/* Team Data Only Toggle */}
+              <div className="flex items-center gap-3 p-2 rounded-lg border border-white/10 bg-white/[0.02]">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold uppercase text-muted-foreground">Team Data Only</span>
+                  <span className="text-[9px] text-muted-foreground/60 whitespace-nowrap">
+                    Show only {user?.organization_id ? 'your organization' : 'Avalanche'}
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  variant={teamDataOnly ? 'default' : 'outline'}
+                  onClick={() => setTeamDataOnly(!teamDataOnly)}
+                  className={cn(
+                    "h-7 px-2.5 rounded-full transition-all text-[10px] font-bold",
+                    teamDataOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  {teamDataOnly ? 'ON' : 'OFF'}
+                </Button>
+              </div>
+            </div>
 
           {/* Quick Access — their format, our colors */}
           <div>

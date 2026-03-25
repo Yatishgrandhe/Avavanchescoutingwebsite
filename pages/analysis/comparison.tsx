@@ -31,6 +31,7 @@ import { supabase } from '@/lib/supabase';
 import { formatScoreRange } from '@/lib/analytics';
 import { buildTeamComparisonFromRows, type TeamComparison } from '@/lib/comparison';
 import { TeamComparisonPanel } from '@/components/data/TeamComparisonPanel';
+import { cn } from '@/lib/utils';
 
 export default function TeamComparison() {
   const router = useRouter();
@@ -46,6 +47,7 @@ export default function TeamComparison() {
   const [competitionScoutingData, setCompetitionScoutingData] = useState<any[]>([]);
   const [competitionTeams, setCompetitionTeams] = useState<Array<{ team_number: number; team_name: string }>>([]);
   const [competitionName, setCompetitionName] = useState<string | null>(null);
+  const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF
 
   const eventKey = (router.query.event_key as string) || undefined;
   const competitionId = (router.query.id as string) || undefined;
@@ -64,7 +66,8 @@ export default function TeamComparison() {
             ? `id=${encodeURIComponent(competitionId)}`
             : '';
         if (!params) return;
-        const res = await fetch(`/api/past-competitions?${params}`);
+        const orgFilter = (teamDataOnly && user?.organization_id) ? `&organization_id=${user.organization_id}` : '';
+        const res = await fetch(`/api/past-competitions?${params}${orgFilter}`);
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error || 'Failed to load competition');
@@ -87,7 +90,7 @@ export default function TeamComparison() {
       }
     };
     loadCompetition();
-  }, [eventKey, competitionId]);
+  }, [eventKey, competitionId, teamDataOnly, user?.organization_id]);
 
   // Load all teams from Supabase when logged-in and not in competition mode
   useEffect(() => {
@@ -113,7 +116,7 @@ export default function TeamComparison() {
       }
     };
     loadTeams();
-  }, [user, isCompetitionMode]);
+  }, [user, isCompetitionMode, teamDataOnly]);
 
   const addTeam = async (teamNumber: number) => {
     if (selectedTeams.includes(teamNumber) || selectedTeams.length >= 4) {
@@ -149,11 +152,17 @@ export default function TeamComparison() {
         throw new Error(`Team ${teamNumber} not found`);
       }
 
-      const { data: scoutingData, error: scoutingError } = await supabase
+      let scoutingQuery = supabase
         .from('scouting_data')
         .select('*')
         .eq('team_number', teamNumber)
         .order('created_at', { ascending: false });
+
+      if (teamDataOnly && user?.organization_id) {
+        scoutingQuery = scoutingQuery.eq('organization_id', user.organization_id);
+      }
+
+      const { data: scoutingData, error: scoutingError } = await scoutingQuery;
 
       if (scoutingError) {
         throw new Error('Failed to fetch scouting data');
@@ -270,23 +279,48 @@ export default function TeamComparison() {
               </div>
             )}
             <div className="flex items-center justify-between">
-              <div>
-                <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Team Comparison
-                </h1>
-                <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {competitionName ? `Compare teams at ${competitionName}` : 'Compare multiple teams side-by-side for strategic analysis'}
-                </p>
-              </div>
-              {teamComparisons.length > 0 && (
-                <Button
-                  onClick={exportComparison}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Team Comparison
+                  </h1>
+                  <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {competitionName ? `Compare teams at ${competitionName}` : 'Compare multiple teams side-by-side for strategic analysis'}
+                  </p>
+                </div>
 
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export Comparison
-                </Button>
-              )}
+                <div className="flex items-center gap-4">
+                  {/* Team Data Only Toggle */}
+                  <div className="flex items-center gap-3 p-2 rounded-lg border border-white/10 bg-white/[0.02]">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold uppercase text-muted-foreground">Team Data Only</span>
+                      <span className="text-[9px] text-muted-foreground/60 whitespace-nowrap">
+                        Show only {user?.organization_id ? 'your organization' : 'Avalanche'}
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={teamDataOnly ? 'default' : 'outline'}
+                      onClick={() => setTeamDataOnly(!teamDataOnly)}
+                      className={cn(
+                        "h-7 px-2.5 rounded-full transition-all text-[10px] font-bold",
+                        teamDataOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                      )}
+                    >
+                      {teamDataOnly ? 'ON' : 'OFF'}
+                    </Button>
+                  </div>
+
+                  {teamComparisons.length > 0 && (
+                    <Button
+                      onClick={exportComparison}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Export Comparison
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 

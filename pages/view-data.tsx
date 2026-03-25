@@ -82,7 +82,7 @@ export default function ViewDataPage() {
 
   const [competition, setCompetition] = useState<CompetitionInfo | null>(null);
   const [scoutingData, setScoutingData] = useState<ViewDataRow[]>([]);
-  const [teams, setTeams] = useState<Array<{ team_number: number; team_name: string }>>([]);
+  const [teams, setTeams] = useState<Array<{ team_number: number; team_name: string; starter_epa?: number }>>([]);
   const [pitScoutingData, setPitScoutingData] = useState<PitRow[]>([]);
   const [deletingPitRow, setDeletingPitRow] = useState<PitRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -92,16 +92,17 @@ export default function ViewDataPage() {
   const [activeTab, setActiveTab] = useState<CompetitionViewTab>('overview');
   const [expandedRowKey, setExpandedRowKey] = useState<string | null>(null);
   const [dataViewMode, setDataViewMode] = useState<'teams' | 'individual'>('teams');
-  type TeamStatSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'endgame_epa' | 'epa' | 'consistency_score' | 'team_number' | 'team_name';
+  type TeamStatSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'endgame_epa' | 'epa' | 'consistency_score' | 'team_number' | 'team_name' | 'starter_epa';
   const [teamStatsSortField, setTeamStatsSortField] = useState<TeamStatSortKey>('avg_total_score');
   const [teamStatsSortDirection, setTeamStatsSortDirection] = useState<'asc' | 'desc'>('desc');
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
   const [minAvgScoreFilter, setMinAvgScoreFilter] = useState<number | ''>('');
+  const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF
 
   useEffect(() => {
     if (!event_key && !id) return;
     loadData();
-  }, [event_key, id]);
+  }, [event_key, id, teamDataOnly]);
 
   useEffect(() => {
     if (!event_key && !id && router.isReady) {
@@ -161,6 +162,7 @@ export default function ViewDataPage() {
     endgame_epa?: number;
     avg_climb_pts?: number;
     epa?: number;
+    starter_epa?: number;
     [key: string]: unknown;
   };
 
@@ -208,19 +210,18 @@ export default function ViewDataPage() {
       const consistency_score = (avgTotal > 0 && total_scores.length > 0)
         ? Math.max(0, Math.min(100, 100 - (stdDev / avgTotal) * 100))
         : 0;
-      const rebuilt = computeRebuiltMetrics(records as unknown as Parameters<typeof computeRebuiltMetrics>[0]);
+      
+      const teamObj = teams.find(t => t.team_number === teamNumber);
+      const rebuilt = computeRebuiltMetrics(
+        records as unknown as Parameters<typeof computeRebuiltMetrics>[0],
+        teamObj?.starter_epa
+      );
       result.push({
         team_number: teamNumber,
         team_name: teamName,
         total_matches,
-        avg_autonomous_points: roundToTenth(avgAutonomous),
-        avg_teleop_points: roundToTenth(avgTeleop),
-        avg_total_score: roundToTenth(avgTotal),
-        avg_defense_rating: roundToTenth(avgDefense),
-        best_score: bestScore,
-        worst_score: worstScore,
-        consistency_score: roundToTenth(consistency_score),
         ...rebuilt,
+        starter_epa: teamObj?.starter_epa,
       });
     });
     return result.filter((s) => s.total_matches > 0);
@@ -282,10 +283,12 @@ export default function ViewDataPage() {
     setLoading(true);
     setError(null);
     try {
-      const params = event_key
-        ? `event_key=${encodeURIComponent(event_key as string)}`
-        : `id=${encodeURIComponent(id as string)}`;
-      const res = await fetch(`/api/past-competitions?${params}`);
+      const params = new URLSearchParams();
+      if (event_key) params.set('event_key', event_key as string);
+      if (id) params.set('id', id as string);
+      if (teamDataOnly && user?.organization_id) params.set('organization_id', user.organization_id);
+
+      const res = await fetch(`/api/past-competitions?${params.toString()}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || `Failed to load (${res.status})`);
@@ -549,6 +552,26 @@ export default function ViewDataPage() {
                   </div>
                 </div>
               )}
+
+              {/* Team Data Only Toggle */}
+              <div className="flex items-center gap-3 p-2 rounded-lg border border-white/5 bg-white/[0.02] sm:ml-4">
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium">Team Data Only</span>
+                  <span className="text-[10px] text-muted-foreground whitespace-nowrap">Show only {user?.organization_id ? 'your organization' : 'Avalanche'}</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant={teamDataOnly ? 'default' : 'outline'}
+                  onClick={() => setTeamDataOnly(!teamDataOnly)}
+                  className={cn(
+                    "h-7 px-2.5 rounded-full transition-all text-[10px]",
+                    teamDataOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  {teamDataOnly ? 'ON' : 'OFF'}
+                </Button>
+              </div>
+
               <Button onClick={loadData} variant="outline" size="sm" className="sm:ml-auto">
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh
@@ -605,6 +628,10 @@ export default function ViewDataPage() {
                       <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                         <span className="text-[10px] text-muted-foreground uppercase block mb-1">Avg Score</span>
                         <span className="text-sm font-semibold text-primary">{team.avg_total_score}</span>
+                      </div>
+                      <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                        <span className="text-[10px] text-muted-foreground uppercase block mb-1">Starter EPA</span>
+                        <span className="text-sm font-semibold text-muted-foreground">{team.starter_epa ?? '—'}</span>
                       </div>
                       <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                         <span className="text-[10px] text-muted-foreground uppercase block mb-1">Auto EPA</span>
@@ -669,6 +696,9 @@ export default function ViewDataPage() {
                       <th className="text-left p-4 cursor-pointer hover:text-foreground" onClick={() => handleTeamStatsSort('avg_total_score')}>
                         Avg Score {teamStatsSortField === 'avg_total_score' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
                       </th>
+                      <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('starter_epa')}>
+                        Starter {teamStatsSortField === 'starter_epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
+                      </th>
                       <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('avg_autonomous_points')}>
                         Auto EPA {teamStatsSortField === 'avg_autonomous_points' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
                       </th>
@@ -680,9 +710,6 @@ export default function ViewDataPage() {
                       </th>
                       <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('epa')}>
                         EPA {teamStatsSortField === 'epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
-                      </th>
-                      <th className="text-left p-4 cursor-pointer hover:text-foreground text-[11px]" onClick={() => handleTeamStatsSort('consistency_score')}>
-                        Consistency {teamStatsSortField === 'consistency_score' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
                       </th>
                       <th className="text-left p-4 text-[11px]">Pit</th>
                       <th className="text-right p-4 text-[11px]">Actions</th>
@@ -714,6 +741,7 @@ export default function ViewDataPage() {
                           <td className="p-4">
                             <span className="font-bold text-primary text-lg">{team.avg_total_score}</span>
                           </td>
+                          <td className="p-4 text-muted-foreground font-medium text-xs">{team.starter_epa ?? '—'}</td>
                           <td className="p-4 text-blue-400 font-semibold text-sm">{team.avg_autonomous_points ?? '—'}</td>
                           <td className="p-4 text-orange-400 font-semibold text-sm">{team.avg_teleop_points ?? '—'}</td>
                           <td className="p-4 text-green-400 font-semibold text-sm">{team.endgame_epa ?? team.avg_climb_pts ?? '—'}</td>

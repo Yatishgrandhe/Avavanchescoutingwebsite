@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const supabaseJwt = authHeader.split(' ')[1];
-    const { providerToken } = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
+    const { providerToken, inviteToken } = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
 
     if (!providerToken || typeof providerToken !== 'string') {
       res.status(400).json({ error: 'Missing providerToken (Discord OAuth access token)' });
@@ -114,6 +114,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const inGuild = guilds.some((g) => String(g?.id || '').trim() === AVALANCHE_GUILD_ID);
 
     if (!inGuild) {
+      // Check for invite token bypass
+      if (inviteToken && typeof inviteToken === 'string') {
+        const { data: invite, error: inviteError } = await supabaseAdmin
+          .from('organization_invites')
+          .select('*')
+          .eq('token', inviteToken)
+          .eq('status', 'pending')
+          .maybeSingle();
+
+        if (invite && !inviteError) {
+          // Check expiration
+          const isExpired = invite.expires_at && new Date(invite.expires_at) < new Date();
+          if (!isExpired) {
+            console.log('🎫 Invite token bypass for:', user.email);
+            return res.status(200).json({ inGuild: true, invited: true });
+          }
+        }
+      }
+
       // Check if user is the site owner/admin to avoid accidental lockout
       const adminEmails = ['Yatish.grandhe@gmail.com', 'yatish.grandhe@gmail.com'];
       if (user.email && adminEmails.includes(user.email)) {

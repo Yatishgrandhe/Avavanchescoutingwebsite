@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { getAutoFuelCount, getTeleopFuelCount, getClimbPoints } from '@/lib/analytics';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -42,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!error && user) isGuest = false;
       }
 
-      const { id, competition_key, year, event_key } = req.query;
+      const { id, competition_key, year, event_key, organization_id: filterOrgId } = req.query;
 
       if (event_key && !id) {
         // Live event detail: public, no auth required (for guests to view live data)
@@ -70,15 +71,48 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .in('team_number', Array.from(teamNumbers));
 
         const teamMap = new Map((teamRows || []).map((t: { team_number: number; team_name: string }) => [t.team_number, t.team_name]));
-        const teams = Array.from(teamNumbers).sort((a, b) => a - b).map(tn => ({
-          team_number: tn,
-          team_name: teamMap.get(tn) || '',
-        }));
+        
+        // Get historical starter EPA for these teams from ALL past competitions
+        const { data: historicalData } = await supabaseAdmin
+          .from('past_scouting_data')
+          .select('team_number, notes')
+          .in('team_number', Array.from(teamNumbers));
 
-        const { data: scoutingData } = await supabaseAdmin
+        const teamScoresMap = new Map<number, number[]>();
+        if (historicalData) {
+          historicalData.forEach(row => {
+            const autoFuel = getAutoFuelCount(row.notes);
+            const teleopFuel = getTeleopFuelCount(row.notes);
+            const climbPts = getClimbPoints(row.notes);
+            const score = autoFuel + teleopFuel + climbPts;
+            
+            const scores = teamScoresMap.get(row.team_number) || [];
+            scores.push(score);
+            teamScoresMap.set(row.team_number, scores);
+          });
+        }
+
+        const teams = Array.from(teamNumbers).sort((a, b) => a - b).map(tn => {
+          const pastScores = teamScoresMap.get(tn) || [];
+          const starterEpa = pastScores.length > 0 ? pastScores.reduce((a, b) => a + b, 0) / pastScores.length : 0;
+          
+          return {
+            team_number: tn,
+            team_name: teamMap.get(tn) || '',
+            starter_epa: Math.round(starterEpa * 10) / 10,
+          };
+        });
+
+        let scoutingQuery = supabaseAdmin
           .from('scouting_data')
           .select('*')
           .in('match_id', matchIds);
+        
+        if (filterOrgId) {
+          scoutingQuery = scoutingQuery.eq('organization_id', filterOrgId as string);
+        }
+        
+        const { data: scoutingData } = await scoutingQuery;
 
         const competition = {
           id: eventKeyStr,
@@ -90,12 +124,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         };
 
         const teamNumArr = Array.from(teamNumbers);
+        let pitQuery = supabaseAdmin
+          .from('pit_scouting_data')
+          .select('*')
+          .in('team_number', teamNumArr)
+          .order('created_at', { ascending: false });
+
+        if (filterOrgId) {
+          pitQuery = pitQuery.eq('organization_id', filterOrgId as string);
+        }
+
         const { data: pitScoutingData = [] } = teamNumArr.length > 0
-          ? await supabaseAdmin
-              .from('pit_scouting_data')
-              .select('*')
-              .in('team_number', teamNumArr)
-              .order('created_at', { ascending: false })
+          ? await pitQuery
           : { data: [] };
 
         return res.status(200).json({
@@ -133,6 +173,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .eq('competition_id', id as string)
           .order('team_number');
 
+        // Get historical starter EPA for these teams from OTHER competitions
+        const teamNumArr = (teams || []).map(t => t.team_number);
+        const { data: historicalData } = await supabaseAdmin
+          .from('past_scouting_data')
+          .select('team_number, notes')
+          .in('team_number', teamNumArr)
+          .neq('competition_id', id as string);
+
+        const teamScoresMap = new Map<number, number[]>();
+        if (historicalData) {
+          historicalData.forEach(row => {
+            const autoFuel = getAutoFuelCount(row.notes);
+            const teleopFuel = getTeleopFuelCount(row.notes);
+            const climbPts = getClimbPoints(row.notes);
+            const score = autoFuel + teleopFuel + climbPts;
+            
+            const scores = teamScoresMap.get(row.team_number) || [];
+            scores.push(score);
+            teamScoresMap.set(row.team_number, scores);
+          });
+        }
+
+        const updatedTeams = (teams || []).map(t => {
+          const pastScores = teamScoresMap.get(t.team_number) || [];
+          const starterEpa = pastScores.length > 0 ? pastScores.reduce((a, b) => a + b, 0) / pastScores.length : 0;
+          return {
+            ...t,
+            starter_epa: Math.round(starterEpa * 10) / 10,
+          };
+        });
+
         // Get matches for this competition
         const { data: matches, error: matchesError } = await supabaseAdmin
           .from('past_matches')
@@ -141,16 +212,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .order('match_number');
 
         // Get scouting data for this competition (match scouting — always allowed)
-        const { data: scoutingData, error: scoutingError } = await supabaseAdmin
+        let scoutingQuery = supabaseAdmin
           .from('past_scouting_data')
           .select('*')
           .eq('competition_id', id as string);
 
+        if (filterOrgId) {
+          scoutingQuery = scoutingQuery.eq('organization_id', filterOrgId as string);
+        }
+
+        const { data: scoutingData, error: scoutingError } = await scoutingQuery;
+
         // Pit scouting data (including photos/robot images) is returned for everyone so team pages can show robot images
-        const { data: pitScoutingData = [] } = await supabaseAdmin
+        let pitQuery = supabaseAdmin
           .from('past_pit_scouting_data')
           .select('*')
           .eq('competition_id', id as string);
+
+        if (filterOrgId) {
+          pitQuery = pitQuery.eq('organization_id', filterOrgId as string);
+        }
+
+        const { data: pitScoutingData = [] } = await pitQuery;
 
         // Pick lists only for authenticated users
         let pickLists: any[] = [];
@@ -164,7 +247,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         res.status(200).json({
           competition,
-          teams: teams || [],
+          teams: updatedTeams,
           matches: matches || [],
           scoutingData: scoutingData || [],
           pitScoutingData,

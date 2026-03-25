@@ -47,6 +47,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { computeRebuiltMetrics } from '@/lib/analytics';
 import { formatDurationSec } from '@/lib/utils';
 import { SCOUTING_MATCH_ID_SEASON_PATTERN, CURRENT_EVENT_KEY, CURRENT_EVENT_NAME } from '@/lib/constants';
+import { cn } from '@/lib/utils';
 
 interface TeamData {
   team_number: number;
@@ -112,6 +113,7 @@ export default function BasicAnalysis() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string>('all');
   const [selectedEvent, setSelectedEvent] = useState<string>('all');
+  const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF
   type TeamSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'avg_climb_pts' | 'team_number' | 'team_name' | 'epa' | 'avg_defense_rating';
   const [teamSortField, setTeamSortField] = useState<TeamSortKey>('avg_total_score');
   const [teamSortDirection, setTeamSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -120,17 +122,23 @@ export default function BasicAnalysis() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [teamDataOnly, user?.organization_id]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
 
       // Load scouting data exactly like data.tsx does — 2026 season only
-      const { data: scoutingDataResult, error: scoutingError } = await supabase
+      let scoutingQuery = supabase
         .from('scouting_data')
         .select('*')
         .like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN);
+
+      if (teamDataOnly && user?.organization_id) {
+        scoutingQuery = scoutingQuery.eq('organization_id', user.organization_id);
+      }
+
+      const { data: scoutingDataResult, error: scoutingError } = await scoutingQuery;
 
       if (scoutingError) {
         console.error('Error fetching scouting data:', scoutingError);
@@ -336,20 +344,42 @@ export default function BasicAnalysis() {
       <Layout>
         <div className="space-y-6 data-page">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-white">Team Analysis</h1>
-              <p className="text-slate-300">
-                Comprehensive team performance analysis and insights
-              </p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-white">Team Analysis</h1>
+                <p className="text-slate-300">
+                  Comprehensive team performance analysis and insights
+                </p>
+              </div>
+
+              <div className="flex items-center gap-4">
+                {/* Team Data Only Toggle */}
+                <div className="flex items-center gap-3 p-2 rounded-lg border border-white/10 bg-white/[0.02]">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold uppercase text-muted-foreground">Team Data Only</span>
+                    <span className="text-[9px] text-muted-foreground/60 whitespace-nowrap">
+                      Show only {user?.organization_id ? 'your organization' : 'Avalanche'}
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={teamDataOnly ? 'default' : 'outline'}
+                    onClick={() => setTeamDataOnly(!teamDataOnly)}
+                    className={cn(
+                      "h-7 px-2.5 rounded-full transition-all text-[10px] font-bold",
+                      teamDataOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                    )}
+                  >
+                    {teamDataOnly ? 'ON' : 'OFF'}
+                  </Button>
+                </div>
+
+                <Button variant="outline" size="sm">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export Data
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Export Data
-              </Button>
-            </div>
-          </div>
 
           {/* Filters */}
           <Card>

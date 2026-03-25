@@ -40,6 +40,8 @@ export interface ParsedNotes {
     balls_60_75?: number;
     balls_75_90?: number;
     teleop_cleansing?: number;
+    shuttle?: boolean;
+    shuttle_consistency?: 'consistent' | 'inconsistent';
   };
 }
 
@@ -110,6 +112,8 @@ export function parseNotes(notes: any): ParsedNotes {
       balls_60_75: Number(teleop.balls_60_75) || 0,
       balls_75_90: Number(teleop.balls_75_90) || 0,
       teleop_cleansing: Number(teleop.teleop_cleansing) || 0,
+      shuttle: Boolean(teleop.shuttle),
+      shuttle_consistency: teleop.shuttle_consistency as 'consistent' | 'inconsistent' | undefined,
     },
   };
 }
@@ -264,6 +268,11 @@ export interface RebuiltTeamMetrics {
   avg_climb_pts: number;
   avg_auto_climb_pts: number;
   avg_teleop_climb_pts: number;
+  avg_autonomous_points: number;
+  avg_teleop_points: number;
+  avg_total_score: number;
+  avg_defense_rating: number;
+  avg_downtime: number | null;
   avg_uptime_pct: number | null;
   avg_downtime_sec: number | null;
   /** Average climb time in seconds (CLANK speed). Null when no climb times recorded. */
@@ -275,6 +284,9 @@ export interface RebuiltTeamMetrics {
   clank: number;
   rpmagic: number;
   goblin: number;
+  best_score: number;
+  worst_score: number;
+  consistency_score: number;
   /** Min/max autonomous points across matches. */
   auto_pts_min: number;
   auto_pts_max: number;
@@ -301,6 +313,10 @@ export interface RebuiltTeamMetrics {
   endgame_epa: number;
   /** Average time per shooting attempt (run) in seconds across all runs in all matches. */
   avg_shooting_time_sec: number | null;
+  /** Percentage of matches where the robot shuttle (0-100). */
+  shuttle_rate: number;
+  /** Percentage of 'consistent' shuttles vs total shuttle matches (0-100). Null if never shuttled. */
+  shuttle_consistency_score: number | null;
 }
 
 export interface ScoutingRowForAnalytics {
@@ -310,6 +326,7 @@ export interface ScoutingRowForAnalytics {
   final_score?: number;
   autonomous_points?: number;
   teleop_points?: number;
+  defense_rating?: number;
   autonomous_cleansing?: number;
   teleop_cleansing?: number;
   /** For sequential EPA: sort matches by time so EPA is a moving average (Statbotics-style). */
@@ -331,7 +348,7 @@ function epaKFactor(matchesPlayed: number): number {
  * EPA is a sequential moving average (Statbotics-style): after each match, EPA is updated
  * by K * (score - EPA). Uses actual score when available, else estimated from notes.
  */
-export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltTeamMetrics {
+export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[], starterEpa?: number): RebuiltTeamMetrics {
   const n = rows.length;
   if (n === 0) {
     return {
@@ -340,6 +357,11 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
       avg_climb_pts: 0,
       avg_auto_climb_pts: 0,
       avg_teleop_climb_pts: 0,
+      avg_autonomous_points: 0,
+      avg_teleop_points: 0,
+      avg_total_score: 0,
+      avg_defense_rating: 0,
+      avg_downtime: null,
       avg_uptime_pct: null,
       avg_downtime_sec: null,
       avg_climb_speed_sec: null,
@@ -350,6 +372,9 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
       clank: 0,
       rpmagic: 0,
       goblin: 0,
+      best_score: 0,
+      worst_score: 0,
+      consistency_score: 0,
       auto_pts_min: 0,
       auto_pts_max: 0,
       teleop_pts_min: 0,
@@ -363,9 +388,11 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
       auto_fuel_max: 0,
       teleop_fuel_min: 0,
       teleop_fuel_max: 0,
-      epa: 0,
+      epa: starterEpa || 0,
       endgame_epa: 0,
       avg_shooting_time_sec: null,
+      shuttle_rate: 0,
+      shuttle_consistency_score: null,
     };
   }
 
@@ -379,11 +406,21 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
   let climbAttempts = n;
   let climbSpeedSum = 0;
   let climbSpeedCount = 0;
-  let downtimeSum = 0;
-  let downtimeCount = 0;
+  let downtimeSum = 0; // For avg_downtime_sec
+  let downtimeCount = 0; // For avg_downtime_sec
+  let totalDowntimeS = 0; // For avg_downtime (minutes) and avg_uptime_pct
+  let totalUptimeS = 0; // For avg_uptime_pct
+  let totalUptimeMatches = 0; // Count matches with valid downtime for avg_downtime and avg_uptime_pct
   let brokeCount = 0;
   let totalAutoCleansing = 0;
   let totalTeleopCleansing = 0;
+  let totalAutoPts = 0;
+  let totalTeleopPts = 0;
+  let totalMatchScores = 0;
+  let totalDefenseRating = 0;
+  let shuttleMatches = 0;
+  let consistentShuttles = 0;
+  const matchScores: number[] = [];
   const scores: number[] = [];
   const autoPtsList: number[] = [];
   const teleopPtsList: number[] = [];
@@ -396,6 +433,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
 
   rows.forEach((row) => {
     const notes = row.notes;
+    const p = parseNotes(row.notes); // Moved to top of loop for shuttle logic
     const autoFuel = getAutoFuelCount(notes);
     const teleopFuel = getTeleopFuelCount(notes);
     totalAutoFuel += autoFuel;
@@ -414,12 +452,30 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     }
     if (hadClimbSuccess(notes)) climbSuccesses += 1;
     if (row.average_downtime != null && !Number.isNaN(row.average_downtime)) {
-      downtimeSum += Number(row.average_downtime);
+      const downtimeSec = Number(row.average_downtime);
+      downtimeSum += downtimeSec;
       downtimeCount += 1;
+
+      totalDowntimeS += downtimeSec;
+      totalUptimeS += Math.max(0, MATCH_LENGTH_SEC - downtimeSec);
+      totalUptimeMatches += 1;
     }
     if (row.broke === true) brokeCount += 1;
     totalAutoCleansing += row.autonomous_cleansing || 0;
     totalTeleopCleansing += row.teleop_cleansing || 0;
+    totalAutoPts += row.autonomous_points || 0;
+    totalTeleopPts += row.teleop_points || 0;
+    totalMatchScores += row.final_score || 0;
+    totalDefenseRating += row.defense_rating || 0;
+    matchScores.push(row.final_score || 0);
+    
+    if (p.teleop.shuttle) {
+      shuttleMatches += 1;
+      if (p.teleop.shuttle_consistency === 'consistent') {
+        consistentShuttles += 1;
+      }
+    }
+
     const score = row.final_score ?? 0;
     scores.push(score);
     // EPA: use actual match score when valid, else estimated from notes (aligns with Statbotics-style “expected points”)
@@ -428,7 +484,6 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     epaMatchScores.push({ score: matchScore, created_at: row.created_at });
     autoPtsList.push(row.autonomous_points ?? 0);
     teleopPtsList.push(row.teleop_points ?? 0);
-    const p = parseNotes(row.notes);
     const autoRuns = p.autonomous?.runs ?? [];
     const teleopRuns = p.teleop?.runs ?? [];
     [...autoRuns, ...teleopRuns].forEach((r: RunRecord) => {
@@ -456,10 +511,6 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
   const teleopFuelMin = teleopFuelList.length ? Math.min(...teleopFuelList) : 0;
   const teleopFuelMax = teleopFuelList.length ? Math.max(...teleopFuelList) : 0;
 
-  const avgUptime =
-    downtimeCount > 0
-      ? getUptimePct(downtimeSum / downtimeCount)
-      : null;
   const avgDowntimeSec =
     downtimeCount > 0 ? roundToTenth(downtimeSum / downtimeCount) : null;
 
@@ -472,9 +523,15 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     const tB = b.created_at ? new Date(b.created_at).getTime() : 0;
     return tA - tB;
   });
-  let epa = sortedForEpa.length > 0 ? sortedForEpa[0].score : avgScore;
-  for (let i = 1; i < sortedForEpa.length; i++) {
-    const K = epaKFactor(i + 1); // N = matches played (1-based)
+  
+  // Use starterEpa if provided, otherwise start with the first match score
+  let epa = starterEpa !== undefined ? starterEpa : (sortedForEpa.length > 0 ? sortedForEpa[0].score : avgScore);
+  
+  // Start iteration from 0 if starterEpa is used, otherwise from 1
+  const startIdx = starterEpa !== undefined ? 0 : 1;
+  
+  for (let i = startIdx; i < sortedForEpa.length; i++) {
+    const K = epaKFactor(i + 1 + (starterEpa !== undefined ? 1 : 0)); // N = matches played (1-based)
     epa = epa + K * (sortedForEpa[i].score - epa);
   }
 
@@ -505,13 +562,27 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
       ? roundToTenth(shootingDurations.reduce((a, b) => a + b, 0) / shootingDurations.length)
       : null;
 
+  const avgTotal = totalMatchScores / n;
+  const bestScore = matchScores.length > 0 ? Math.max(...matchScores) : 0;
+  const worstScore = matchScores.length > 0 ? Math.min(...matchScores) : 0;
+  const variance = matchScores.length > 1
+    ? matchScores.reduce((sum, s) => sum + Math.pow(s - avgTotal, 2), 0) / n
+    : 0;
+  const stdDev = Math.sqrt(variance);
+  const consistencyScore = avgTotal > 0 ? Math.max(0, Math.min(100, 100 - (stdDev / avgTotal) * 100)) : 0;
+
   return {
     avg_auto_fuel: roundToTenth(totalAutoFuel / n),
     avg_teleop_fuel: roundToTenth(totalTeleopFuel / n),
     avg_climb_pts: roundToTenth(totalClimbPts / n),
     avg_auto_climb_pts: roundToTenth(totalAutoClimbPts / n),
     avg_teleop_climb_pts: roundToTenth(totalTeleopClimbPts / n),
-    avg_uptime_pct: avgUptime,
+    avg_autonomous_points: roundToTenth(totalAutoPts / n),
+    avg_teleop_points: roundToTenth(totalTeleopPts / n),
+    avg_total_score: roundToTenth(avgTotal),
+    avg_defense_rating: roundToTenth(totalDefenseRating / n),
+    avg_downtime: totalUptimeMatches > 0 ? roundToTenth(totalDowntimeS / totalUptimeMatches / 60) : null,
+    avg_uptime_pct: totalUptimeMatches > 0 ? Math.round((totalUptimeS / (totalUptimeS + totalDowntimeS)) * 100) : null,
     avg_downtime_sec: avgDowntimeSec,
     avg_climb_speed_sec: avgClimbSpeedSec,
     broke_count: brokeCount,
@@ -521,6 +592,9 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     clank,
     rpmagic,
     goblin,
+    best_score: bestScore,
+    worst_score: worstScore,
+    consistency_score: Math.round(consistencyScore),
     auto_pts_min: autoPtsMin,
     auto_pts_max: autoPtsMax,
     teleop_pts_min: teleopPtsMin,
@@ -537,6 +611,8 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[]): RebuiltT
     epa: roundToTenth(epa),
     endgame_epa: roundToTenth(totalClimbPts / n), // climbing points = endgame EPA
     avg_shooting_time_sec: avgShootingTimeSec,
+    shuttle_rate: Math.round((shuttleMatches / n) * 100),
+    shuttle_consistency_score: shuttleMatches > 0 ? Math.round((consistentShuttles / shuttleMatches) * 100) : null,
   };
 }
 

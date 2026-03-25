@@ -51,7 +51,7 @@ interface FormData {
   allianceColor: 'red' | 'blue';
   alliancePosition: 1 | 2 | 3;
   autonomous: Partial<ScoringNotes>;
-  teleop: Partial<ScoringNotes>;
+  teleop: Partial<ScoringNotes> & { shuttle?: boolean; shuttle_consistency?: 'consistent' | 'inconsistent' };
   miscellaneous: {
     defense_rating: number;
     comments: string;
@@ -143,6 +143,7 @@ export default function Scout() {
         comments: formData.miscellaneous.comments,
         average_downtime: formData.miscellaneous.average_downtime ?? undefined,
         broke: formData.miscellaneous.broke ?? undefined,
+        organization_id: user?.organization_id, // include org ID from user profile
         scout_id: user?.id,
         submitted_by_email: user?.email,
         submitted_by_name: formData.scoutName?.trim() || user?.email || 'Unknown',
@@ -543,6 +544,14 @@ export default function Scout() {
                                   <div className="flex justify-between">
                                     <span className="text-muted-foreground">Climb time:</span>
                                     <span className="font-mono font-semibold">{formatDurationSec(Number(formData.teleop.climb_sec))}</span>
+                                  </div>
+                                )}
+                                {formData.teleop?.shuttle && (
+                                  <div className="flex justify-between border-t border-white/5 mt-1 pt-1">
+                                    <span className="text-muted-foreground">Shuttling:</span>
+                                    <Badge variant="outline" className="text-[9px] h-4 px-1 border-primary/30 text-primary uppercase">
+                                      {formData.teleop?.shuttle_consistency || 'Yes'}
+                                    </Badge>
                                   </div>
                                 )}
                               </div>

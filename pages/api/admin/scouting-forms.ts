@@ -24,9 +24,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    if (user.user_metadata?.role !== 'admin') {
+    // Get user profile to find organization_id
+    const { data: profile, error: profileError } = await supabase
+      .from('users')
+      .select('organization_id, role')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      console.error('Profile fetch error:', profileError);
+      return res.status(404).json({ error: 'User profile not found' });
+    }
+
+    if (profile.role !== 'admin' && profile.role !== 'superadmin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
+
+    const orgId = profile.organization_id;
 
     const name = typeof req.query.name === 'string' ? req.query.name.trim() : '';
     if (!name) {
@@ -36,11 +50,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const [matchRes, pitRes] = await Promise.all([
       supabase.from('scouting_data')
         .select('*')
-        .not('submitted_by_name', 'is', null)
+        .eq('organization_id', orgId)
+        .eq('submitted_by_name', name)
         .order('created_at', { ascending: false }),
       supabase.from('pit_scouting_data')
         .select('*')
-        .not('submitted_by_name', 'is', null)
+        .eq('organization_id', orgId)
+        .eq('submitted_by_name', name)
         .order('created_at', { ascending: false })
     ]);
 
@@ -53,12 +69,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'Failed to load pit scouting forms' });
     }
 
-    const matchForms = (matchRes.data || []).filter(
-      (r: { submitted_by_name?: string | null }) => (r.submitted_by_name || '').trim() === name
-    );
-    const pitForms = (pitRes.data || []).filter(
-      (r: { submitted_by_name?: string | null }) => (r.submitted_by_name || '').trim() === name
-    );
+    const matchForms = matchRes.data || [];
+    const pitForms = pitRes.data || [];
 
     const teamNumbers = Array.from(new Set([
       ...matchForms.map((r: { team_number: number }) => r.team_number),

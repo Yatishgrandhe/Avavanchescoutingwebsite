@@ -1,6 +1,7 @@
 import type { AppProps } from 'next/app';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
+import { User as AppUser } from '@/lib/types';
 import Head from 'next/head';
 import { Toaster } from '@/components/ui/toaster';
 import { handleRefreshResize } from '@/lib/refresh-handler';
@@ -11,12 +12,14 @@ import '@/styles/globals.css';
 // Create Supabase context
 const SupabaseContext = createContext<{
   supabase: any;
-  user: User | null;
+  user: AppUser | null;
+  authUser: User | null;
   session: Session | null;
   loading: boolean;
 }>({
   supabase: null,
   user: null,
+  authUser: null,
   session: null,
   loading: true,
 });
@@ -25,16 +28,49 @@ export const useSupabase = () => useContext(SupabaseContext);
 
 export default function App({ Component, pageProps }: AppProps) {
   const [supabase] = useState(() => getSupabaseClient());
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [authUser, setAuthUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchProfile = async (u: User | null) => {
+      if (!u) {
+        setUser(null);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', u.id)
+        .single();
+
+      if (profile) {
+        setUser({
+          ...profile,
+          name: profile.name || u.user_metadata?.full_name || u.user_metadata?.username || u.email?.split('@')[0] || 'Unknown',
+          email: u.email || profile.email,
+          user_metadata: u.user_metadata,
+        } as AppUser);
+      } else {
+        // Fallback for new users or if profile fetch fails
+        setUser({
+          id: u.id,
+          name: u.user_metadata?.full_name || u.user_metadata?.username || u.email?.split('@')[0] || 'Unknown',
+          email: u.email || '',
+          role: 'user',
+          user_metadata: u.user_metadata,
+        } as AppUser);
+      }
+    };
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      const u = session?.user ?? null;
+      setAuthUser(u);
+      fetchProfile(u).then(() => setLoading(false));
     });
 
     // Listen for auth changes
@@ -42,7 +78,9 @@ export default function App({ Component, pageProps }: AppProps) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event: any, session: Session | null) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setAuthUser(u);
+      fetchProfile(u);
       setLoading(false);
     });
 
@@ -76,7 +114,7 @@ export default function App({ Component, pageProps }: AppProps) {
         <link rel="apple-touch-icon" href="/image.png" />
         <meta name="theme-color" content="#1A2B7C" />
       </Head>
-      <SupabaseContext.Provider value={{ supabase, user, session, loading }}>
+      <SupabaseContext.Provider value={{ supabase, user, authUser, session, loading }}>
         <Component {...pageProps} />
         <Toaster />
       </SupabaseContext.Provider>

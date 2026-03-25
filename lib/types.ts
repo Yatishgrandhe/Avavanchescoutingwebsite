@@ -2,6 +2,7 @@ export interface Team {
   team_number: number;
   team_name: string;
   team_color: string;
+  organization_id: string;
   created_at: string;
 }
 
@@ -11,12 +12,14 @@ export interface Match {
   match_number: number;
   red_teams: number[];
   blue_teams: number[];
+  organization_id: string;
   created_at: string;
 }
 
 export interface ScoutingData {
   id: string;
   scout_id: string;
+  organization_id: string;
   match_id: string;
   team_number: number;
   alliance_color: 'red' | 'blue';
@@ -42,6 +45,9 @@ export interface ScoutingData {
 export interface ScoringNotes {
   // Multiple runs per phase: each run = stopwatch duration + one multiple-choice (ball count)
   runs?: RunRecord[];
+  // Shuttling quesitons (Teleop)
+  shuttle?: boolean;
+  shuttle_consistency?: 'consistent' | 'inconsistent';
   // Legacy / derived
   duration_sec?: number | null;
   balls_0_15?: number;
@@ -138,7 +144,12 @@ export interface User {
   email: string;
   image?: string;
   username?: string;
-  role?: 'user' | 'admin';
+  role?: 'user' | 'admin' | 'superadmin';
+  organization_id?: string;
+  can_edit_forms?: boolean;
+  can_view_pick_list?: boolean;
+  can_view_stats?: boolean;
+  user_metadata?: any;
 }
 
 export interface TeamStats {
@@ -202,6 +213,7 @@ export const SCORING_VALUES: Record<ScoringElement, number> = {
 export interface PickList {
   id: string;
   user_id: string;
+  organization_id: string;
   name: string;
   event_key: string;
   teams: PickListTeam[];

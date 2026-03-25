@@ -36,11 +36,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
+    // Get user profile to find organization_id
+    const { data: profile, error: profileError } = await supabase
+      .from('users')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      console.error('Profile fetch error:', profileError);
+      return res.status(404).json({ error: 'User profile not found' });
+    }
+
+    const orgId = profile.organization_id;
+
     // Fetch data from all sources (pit needs team_number to count unique teams = one form per team)
     const [matchRes, pitRes, namesRes] = await Promise.all([
-      supabase.from('scouting_data').select('submitted_by_name'),
-      supabase.from('pit_scouting_data').select('submitted_by_name, team_number'),
-      supabase.from('scout_names').select('name').order('sort_order', { ascending: true }).order('name', { ascending: true }),
+      supabase.from('scouting_data').select('submitted_by_name').eq('organization_id', orgId),
+      supabase.from('pit_scouting_data').select('submitted_by_name, team_number').eq('organization_id', orgId),
+      supabase.from('scout_names').select('name').eq('organization_id', orgId).order('sort_order', { ascending: true }).order('name', { ascending: true }),
     ]);
 
     if (matchRes.error) {

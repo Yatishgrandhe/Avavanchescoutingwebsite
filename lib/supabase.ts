@@ -32,12 +32,12 @@ export const supabase = getSupabaseClient();
 // Database helper functions
 export const db = {
   // Teams
-  async getTeams() {
-    const { data, error } = await supabase
-      .from('teams')
-      .select('*')
-      .order('team_number');
-    
+  async getTeams(organizationId?: string) {
+    let query = supabase.from('teams').select('*').order('team_number');
+    if (organizationId) {
+      query = query.eq('organization_id', organizationId);
+    }
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   },
@@ -54,11 +54,14 @@ export const db = {
   },
 
   // Matches
-  async getMatches(eventKey?: string) {
+  async getMatches(eventKey?: string, organizationId?: string) {
     let query = supabase.from('matches').select('*').order('match_number');
     
     if (eventKey) {
       query = query.eq('event_key', eventKey);
+    }
+    if (organizationId) {
+      query = query.eq('organization_id', organizationId);
     }
     
     const { data, error } = await query;
@@ -83,6 +86,7 @@ export const db = {
     team_number?: number;
     alliance_color?: 'red' | 'blue';
     alliance_position?: 1 | 2 | 3;
+    organization_id?: string;
   }) {
     let query = supabase.from('scouting_data').select('*').order('created_at', { ascending: false });
     
@@ -97,6 +101,9 @@ export const db = {
     }
     if (filters?.alliance_position) {
       query = query.eq('alliance_position', filters.alliance_position);
+    }
+    if (filters?.organization_id) {
+      query = query.eq('organization_id', filters.organization_id);
     }
     
     const { data, error } = await query;
@@ -163,37 +170,61 @@ export const db = {
     };
   },
 
-  // Admin functions - using Supabase Auth metadata
+  // Admin functions - using local profile
   async isUserAdmin(userId: string): Promise<boolean> {
-    const { data: { user }, error } = await supabase.auth.admin.getUserById(userId);
-    if (error || !user) return false;
-    return user.user_metadata?.role === 'admin';
+    const { data: profile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+    
+    return profile?.role === 'admin' || profile?.role === 'superadmin';
+  },
+
+  async isUserSuperAdmin(userId: string): Promise<boolean> {
+    const { data: profile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+    
+    return profile?.role === 'superadmin';
   },
 
   async getCurrentUser(): Promise<any> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
+
+    // Fetch profile from public.users for org and granular roles
+    const { data: profile } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single();
     
-    // Return user data from Supabase Auth
     return {
       id: user.id,
       email: user.email,
-      name: user.user_metadata?.full_name || user.email,
-      username: user.user_metadata?.username || user.email,
-      image: user.user_metadata?.avatar_url,
-      role: user.user_metadata?.role || 'user',
-      created_at: user.created_at,
-      updated_at: user.updated_at
+      name: profile?.name || user.user_metadata?.full_name || user.email,
+      username: profile?.username || user.user_metadata?.username || user.email,
+      image: profile?.image || user.user_metadata?.avatar_url,
+      role: profile?.role || user.user_metadata?.role || 'user',
+      organization_id: profile?.organization_id,
+      can_edit_forms: profile?.can_edit_forms,
+      can_view_pick_list: profile?.can_view_pick_list,
+      can_view_stats: profile?.can_view_stats,
+      created_at: profile?.created_at || user.created_at,
+      updated_at: profile?.updated_at || user.updated_at
     };
   },
 
   // Pick Lists (Admin only)
-  async getPickLists() {
-    const { data, error } = await supabase
-      .from('pick_lists')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
+  async getPickLists(organizationId?: string) {
+    let query = supabase.from('pick_lists').select('*').order('created_at', { ascending: false });
+    if (organizationId) {
+      query = query.eq('organization_id', organizationId);
+    }
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   },

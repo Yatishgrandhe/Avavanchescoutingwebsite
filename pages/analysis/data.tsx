@@ -33,14 +33,62 @@ import {
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { parseNotes, computeRebuiltMetrics, type RebuiltTeamMetrics } from '@/lib/analytics';
 import { ScoutingData, Team } from '@/lib/types';
 import { useAdmin } from '@/hooks/use-admin';
-import { computeRebuiltMetrics, parseNotes, getClimbPoints } from '@/lib/analytics';
+import { getClimbPoints } from '@/lib/analytics';
 import { getBallChoiceScoreFromRange, getBallChoiceLabel } from '@/lib/types';
 import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
+import { TeamComparisonPanel } from '@/components/data/TeamComparisonPanel';
+
+interface TeamStat extends RebuiltTeamMetrics {
+  team_number: number;
+  team_name: string;
+  total_matches: number;
+  starter_epa?: number;
+}
+
+const calculateTeamStats = (
+  scoutingData: ScoutingData[],
+  teams: Team[],
+  matchCountsFromDb?: Record<number, number>,
+  epaMap?: Record<number, number>
+): TeamStat[] => {
+  const teamNameMap = new Map<number, string>();
+  teams.forEach(team => {
+    teamNameMap.set(team.team_number, team.team_name);
+  });
+
+  const teamToRecords = new Map<number, ScoutingData[]>();
+  scoutingData.forEach(data => {
+    if (!teamToRecords.has(data.team_number)) {
+      teamToRecords.set(data.team_number, []);
+    }
+    teamToRecords.get(data.team_number)!.push(data);
+  });
+
+  return Array.from(teamToRecords.entries()).map(([teamNumber, records]) => {
+    const teamName = teamNameMap.get(teamNumber) || `Team ${teamNumber}`;
+    const uniqueMatchIds = new Set(records.map(r => r.match_id ?? '').filter(Boolean));
+    const total_matches =
+      matchCountsFromDb != null && typeof matchCountsFromDb[teamNumber] === 'number'
+        ? matchCountsFromDb[teamNumber]
+        : uniqueMatchIds.size;
+
+    const rebuilt = computeRebuiltMetrics(records, epaMap?.[teamNumber]);
+
+    return {
+      ...rebuilt,
+      team_number: teamNumber,
+      team_name: teamName,
+      total_matches,
+    };
+  }).filter(stat => stat.total_matches > 0);
+};
 
 interface DataAnalysisProps { }
+
 
 const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const { supabase, user } = useSupabase();
@@ -48,45 +96,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [scoutingData, setScoutingData] = useState<ScoutingData[]>([]);
   const [teams, setTeams] = useState<Team[]>([]); // For filter dropdown (excludes Avalanche)
   const [allTeams, setAllTeams] = useState<Team[]>([]); // All teams for name lookups
-  const [teamStats, setTeamStats] = useState<Array<{
-    team_number: number;
-    team_name: string;
-    total_matches: number;
-    avg_autonomous_points: number;
-    avg_teleop_points: number;
-    avg_total_score: number;
-    avg_defense_rating: number;
-    avg_autonomous_cleansing?: number;
-    avg_teleop_cleansing?: number;
-    avg_downtime?: number | null;
-    broke_count?: number;
-    broke_rate?: number;
-    avg_auto_fuel?: number;
-    avg_teleop_fuel?: number;
-    avg_climb_pts?: number;
-    endgame_epa?: number;
-    avg_auto_climb_pts?: number;
-    avg_teleop_climb_pts?: number;
-    avg_uptime_pct?: number | null;
-    avg_downtime_sec?: number | null;
-    clank?: number;
-    avg_climb_speed_sec?: number | null;
-    rpmagic?: number;
-    goblin?: number;
-    best_score: number;
-    worst_score: number;
-    consistency_score: number;
-    auto_pts_min?: number;
-    auto_pts_max?: number;
-    teleop_pts_min?: number;
-    teleop_pts_max?: number;
-    total_pts_min?: number;
-    total_pts_max?: number;
-    balls_per_cycle_min?: number;
-    balls_per_cycle_max?: number;
-    avg_balls_per_cycle?: number;
-    epa?: number;
-  }>>([]);
+  const [teamStats, setTeamStats] = useState<TeamStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
@@ -102,16 +112,18 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [clearingData, setClearingData] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   // Team stats sort: default greatest to least average score
-  type TeamStatSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'endgame_epa' | 'epa' | 'consistency_score' | 'team_number' | 'team_name';
+  type TeamStatSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'endgame_epa' | 'epa' | 'consistency_score' | 'team_number' | 'team_name' | 'shuttle_rate' | 'shuttle_consistency_score' | 'starter_epa';
   const [teamStatsSortField, setTeamStatsSortField] = useState<TeamStatSortKey>('avg_total_score');
   const [teamStatsSortDirection, setTeamStatsSortDirection] = useState<'asc' | 'desc'>('desc');
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
   const [minAvgScoreFilter, setMinAvgScoreFilter] = useState<number | ''>('');
   const [pitByTeam, setPitByTeam] = useState<Record<number, { robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }>>({});
+  const [starterEpaMap, setStarterEpaMap] = useState<Record<number, number>>({});
+  const [teamDataOnly, setTeamDataOnly] = useState(false); // Default to OFF (show all data)
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [teamDataOnly]); // Reload when toggle changes
 
   const loadData = async () => {
     try {
@@ -119,10 +131,17 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
       // Load scouting data - select all fields including submitted_by_name and submitted_by_email
       // Only 2026 season: match_id must contain 2026 (e.g. avalanche_2026_qm1)
-      const { data: scoutingDataResult, error: scoutingError } = await supabase
+      let query = supabase
         .from('scouting_data')
         .select('*')
         .like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN);
+
+      // Apply organization filter if toggle is ON
+      if (teamDataOnly && user?.organization_id) {
+        query = query.eq('organization_id', user.organization_id);
+      }
+
+      const { data: scoutingDataResult, error: scoutingError } = await query;
 
       if (scoutingError) {
         console.error('Error loading scouting data:', scoutingError);
@@ -158,6 +177,29 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       setTeams(teamsResult || []);
       setAllTeams(allTeamsResult || []);
 
+      // Calculate starter EPA from past historical data
+      const teamNums = (allTeamsResult || []).map((t: any) => t.team_number);
+      const { data: pastData } = await supabase
+        .from('past_scouting_data')
+        .select('team_number, notes')
+        .in('team_number', teamNums);
+
+      const epaMap: Record<number, number> = {};
+      if (pastData) {
+        const teamScores: Record<number, number[]> = {};
+        pastData.forEach((row: any) => {
+          const rebuilt = computeRebuiltMetrics([row as any]);
+          const score = rebuilt.epa; // This will be the estimated score for one match
+          if (!teamScores[row.team_number]) teamScores[row.team_number] = [];
+          teamScores[row.team_number].push(score);
+        });
+        Object.entries(teamScores).forEach(([num, scores]) => {
+          const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+          epaMap[Number(num)] = Math.round(avg * 10) / 10;
+        });
+      }
+      setStarterEpaMap(epaMap);
+
       // Matches scouted per team from database (distinct match_id count, not form count)
       let matchCountsFromDb: Record<number, number> = {};
       try {
@@ -171,7 +213,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       }
 
       // Calculate team statistics: use ALL form scores for averages; matches = distinct match_id from DB
-      const stats = calculateTeamStats(sortedScoutingData, allTeamsResult || [], matchCountsFromDb);
+      const stats = calculateTeamStats(sortedScoutingData, allTeamsResult || [], matchCountsFromDb, epaMap);
       setTeamStats(stats);
 
       // Load pit scouting data so we can show robot name / drive type per team
@@ -278,130 +320,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     }
   };
 
-  const calculateTeamStats = (
-    scoutingData: ScoutingData[],
-    teams: Team[],
-    matchCountsFromDb?: Record<number, number>
-  ) => {
-    const teamNameMap = new Map<number, string>();
-    teams.forEach(team => {
-      teamNameMap.set(team.team_number, team.team_name);
-    });
-
-    // Group all scouting data by team. Use ALL form scores for averages.
-    const teamToRecords = new Map<number, ScoutingData[]>();
-    scoutingData.forEach(data => {
-      if (!teamToRecords.has(data.team_number)) {
-        teamToRecords.set(data.team_number, []);
-      }
-      teamToRecords.get(data.team_number)!.push(data);
-    });
-
-    const teamStatsMap = new Map<number, {
-      team_number: number;
-      team_name: string;
-      total_matches: number;
-      autonomous_points: number[];
-      teleop_points: number[];
-      total_scores: number[];
-      defense_ratings: number[];
-      autonomous_cleansing: number[];
-      teleop_cleansing: number[];
-      downtime_values: (number | null)[];
-      broke_count: number;
-      teleop_fuel_shifts: number[][];
-      recordsUsed: ScoutingData[];
-    }>();
-
-    teamToRecords.forEach((records, teamNumber) => {
-      const teamName = teamNameMap.get(teamNumber) || `Team ${teamNumber}`;
-      // Matches scouted = from DB API (distinct match_id) when available; else derive from records
-      const uniqueMatchIds = new Set(records.map(r => r.match_id ?? '').filter(Boolean));
-      const total_matches =
-        matchCountsFromDb != null && typeof matchCountsFromDb[teamNumber] === 'number'
-          ? matchCountsFromDb[teamNumber]
-          : uniqueMatchIds.size;
-      // Broke count = number of distinct matches where robot broke (not number of forms)
-      const broke_count = new Set(records.filter(r => r.broke === true).map(r => r.match_id ?? '')).size;
-
-      const teamStat = {
-        team_number: teamNumber,
-        team_name: teamName,
-        total_matches,
-        autonomous_points: [] as number[],
-        teleop_points: [] as number[],
-        total_scores: [] as number[],
-        defense_ratings: [] as number[],
-        autonomous_cleansing: [] as number[],
-        teleop_cleansing: [] as number[],
-        downtime_values: [] as (number | null)[],
-        broke_count,
-        teleop_fuel_shifts: [] as number[][],
-        recordsUsed: records
-      };
-      records.forEach(data => {
-        teamStat.autonomous_points.push(data.autonomous_points || 0);
-        teamStat.teleop_points.push(data.teleop_points || 0);
-        teamStat.total_scores.push(data.final_score || 0);
-        teamStat.defense_ratings.push(data.defense_rating || 0);
-        teamStat.autonomous_cleansing.push(data.autonomous_cleansing ?? 0);
-        teamStat.teleop_cleansing.push(data.teleop_cleansing ?? 0);
-        if (data.average_downtime != null && !Number.isNaN(Number(data.average_downtime))) {
-          teamStat.downtime_values.push(Number(data.average_downtime));
-        }
-        const formNotes = parseFormNotes(data.notes);
-        const shifts = formNotes.teleop?.teleop_fuel_shifts || [];
-        if (shifts.length > 0) {
-          teamStat.teleop_fuel_shifts.push(shifts);
-        }
-      });
-      teamStatsMap.set(teamNumber, teamStat);
-    });
-
-    // Calculate averages and statistics (use all form scores; denominator = number of forms)
-    const scoreCount = (stat: { total_scores: number[] }) => stat.total_scores.length || 1;
-    return Array.from(teamStatsMap.values()).map(stat => {
-      const n = scoreCount(stat);
-      const avgAutonomous = stat.autonomous_points.reduce((sum, val) => sum + val, 0) / n || 0;
-      const avgTeleop = stat.teleop_points.reduce((sum, val) => sum + val, 0) / n || 0;
-      const avgTotal = stat.total_scores.reduce((sum, val) => sum + val, 0) / n || 0;
-      const avgDefense = stat.defense_ratings.reduce((sum, val) => sum + val, 0) / n || 0;
-      const downtimeVals = stat.downtime_values.filter((v): v is number => v != null);
-      const avgDowntime = downtimeVals.length > 0
-        ? downtimeVals.reduce((s, v) => s + v, 0) / downtimeVals.length
-        : null;
-      const brokeRate = stat.total_matches > 0 ? Math.round((stat.broke_count / stat.total_matches) * 100) : 0;
-
-      const bestScore = stat.total_scores.length ? Math.max(...stat.total_scores) : 0;
-      const worstScore = stat.total_scores.length ? Math.min(...stat.total_scores) : 0;
-
-      // Consistency from all form scores
-      const variance = stat.total_scores.length > 1
-        ? stat.total_scores.reduce((sum, score) => sum + Math.pow(score - avgTotal, 2), 0) / stat.total_scores.length
-        : 0;
-      const standardDeviation = Math.sqrt(variance);
-      const consistencyScore = (avgTotal > 0 && stat.total_scores.length > 0)
-        ? Math.max(0, Math.min(100, 100 - (standardDeviation / avgTotal) * 100))
-        : 0;
-
-      const rebuilt = computeRebuiltMetrics(stat.recordsUsed);
-      return {
-        team_number: stat.team_number,
-        team_name: stat.team_name,
-        total_matches: stat.total_matches,
-        avg_autonomous_points: roundToTenth(avgAutonomous),
-        avg_teleop_points: roundToTenth(avgTeleop),
-        avg_total_score: roundToTenth(avgTotal),
-        avg_defense_rating: roundToTenth(avgDefense),
-        avg_downtime: avgDowntime != null ? roundToTenth(avgDowntime) : null,
-        best_score: bestScore,
-        worst_score: worstScore,
-        consistency_score: roundToTenth(consistencyScore),
-        ...rebuilt,
-        // epa from rebuilt: actual score when available, else estimated from notes (fuel + climb)
-      };
-    }).filter(stat => stat.total_matches > 0); // Only show teams with scouting data
-  };
 
   // Helper functions - defined before use to avoid temporal dead zone errors
   const getTeamName = (teamNumber: number) => {
@@ -474,8 +392,13 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     return [...filteredTeamStats].sort((a, b) => {
       type K = keyof typeof a;
       const key = teamStatsSortField as K;
-      let aVal: number | string = (a as any)[key];
-      let bVal: number | string = (b as any)[key];
+      let aVal: number | string | undefined = (a as any)[key];
+      let bVal: number | string | undefined = (b as any)[key];
+      
+      // Handle undefined values for sorting
+      if (aVal === undefined || aVal === null) aVal = -Infinity;
+      if (bVal === undefined || bVal === null) bVal = -Infinity;
+
       if (key === 'team_name') {
         aVal = (aVal ?? '').toString().toLowerCase();
         bVal = (bVal ?? '').toString().toLowerCase();
@@ -711,6 +634,25 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                     </div>
                   </div>
 
+                  {/* Team Data Only Toggle */}
+                  <div className="flex items-center justify-between p-2 rounded-lg border border-white/5 bg-white/[0.02]">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">Team Data Only</span>
+                      <span className="text-xs text-muted-foreground">Show only data from {user?.organization_id ? 'your organization' : 'Avalanche'}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={teamDataOnly ? 'default' : 'outline'}
+                      onClick={() => setTeamDataOnly(!teamDataOnly)}
+                      className={cn(
+                        "h-8 px-3 rounded-full transition-all",
+                        teamDataOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                      )}
+                    >
+                      {teamDataOnly ? 'ON' : 'OFF'}
+                    </Button>
+                  </div>
+
                   {/* Actions */}
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Button onClick={loadData} variant="outline" size="sm" className="flex-1 sm:flex-none">
@@ -801,6 +743,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <span className="text-sm font-semibold text-primary">{team.avg_total_score}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Starter EPA</span>
+                                <span className="text-sm font-semibold text-muted-foreground">{team.starter_epa ?? '—'}</span>
+                              </div>
+                              <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                                 <span className="text-[10px] text-muted-foreground uppercase block mb-1">Auto EPA</span>
                                 <span className="text-sm font-semibold text-blue-400">{team.avg_autonomous_points ?? '—'}</span>
                               </div>
@@ -815,6 +761,14 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                                 <span className="text-[10px] text-muted-foreground uppercase block mb-1">Consistency</span>
                                 <span className={cn("text-sm font-semibold", team.consistency_score >= 80 ? 'text-green-400' : team.consistency_score >= 60 ? 'text-yellow-400' : 'text-red-400')}>{team.consistency_score}%</span>
+                              </div>
+                              <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Shuttle Rate</span>
+                                <span className="text-sm font-semibold">{team.shuttle_rate}%</span>
+                              </div>
+                              <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Shuttle Cons.</span>
+                                <span className="text-sm font-semibold">{team.shuttle_consistency_score != null ? `${team.shuttle_consistency_score}%` : '—'}</span>
                               </div>
                             </div>
 
@@ -870,6 +824,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 cursor-pointer hover:text-foreground select-none" onClick={() => handleTeamStatsSort('avg_total_score')}>
                               <span className="inline-flex items-center gap-1">Avg Score {teamStatsSortField === 'avg_total_score' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('starter_epa')} title="Historical performance baseline from past competitions">
+                              <span className="inline-flex items-center gap-1">Starter {teamStatsSortField === 'starter_epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            </th>
                             <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('avg_autonomous_points')}>
                               <span className="inline-flex items-center gap-1">Auto EPA {teamStatsSortField === 'avg_autonomous_points' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
@@ -883,7 +840,13 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               <span className="inline-flex items-center gap-1">EPA {teamStatsSortField === 'epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
                             <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[11px]" onClick={() => handleTeamStatsSort('consistency_score')}>
-                              <span className="inline-flex items-center gap-1">Consistency {teamStatsSortField === 'consistency_score' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                              <span className="inline-flex items-center gap-1">Consistency {teamStatsSortField === 'consistency_score' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}</span>
+                            </th>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('shuttle_rate')}>
+                              <span className="inline-flex items-center gap-1">Shuttle {teamStatsSortField === 'shuttle_rate' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}</span>
+                            </th>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('shuttle_consistency_score')}>
+                              <span className="inline-flex items-center gap-1">Shuttle Cons. {teamStatsSortField === 'shuttle_consistency_score' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}</span>
                             </th>
                             <th className="text-left p-4 text-[11px]">Pit</th>
                             <th className="text-right p-4 text-[11px]">Actions</th>
@@ -917,6 +880,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <td className="p-4">
                                   <span className="font-bold text-primary text-lg">{team.avg_total_score}</span>
                                 </td>
+                                <td className="p-4 text-muted-foreground font-medium text-xs">{team.starter_epa ?? '—'}</td>
                                 <td className="p-4 text-blue-400 font-semibold text-sm">{team.avg_autonomous_points ?? '—'}</td>
                                 <td className="p-4 text-orange-400 font-semibold text-sm">{team.avg_teleop_points ?? '—'}</td>
                                 <td className="p-4 text-green-400 font-semibold text-sm">{team.endgame_epa ?? team.avg_climb_pts ?? '—'}</td>
@@ -930,6 +894,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                     {team.consistency_score}%
                                   </span>
                                 </td>
+                                <td className="p-4 text-sm font-semibold">{team.shuttle_rate}%</td>
+                                <td className="p-4 text-sm font-semibold">{team.shuttle_consistency_score != null ? `${team.shuttle_consistency_score}%` : '—'}</td>
                                 <td className="p-4">
                                   {pit ? (
                                     <a
@@ -1162,6 +1128,16 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                           <span className="text-[8px] text-muted-foreground uppercase block">Climb pts</span>
                                           <span className="text-xs font-bold">{getClimbPoints(data.notes)}</span>
                                         </div>
+                                        <div className="bg-white/5 p-2 rounded-lg border border-white/5 text-center">
+                                          <span className="text-[8px] text-muted-foreground uppercase block">Shuttle</span>
+                                          <span className="text-xs font-bold">{parseNotes(data.notes).teleop.shuttle ? 'Yes' : 'No'}</span>
+                                        </div>
+                                        {parseNotes(data.notes).teleop.shuttle && (
+                                          <div className="bg-white/5 p-2 rounded-lg border border-white/5 text-center">
+                                            <span className="text-[8px] text-muted-foreground uppercase block">Consistent</span>
+                                            <span className="text-xs font-bold">{parseNotes(data.notes).teleop.shuttle_consistency}</span>
+                                          </div>
+                                        )}
                                       </div>
 
                                       {autoRuns.length === 0 && teleopRuns.length === 0 && (
@@ -1420,6 +1396,16 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                                     <span className="text-xs text-muted-foreground">Climb pts</span>
                                                     <span className="text-sm font-medium">{getClimbPoints(data.notes)}</span>
                                                   </div>
+                                                  <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                    <span className="text-xs text-muted-foreground">Shuttle</span>
+                                                    <span className="text-sm font-medium">{formNotes.teleop.shuttle ? 'Yes' : 'No'}</span>
+                                                  </div>
+                                                  {formNotes.teleop.shuttle && (
+                                                    <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                      <span className="text-xs text-muted-foreground">Shuttle Cons.</span>
+                                                      <span className="text-sm font-medium">{formNotes.teleop.shuttle_consistency}</span>
+                                                    </div>
+                                                  )}
                                                 </div>
                                               </div>
                                             </div>

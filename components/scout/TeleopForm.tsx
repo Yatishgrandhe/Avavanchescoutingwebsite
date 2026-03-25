@@ -40,6 +40,10 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   const [showClimbTimePopup, setShowClimbTimePopup] = useState(false);
   const [pendingClimbSec, setPendingClimbSec] = useState(0);
 
+  // Shuttling State
+  const [shuttle, setShuttle] = useState(!!initialData?.shuttle);
+  const [shuttleConsistency, setShuttleConsistency] = useState<'consistent' | 'inconsistent' | undefined>(initialData?.shuttle_consistency);
+
   useEffect(() => {
     if (!climbTimerRunning) return;
     const start = Date.now();
@@ -93,6 +97,8 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
       teleop_tower_level2: towerLevel2,
       teleop_tower_level3: towerLevel3,
       climb_sec: climbSec !== '' && !Number.isNaN(Number(climbSec)) ? Number(climbSec) : undefined,
+      shuttle,
+      shuttle_consistency: shuttle ? shuttleConsistency : undefined,
     });
   };
 
@@ -215,6 +221,54 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+          </div>
+
+          {/* Shuttling Section */}
+          <div className={`rounded-xl p-3 sm:p-4 border ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-muted/30 border-border'}`}>
+            <div className="flex items-center space-x-2 pb-2 border-b border-border/50">
+              <Zap className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-bold uppercase tracking-wider">Robot Shuttling</h3>
+            </div>
+
+            <div className="mt-3 space-y-3">
+              <div className="flex items-center justify-between p-2.5 rounded-lg border-2 border-white/5 bg-white/5">
+                <div className="flex flex-col">
+                  <span className="text-xs font-black tracking-tight uppercase">Does the robot shuttle?</span>
+                  <span className="text-[10px] text-muted-foreground uppercase">Transporting fuel without scoring</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={shuttle}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setShuttle(checked);
+                    if (!checked) setShuttleConsistency(undefined);
+                  }}
+                  className="w-5 h-5 rounded border-white/20 bg-white/5 text-primary focus:ring-primary h-6 w-6"
+                />
+              </div>
+
+              {shuttle && (
+                <div className="grid grid-cols-2 gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className={`h-10 text-xs font-bold uppercase ${shuttleConsistency === 'consistent' ? 'bg-primary/20 border-primary text-primary' : 'bg-white/5 border-white/5'}`}
+                    onClick={() => setShuttleConsistency('consistent')}
+                  >
+                    Consistent
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className={`h-10 text-xs font-bold uppercase ${shuttleConsistency === 'inconsistent' ? 'bg-destructive/20 border-destructive text-destructive' : 'bg-white/5 border-white/5'}`}
+                    onClick={() => setShuttleConsistency('inconsistent')}
+                  >
+                    Inconsistent
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="pt-2">

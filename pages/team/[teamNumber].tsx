@@ -182,7 +182,7 @@ const TeamDetail: React.FC = () => {
           : `id=${encodeURIComponent(competitionId!)}`;
         const res = await fetch(`/api/past-competitions?${params}`);
         if (!res.ok) {
-          setTeam({ team_number: teamNum, team_name: `Team ${teamNum}`, team_color: '', created_at: '' });
+          setTeam({ team_number: teamNum, team_name: `Team ${teamNum}`, team_color: '', organization_id: '', created_at: '' });
           setScoutingData([]);
           setPitData(null);
           setLoading(false);
@@ -198,7 +198,7 @@ const TeamDetail: React.FC = () => {
         const teamPit = teamPits.length > 0
           ? teamPits.find((p: any) => (Array.isArray(p.photos) && p.photos.length > 0) || (p.robot_image_url && String(p.robot_image_url).trim())) || teamPits[teamPits.length - 1]
           : null;
-        setTeam(teamInfo ? { ...teamInfo } : { team_number: teamNum, team_name: `Team ${teamNum}` });
+        setTeam(teamInfo ? { ...teamInfo } : { team_number: teamNum, team_name: `Team ${teamNum}`, organization_id: '', team_color: '', created_at: '' });
         setScoutingData(teamScouting);
         setPitData(teamPit);
         setLoading(false);
@@ -329,6 +329,8 @@ const TeamDetail: React.FC = () => {
       teleop_fuel_min: rebuilt.teleop_fuel_min,
       teleop_fuel_max: rebuilt.teleop_fuel_max,
       avg_shooting_time_sec: rebuilt.avg_shooting_time_sec ?? null,
+      shuttle_rate: rebuilt.shuttle_rate,
+      shuttle_consistency_score: rebuilt.shuttle_consistency_score,
       endgame_epa: rebuilt.endgame_epa ?? rebuilt.avg_climb_pts ?? 0, // Endgame EPA = climbing points
       epa: rebuilt.epa ?? Math.round(avgTotal * 10) / 10, // Expected points per match (actual when available, else estimated)
 
@@ -381,6 +383,8 @@ const TeamDetail: React.FC = () => {
             </h4>
             <div className="space-y-2">
               <BreakdownItem label="FUEL (game pieces)" value={teleopFuel} points={1} />
+              <BreakdownItem label="SHUTTLE" value={p.teleop.shuttle ? 'Yes' : 'No'} points={0} />
+              {p.teleop.shuttle && <BreakdownItem label="SHUTTLE CONS." value={p.teleop.shuttle_consistency} points={0} />}
               {climb && <BreakdownItem label="TOWER CLIMB" value={climb.label} points={climb.points} />}
             </div>
           </div>
@@ -575,6 +579,8 @@ const TeamDetail: React.FC = () => {
                   <StatCard label="Teleop EPA" value={teamStats.avgTeleop} color="orange" icon={Zap} subLabel="pts" />
                   <StatCard label="Endgame EPA" value={teamStats.endgame_epa ?? teamStats.avg_climb_pts ?? 0} color="green" icon={Award} subLabel="climb pts" />
                   <StatCard label="Consistency" value={`${teamStats.consistencyScore}%`} color="purple" icon={Activity} />
+                  <StatCard label="Shuttle Rate" value={`${teamStats.shuttle_rate}%`} color="indigo" icon={Route} />
+                  <StatCard label="Shuttle Cons." value={teamStats.shuttle_consistency_score != null ? `${teamStats.shuttle_consistency_score}%` : '—'} color="indigo" icon={CheckCircle} />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

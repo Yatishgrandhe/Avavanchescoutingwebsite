@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../../components/ui';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui';
@@ -83,6 +83,16 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      if (token) {
+        localStorage.setItem('org_invite_token', token);
+      }
+    }
+  }, []);
 
   const notifyDiscordError = async (errorMessage: string, userInfo?: any) => {
     try {

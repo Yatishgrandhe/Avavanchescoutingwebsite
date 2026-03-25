@@ -18,7 +18,9 @@ import {
   Users,
   Trophy,
   Lock,
-  Unlock
+  Unlock,
+  Building2,
+  Settings2
 } from 'lucide-react';
 import { Badge, Logo, Avatar, AvatarFallback, AvatarImage } from '../ui';
 import {
@@ -37,6 +39,7 @@ import {
 } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useScoutingLocks } from '@/hooks/use-scouting-locks';
+import { useSupabase } from '@/pages/_app';
 
 interface SidebarProps {
   user?: {
@@ -55,6 +58,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
 }) => {
   const router = useRouter();
   const { state } = useSidebar();
+  const { user: appUser } = useSupabase(); // Get the extended user profile
   const isCollapsed = state === 'collapsed';
   const {
     matchScoutingLocked,
@@ -135,6 +139,16 @@ const AppSidebar: React.FC<SidebarProps> = ({
         },
       ],
     },
+    ...(appUser?.role === 'superadmin' ? [{
+      title: 'System',
+      items: [
+        {
+          label: 'Org Manager',
+          href: '/admin/org-manager',
+          icon: Building2,
+        },
+      ],
+    }] : []),
   ];
 
   return (
@@ -288,7 +302,9 @@ const AppSidebar: React.FC<SidebarProps> = ({
                 className="flex-1 min-w-0"
               >
                 <p className="text-sm font-medium truncate text-sidebar-foreground">{user?.name || 'User'}</p>
-                <p className="text-[10px] text-sidebar-foreground/70 truncate">Team Member</p>
+                <p className="text-[10px] text-sidebar-foreground/70 truncate capitalize">
+                  {appUser?.role || 'Team Member'}
+                </p>
               </motion.div>
             )}
           </AnimatePresence>

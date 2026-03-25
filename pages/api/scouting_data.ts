@@ -43,6 +43,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return;
     }
 
+    // Fetch profile from public.users for organization and role
+    const { data: profile } = await supabase
+      .from('users')
+      .select('organization_id, role')
+      .eq('id', user.id)
+      .single();
+    
+    const userOrgId = profile?.organization_id;
+    const userRole = profile?.role;
+
     if (req.method === 'POST') {
       try {
         // Reject if match scouting is locked (admin-only setting)
@@ -165,6 +175,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Create scouting data
         const scoutingData = {
           scout_id: user.id,
+          organization_id: userOrgId, // Enforce current user's org
           match_id: finalMatchId,
           team_number: finalTeamNumber,
           alliance_color: finalAllianceColor,
@@ -219,7 +230,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     } else if (req.method === 'GET') {
       try {
-        const { match_id, team_number, alliance_color, my_submitted_match_ids: myMatchIdsParam, scout_name: scoutNameParam } = req.query;
+        const { 
+          match_id, 
+          team_number, 
+          alliance_color, 
+          my_submitted_match_ids: myMatchIdsParam, 
+          scout_name: scoutNameParam,
+          organization_id: filterOrgId 
+        } = req.query;
 
         if (myMatchIdsParam === '1' || myMatchIdsParam === 'true') {
           const scoutName = typeof scoutNameParam === 'string' ? scoutNameParam.trim() : '';
@@ -242,6 +260,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (match_id) query = query.eq('match_id', match_id as string);
         if (team_number) query = query.eq('team_number', parseInt(team_number as string));
         if (alliance_color) query = query.eq('alliance_color', alliance_color as string);
+        if (filterOrgId) query = query.eq('organization_id', filterOrgId as string);
 
         const { data, error: fetchError } = await query;
 

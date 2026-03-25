@@ -85,26 +85,33 @@ export default function AuthCallback() {
 
       const VERIFY_TIMEOUT_MS = 15000;
 
-      const runGuildCheck = async (session: { access_token: string; provider_token?: string | null }): Promise<true | false | 'timeout'> => {
-        if (!session?.provider_token) return false;
+      const runGuildCheck = async (session: { access_token: string; provider_token?: string | null }): Promise<{ inGuild: boolean; invited?: boolean } | 'timeout'> => {
+        if (!session?.provider_token) return { inGuild: false };
         const ac = new AbortController();
         const t = setTimeout(() => ac.abort(), VERIFY_TIMEOUT_MS);
         const url = typeof window !== 'undefined' ? `${window.location.origin}/api/verify-guild` : '/api/verify-guild';
+        
+        // Get invite token from localStorage
+        const inviteToken = typeof window !== 'undefined' ? localStorage.getItem('org_invite_token') : null;
+
         try {
           const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-            body: JSON.stringify({ providerToken: session.provider_token }),
+            body: JSON.stringify({ 
+              providerToken: session.provider_token,
+              inviteToken 
+            }),
             signal: ac.signal,
           });
           clearTimeout(t);
           if (res.status === 504) return 'timeout';
           const data = await res.json().catch(() => ({}));
-          return res.ok && data.inGuild === true ? true : false;
+          return res.ok ? { inGuild: data.inGuild === true, invited: data.invited === true } : { inGuild: false };
         } catch (e) {
           clearTimeout(t);
           if (e instanceof Error && e.name === 'AbortError') return 'timeout';
-          return false;
+          return { inGuild: false };
         }
       };
 
@@ -115,8 +122,13 @@ export default function AuthCallback() {
           return;
         }
         const result = await runGuildCheck(session);
-        if (result === true) {
-          router.replace('/');
+        if (result !== 'timeout' && result.inGuild) {
+          // If they used an invite token, redirect to setup-org
+          if (result.invited) {
+            router.replace('/setup-org');
+          } else {
+            router.replace('/');
+          }
           return;
         }
         await supabase.auth.signOut();

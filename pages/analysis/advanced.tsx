@@ -23,7 +23,7 @@ import {
   Download
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
-import { formatDurationSec } from '@/lib/utils';
+import { formatDurationSec, cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { computeRebuiltMetrics, formatScoreRange } from '@/lib/analytics';
 import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
@@ -106,6 +106,7 @@ export default function AdvancedAnalysis() {
   const [showFilters, setShowFilters] = useState(false);
   const [availableTeams, setAvailableTeams] = useState<Array<{ team_number: number, team_name: string }>>([]);
   const [teamsLoading, setTeamsLoading] = useState(true);
+  const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF
 
   // Load available teams from Supabase
   useEffect(() => {
@@ -135,7 +136,7 @@ export default function AdvancedAnalysis() {
     if (user) {
       loadTeams();
     }
-  }, [user]);
+  }, [user, teamDataOnly]);
 
   const handleTeamSearch = async () => {
     if (!selectedTeam) return;
@@ -162,6 +163,10 @@ export default function AdvancedAnalysis() {
         .eq('team_number', selectedTeam)
         .like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN)
         .order('created_at', { ascending: false });
+
+      if (teamDataOnly && user?.organization_id) {
+        scoutingQuery = scoutingQuery.eq('organization_id', user.organization_id);
+      }
 
       if (filters.event_key) {
         scoutingQuery = scoutingQuery.eq('event_key', filters.event_key);
@@ -328,7 +333,7 @@ export default function AdvancedAnalysis() {
         >
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h1 className={`text-2xl sm:text-3xl font-bold break-words ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   Advanced Team Analysis
@@ -337,11 +342,32 @@ export default function AdvancedAnalysis() {
                   Deep insights into team performance and strategic analysis
                 </p>
               </div>
-              <div className="flex items-center space-x-3">
+
+              <div className="flex items-center gap-3">
+                {/* Team Data Only Toggle */}
+                <div className="flex items-center gap-3 p-2 rounded-lg border border-white/10 bg-white/[0.02]">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold uppercase text-muted-foreground font-heading">Team Data</span>
+                    <span className="text-[9px] text-muted-foreground/60 whitespace-nowrap">
+                      {teamDataOnly ? 'Org Only' : 'All Data'}
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={teamDataOnly ? 'default' : 'outline'}
+                    onClick={() => setTeamDataOnly(!teamDataOnly)}
+                    className={cn(
+                      "h-7 px-2.5 rounded-full transition-all text-[10px] font-bold",
+                      teamDataOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                    )}
+                  >
+                    {teamDataOnly ? 'ON' : 'OFF'}
+                  </Button>
+                </div>
+
                 <Button
                   variant="outline"
                   onClick={() => setShowFilters(!showFilters)}
-
                 >
                   <Filter className="w-4 h-4 mr-2" />
                   Filters
@@ -349,7 +375,6 @@ export default function AdvancedAnalysis() {
                 {teamStats && (
                   <Button
                     onClick={exportData}
-
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Export

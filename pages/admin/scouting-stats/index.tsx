@@ -115,10 +115,10 @@ export default function AdminScoutingStatsPage() {
             <div>
               <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <ClipboardList className="w-6 h-6 text-primary" />
-                Match Scouting Stats
+                Team Scouting Stats
               </h1>
               <p className="text-muted-foreground text-sm mt-1">
-                Forms submitted per person (name, not username). Click a name to see all their forms.
+                Forms submitted by your organization's members. Click a name to see all their forms.
               </p>
             </div>
             <Button

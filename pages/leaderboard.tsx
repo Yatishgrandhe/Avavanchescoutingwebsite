@@ -41,13 +41,18 @@ export default function LeaderboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        setError(sessionError.message);
+        return;
+      }
       const token = session?.access_token;
       if (!token) {
         setError('Not authenticated');
         return;
       }
-      const res = await fetch('/api/leaderboard', {
+
+      const res = await fetch(`/api/leaderboard`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
@@ -117,6 +122,9 @@ export default function LeaderboardPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
+              
+              
+
               <Button
                 variant="outline"
                 size="icon"

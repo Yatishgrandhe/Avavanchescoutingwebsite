@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useSupabase } from '@/pages/_app';
 import { motion } from 'framer-motion';
@@ -18,7 +18,7 @@ import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 export default function SetupOrg() {
-  const { user, supabase } = useSupabase();
+  const { user, authUser, supabase } = useSupabase();
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -26,7 +26,9 @@ export default function SetupOrg() {
   const [orgName, setOrgName] = useState('');
   const [teamNumber, setTeamNumber] = useState('');
   const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [inviteRow, setInviteRow] = useState<{ invite_type?: string; target_organization_id?: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const joinAttemptedRef = useRef(false);
 
   useEffect(() => {
     const token = localStorage.getItem('org_invite_token');
@@ -51,6 +53,8 @@ export default function SetupOrg() {
       if (error) throw error;
       if (!data) {
         setError("This invite token is invalid or has already been used.");
+      } else {
+        setInviteRow(data);
       }
     } catch (err: any) {
       setError(err.message);
@@ -58,6 +62,52 @@ export default function SetupOrg() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const runJoinOrg = async () => {
+      if (joinAttemptedRef.current || !user || !inviteToken || !inviteRow) return;
+      const isJoin = inviteRow.invite_type === 'join_org';
+      if (!isJoin) return;
+
+      joinAttemptedRef.current = true;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          joinAttemptedRef.current = false;
+          return;
+        }
+
+        const res = await fetch('/api/organization/complete-join-invite', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token: inviteToken }),
+        });
+
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j.error || 'Failed to join organization');
+        }
+
+        localStorage.removeItem('org_invite_token');
+        localStorage.removeItem('org_invite_type');
+        localStorage.removeItem('org_invite_target_org');
+
+        toast({
+          title: 'Welcome!',
+          description: 'You have been added to the organization.',
+        });
+        router.replace('/');
+      } catch (e: any) {
+        joinAttemptedRef.current = false;
+        setError(e?.message || 'Could not complete join');
+      }
+    };
+
+    void runJoinOrg();
+  }, [user, inviteRow, inviteToken, router, supabase.auth, toast]);
 
   const handleSetup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,18 +124,23 @@ export default function SetupOrg() {
 
       if (orgError) throw orgError;
 
-      // 2. Update the user's organization_id and role
-      const { error: userUpdateError } = await supabase
-        .from('users')
-        .update({ 
+      const tn = parseInt(teamNumber, 10);
+      const { error: userUpdateError } = await supabase.from('users').upsert(
+        {
+          id: user?.id,
+          email: user?.email ?? null,
+          name: user?.name || (authUser?.user_metadata as { full_name?: string })?.full_name || 'User',
+          image: (authUser?.user_metadata as { avatar_url?: string })?.avatar_url || null,
           organization_id: org.id,
           role: 'admin',
-          team_number: parseInt(teamNumber),
+          team_number: Number.isFinite(tn) ? tn : null,
           can_edit_forms: true,
           can_view_pick_list: true,
-          can_view_stats: true
-        })
-        .eq('id', user?.id);
+          can_view_stats: true,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      );
 
       if (userUpdateError) throw userUpdateError;
 
@@ -124,6 +179,15 @@ export default function SetupOrg() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (inviteRow?.invite_type === 'join_org' && user && !error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-3 p-6">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground text-center">Adding you to the organization…</p>
       </div>
     );
   }

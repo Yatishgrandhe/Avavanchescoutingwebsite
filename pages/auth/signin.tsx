@@ -91,6 +91,14 @@ export default function SignIn() {
       if (token) {
         localStorage.setItem('org_invite_token', token);
       }
+      const inviteType = urlParams.get('invite_type');
+      const targetOrg = urlParams.get('target_org');
+      if (inviteType) {
+        localStorage.setItem('org_invite_type', inviteType);
+      }
+      if (targetOrg) {
+        localStorage.setItem('org_invite_target_org', targetOrg);
+      }
     }
   }, []);
 

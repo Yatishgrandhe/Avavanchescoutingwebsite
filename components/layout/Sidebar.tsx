@@ -5,8 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ClipboardList,
   BarChart3,
-  TrendingUp,
-  ArrowLeftRight,
   Wrench,
   Home,
   Database,
@@ -15,10 +13,7 @@ import {
   BookOpen,
   Archive,
   Sparkles,
-  Users,
   Trophy,
-  Lock,
-  Unlock,
   Building2,
   Settings2
 } from 'lucide-react';
@@ -38,7 +33,6 @@ import {
   useSidebar,
 } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
-import { useScoutingLocks } from '@/hooks/use-scouting-locks';
 import { useSupabase } from '@/pages/_app';
 
 interface SidebarProps {
@@ -60,14 +54,6 @@ const AppSidebar: React.FC<SidebarProps> = ({
   const { state } = useSidebar();
   const { user: appUser } = useSupabase(); // Get the extended user profile
   const isCollapsed = state === 'collapsed';
-  const {
-    matchScoutingLocked,
-    pitScoutingLocked,
-    loading: locksLoading,
-    setMatchScoutingLocked,
-    setPitScoutingLocked,
-  } = useScoutingLocks();
-
   const menuItems = [
     {
       title: 'Learn',
@@ -108,9 +94,9 @@ const AppSidebar: React.FC<SidebarProps> = ({
           icon: List,
         }] : []),
         ...(isAdmin ? [{
-          label: 'Scouting Stats',
-          href: '/admin/scouting-stats',
-          icon: Users,
+          label: 'Team Management',
+          href: '/admin/team-management',
+          icon: Settings2,
         }] : []),
       ].filter(Boolean),
     }] : []),
@@ -207,43 +193,6 @@ const AppSidebar: React.FC<SidebarProps> = ({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* Admin: Lock/Unlock scouting forms for current competition */}
-        {isAdmin && (
-          <SidebarGroup>
-            {!isCollapsed && (
-              <SidebarGroupLabel className="text-sidebar-foreground/60">
-                Current competition
-              </SidebarGroupLabel>
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    tooltip={isCollapsed ? (matchScoutingLocked ? 'Unlock Match Scouting' : 'Lock Match Scouting') : undefined}
-                    onClick={() => !locksLoading && setMatchScoutingLocked(!matchScoutingLocked)}
-                    disabled={locksLoading}
-                    className="cursor-pointer"
-                  >
-                    {matchScoutingLocked ? <Unlock className="text-amber-500" /> : <Lock />}
-                    <span>{matchScoutingLocked ? 'Unlock Match Scouting' : 'Lock Match Scouting'}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    tooltip={isCollapsed ? (pitScoutingLocked ? 'Unlock Pit Scouting' : 'Lock Pit Scouting') : undefined}
-                    onClick={() => !locksLoading && setPitScoutingLocked(!pitScoutingLocked)}
-                    disabled={locksLoading}
-                    className="cursor-pointer"
-                  >
-                    {pitScoutingLocked ? <Unlock className="text-amber-500" /> : <Lock />}
-                    <span>{pitScoutingLocked ? 'Unlock Pit Scouting' : 'Lock Pit Scouting'}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
 
         {menuItems.map((section) => (
           <SidebarGroup key={section.title}>

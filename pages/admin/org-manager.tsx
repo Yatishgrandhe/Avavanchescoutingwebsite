@@ -45,6 +45,8 @@ interface Invite {
   status: 'pending' | 'used' | 'expired';
   created_at: string;
   used_at?: string;
+  invite_type?: string;
+  target_organization_id?: string | null;
 }
 
 export default function OrgManager() {
@@ -122,15 +124,15 @@ export default function OrgManager() {
   const generateInvite = async () => {
     setIsGeneratingInvite(true);
     try {
-      // Generate a random 16-character token
       const token = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
       
       const { data, error } = await supabase
         .from('organization_invites')
         .insert({ 
           token,
+          invite_type: 'new_org',
           created_by: user?.id,
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
         })
         .select()
         .single();
@@ -153,9 +155,54 @@ export default function OrgManager() {
     }
   };
 
-  const copyInviteLink = (token: string) => {
+  const generateJoinInvite = async () => {
+    const target = orgs.find((o) => o.name.toLowerCase().includes('avalanche')) || orgs[0];
+    if (!target) {
+      toast({
+        title: "No organization",
+        description: "Create an organization first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsGeneratingInvite(true);
+    try {
+      const token = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+      const { data, error } = await supabase
+        .from('organization_invites')
+        .insert({
+          token,
+          invite_type: 'join_org',
+          target_organization_id: target.id,
+          created_by: user?.id,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      setInvites([data, ...invites]);
+      toast({
+        title: "Join invite created",
+        description: `Students can sign in with Discord and join ${target.name}.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error generating join invite",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingInvite(false);
+    }
+  };
+
+  const copyInviteLink = (token: string, kind: 'new_org' | 'join_org' = 'new_org') => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://avalanchescouting.vercel.app';
-    const link = `${origin}/setup-org?token=${token}`;
+    const link =
+      kind === 'join_org'
+        ? `${origin}/auth/signin?token=${encodeURIComponent(token)}&invite_type=join_org`
+        : `${origin}/auth/signin?token=${encodeURIComponent(token)}&invite_type=new_org`;
     navigator.clipboard.writeText(link);
     setCopiedToken(token);
     setTimeout(() => setCopiedToken(null), 2000);
@@ -267,7 +314,16 @@ export default function OrgManager() {
                     ) : (
                       <LinkIcon className="w-4 h-4 mr-2" />
                     )}
-                    Generate Invite Link
+                    New org setup invite
+                  </Button>
+                  <Button
+                    onClick={generateJoinInvite}
+                    className="w-full"
+                    variant="secondary"
+                    disabled={isGeneratingInvite || orgs.length === 0}
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Student join invite (Avalanche)
                   </Button>
                 </CardContent>
               </Card>
@@ -314,6 +370,11 @@ export default function OrgManager() {
                               >
                                 {invite.status}
                               </Badge>
+                              {invite.invite_type && (
+                                <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                                  {invite.invite_type === 'join_org' ? 'join' : 'new org'}
+                                </Badge>
+                              )}
                             </div>
                             <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                               <Clock className="w-3 h-3" />
@@ -327,7 +388,12 @@ export default function OrgManager() {
                                 size="sm" 
                                 variant="outline" 
                                 className="h-8 gap-2 text-xs border-white/10"
-                                onClick={() => copyInviteLink(invite.token)}
+                                onClick={() =>
+                                  copyInviteLink(
+                                    invite.token,
+                                    invite.invite_type === 'join_org' ? 'join_org' : 'new_org'
+                                  )
+                                }
                               >
                                 {copiedToken === invite.token ? (
                                   <Check className="w-3.5 h-3.5 text-green-500" />

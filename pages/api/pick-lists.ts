@@ -1,11 +1,41 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { PickList, PickListTeam } from '@/lib/types';
 import { CURRENT_EVENT_KEY, PICKLIST_BLOCKED_ADMIN_USER_IDS } from '@/lib/constants';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+type PickListProfile = {
+  organization_id: string | null;
+  role: string | null;
+  can_view_pick_list: boolean | null;
+};
+
+async function getPickListProfile(
+  supabaseAdmin: SupabaseClient,
+  userId: string
+): Promise<PickListProfile | null> {
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select('organization_id, role, can_view_pick_list')
+    .eq('id', userId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as PickListProfile;
+}
+
+function canViewPickLists(p: PickListProfile): boolean {
+  return (
+    p.role === 'admin' ||
+    p.role === 'superadmin' ||
+    !!p.can_view_pick_list
+  );
+}
+
+function canManagePickLists(p: PickListProfile): boolean {
+  return p.role === 'admin' || p.role === 'superadmin';
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   // Create Supabase client with service role key for server-side operations
@@ -21,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const token = authHeader.split(' ')[1];
   
   // Verify the JWT token
-  const { data: { user }, error } = await supabase.auth.getUser(token);
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
   
   if (error || !user) {
     res.status(401).json({ error: 'Unauthorized' });
@@ -33,16 +63,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
+  const profile = await getPickListProfile(supabaseAdmin, user.id);
+  if (!profile?.organization_id) {
+    res.status(403).json({ error: 'No organization assigned. Contact an admin.' });
+    return;
+  }
+
   if (req.method === 'GET') {
     try {
+      if (!canViewPickLists(profile)) {
+        res.status(403).json({ error: 'Pick list access is not enabled for your account.' });
+        return;
+      }
+
       const { id, event_key } = req.query;
 
       if (id) {
-        // Get specific pick list (allow all authenticated users to see all pick lists)
         const { data: pickList, error } = await supabaseAdmin
           .from('pick_lists')
           .select('*')
           .eq('id', id as string)
+          .eq('organization_id', profile.organization_id)
           .single();
 
         if (error) {
@@ -50,14 +91,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(404).json({ error: 'Pick list not found' });
         }
 
-        // Enrich teams with stats
-        const enrichedPickList = await enrichPickListWithStats(pickList);
+        const enrichedPickList = await enrichPickListWithStats(supabaseAdmin, pickList);
         res.status(200).json(enrichedPickList);
       } else {
-        // Get all pick lists (allow all authenticated users to see all pick lists)
         let query = supabaseAdmin
           .from('pick_lists')
           .select('*')
+          .eq('organization_id', profile.organization_id)
           .order('updated_at', { ascending: false });
 
         if (event_key) {
@@ -71,9 +111,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(500).json({ error: 'Failed to fetch pick lists' });
         }
 
-        // Enrich each pick list with stats
         const enrichedPickLists = await Promise.all(
-          (pickLists || []).map(enrichPickListWithStats)
+          (pickLists || []).map((pl) => enrichPickListWithStats(supabaseAdmin, pl))
         );
 
         res.status(200).json({ pickLists: enrichedPickLists });
@@ -84,6 +123,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } else if (req.method === 'POST') {
     try {
+      if (!canManagePickLists(profile)) {
+        res.status(403).json({ error: 'Only team admins can create pick lists.' });
+        return;
+      }
+
       const { name, event_key, teams } = req.body;
 
       if (!name || !teams) {
@@ -100,6 +144,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const pickListData = {
         user_id: user.id,
+        organization_id: profile.organization_id,
         name,
         event_key: event_key || CURRENT_EVENT_KEY,
         teams: validatedTeams,
@@ -116,7 +161,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: 'Failed to create pick list' });
       }
 
-      const enrichedPickList = await enrichPickListWithStats(pickList);
+      const enrichedPickList = await enrichPickListWithStats(supabaseAdmin, pickList);
       res.status(201).json(enrichedPickList);
     } catch (error) {
       console.error('Error creating pick list:', error);
@@ -124,12 +169,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } else if (req.method === 'PUT') {
     try {
+      if (!canManagePickLists(profile)) {
+        res.status(403).json({ error: 'Only team admins can update pick lists.' });
+        return;
+      }
+
       const { id, name, teams } = req.body;
 
       console.log('PUT request received:', { id, name, teams: teams?.length || 0 });
 
       if (!id) {
         return res.status(400).json({ error: 'ID is required' });
+      }
+
+      const { data: existing } = await supabaseAdmin
+        .from('pick_lists')
+        .select('id, organization_id')
+        .eq('id', id)
+        .single();
+
+      if (!existing || existing.organization_id !== profile.organization_id) {
+        return res.status(404).json({ error: 'Pick list not found' });
       }
 
       const updateData: any = {};
@@ -152,6 +212,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .from('pick_lists')
         .update(updateData)
         .eq('id', id)
+        .eq('organization_id', profile.organization_id)
         .select()
         .single();
 
@@ -161,7 +222,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       console.log('Updated pick list:', pickList);
-      const enrichedPickList = await enrichPickListWithStats(pickList);
+      const enrichedPickList = await enrichPickListWithStats(supabaseAdmin, pickList);
       res.status(200).json(enrichedPickList);
     } catch (error) {
       console.error('Error updating pick list:', error);
@@ -169,6 +230,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } else if (req.method === 'DELETE') {
     try {
+      if (!canManagePickLists(profile)) {
+        res.status(403).json({ error: 'Only team admins can delete pick lists.' });
+        return;
+      }
+
       const { id } = req.query;
 
       if (!id) {
@@ -178,7 +244,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { error } = await supabaseAdmin
         .from('pick_lists')
         .delete()
-        .eq('id', id as string);
+        .eq('id', id as string)
+        .eq('organization_id', profile.organization_id);
 
       if (error) {
         console.error('Error deleting pick list:', error);
@@ -197,13 +264,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 
 // Helper to get one robot image URL per team from pit_scouting_data (latest record with image)
-async function getRobotImageUrlsByTeam(teamNumbers: number[]): Promise<Map<number, string>> {
+async function getRobotImageUrlsByTeam(
+  supabaseAdmin: SupabaseClient,
+  teamNumbers: number[],
+  organizationId: string | null | undefined
+): Promise<Map<number, string>> {
   if (teamNumbers.length === 0) return new Map();
-  const { data: rows } = await supabase
+  let q = supabaseAdmin
     .from('pit_scouting_data')
     .select('team_number, robot_image_url, photos, created_at')
     .in('team_number', teamNumbers)
     .order('created_at', { ascending: false });
+  if (organizationId) {
+    q = q.eq('organization_id', organizationId);
+  }
+  const { data: rows } = await q;
 
   const map = new Map<number, string>();
   for (const row of rows || []) {
@@ -216,16 +291,23 @@ async function getRobotImageUrlsByTeam(teamNumbers: number[]): Promise<Map<numbe
 }
 
 // Helper function to enrich pick list teams with stats and robot image
-async function enrichPickListWithStats(pickList: any): Promise<PickList> {
+async function enrichPickListWithStats(
+  supabaseAdmin: SupabaseClient,
+  pickList: any
+): Promise<PickList> {
   const teams = pickList.teams || [];
   const teamNumbers = teams.map((t: PickListTeam) => t.team_number);
-  const imageByTeam = await getRobotImageUrlsByTeam(teamNumbers);
+  const imageByTeam = await getRobotImageUrlsByTeam(
+    supabaseAdmin,
+    teamNumbers,
+    pickList.organization_id
+  );
 
   const enrichedTeams = await Promise.all(
     teams.map(async (team: PickListTeam) => {
       try {
         // Get team stats from the team_statistics view
-        const { data: stats, error } = await supabase
+        const { data: stats, error } = await supabaseAdmin
           .from('team_statistics')
           .select('*')
           .eq('team_number', team.team_number)

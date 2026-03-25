@@ -54,7 +54,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
-    if (user.user_metadata?.role !== 'admin') {
+    const { data: profile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const isAdmin =
+      profile?.role === 'admin' ||
+      profile?.role === 'superadmin' ||
+      user.user_metadata?.role === 'admin';
+
+    if (!isAdmin) {
       res.status(403).json({ error: 'Admin only' });
       return;
     }

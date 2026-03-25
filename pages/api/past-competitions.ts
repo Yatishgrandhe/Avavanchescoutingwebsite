@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { getAutoFuelCount, getTeleopFuelCount, getClimbPoints } from '@/lib/analytics';
+import { AVALANCHE_ORG_ID } from '@/lib/constants';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -44,6 +45,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const { id, competition_key, year, event_key, organization_id: filterOrgId } = req.query;
+
+      let viewerOrgId: string | null = null;
+      if (!isGuest && authHeader?.startsWith('Bearer ')) {
+        const t = authHeader.split(' ')[1];
+        const { data: { user: u } } = await supabase.auth.getUser(t);
+        if (u) {
+          const { data: prof } = await supabaseAdmin
+            .from('users')
+            .select('organization_id')
+            .eq('id', u.id)
+            .maybeSingle();
+          viewerOrgId = prof?.organization_id ?? null;
+        }
+      }
 
       if (event_key && !id) {
         // Live event detail: public, no auth required (for guests to view live data)
@@ -130,8 +145,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .in('team_number', teamNumArr)
           .order('created_at', { ascending: false });
 
-        if (filterOrgId) {
-          pitQuery = pitQuery.eq('organization_id', filterOrgId as string);
+        const pitOrg =
+          (filterOrgId as string) ||
+          (!isGuest ? viewerOrgId : null) ||
+          (isGuest ? AVALANCHE_ORG_ID : null);
+        if (pitOrg) {
+          pitQuery = pitQuery.eq('organization_id', pitOrg);
         }
 
         const { data: pitScoutingData = [] } = teamNumArr.length > 0
@@ -217,20 +236,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .select('*')
           .eq('competition_id', id as string);
 
-        if (filterOrgId) {
-          scoutingQuery = scoutingQuery.eq('organization_id', filterOrgId as string);
+        if (!isGuest) {
+          const scoutOrgFilter = (filterOrgId as string) || viewerOrgId;
+          if (scoutOrgFilter) {
+            scoutingQuery = scoutingQuery.eq('organization_id', scoutOrgFilter);
+          }
         }
 
         const { data: scoutingData, error: scoutingError } = await scoutingQuery;
 
-        // Pit scouting data (including photos/robot images) is returned for everyone so team pages can show robot images
+        // Pit scouting: guests see Avalanche org only; logged-in users see their org (or query override)
         let pitQuery = supabaseAdmin
           .from('past_pit_scouting_data')
           .select('*')
           .eq('competition_id', id as string);
 
-        if (filterOrgId) {
-          pitQuery = pitQuery.eq('organization_id', filterOrgId as string);
+        const pastPitOrg =
+          (filterOrgId as string) ||
+          (!isGuest ? viewerOrgId : null) ||
+          (isGuest ? AVALANCHE_ORG_ID : null);
+        if (pastPitOrg) {
+          pitQuery = pitQuery.eq('organization_id', pastPitOrg);
         }
 
         const { data: pitScoutingData = [] } = await pitQuery;

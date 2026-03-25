@@ -146,6 +146,8 @@ export interface User {
   username?: string;
   role?: 'user' | 'admin' | 'superadmin';
   organization_id?: string;
+  /** FRC team number (optional; set during org setup). */
+  team_number?: number | null;
   can_edit_forms?: boolean;
   can_view_pick_list?: boolean;
   can_view_stats?: boolean;

@@ -7,6 +7,11 @@ export const SCOUTING_MATCH_ID_SEASON_PATTERN = '%2026%';
 /** Current event key for matches/pick lists (e.g. load from TBA with this key). */
 export const CURRENT_EVENT_KEY = '2026cabarrus';
 
+/** Default Avalanche organization UUID (Supabase). Override with `NEXT_PUBLIC_AVALANCHE_ORG_ID` in production. */
+export const AVALANCHE_ORG_ID =
+  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_AVALANCHE_ORG_ID) ||
+  '79fb9e7a-a9c8-4c8d-8a5e-a76613de7f86';
+
 /** Current event display name (e.g. shown in UI and in Google Drive uploads). */
 export const CURRENT_EVENT_NAME = 'Asheville 2026';
 

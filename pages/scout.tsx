@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useSupabase } from '@/pages/_app';
+import { toast } from 'sonner';
+import { addToOfflineQueue } from '@/lib/offline-queue';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../components/ui';
 import { Button } from '../components/ui';
@@ -154,19 +156,19 @@ export default function Scout() {
         },
       };
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No active session');
-
-      const response = await fetch('/api/scouting_data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(scoutingData),
-      });
-
-      if (response.ok) {
+      try {
+        await addToOfflineQueue('match-scouting', scoutingData, {
+          competitionKey: formData.matchData.event_key,
+          organizationId: user?.organization_id || '',
+          teamNumber: formData.teamNumber,
+          matchKey: formData.matchData.match_id,
+        });
+        
+        // Dispatch event for SyncButton
+        window.dispatchEvent(new Event('offline-queue-updated'));
+        
+        toast.success('Saved locally! Click "Submit Pending" in the menu to upload.');
+        
         setCurrentStep('match-details');
         setFormData({
           scoutName: '',
@@ -190,14 +192,12 @@ export default function Scout() {
           },
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        const errBody = await response.json().catch(() => ({}));
-        const message = errBody?.error || 'Failed to submit scouting data. Please try again.';
-        throw new Error(message);
+      } catch (err) {
+        throw new Error('Failed to save form locally. Your browser might not support local storage or it is full.');
       }
     } catch (error) {
       console.error('Error submitting scouting data:', error);
-      alert(error instanceof Error ? error.message : 'Error submitting scouting data. Please try again.');
+      toast.error(error instanceof Error ? error.message : 'Error saving scouting data. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

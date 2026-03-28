@@ -24,6 +24,7 @@ import { useSupabase } from '@/pages/_app';
 import { useAdmin } from '@/hooks/use-admin';
 import { ConnectionMonitor } from './ConnectionMonitor';
 import NetworkSpeedIndicator from './NetworkSpeedIndicator';
+import SyncButton from './SyncButton';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -78,6 +79,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <NetworkSpeedIndicator />
               {user && (
                 <div className="flex items-center space-x-3 pl-3 border-l border-border">
+                  <SyncButton />
                   <div className="text-right hidden lg:block">
                     <p className="text-sm font-medium leading-none text-foreground">{user.user_metadata?.full_name || 'User'}</p>
                     <p className="text-xs text-muted-foreground mt-1">

@@ -270,6 +270,13 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
                     const availableMatches = matches.filter(
                       (match) => !submittedMatchIdsForName.includes(match.match_id) || match.match_id === selectedMatch?.match_id
                     );
+                    if (matches.length === 0) {
+                      return (
+                        <div className="py-4 px-3 text-center text-sm text-muted-foreground">
+                          No matches are currently available in this competition.
+                        </div>
+                      );
+                    }
                     if (availableMatches.length === 0) {
                       return (
                         <div className="py-4 px-3 text-center text-sm text-muted-foreground">

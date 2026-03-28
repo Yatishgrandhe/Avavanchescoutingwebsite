@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
+import { toast } from 'sonner';
+import { addToOfflineQueue } from '@/lib/offline-queue';
 import Layout from '@/components/layout/Layout';
 import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui';
 import {
@@ -380,84 +382,43 @@ export default function PitScouting() {
 
       if (!user) throw new Error('User not authenticated. Please sign in and try again.');
 
-      // Upload photos only on Submit (Files → URLs)
-      const photoItems = (formData.photos || []).slice(0, 6);
-      const photoUrls: string[] = [];
-      const uploadFailures: string[] = [];
-      for (const item of photoItems) {
-        if (!item) continue;
-        if (typeof item === 'string') {
-          const url = item.trim();
-          if (url) photoUrls.push(url);
-        } else {
-          const fd = new FormData();
-          const name = item.name && /\.(jpe?g|png|gif|webp|heic)$/i.test(item.name) ? item.name : `robot_${formData.teamNumber}_${Date.now()}.jpg`;
-          const toUpload = await compressImageForUpload(item);
-          const uploadName = toUpload.type === 'image/jpeg' ? (name.replace(/\.[a-z]+$/i, '') + '.jpg') : name;
-          fd.append('image', toUpload, uploadName);
-          fd.append('teamNumber', formData.teamNumber.toString());
-          fd.append('teamName', formData.robotName || 'Unknown');
-          try {
-            const upRes = await fetch('/api/upload-robot-image', { method: 'POST', body: fd });
-            const text = await upRes.text();
-            let upData: { directViewUrl?: string; error?: string; details?: string; driveError?: string } = {};
-            try {
-              if (text && text.trim().startsWith('{')) upData = JSON.parse(text);
-            } catch {
-              if (upRes.status === 413) upData = { error: 'Image too large (max 10MB). Try a smaller image.' };
-              else if (text) upData = { error: text.length > 80 ? text.slice(0, 80) + '…' : text };
-              else upData = { error: upRes.statusText || 'Upload failed' };
-            }
-            if (upRes.ok && upData.directViewUrl) {
-              photoUrls.push(upData.directViewUrl);
-            } else {
-              const msg = upData?.driveError || upData?.details || upData?.error || upRes.statusText || 'Upload failed';
-              uploadFailures.push(msg);
-            }
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : 'Network or upload error';
-            uploadFailures.push(msg);
-          }
-        }
-      }
-      if (uploadFailures.length > 0) {
-        setSubmitError(`Image upload failed: ${uploadFailures[0]}. ${uploadFailures.length > 1 ? `(${uploadFailures.length} image(s) failed.)` : ''}`);
-        setSubmitting(false);
-        return;
-      }
-      const imageUrl = photoUrls[0] || formData.robotImageUrl || null;
-
-      let annotatedImageUrl = formData.annotatedImageUrl || null;
-      if (formData.autoPaths?.length > 0 && formData.teamNumber) {
-        const blob = exportedAnnotatedBlobRef.current ?? (await annotatorRef.current?.exportToBlob?.());
-        if (blob) {
-          const fd = new FormData();
-          const compressedBlob = await compressImageForUpload(blob);
-          fd.append('image', compressedBlob, `auto_paths_team_${formData.teamNumber}_${Date.now()}.jpg`);
-          fd.append('teamNumber', formData.teamNumber.toString());
-          fd.append('teamName', formData.robotName || 'Unknown');
-          try {
-            const upRes = await fetch('/api/upload-robot-image', { method: 'POST', body: fd });
-            const text = await upRes.text();
-            let upData: { directViewUrl?: string } = {};
-            try {
-              if (text && text.trim().startsWith('{')) upData = JSON.parse(text);
-            } catch {
-              // non-JSON response (e.g. 413 Request Entity Too Large)
-            }
-            if (upRes.ok && upData.directViewUrl) annotatedImageUrl = upData.directViewUrl;
-          } catch {
-            console.warn('Failed to upload annotated image');
-          }
-        }
-      }
-
       const validation = validatePitScoutingForm(formData);
 
       if (!validation.isValid) {
         setValidationErrors(validation.errors);
         const errorMessage = 'Please fix the errors before submitting: ' + Object.values(validation.errors).join(', ');
         throw new Error(errorMessage);
+      }
+
+      // Convert image files to compressed blobs for the offline queue
+      const photoItems = (formData.photos || []).slice(0, 6);
+      const photosToUpload: { name: string; blob: Blob }[] = [];
+      const photoUrls: string[] = [];
+
+      for (const item of photoItems) {
+        if (!item) continue;
+        if (typeof item === 'string') {
+          const url = item.trim();
+          if (url) photoUrls.push(url);
+        } else {
+          const name = item.name && /\.(jpe?g|png|gif|webp|heic)$/i.test(item.name) ? item.name : `robot_${formData.teamNumber}_${Date.now()}.jpg`;
+          const toUpload = await compressImageForUpload(item);
+          const uploadName = toUpload.type === 'image/jpeg' ? (name.replace(/\.[a-z]+$/i, '') + '.jpg') : name;
+          photosToUpload.push({ name: uploadName, blob: toUpload });
+        }
+      }
+
+      const imageUrl = photoUrls[0] || formData.robotImageUrl || null;
+
+      let annotatedImageToUpload: { name: string; blob: Blob } | null = null;
+      let annotatedImageUrl = formData.annotatedImageUrl || null;
+      
+      if (formData.autoPaths?.length > 0 && formData.teamNumber) {
+        const blob = exportedAnnotatedBlobRef.current ?? (await annotatorRef.current?.exportToBlob?.());
+        if (blob) {
+          const compressedBlob = await compressImageForUpload(blob);
+          annotatedImageToUpload = { name: `auto_paths_team_${formData.teamNumber}_${Date.now()}.jpg`, blob: compressedBlob };
+        }
       }
 
       const submissionData = {
@@ -482,15 +443,9 @@ export default function PitScouting() {
         climb_location: formData.climbLocation || null,
         robot_dimensions: (() => {
           const dims: { length?: number; width?: number; height?: number } = {};
-          if (formData.robotDimensions.length !== undefined && formData.robotDimensions.length !== null) {
-            dims.length = formData.robotDimensions.length;
-          }
-          if (formData.robotDimensions.width !== undefined && formData.robotDimensions.width !== null) {
-            dims.width = formData.robotDimensions.width;
-          }
-          if (formData.robotDimensions.height !== undefined && formData.robotDimensions.height !== null) {
-            dims.height = formData.robotDimensions.height;
-          }
+          if (formData.robotDimensions.length !== undefined && formData.robotDimensions.length !== null) dims.length = formData.robotDimensions.length;
+          if (formData.robotDimensions.width !== undefined && formData.robotDimensions.width !== null) dims.width = formData.robotDimensions.width;
+          if (formData.robotDimensions.height !== undefined && formData.robotDimensions.height !== null) dims.height = formData.robotDimensions.height;
           return dims;
         })(),
         weight: formData.weight,
@@ -509,47 +464,22 @@ export default function PitScouting() {
         submitted_by_email: user.email,
         submitted_by_name: formData.scoutName || user?.user_metadata?.full_name || user?.email,
         submitted_at: new Date().toISOString(),
+        organization_id: user.organization_id, // Add organization_id
       };
 
-      console.log('[PitScouting] Final submission data:', {
-        team: submissionData.team_number,
-        climb_location: submissionData.climb_location,
-        imageUrl: submissionData.robot_image_url,
-        photos: submissionData.photos
+      await addToOfflineQueue('pit-scouting', {
+        submissionData,
+        photosToUpload,
+        annotatedImageToUpload,
+        editingId: isEditMode ? editingId : null,
+      }, {
+        organizationId: user?.organization_id || '',
+        teamNumber: formData.teamNumber,
       });
 
-      console.log('Saving to database with imageUrl:', imageUrl);
-      console.log('Submission data robot_image_url:', submissionData.robot_image_url);
-
-      let error;
-
-      if (isEditMode && editingId) {
-        const { submitted_by, submitted_by_email, submitted_by_name, submitted_at, ...updateFields } = submissionData;
-        const payload = { ...updateFields, robot_image_url: submissionData.robot_image_url, photos: submissionData.photos };
-        console.log('Updating existing record:', editingId, 'robot_image_url:', payload.robot_image_url, 'photos count:', payload.photos?.length);
-        const result = await supabase
-          .from('pit_scouting_data')
-          .update(payload)
-          .eq('id', editingId)
-          .select();
-        error = result.error;
-        if (result.data) console.log('Update result:', result.data);
-      } else {
-        console.log('Inserting new record');
-        const result = await supabase
-          .from('pit_scouting_data')
-          .insert([submissionData])
-          .select();
-        error = result.error;
-        if (result.data) console.log('Insert result:', result.data);
-      }
-
-      if (error) {
-        console.error('Database save error:', error);
-        throw new Error(`Failed to save pit scouting data: ${error.message}`);
-      }
-
-      console.log('Database save successful!');
+      // Dispatch event to update SyncButton
+      window.dispatchEvent(new Event('offline-queue-updated'));
+      toast.success('Saved locally! Click "Submit Pending" in the menu to upload.');
 
       try {
         sessionStorage.removeItem('pitScoutingDraft');
@@ -567,7 +497,7 @@ export default function PitScouting() {
       }, 2000);
 
     } catch (error) {
-      console.error('Form submission error:', error);
+      console.error('Form processing error:', error);
       setSubmitError(error instanceof Error ? error.message : 'An unknown error occurred.');
     } finally {
       setSubmitting(false);

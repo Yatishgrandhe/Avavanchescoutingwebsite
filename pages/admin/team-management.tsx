@@ -58,10 +58,6 @@ export default function TeamManagementPage() {
   const [newScoutName, setNewScoutName] = useState('');
   const [scoutsLoading, setScoutsLoading] = useState(false);
 
-  // Match Schedule State
-  const [uploadingSchedule, setUploadingSchedule] = useState(false);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-
   // Competition Settings State
   const [eventKey, setEventKey] = useState('');
   const [eventName, setEventName] = useState('');
@@ -463,41 +459,6 @@ export default function TeamManagementPage() {
     }
   };
 
-  const handleScheduleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) return;
-
-    setUploadingSchedule(true);
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const text = event.target?.result as string;
-      try {
-        const res = await fetch('/api/admin/upload-schedule', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({ csv: text }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          toast.success(`Successfully uploaded ${data.count} matches`);
-        } else {
-          toast.error(data.error || 'Failed to upload schedule');
-        }
-      } catch (err) {
-        toast.error('Failed to upload schedule');
-      } finally {
-        setUploadingSchedule(false);
-      }
-    };
-    reader.readAsText(file);
-  };
-
   if (adminLoading) {
     return (
       <ProtectedRoute>
@@ -750,38 +711,7 @@ export default function TeamManagementPage() {
                     )}
                   </div>
 
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="rounded-xl border border-border/60 bg-muted/15 p-4 space-y-3">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                        <ClipboardList className="h-4 w-4 text-primary shrink-0" aria-hidden />
-                        Schedule upload
-                      </div>
-                      <label
-                        htmlFor="schedule-upload"
-                        className="flex flex-col gap-2 cursor-pointer rounded-lg border border-dashed border-border/80 bg-background/30 px-3 py-4 text-center transition-colors hover:border-primary/40 hover:bg-muted/20"
-                      >
-                        <span className="text-xs font-medium text-foreground">Choose CSV file</span>
-                        <Input
-                          id="schedule-upload"
-                          type="file"
-                          accept=".csv"
-                          className="h-auto cursor-pointer text-xs file:mr-2 file:rounded-md file:border-0 file:bg-primary/15 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary"
-                          onChange={handleScheduleUpload}
-                          disabled={uploadingSchedule}
-                        />
-                      </label>
-                      <p className="text-[11px] text-muted-foreground leading-snug">
-                        Columns: match_key, scheduled_date, scheduled_time, comp_level, match_number, set_number, red1…blue3,
-                        red_score, blue_score
-                      </p>
-                      {uploadingSchedule && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" aria-hidden />
-                          Processing…
-                        </div>
-                      )}
-                    </div>
-
+                  <div>
                     <div className="rounded-xl border border-amber-500/35 bg-amber-500/[0.06] p-4 space-y-3">
                       <div className="flex items-center gap-2 text-sm font-semibold text-amber-200">
                         <Clock className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />

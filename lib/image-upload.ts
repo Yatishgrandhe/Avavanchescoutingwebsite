@@ -1,10 +1,10 @@
 /**
  * Client-side image compression to avoid 413 (Request Entity Too Large).
- * Vercel serverless has a 4.5MB request body limit; we target 3.5MB to stay under it.
+ * Vercel serverless has a 4.5MB request body limit; we target 1.5MB for better fit/performance.
  */
 
-const TARGET_MAX_BYTES = 3.5 * 1024 * 1024;
-const MAX_DIMENSION = 1920;
+const TARGET_MAX_BYTES = 1.5 * 1024 * 1024;
+const MAX_DIMENSION = 1200;
 
 /**
  * Compress a File or Blob for upload. If already under target size, returns a Blob copy.

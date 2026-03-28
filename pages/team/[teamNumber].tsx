@@ -248,9 +248,38 @@ const TeamDetail: React.FC = () => {
         .eq('team_number', teamNum)
         .order('created_at', { ascending: false })
         .limit(10);
-      const pitDataResult = (pitDataRows && pitDataRows.length > 0)
+      
+      let pitDataResult = (pitDataRows && pitDataRows.length > 0)
         ? pitDataRows.find((r: any) => (r.robot_image_url && r.robot_image_url.trim()) || (Array.isArray(r.photos) && r.photos.length > 0)) || pitDataRows[0]
         : null;
+
+      // Fallback: If no robot image in current competition, check past competitions for this ORG
+      if (user?.organization_id && (!pitDataResult || !getRobotImageUrl(pitDataResult))) {
+        const { data: pastPitData } = await supabase
+          .from('past_pit_scouting_data')
+          .select('*')
+          .eq('team_number', teamNum)
+          .eq('organization_id', user.organization_id)
+          .order('created_at', { ascending: false });
+        
+        if (pastPitData && pastPitData.length > 0) {
+          const pastWithImage = pastPitData.find((r: any) => 
+            (r.robot_image_url && String(r.robot_image_url).trim()) || 
+            (Array.isArray(r.photos) && r.photos.length > 0)
+          );
+          
+          if (pastWithImage) {
+            if (!pitDataResult) {
+               pitDataResult = { ...pastWithImage, is_fallback: true };
+            } else {
+               // We have pit data but no image. Fallback the image fields.
+               pitDataResult.robot_image_url = pastWithImage.robot_image_url;
+               pitDataResult.photos = pastWithImage.photos;
+               (pitDataResult as any).is_fallback = true;
+            }
+          }
+        }
+      }
 
       setTeam(teamData);
       setScoutingData(scoutingDataResult || []);
@@ -481,17 +510,27 @@ const TeamDetail: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mt-2">
         <div className="flex items-end gap-4 flex-1 min-w-0">
           {robotImageUrl && (
-            <button
-              type="button"
-              onClick={() => setFullScreenImageUrl(robotImageUrl)}
-              className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 border-white/10 hover:border-primary/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              <img
-                src={robotImageUrl}
-                alt={`${team?.team_name ?? 'Team'} robot`}
-                className="w-full h-full object-cover"
-              />
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setFullScreenImageUrl(robotImageUrl)}
+                className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 border-white/10 hover:border-primary/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <img
+                  src={robotImageUrl}
+                  alt={`${team?.team_name ?? 'Team'} robot`}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+              {(pitData as any)?.is_fallback && (
+                <Badge 
+                  variant="secondary" 
+                  className="absolute -top-2 -right-2 bg-amber-600 text-[10px] h-5 px-1.5 border-amber-400/50 text-white font-bold shadow-xl"
+                >
+                  PAST
+                </Badge>
+              )}
+            </div>
           )}
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">

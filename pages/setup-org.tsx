@@ -18,7 +18,7 @@ import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 export default function SetupOrg() {
-  const { user, authUser, supabase } = useSupabase();
+  const { user, supabase } = useSupabase();
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -125,36 +125,30 @@ export default function SetupOrg() {
       if (orgError) throw orgError;
 
       const tn = parseInt(teamNumber, 10);
-      const { error: userUpdateError } = await supabase.from('users').upsert(
-        {
-          id: user?.id,
-          email: user?.email ?? null,
-          name: user?.name || (authUser?.user_metadata as { full_name?: string })?.full_name || 'User',
-          image: (authUser?.user_metadata as { avatar_url?: string })?.avatar_url || null,
-          organization_id: org.id,
-          role: 'admin',
-          team_number: Number.isFinite(tn) ? tn : null,
-          can_edit_forms: true,
-          can_view_pick_list: true,
-          can_view_stats: true,
-          updated_at: new Date().toISOString(),
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Not signed in');
+      }
+
+      const completeRes = await fetch('/api/organization/complete-new-org-setup', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
         },
-        { onConflict: 'id' }
-      );
+        body: JSON.stringify({
+          token: inviteToken,
+          organizationId: org.id,
+          teamNumber: Number.isFinite(tn) ? tn : null,
+        }),
+      });
 
-      if (userUpdateError) throw userUpdateError;
+      if (!completeRes.ok) {
+        const j = await completeRes.json().catch(() => ({}));
+        throw new Error(j.error || 'Failed to assign you as organization admin');
+      }
 
-      // 3. Mark the invite as used
-      await supabase
-        .from('organization_invites')
-        .update({ 
-          status: 'used',
-          used_at: new Date().toISOString(),
-          used_by: user?.id
-        })
-        .eq('token', inviteToken);
-
-      // 4. Clear the token from localStorage
+      // Clear the token from localStorage
       localStorage.removeItem('org_invite_token');
 
       toast({

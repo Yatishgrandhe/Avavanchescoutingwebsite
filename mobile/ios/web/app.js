@@ -305,18 +305,62 @@
     `;
   }
 
+  /** Recent activity without PostgREST embeds (composite FK breaks matches/teams hints). */
+  async function fetchRecentActivityRows() {
+    const { data: scoutRows, error } = await supabase
+      .from('scouting_data')
+      .select('id, match_id, team_number, created_at, organization_id')
+      .order('created_at', { ascending: false })
+      .limit(5);
+    if (error || !scoutRows || !scoutRows.length) return [];
+    var orgIds = Array.from(new Set(scoutRows.map(function (r) { return r.organization_id; }).filter(Boolean)));
+    var matchIds = Array.from(new Set(scoutRows.map(function (r) { return r.match_id; }).filter(Boolean)));
+    var teamNums = Array.from(new Set(scoutRows.map(function (r) { return r.team_number; }).filter(function (n) { return typeof n === 'number'; })));
+    var matchPromise = orgIds.length && matchIds.length
+      ? supabase.from('matches').select('match_id, match_number, event_key, organization_id').in('organization_id', orgIds).in('match_id', matchIds)
+      : Promise.resolve({ data: [] });
+    var teamPromise = orgIds.length && teamNums.length
+      ? supabase.from('teams').select('team_number, team_name, organization_id').in('organization_id', orgIds).in('team_number', teamNums)
+      : Promise.resolve({ data: [] });
+    var _ref = await Promise.all([matchPromise, teamPromise]);
+    var matchRes = _ref[0];
+    var teamRes = _ref[1];
+    var matchMap = new Map();
+    (matchRes.data || []).forEach(function (m) {
+      matchMap.set(m.organization_id + ':' + m.match_id, m);
+    });
+    var teamMap = new Map();
+    (teamRes.data || []).forEach(function (t) {
+      teamMap.set(t.organization_id + ':' + t.team_number, t.team_name);
+    });
+    return scoutRows.map(function (r) {
+      var oid = r.organization_id || '';
+      var mk = oid + ':' + r.match_id;
+      var tk = oid + ':' + r.team_number;
+      var m = matchMap.get(mk);
+      return {
+        id: r.id,
+        team_number: r.team_number,
+        match_id: r.match_id,
+        created_at: r.created_at,
+        match_number: m ? m.match_number : null,
+        team_name: teamMap.get(tk) || null
+      };
+    });
+  }
+
   async function renderDashboard() {
     appEl.innerHTML = '<div class="loading">Loading dashboard…</div>';
     let teams = [], matches = [], scouting = [], activity = [];
     try {
-      const [t, s, a] = await Promise.all([
+      const [t, s, activityRows] = await Promise.all([
         supabase.from('teams').select('team_number,team_name').order('team_number'),
         supabase.from('scouting_data').select('match_id').order('created_at', { ascending: false }),
-        supabase.from('scouting_data').select('id,team_number,match_id,created_at,matches(match_number,event_key),teams(team_name)').order('created_at', { ascending: false }).limit(5)
+        fetchRecentActivityRows()
       ]);
       teams = t.data || [];
       scouting = s.data || [];
-      activity = a.data || [];
+      activity = activityRows || [];
     } catch (e) {
       console.error(e);
     }
@@ -331,8 +375,8 @@
         <a href="#/team/${row.team_number}" class="activity-item" style="text-decoration:none;color:inherit;">
           <div class="activity-icon">✓</div>
           <div class="activity-body">
-            <strong>Match ${row.matches?.match_number ?? row.match_id} Scouted</strong>
-            <div class="card-desc">Team ${row.team_number} • ${row.teams?.team_name ?? 'Avalanche'}</div>
+            <strong>Match ${row.match_number != null ? row.match_number : row.match_id} Scouted</strong>
+            <div class="card-desc">Team ${row.team_number} • ${row.team_name != null ? row.team_name : '—'}</div>
           </div>
         </a>
       `).join('')

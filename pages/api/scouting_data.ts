@@ -233,6 +233,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
         }
 
+        // Composite FK: matches(organization_id, match_id) — must exist before insert (avoids opaque 500)
+        const { data: matchScheduleRow } = await supabase
+          .from('matches')
+          .select('match_id')
+          .eq('organization_id', userOrgId)
+          .eq('match_id', finalMatchId)
+          .maybeSingle();
+        if (!matchScheduleRow) {
+          res.status(400).json({
+            error:
+              'This match is not in your event schedule yet. In Team Management, set the current competition and use Sync from TBA (or sync the schedule), then try again.',
+            details: `missing match_id=${finalMatchId} for your organization`,
+          });
+          return;
+        }
+
         // Create scouting data
         const scoutingData = {
           scout_id: user.id,

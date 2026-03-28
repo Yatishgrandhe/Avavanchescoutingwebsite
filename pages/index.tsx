@@ -32,6 +32,7 @@ import Logo from '../components/ui/Logo';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useSupabase } from '@/pages/_app';
 import { useRefreshHandler } from '@/lib/refresh-handler';
+import { fetchRecentMatchScoutingForActivity } from '@/lib/dashboard-activity';
 // Enhanced Avalanche Animation
 const AvalancheAnimation = () => {
   return (
@@ -285,12 +286,8 @@ export default function Home() {
   const loadRecentActivity = async () => {
     setLoadingActivity(true);
     try {
-      const [scoutingRes, pitRes] = await Promise.all([
-        supabase
-          .from('scouting_data')
-          .select('id, match_id, team_number, created_at, matches:match_id (match_number, event_key), teams:team_number (team_name)')
-          .order('created_at', { ascending: false })
-          .limit(5),
+      const [enrichedScouting, pitRes] = await Promise.all([
+        fetchRecentMatchScoutingForActivity(supabase, { orgId: user?.organization_id, limit: 5 }),
         supabase
           .from('pit_scouting_data')
           .select('id, team_number, robot_name, created_at')
@@ -300,19 +297,17 @@ export default function Home() {
 
       const activities: RecentActivity[] = [];
 
-      if (scoutingRes.data) {
-        scoutingRes.data.forEach((entry: any) => {
-          activities.push({
-            id: entry.id,
-            type: 'match',
-            title: `Match ${entry.matches?.match_number ?? '?'} scouted`,
-            description: `Team ${entry.team_number} • ${entry.teams?.team_name || '—'}`,
-            timestamp: getTimeAgo(new Date(entry.created_at)),
-            icon: 'check',
-            _sort: new Date(entry.created_at).getTime(),
-          } as RecentActivity & { _sort: number });
-        });
-      }
+      enrichedScouting.forEach((entry) => {
+        activities.push({
+          id: entry.id,
+          type: 'match',
+          title: `Match ${entry.match_number ?? '?'} scouted`,
+          description: `Team ${entry.team_number} • ${entry.team_name || '—'}`,
+          timestamp: getTimeAgo(new Date(entry.created_at)),
+          icon: 'check',
+          _sort: new Date(entry.created_at).getTime(),
+        } as RecentActivity & { _sort: number });
+      });
       if (pitRes.data?.length) {
         pitRes.data.forEach((entry: any) => {
           activities.push({

@@ -256,28 +256,71 @@ struct HomeView: View {
     func fetchRecentActivity() {
         Task {
             do {
-                struct Row: Decodable {
+                struct ScoutRow: Decodable {
                     let id: String?
                     let team_number: Int
                     let match_id: String
                     let created_at: String?
-                    let matches: MatchInfo?
-                    let teams: TeamInfo?
-                    struct MatchInfo: Decodable { let match_number: Int?; let event_key: String? }
-                    struct TeamInfo: Decodable { let team_name: String? }
+                    let organization_id: String?
                 }
-                let rows: [Row] = try await SupabaseManager.shared.client
+                struct MatchRow: Decodable {
+                    let match_id: String
+                    let match_number: Int?
+                    let event_key: String?
+                    let organization_id: String
+                }
+                struct TeamRow: Decodable {
+                    let team_number: Int
+                    let team_name: String?
+                    let organization_id: String
+                }
+                let scoutRows: [ScoutRow] = try await SupabaseManager.shared.client
                     .from("scouting_data")
-                    .select("id,team_number,match_id,created_at,matches(match_number,event_key),teams(team_name)")
+                    .select("id,team_number,match_id,created_at,organization_id")
                     .order("created_at", ascending: false)
                     .limit(5)
                     .execute()
                     .value
-                let items = rows.map { row in
-                    RecentActivityItem(
+                let orgIds = Array(Set(scoutRows.compactMap(\.organization_id)))
+                let matchIds = Array(Set(scoutRows.map(\.match_id)))
+                let teamNums = Array(Set(scoutRows.map(\.team_number)))
+                var matchLookup: [String: MatchRow] = [:]
+                var teamLookup: [String: String] = [:]
+                if !orgIds.isEmpty, !matchIds.isEmpty {
+                    let matchRows: [MatchRow] = try await SupabaseManager.shared.client
+                        .from("matches")
+                        .select("match_id, match_number, event_key, organization_id")
+                        .in("organization_id", values: orgIds)
+                        .in("match_id", values: matchIds)
+                        .execute()
+                        .value
+                    for m in matchRows {
+                        matchLookup["\(m.organization_id):\(m.match_id)"] = m
+                    }
+                }
+                if !orgIds.isEmpty, !teamNums.isEmpty {
+                    let teamRows: [TeamRow] = try await SupabaseManager.shared.client
+                        .from("teams")
+                        .select("team_number, team_name, organization_id")
+                        .in("organization_id", values: orgIds)
+                        .in("team_number", values: teamNums)
+                        .execute()
+                        .value
+                    for t in teamRows {
+                        teamLookup["\(t.organization_id):\(t.team_number)"] = t.team_name ?? "Unknown"
+                    }
+                }
+                let items = scoutRows.map { row in
+                    let oid = row.organization_id ?? ""
+                    let mk = "\(oid):\(row.match_id)"
+                    let tk = "\(oid):\(row.team_number)"
+                    let matchNum = matchLookup[mk]?.match_number
+                    let title = "Match \(matchNum.map { String($0) } ?? row.match_id) completed"
+                    let teamName = teamLookup[tk] ?? "Unknown"
+                    return RecentActivityItem(
                         id: row.id ?? UUID().uuidString,
-                        title: "Match \(row.matches?.match_number.map { String($0) } ?? row.match_id) completed",
-                        description: "Team \(row.team_number) – \(row.teams?.team_name ?? "Unknown")",
+                        title: title,
+                        description: "Team \(row.team_number) – \(teamName)",
                         timestamp: timeAgo(from: row.created_at ?? "")
                     )
                 }

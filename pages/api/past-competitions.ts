@@ -379,7 +379,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: 'Failed to fetch competitions' });
       }
 
-      const compIds = (competitions || []).map((c: { id: string }) => c.id);
+      const compIds = (competitions || []).map((c) => c.id);
       const teamCountMap = new Map<string, number>();
       const matchCountMap = new Map<string, number>();
       if (compIds.length > 0) {
@@ -405,13 +405,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
-      const competitionsWithCounts = (competitions || []).map((c: { id: string }) => ({
+      const competitionsWithCounts = (competitions || []).map((c) => ({
         ...c,
         total_teams: teamCountMap.get(c.id) ?? 0,
         total_matches: matchCountMap.get(c.id) ?? 0,
       }));
 
-      const pastKeys = (competitionsWithCounts || []).map((c: { competition_key: string }) => c.competition_key);
+      const pastKeys = competitionsWithCounts.map((c) => c.competition_key);
       const { data: allMatches, error: matchesErr } = await supabaseAdmin
         .from('matches')
         .select('match_id, event_key, red_teams, blue_teams')

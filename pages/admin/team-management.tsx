@@ -79,19 +79,42 @@ export default function TeamManagementPage() {
   useEffect(() => {
     let cancelled = false;
     async function loadOrg() {
+      // If no org ID, check if they are a superadmin for a better fallback
       if (!user?.organization_id) {
-        setOrgName(null);
-        setOrgLoading(false);
+        if (!cancelled) {
+          if (user?.role === 'superadmin') {
+            setOrgName('Avalanche (Global)');
+          } else {
+            setOrgName(null);
+          }
+          setOrgLoading(false);
+        }
         return;
       }
-      const { data, error } = await supabase
-        .from('organizations')
-        .select('name')
-        .eq('id', user.organization_id)
-        .maybeSingle();
-      if (!cancelled && !error && data?.name) setOrgName(data.name);
-      else if (!cancelled) setOrgName(null);
-      if (!cancelled) setOrgLoading(false);
+      
+      try {
+        const { data, error } = await supabase
+          .from('organizations')
+          .select('name')
+          .eq('id', user.organization_id)
+          .maybeSingle();
+
+        if (cancelled) return;
+
+        if (error) {
+          console.error('Error loading organization:', error);
+          setOrgName(null);
+        } else if (data?.name) {
+          setOrgName(data.name);
+        } else {
+          // If ID exists but no record, or no name
+          setOrgName(user?.role === 'superadmin' ? 'Avalanche (Global)' : 'Unknown');
+        }
+      } catch (err) {
+        console.error('Failed to load organization', err);
+      } finally {
+        if (!cancelled) setOrgLoading(false);
+      }
     }
     loadOrg();
     fetchScouts();
@@ -100,7 +123,7 @@ export default function TeamManagementPage() {
     return () => {
       cancelled = true;
     };
-  }, [user?.organization_id, supabase]);
+  }, [user?.organization_id, user?.role, supabase]);
 
   const fetchInvites = async () => {
     if (!user?.organization_id) return;

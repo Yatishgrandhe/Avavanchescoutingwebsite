@@ -341,10 +341,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           pickLists = pickData || [];
         }
 
+        const teamsList = updatedTeams || [];
+        const matchesList = matches || [];
         return res.status(200).json({
-          competition,
-          teams: updatedTeams,
-          matches: matches || [],
+          competition: {
+            ...competition,
+            total_teams: teamsList.length,
+            total_matches: matchesList.length,
+          },
+          teams: teamsList,
+          matches: matchesList,
           scoutingData: scoutingData || [],
           pitScoutingData,
           pickLists,
@@ -373,7 +379,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: 'Failed to fetch competitions' });
       }
 
-      const pastKeys = (competitions || []).map((c: { competition_key: string }) => c.competition_key);
+      const compIds = (competitions || []).map((c: { id: string }) => c.id);
+      const teamCountMap = new Map<string, number>();
+      const matchCountMap = new Map<string, number>();
+      if (compIds.length > 0) {
+        const [teamsCountRes, matchesCountRes] = await Promise.all([
+          supabaseAdmin
+            .from('past_teams')
+            .select('competition_id')
+            .eq('organization_id', scopeOrgId)
+            .in('competition_id', compIds),
+          supabaseAdmin
+            .from('past_matches')
+            .select('competition_id')
+            .eq('organization_id', scopeOrgId)
+            .in('competition_id', compIds),
+        ]);
+        for (const row of teamsCountRes.data || []) {
+          const cid = (row as { competition_id: string }).competition_id;
+          teamCountMap.set(cid, (teamCountMap.get(cid) || 0) + 1);
+        }
+        for (const row of matchesCountRes.data || []) {
+          const cid = (row as { competition_id: string }).competition_id;
+          matchCountMap.set(cid, (matchCountMap.get(cid) || 0) + 1);
+        }
+      }
+
+      const competitionsWithCounts = (competitions || []).map((c: { id: string }) => ({
+        ...c,
+        total_teams: teamCountMap.get(c.id) ?? 0,
+        total_matches: matchCountMap.get(c.id) ?? 0,
+      }));
+
+      const pastKeys = (competitionsWithCounts || []).map((c: { competition_key: string }) => c.competition_key);
       const { data: allMatches, error: matchesErr } = await supabaseAdmin
         .from('matches')
         .select('match_id, event_key, red_teams, blue_teams')
@@ -426,7 +464,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const liveForResponse = viewer.isGuest ? live : [];
 
       return res.status(200).json({
-        competitions: competitions || [],
+        competitions: competitionsWithCounts,
         live: liveForResponse,
       });
     } catch (error) {

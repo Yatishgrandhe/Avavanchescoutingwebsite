@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/supabase';
 import { calculateScore } from '@/lib/utils';
 import { updateTeamEpa } from '@/lib/epa_utils';
-import { mergeShuttlingIntoStoredNotes } from '@/lib/scouting-notes-merge';
+import { mergeShuttlingIntoStoredNotes, normalizeShuttleConsistency } from '@/lib/scouting-notes-merge';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -167,28 +167,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           finalNotes = scoringNotes;
         }
 
-        const shuttleFromBody =
+        // Resolved shuttle flag (never send invalid shuttling_consistency like "N/A" to the DB)
+        const resolvedShuttle =
           miscellaneous?.shuttling === true || miscellaneous?.shuttling === false
-            ? miscellaneous.shuttling
+            ? Boolean(miscellaneous.shuttling)
             : typeof req.body.shuttling === 'boolean'
               ? req.body.shuttling
-              : undefined;
-        const shuttleConsFromBody =
+              : false;
+
+        const rawShuttleConsistency =
           miscellaneous?.shuttling_consistency ?? req.body.shuttling_consistency ?? null;
 
-        if (
-          finalNotes &&
-          typeof finalNotes === 'object' &&
-          (shuttleFromBody === true || shuttleFromBody === false)
-        ) {
+        const shuttleConsistencyForDb = resolvedShuttle
+          ? normalizeShuttleConsistency(rawShuttleConsistency) ?? null
+          : null;
+
+        if (finalNotes && typeof finalNotes === 'object' && !Array.isArray(finalNotes)) {
           const base = { ...(finalNotes as Record<string, unknown>) };
-          if (!base.teleop || typeof base.teleop !== 'object') {
+          if (!base.teleop || typeof base.teleop !== 'object' || Array.isArray(base.teleop)) {
             base.teleop = {};
           }
           finalNotes = mergeShuttlingIntoStoredNotes(base, {
-            shuttling: shuttleFromBody,
-            shuttling_consistency: shuttleConsFromBody,
+            shuttling: resolvedShuttle,
+            shuttling_consistency: shuttleConsistencyForDb,
           });
+        }
+
+        // Drop non-JSON-safe values (NaN, undefined) so PostgREST never rejects the payload
+        try {
+          finalNotes = JSON.parse(
+            JSON.stringify(finalNotes, (_k, v) =>
+              typeof v === 'number' && Number.isNaN(v) ? null : v
+            )
+          );
+        } catch (sanitizeErr) {
+          console.error('scouting_data: failed to sanitize notes JSON', sanitizeErr);
+          res.status(400).json({ error: 'Invalid notes payload (cannot serialize to JSON)' });
+          return;
         }
 
         // alliance_position from match scouting form (1, 2, or 3)
@@ -236,14 +251,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           comments: comments || miscellaneous?.comments || '',
           average_downtime: average_downtime ?? miscellaneous?.average_downtime ?? null,
           broke: broke !== undefined ? broke : (miscellaneous?.broke ?? null),
-          shuttling:
-            miscellaneous?.shuttling === true || miscellaneous?.shuttling === false
-              ? miscellaneous.shuttling
-              : typeof req.body.shuttling === 'boolean'
-                ? req.body.shuttling
-                : false,
-          shuttling_consistency:
-            miscellaneous?.shuttling_consistency ?? req.body.shuttling_consistency ?? null,
+          shuttling: resolvedShuttle,
+          shuttling_consistency: shuttleConsistencyForDb,
           submitted_by_name: submittedByName,
           submitted_by_email: requestSubmittedByEmail?.trim() || user.email || '',
           submitted_at: new Date().toISOString(),
@@ -264,9 +273,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (insertError) {
           console.error('Database upsert error:', insertError);
+          const code = (insertError as { code?: string }).code;
+          if (code === '23503') {
+            res.status(400).json({
+              error:
+                'This match is not in your team’s event schedule (or the schedule was not synced). Ask an admin to set the competition and sync from TBA in Team Management, then try again.',
+              details: insertError.message,
+            });
+            return;
+          }
+          if (code === '42703' || /shuttling|column .* does not exist/i.test(String(insertError.message))) {
+            res.status(500).json({
+              error:
+                'Database is missing shuttle columns on scouting_data. Run the latest Supabase migration (shuttle columns) or apply SQL from supabase/migrations/20260329120000_scouting_data_shuttle_columns.sql.',
+              details: insertError.message,
+            });
+            return;
+          }
           res.status(500).json({
             error: 'Failed to save scouting data',
-            details: insertError.message
+            details: insertError.message,
           });
           return;
         }

@@ -69,7 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { data: org, error: orgErr } = await admin
     .from('organizations')
-    .select('id, created_by')
+    .select('id, created_by, name')
     .eq('id', organizationId)
     .maybeSingle();
 
@@ -81,6 +81,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (org.created_by !== user.id) {
     res.status(403).json({ error: 'You can only claim organizations you created' });
     return;
+  }
+
+  // users.team_number FK → teams(team_number). New orgs often use a number with no row yet.
+  if (teamNumber !== null) {
+    const { data: existingTeam } = await admin
+      .from('teams')
+      .select('team_number')
+      .eq('team_number', teamNumber)
+      .maybeSingle();
+
+    if (!existingTeam) {
+      const orgName = typeof org.name === 'string' && org.name.trim() ? org.name.trim() : `Team ${teamNumber}`;
+      const { error: teamInsErr } = await admin.from('teams').insert({
+        team_number: teamNumber,
+        team_name: orgName,
+        organization_id: organizationId,
+      });
+      if (teamInsErr && teamInsErr.code !== '23505') {
+        console.error('complete-new-org-setup teams insert:', teamInsErr);
+        res.status(500).json({
+          error: 'Failed to register team number',
+          details: teamInsErr.message,
+        });
+        return;
+      }
+    }
   }
 
   const { data: existing } = await admin.from('users').select('role').eq('id', user.id).maybeSingle();
@@ -112,11 +138,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (upsertErr) {
     console.error('complete-new-org-setup upsert:', upsertErr);
-    res.status(500).json({ error: 'Failed to set you as organization admin' });
+    res.status(500).json({
+      error: 'Failed to set you as organization admin',
+      details: upsertErr.message,
+      code: upsertErr.code,
+    });
     return;
   }
 
-  await admin
+  const { error: inviteUpdErr } = await admin
     .from('organization_invites')
     .update({
       status: 'used',
@@ -124,6 +154,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       used_by: user.id,
     })
     .eq('id', invite.id);
+
+  if (inviteUpdErr) {
+    console.error('complete-new-org-setup invite update:', inviteUpdErr);
+    res.status(500).json({
+      error: 'Profile updated but failed to mark invite as used',
+      details: inviteUpdErr.message,
+    });
+    return;
+  }
 
   res.status(200).json({ ok: true, organization_id: organizationId, role: newRole });
 }

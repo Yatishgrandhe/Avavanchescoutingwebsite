@@ -145,7 +145,8 @@ export default function SetupOrg() {
 
       if (!completeRes.ok) {
         const j = await completeRes.json().catch(() => ({}));
-        throw new Error(j.error || 'Failed to assign you as organization admin');
+        const detail = typeof j.details === 'string' ? ` ${j.details}` : '';
+        throw new Error((j.error || 'Failed to assign you as organization admin') + detail);
       }
 
       // Clear the token from localStorage

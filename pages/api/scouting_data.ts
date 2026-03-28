@@ -56,13 +56,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === 'POST') {
       try {
-        // Reject if match scouting is locked (admin-only setting)
-        const { data: configRows } = await supabase
-          .from('app_config')
-          .select('key, value')
-          .eq('key', 'match_scouting_locked')
-          .limit(1);
-        const matchLocked = configRows?.[0]?.value === 'true';
+        // Reject if match scouting is locked for this organization (admin-only setting)
+        let matchLocked = false;
+        if (userOrgId) {
+          const { data: lockRow } = await supabase
+            .from('app_config')
+            .select('value')
+            .eq('key', 'match_scouting_locked')
+            .eq('organization_id', userOrgId)
+            .maybeSingle();
+          matchLocked = lockRow?.value === 'true';
+        } else {
+          const { data: configRows } = await supabase
+            .from('app_config')
+            .select('value')
+            .eq('key', 'match_scouting_locked')
+            .is('organization_id', null)
+            .limit(1);
+          matchLocked = configRows?.[0]?.value === 'true';
+        }
         if (matchLocked) {
           res.status(403).json({
             error: 'Match scouting form is currently locked by an administrator. Submissions are disabled.',

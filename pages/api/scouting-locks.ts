@@ -4,6 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+const LOCK_KEYS = ['match_scouting_locked', 'pit_scouting_locked'] as const;
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   if (!supabaseUrl || !supabaseServiceKey) {
     res.status(500).json({ error: 'Server configuration error' });
@@ -14,10 +16,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'GET') {
     try {
-      const { data, error } = await supabase
-        .from('app_config')
-        .select('key, value')
-        .in('key', ['match_scouting_locked', 'pit_scouting_locked']);
+      let organizationId: string | null = null;
+      const authHeader = req.headers.authorization;
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser(token);
+        if (!authError && user) {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('organization_id')
+            .eq('id', user.id)
+            .maybeSingle();
+          organizationId = profile?.organization_id ?? null;
+        }
+      }
+
+      let query = supabase.from('app_config').select('key, value').in('key', [...LOCK_KEYS]);
+
+      if (organizationId) {
+        query = query.eq('organization_id', organizationId);
+      } else {
+        // Unauthenticated or user without org: legacy rows only (pre–multi-tenant)
+        query = query.is('organization_id', null);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('scouting-locks GET error:', error);
@@ -56,17 +82,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     const { data: profile } = await supabase
       .from('users')
-      .select('role')
+      .select('role, organization_id')
       .eq('id', user.id)
       .maybeSingle();
 
     const isAdmin =
       profile?.role === 'admin' ||
       profile?.role === 'superadmin' ||
-      user.user_metadata?.role === 'admin';
+      user.user_metadata?.role === 'admin' ||
+      user.user_metadata?.role === 'superadmin';
 
     if (!isAdmin) {
       res.status(403).json({ error: 'Admin only' });
+      return;
+    }
+
+    const organizationId = profile?.organization_id;
+    if (!organizationId) {
+      res.status(400).json({ error: 'User is not in an organization' });
       return;
     }
 
@@ -86,17 +119,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
+      const now = new Date().toISOString();
       for (const { key, value } of updates) {
-        const { error } = await supabase
-          .from('app_config')
-          .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+        const { error } = await supabase.from('app_config').upsert(
+          { key, value, organization_id: organizationId, updated_at: now },
+          { onConflict: 'key,organization_id' }
+        );
         if (error) throw error;
       }
 
       const { data: rows, error } = await supabase
         .from('app_config')
         .select('key, value')
-        .in('key', ['match_scouting_locked', 'pit_scouting_locked']);
+        .eq('organization_id', organizationId)
+        .in('key', [...LOCK_KEYS]);
 
       if (error) throw error;
       const row = (rows || []).reduce<Record<string, string>>((acc, r: { key: string; value: string }) => {

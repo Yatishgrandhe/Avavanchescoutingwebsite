@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSupabase } from '@/pages/_app';
+import { toast } from '@/hooks/use-toast';
 
 export interface ScoutingLocks {
   matchScoutingLocked: boolean;
@@ -16,7 +17,11 @@ export function useScoutingLocks() {
 
   const fetchLocks = useCallback(async () => {
     try {
-      const res = await fetch('/api/scouting-locks');
+      const headers: HeadersInit = {};
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
+      const res = await fetch('/api/scouting-locks', { headers });
       if (!res.ok) return;
       const data = await res.json();
       setLocks({
@@ -28,15 +33,23 @@ export function useScoutingLocks() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [session?.access_token]);
 
   useEffect(() => {
+    setLoading(true);
     fetchLocks();
   }, [fetchLocks]);
 
   const setMatchScoutingLocked = useCallback(
     async (locked: boolean) => {
-      if (!session?.access_token) return;
+      if (!session?.access_token) {
+        toast({
+          title: 'Sign in required',
+          description: 'You need to be signed in to change scouting locks.',
+          variant: 'destructive',
+        });
+        return;
+      }
       try {
         const res = await fetch('/api/scouting-locks', {
           method: 'PATCH',
@@ -46,11 +59,26 @@ export function useScoutingLocks() {
           },
           body: JSON.stringify({ matchScoutingLocked: locked }),
         });
-        if (!res.ok) throw new Error('Failed to update');
-        const data = await res.json();
+        const data = (await res.json().catch(() => ({}))) as {
+          matchScoutingLocked?: boolean;
+          error?: string;
+        };
+        if (!res.ok) {
+          const msg =
+            typeof data?.error === 'string' ? data.error : 'Failed to update match scouting lock';
+          throw new Error(msg);
+        }
         setLocks((prev) => ({ ...prev, matchScoutingLocked: !!data.matchScoutingLocked }));
+        toast({
+          title: locked ? 'Match scouting locked' : 'Match scouting unlocked',
+        });
       } catch (err) {
         console.error('Failed to set match scouting lock:', err);
+        toast({
+          title: 'Could not update lock',
+          description: err instanceof Error ? err.message : 'Failed to update match scouting lock',
+          variant: 'destructive',
+        });
       }
     },
     [session?.access_token]
@@ -58,7 +86,14 @@ export function useScoutingLocks() {
 
   const setPitScoutingLocked = useCallback(
     async (locked: boolean) => {
-      if (!session?.access_token) return;
+      if (!session?.access_token) {
+        toast({
+          title: 'Sign in required',
+          description: 'You need to be signed in to change scouting locks.',
+          variant: 'destructive',
+        });
+        return;
+      }
       try {
         const res = await fetch('/api/scouting-locks', {
           method: 'PATCH',
@@ -68,11 +103,26 @@ export function useScoutingLocks() {
           },
           body: JSON.stringify({ pitScoutingLocked: locked }),
         });
-        if (!res.ok) throw new Error('Failed to update');
-        const data = await res.json();
+        const data = (await res.json().catch(() => ({}))) as {
+          pitScoutingLocked?: boolean;
+          error?: string;
+        };
+        if (!res.ok) {
+          const msg =
+            typeof data?.error === 'string' ? data.error : 'Failed to update pit scouting lock';
+          throw new Error(msg);
+        }
         setLocks((prev) => ({ ...prev, pitScoutingLocked: !!data.pitScoutingLocked }));
+        toast({
+          title: locked ? 'Pit scouting locked' : 'Pit scouting unlocked',
+        });
       } catch (err) {
         console.error('Failed to set pit scouting lock:', err);
+        toast({
+          title: 'Could not update lock',
+          description: err instanceof Error ? err.message : 'Failed to update pit scouting lock',
+          variant: 'destructive',
+        });
       }
     },
     [session?.access_token]

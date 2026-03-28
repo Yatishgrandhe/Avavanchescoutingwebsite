@@ -4,6 +4,7 @@ import { CloudUpload, Loader2 } from 'lucide-react';
 import { getOfflineQueue, removeFromOfflineQueue, QueueItem } from '@/lib/offline-queue';
 import { toast } from 'sonner';
 import { useSupabase } from '@/pages/_app';
+import { cn } from '@/lib/utils';
 
 export default function SyncButton() {
   const [queueCount, setQueueCount] = useState(0);
@@ -141,18 +142,34 @@ export default function SyncButton() {
     }
   };
 
-  if (queueCount === 0) return null;
-
   return (
     <Button 
       variant="outline" 
       size="sm" 
       onClick={handleSync}
-      disabled={isSyncing}
-      className={`relative border-primary/20 hover:bg-primary/10 mr-2 ${queueCount > 0 ? 'bg-primary/5' : ''}`}
+      disabled={isSyncing || queueCount === 0}
+      className={cn(
+        "relative flex items-center gap-2 h-9 px-4 transition-all duration-300 rounded-lg border",
+        queueCount > 0 
+          ? "border-primary bg-primary/20 text-primary hover:bg-primary/30 shadow-[0_0_15px_rgba(59,130,246,0.3)] ring-1 ring-primary/50" 
+          : "border-border/30 bg-transparent text-muted-foreground/30 opacity-40"
+      )}
     >
-      {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin text-primary" /> : <CloudUpload className="w-4 h-4 mr-2 text-primary" />}
-      <span className="font-medium">Submit Pending ({queueCount})</span>
+      {isSyncing ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <CloudUpload className={cn("w-4 h-4", queueCount > 0 && "animate-pulse")} />
+      )}
+      <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+        {queueCount > 0 ? `SUBMIT ${queueCount} PENDING` : "UP TO DATE"}
+      </span>
+      
+      {queueCount > 0 && (
+        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
+        </span>
+      )}
     </Button>
   );
 }

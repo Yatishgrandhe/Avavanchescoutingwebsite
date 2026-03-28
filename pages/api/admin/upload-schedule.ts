@@ -78,7 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Upsert matches based on match_id
     const { error: insertError } = await supabase
       .from('matches')
-      .upsert(matchesToInsert, { onConflict: 'match_id' });
+      .upsert(matchesToInsert, { onConflict: 'organization_id,match_id' });
 
     if (insertError) {
       console.error('Match insert error:', insertError);

@@ -1,27 +1,101 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+async function loadTeamNameMap(
+  supabase: SupabaseClient,
+  organizationId: string,
+  eventKey: string,
+  teamNumbers: number[]
+): Promise<Map<number, { team_name: string; team_color?: string | null }>> {
+  const map = new Map<number, { team_name: string; team_color?: string | null }>();
+  if (teamNumbers.length === 0) return map;
+
+  const { data: roster } = await supabase
+    .from('event_team_roster')
+    .select('team_number, team_name')
+    .eq('organization_id', organizationId)
+    .eq('event_key', eventKey)
+    .in('team_number', teamNumbers);
+
+  for (const r of roster || []) {
+    map.set((r as { team_number: number }).team_number, {
+      team_name: (r as { team_name: string }).team_name,
+    });
+  }
+
+  const missing = teamNumbers.filter((n) => !map.has(n));
+  if (missing.length > 0) {
+    const { data: teams } = await supabase
+      .from('teams')
+      .select('team_number, team_name, team_color')
+      .in('team_number', missing);
+    for (const t of teams || []) {
+      const row = t as { team_number: number; team_name: string; team_color?: string | null };
+      if (!map.has(row.team_number)) {
+        map.set(row.team_number, { team_name: row.team_name, team_color: row.team_color });
+      }
+    }
+  }
+
+  return map;
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
   if (req.method === 'GET') {
     try {
-      const { event_key } = req.query;
-
-      // First, fetch all matches
-      let matchesQuery = supabase
-        .from('matches')
-        .select('*')
-        .order('match_number', { ascending: true });
-
-      if (event_key) {
-        matchesQuery = matchesQuery.eq('event_key', event_key);
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const { data: matches, error: matchesError } = await matchesQuery;
+      const token = authHeader.split(' ')[1];
+      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !authUser) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const { data: profile } = await supabase
+        .from('users')
+        .select('organization_id')
+        .eq('id', authUser.id)
+        .maybeSingle();
+
+      const orgId = profile?.organization_id;
+      if (!orgId) {
+        return res.status(200).json({ matches: [], message: 'No organization assigned' });
+      }
+
+      const queryEventKey = typeof req.query.event_key === 'string' ? req.query.event_key.trim() : '';
+
+      let eventKey = queryEventKey;
+      if (!eventKey) {
+        const { data: cfg } = await supabase
+          .from('app_config')
+          .select('value')
+          .eq('organization_id', orgId)
+          .eq('key', 'current_event_key')
+          .maybeSingle();
+        eventKey = (cfg?.value as string | undefined)?.trim() || '';
+      }
+
+      if (!eventKey) {
+        return res.status(200).json({
+          matches: [],
+          message: 'No active competition. An admin must select an event in Team Management.',
+        });
+      }
+
+      const { data: matches, error: matchesError } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('organization_id', orgId)
+        .eq('event_key', eventKey)
+        .order('match_number', { ascending: true });
 
       if (matchesError) {
         console.error('Error fetching matches:', matchesError);
@@ -32,9 +106,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json({ matches: [] });
       }
 
-      // Get all unique team numbers from all matches
       const allTeamNumbers = new Set<number>();
-      matches.forEach(match => {
+      matches.forEach((match) => {
         if (Array.isArray(match.red_teams)) {
           match.red_teams.forEach((team: number) => allTeamNumbers.add(team));
         }
@@ -43,44 +116,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       });
 
-      // Fetch team details for all teams
-      const { data: teams, error: teamsError } = await supabase
-        .from('teams')
-        .select('team_number, team_name, team_color')
-        .in('team_number', Array.from(allTeamNumbers));
+      const teamMap = await loadTeamNameMap(supabase, orgId, eventKey, Array.from(allTeamNumbers));
 
-      if (teamsError) {
-        console.error('Error fetching teams:', teamsError);
-        return res.status(500).json({ error: 'Failed to fetch teams' });
-      }
+      const transformedMatches = matches.map((match) => {
+        const redTeams = Array.isArray(match.red_teams)
+          ? match.red_teams.map((teamNumber: number) => {
+              const team = teamMap.get(teamNumber);
+              return {
+                team_number: teamNumber,
+                team_name: team?.team_name || `Team ${teamNumber}`,
+                team_color: 'red',
+              };
+            })
+          : [];
 
-      // Create a map for quick team lookup
-      const teamMap = new Map();
-      teams?.forEach(team => {
-        teamMap.set(team.team_number, team);
-      });
-
-      // Transform the data to include team details
-      const transformedMatches = matches.map(match => {
-        // Get team details for red alliance
-        const redTeams = Array.isArray(match.red_teams) ? match.red_teams.map((teamNumber: number) => {
-          const team = teamMap.get(teamNumber);
-          return {
-            team_number: teamNumber,
-            team_name: team?.team_name || `Team ${teamNumber}`,
-            team_color: 'red'
-          };
-        }) : [];
-
-        // Get team details for blue alliance
-        const blueTeams = Array.isArray(match.blue_teams) ? match.blue_teams.map((teamNumber: number) => {
-          const team = teamMap.get(teamNumber);
-          return {
-            team_number: teamNumber,
-            team_name: team?.team_name || `Team ${teamNumber}`,
-            team_color: 'blue'
-          };
-        }) : [];
+        const blueTeams = Array.isArray(match.blue_teams)
+          ? match.blue_teams.map((teamNumber: number) => {
+              const team = teamMap.get(teamNumber);
+              return {
+                team_number: teamNumber,
+                team_name: team?.team_name || `Team ${teamNumber}`,
+                team_color: 'blue',
+              };
+            })
+          : [];
 
         return {
           match_id: match.match_id,
@@ -88,19 +147,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           match_number: match.match_number,
           red_teams: redTeams,
           blue_teams: blueTeams,
-          created_at: match.created_at
+          created_at: match.created_at,
         };
       });
 
       res.status(200).json({ matches: transformedMatches });
-
     } catch (error) {
       console.error('Error in matches API:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   } else if (req.method === 'POST') {
-    // Handle creating a new match (for manual entry)
     try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const token = authHeader.split(' ')[1];
+      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !authUser) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role, organization_id')
+        .eq('id', authUser.id)
+        .maybeSingle();
+      if (profile?.role !== 'admin' && profile?.role !== 'superadmin') {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+      const orgId = profile?.organization_id;
+      if (!orgId) {
+        return res.status(400).json({ error: 'No organization' });
+      }
+
       const { event_key, match_number, red_teams, blue_teams } = req.body;
 
       if (!event_key || !match_number || !red_teams || !blue_teams) {
@@ -111,13 +190,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const { data, error } = await supabase
         .from('matches')
-        .insert({
-          match_id,
-          event_key,
-          match_number,
-          red_teams,
-          blue_teams,
-        })
+        .upsert(
+          {
+            match_id,
+            event_key,
+            match_number,
+            red_teams,
+            blue_teams,
+            organization_id: orgId,
+          },
+          { onConflict: 'organization_id,match_id' }
+        )
         .select()
         .single();
 
@@ -127,7 +210,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       res.status(201).json({ match: data });
-
     } catch (error) {
       console.error('Error creating match:', error);
       res.status(500).json({ error: 'Internal server error' });

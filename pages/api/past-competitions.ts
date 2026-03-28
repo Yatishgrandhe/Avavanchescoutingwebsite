@@ -46,6 +46,44 @@ function dataScopeOrgId(viewer: ViewerContext): string | null {
   return viewer.organizationId;
 }
 
+/** Pick an org that has pit rows for these teams (prefer viewer org when it has data). */
+async function resolvePitSourceOrgId(
+  admin: SupabaseClient,
+  teamNumbers: number[],
+  viewerOrgId: string | null,
+  isGuest: boolean
+): Promise<string | null> {
+  if (teamNumbers.length === 0) return null;
+  const preferred = isGuest ? null : viewerOrgId;
+  if (preferred) {
+    const { count } = await admin
+      .from('pit_scouting_data')
+      .select('*', { count: 'exact', head: true })
+      .eq('organization_id', preferred)
+      .in('team_number', teamNumbers);
+    if ((count ?? 0) > 0) return preferred;
+  }
+  const { data: rows } = await admin
+    .from('pit_scouting_data')
+    .select('organization_id')
+    .in('team_number', teamNumbers)
+    .limit(2000);
+  const freq = new Map<string, number>();
+  for (const r of rows || []) {
+    const oid = (r as { organization_id: string | null }).organization_id;
+    if (oid) freq.set(oid, (freq.get(oid) || 0) + 1);
+  }
+  let best: string | null = null;
+  let bestN = 0;
+  freq.forEach((n, oid) => {
+    if (n > bestN) {
+      bestN = n;
+      best = oid;
+    }
+  });
+  return best;
+}
+
 /**
  * For query ?organization_id= — only superadmins may override; everyone else uses their profile org.
  */
@@ -88,39 +126,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { id, competition_key, year, event_key, organization_id: queryOrgIdRaw } = req.query;
       const queryOrgId = typeof queryOrgIdRaw === 'string' ? queryOrgIdRaw : undefined;
 
-      // Live event by event_key: runs BEFORE scopeOrgId gate so users without an org can still view
-      // aggregated match data. Pit is always org-scoped (Avalanche for guests, viewer org when logged in).
+      // Live event by event_key: default scope is one org (guests → reference org). see_all_orgs=1 merges schedules.
+      // Pit: prefers viewer org; otherwise first org with pit rows for these teams.
       if (event_key && !id) {
         const eventKeyStr = event_key as string;
-        const matchMyOrgOnly =
-          req.query.match_my_org_only === '1' ||
-          req.query.match_scope === 'org';
+        const seeAllOrgs =
+          req.query.see_all_orgs === '1' ||
+          req.query.data_scope === 'all';
 
-        const matchOrgFilter = matchMyOrgOnly ? effectiveFilterOrgId(viewer, queryOrgId) : null;
-        if (matchMyOrgOnly && !matchOrgFilter) {
+        const matchOrgFilter = seeAllOrgs ? null : effectiveFilterOrgId(viewer, queryOrgId);
+
+        if (!seeAllOrgs && !matchOrgFilter) {
           return res.status(400).json({
-            error: 'Organization required when limiting match data to your team (match_my_org_only=1)',
+            error: 'Organization required for scoped competition data (or pass see_all_orgs=1 for all organizations)',
           });
         }
 
-        const pitOrgId = viewer.isGuest ? AVALANCHE_ORG_ID : viewer.organizationId;
         const pitAllOrgs = req.query.pit_all_orgs === '1' || req.query.pit_scope === 'all';
 
         let matchQuery = supabaseAdmin
           .from('matches')
-          .select('match_id, event_key, match_number, red_teams, blue_teams')
+          .select('match_id, event_key, match_number, red_teams, blue_teams, organization_id')
           .eq('event_key', eventKeyStr);
         if (matchOrgFilter) {
           matchQuery = matchQuery.eq('organization_id', matchOrgFilter);
         }
         const { data: matchesRaw, error: matchesErr } = await matchQuery;
 
-        const matches = [...(matchesRaw || [])].sort(
+        if (matchesErr) {
+          return res.status(500).json({ error: 'Failed to load matches' });
+        }
+
+        let matches = [...(matchesRaw || [])].sort(
           (a: { match_number?: number }, b: { match_number?: number }) =>
             (a.match_number ?? 0) - (b.match_number ?? 0)
         );
 
-        if (matchesErr || matches.length === 0) {
+        if (!matchOrgFilter) {
+          const byKey = new Map<string, (typeof matches)[0]>();
+          for (const m of matches) {
+            const mid = (m as { match_id: string }).match_id;
+            if (!byKey.has(mid)) byKey.set(mid, m);
+          }
+          matches = Array.from(byKey.values()).sort(
+            (a: { match_number?: number }, b: { match_number?: number }) =>
+              (a.match_number ?? 0) - (b.match_number ?? 0)
+          );
+        }
+
+        if (matches.length === 0) {
           return res.status(404).json({ error: 'Live event not found or no matches' });
         }
 
@@ -130,22 +184,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           (m.red_teams || []).forEach((t: number) => teamNumbers.add(t));
           (m.blue_teams || []).forEach((t: number) => teamNumbers.add(t));
         });
-
-        let teamQuery = supabaseAdmin
-          .from('teams')
-          .select('team_number, team_name')
-          .in('team_number', Array.from(teamNumbers));
-        if (matchOrgFilter) {
-          teamQuery = teamQuery.eq('organization_id', matchOrgFilter);
-        }
-        const { data: teamRows } = await teamQuery;
+        const teamNumList = Array.from(teamNumbers);
 
         const teamMap = new Map<number, string>();
-        for (const t of teamRows || []) {
-          const row = t as { team_number: number; team_name: string };
-          if (!teamMap.has(row.team_number)) {
+        if (matchOrgFilter && teamNumList.length > 0) {
+          const { data: rosterRows } = await supabaseAdmin
+            .from('event_team_roster')
+            .select('team_number, team_name')
+            .eq('organization_id', matchOrgFilter)
+            .eq('event_key', eventKeyStr)
+            .in('team_number', teamNumList);
+          for (const t of rosterRows || []) {
+            const row = t as { team_number: number; team_name: string };
             teamMap.set(row.team_number, row.team_name);
           }
+        }
+        const missingForRoster = teamNumList.filter((n) => !teamMap.has(n));
+        if (missingForRoster.length > 0) {
+          let teamQuery = supabaseAdmin
+            .from('teams')
+            .select('team_number, team_name')
+            .in('team_number', missingForRoster);
+          if (matchOrgFilter) {
+            teamQuery = teamQuery.eq('organization_id', matchOrgFilter);
+          }
+          const { data: teamRows } = await teamQuery;
+          for (const t of teamRows || []) {
+            const row = t as { team_number: number; team_name: string };
+            if (!teamMap.has(row.team_number)) {
+              teamMap.set(row.team_number, row.team_name);
+            }
+          }
+        }
+        for (const n of teamNumList) {
+          if (!teamMap.has(n)) teamMap.set(n, `Team ${n}`);
         }
 
         let histQuery = supabaseAdmin
@@ -209,14 +281,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               .in('team_number', teamNumArr)
               .order('created_at', { ascending: false });
             pitScoutingData = pitRows || [];
-          } else if (pitOrgId) {
-            const { data: pitRows } = await supabaseAdmin
-              .from('pit_scouting_data')
-              .select('*')
-              .eq('organization_id', pitOrgId)
-              .in('team_number', teamNumArr)
-              .order('created_at', { ascending: false });
-            pitScoutingData = pitRows || [];
+          } else {
+            const pitOrgResolved = await resolvePitSourceOrgId(
+              supabaseAdmin,
+              teamNumArr,
+              viewer.organizationId,
+              viewer.isGuest
+            );
+            if (pitOrgResolved) {
+              const { data: pitRows } = await supabaseAdmin
+                .from('pit_scouting_data')
+                .select('*')
+                .eq('organization_id', pitOrgResolved)
+                .in('team_number', teamNumArr)
+                .order('created_at', { ascending: false });
+              pitScoutingData = pitRows || [];
+            }
           }
         }
 

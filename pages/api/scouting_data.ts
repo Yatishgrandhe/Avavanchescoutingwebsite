@@ -82,6 +82,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return;
         }
 
+        if (!userOrgId) {
+          res.status(400).json({
+            error: 'Your account must belong to an organization before submitting match scouting. Ask an admin to assign you or complete organization setup.',
+          });
+          return;
+        }
+
         console.log('Received scouting data request:', req.body);
 
         const {
@@ -176,6 +183,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data: existing } = await supabase
           .from('scouting_data')
           .select('id')
+          .eq('organization_id', userOrgId)
           .eq('match_id', finalMatchId)
           .eq('submitted_by_name', submittedByName)
           .limit(1);
@@ -262,10 +270,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (myMatchIdsParam === '1' || myMatchIdsParam === 'true') {
           const scoutName = typeof scoutNameParam === 'string' ? scoutNameParam.trim() : '';
-          if (scoutName) {
+          if (scoutName && profile?.organization_id) {
             const { data: rows, error: fetchErr } = await supabase
               .from('scouting_data')
               .select('match_id')
+              .eq('organization_id', profile.organization_id)
               .eq('submitted_by_name', scoutName);
             if (fetchErr) {
               return res.status(200).json({ match_ids: [] });

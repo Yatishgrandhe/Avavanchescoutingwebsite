@@ -98,14 +98,15 @@ export default function ViewDataPage() {
   const [teamStatsSortDirection, setTeamStatsSortDirection] = useState<'asc' | 'desc'>('desc');
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
   const [minAvgScoreFilter, setMinAvgScoreFilter] = useState<number | ''>('');
-  const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF
+  /** Live event: default = this org only; ON = merge match schedule + scouting from all orgs. */
+  const [seeAllOrgsData, setSeeAllOrgsData] = useState(false);
   /** Live event only: show pit from every org that scouted these teams. */
   const [pitAllOrgs, setPitAllOrgs] = useState(false);
 
   useEffect(() => {
     if (!event_key && !id) return;
     loadData();
-  }, [event_key, id, teamDataOnly, pitAllOrgs]);
+  }, [event_key, id, seeAllOrgsData, pitAllOrgs]);
 
   useEffect(() => {
     if (!event_key && !id && router.isReady) {
@@ -300,8 +301,8 @@ export default function ViewDataPage() {
       const params = new URLSearchParams();
       if (event_key) params.set('event_key', event_key as string);
       if (id) params.set('id', id as string);
-      if (teamDataOnly && user?.organization_id) {
-        params.set('match_my_org_only', '1');
+      if (seeAllOrgsData && event_key) {
+        params.set('see_all_orgs', '1');
       }
       if (pitAllOrgs && event_key) {
         params.set('pit_all_orgs', '1');
@@ -588,34 +589,35 @@ export default function ViewDataPage() {
                 </div>
               )}
 
-              {/* Match: all orgs by default; ON = your org only. Pit: default org-only (guests: Avalanche); ON = all orgs (live events only). */}
+              {/* Live: default org-scoped matches/scouting; ON = all orgs. Pit: optional merge all orgs. */}
               <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:ml-4">
-                <div className="flex items-center gap-3 p-2 rounded-lg border border-white/5 bg-white/[0.02]">
-                  <div className="flex flex-col max-w-[200px]">
-                    <span className="text-xs font-medium">My org match data</span>
-                    <span className="text-[10px] text-muted-foreground leading-tight">
-                      Off: all orgs&apos; match rows.
-                    </span>
+                {event_key && (
+                  <div className="flex items-center gap-3 p-2 rounded-lg border border-white/5 bg-white/[0.02]">
+                    <div className="flex flex-col max-w-[220px]">
+                      <span className="text-xs font-medium">See all orgs</span>
+                      <span className="text-[10px] text-muted-foreground leading-tight">
+                        Off: your org&apos;s schedule and scouting only (guests: reference org).
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={seeAllOrgsData ? 'default' : 'outline'}
+                      onClick={() => setSeeAllOrgsData(!seeAllOrgsData)}
+                      className={cn(
+                        'h-7 px-2.5 rounded-full transition-all text-[10px]',
+                        seeAllOrgsData ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
+                      )}
+                    >
+                      {seeAllOrgsData ? 'ON' : 'OFF'}
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    variant={teamDataOnly ? 'default' : 'outline'}
-                    disabled={!user?.organization_id}
-                    onClick={() => setTeamDataOnly(!teamDataOnly)}
-                    className={cn(
-                      "h-7 px-2.5 rounded-full transition-all text-[10px]",
-                      teamDataOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                    )}
-                  >
-                    {teamDataOnly ? 'ON' : 'OFF'}
-                  </Button>
-                </div>
+                )}
                 {event_key && (
                   <div className="flex items-center gap-3 p-2 rounded-lg border border-white/5 bg-white/[0.02]">
                     <div className="flex flex-col max-w-[200px]">
                       <span className="text-xs font-medium">All orgs pit</span>
                       <span className="text-[10px] text-muted-foreground leading-tight">
-                        Off: Avalanche pit (guests) or your org (signed in).
+                        Off: pit from an org that has data (prefers yours when signed in).
                       </span>
                     </div>
                     <Button

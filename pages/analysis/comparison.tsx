@@ -47,7 +47,8 @@ export default function TeamComparison() {
   const [competitionScoutingData, setCompetitionScoutingData] = useState<any[]>([]);
   const [competitionTeams, setCompetitionTeams] = useState<Array<{ team_number: number; team_name: string }>>([]);
   const [competitionName, setCompetitionName] = useState<string | null>(null);
-  const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF
+  /** Live competition from API: default org-scoped; ON = merge all orgs. */
+  const [seeAllOrgs, setSeeAllOrgs] = useState(false);
 
   const eventKey = (router.query.event_key as string) || undefined;
   const competitionId = (router.query.id as string) || undefined;
@@ -66,9 +67,8 @@ export default function TeamComparison() {
             ? `id=${encodeURIComponent(competitionId)}`
             : '';
         if (!params) return;
-        const matchOrgOnly =
-          teamDataOnly && user?.organization_id ? `&match_my_org_only=1` : '';
-        const res = await fetch(`/api/past-competitions?${params}${matchOrgOnly}`);
+        const scopeParam = eventKey && seeAllOrgs ? '&see_all_orgs=1' : '';
+        const res = await fetch(`/api/past-competitions?${params}${scopeParam}`);
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error || 'Failed to load competition');
@@ -91,7 +91,7 @@ export default function TeamComparison() {
       }
     };
     loadCompetition();
-  }, [eventKey, competitionId, teamDataOnly, user?.organization_id]);
+  }, [eventKey, competitionId, seeAllOrgs, user?.organization_id]);
 
   // Load all teams from Supabase when logged-in and not in competition mode
   useEffect(() => {
@@ -117,7 +117,7 @@ export default function TeamComparison() {
       }
     };
     loadTeams();
-  }, [user, isCompetitionMode, teamDataOnly]);
+  }, [user, isCompetitionMode]);
 
   const addTeam = async (teamNumber: number) => {
     if (selectedTeams.includes(teamNumber) || selectedTeams.length >= 4) {
@@ -159,7 +159,7 @@ export default function TeamComparison() {
         .eq('team_number', teamNumber)
         .order('created_at', { ascending: false });
 
-      if (teamDataOnly && user?.organization_id) {
+      if (!seeAllOrgs && user?.organization_id) {
         scoutingQuery = scoutingQuery.eq('organization_id', user.organization_id);
       }
 
@@ -291,27 +291,27 @@ export default function TeamComparison() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                  {/* Team Data Only Toggle */}
-                  <div className="flex items-center gap-3 p-2 rounded-lg border border-white/10 bg-white/[0.02]">
-                    <div className="flex flex-col max-w-[220px]">
-                      <span className="text-[10px] font-bold uppercase text-muted-foreground">My org match data</span>
-                      <span className="text-[9px] text-muted-foreground/60 leading-tight">
-                        Off: all orgs&apos; match rows. Pit stays your org (guests: Avalanche).
-                      </span>
+                  {eventKey && (
+                    <div className="flex items-center gap-3 p-2 rounded-lg border border-white/10 bg-white/[0.02]">
+                      <div className="flex flex-col max-w-[220px]">
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground">See all orgs</span>
+                        <span className="text-[9px] text-muted-foreground/60 leading-tight">
+                          Off: your org&apos;s data only for this event (guests: reference org).
+                        </span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={seeAllOrgs ? 'default' : 'outline'}
+                        onClick={() => setSeeAllOrgs(!seeAllOrgs)}
+                        className={cn(
+                          'h-7 px-2.5 rounded-full transition-all text-[10px] font-bold',
+                          seeAllOrgs ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
+                        )}
+                      >
+                        {seeAllOrgs ? 'ON' : 'OFF'}
+                      </Button>
                     </div>
-                    <Button
-                      size="sm"
-                      variant={teamDataOnly ? 'default' : 'outline'}
-                      disabled={!user?.organization_id}
-                      onClick={() => setTeamDataOnly(!teamDataOnly)}
-                      className={cn(
-                        "h-7 px-2.5 rounded-full transition-all text-[10px] font-bold",
-                        teamDataOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                      )}
-                    >
-                      {teamDataOnly ? 'ON' : 'OFF'}
-                    </Button>
-                  </div>
+                  )}
 
                   {teamComparisons.length > 0 && (
                     <Button

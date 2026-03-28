@@ -1,7 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
-import { CURRENT_EVENT_KEY, CURRENT_EVENT_NAME } from '@/lib/constants';
-
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
@@ -84,8 +82,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const keyFromDb = (configMap.current_event_key || '').trim();
     const nameFromDb = (configMap.current_event_name || '').trim();
-    const keyFallback = (CURRENT_EVENT_KEY || '').trim();
-    const nameFallback = (CURRENT_EVENT_NAME || '').trim();
 
     const { data: orgMatchRows } = await supabase
       .from('matches')
@@ -94,8 +90,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const dominant = dominantEventKey(orgMatchRows);
 
-    let configEventKey = (keyFromDb || keyFallback).trim();
-    let eventName = (nameFromDb || nameFallback).trim();
+    const configEventKey = keyFromDb;
+    let eventName = nameFromDb;
 
     let effectiveEventKey = configEventKey;
     if (effectiveEventKey) {
@@ -110,7 +106,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!effectiveEventKey) {
       res.status(400).json({
         error:
-          'No competition to archive. Set Event Key in Team Management (or env fallbacks), or load matches so we can detect the event.',
+          'No competition to archive. Set an event in Team Management or load matches so we can detect the event key.',
       });
       return;
     }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/layout/Layout';
@@ -67,6 +67,14 @@ export default function TeamManagementPage() {
   const [eventName, setEventName] = useState('');
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [tbaYear, setTbaYear] = useState(() => new Date().getFullYear());
+  const [tbaEvents, setTbaEvents] = useState<
+    { key: string; name: string; short_name?: string; city?: string; state_prov?: string; start_date?: string }[]
+  >([]);
+  const [tbaEventsLoading, setTbaEventsLoading] = useState(false);
+  const [tbaEventSearch, setTbaEventSearch] = useState('');
+  const [tbaSyncStatus, setTbaSyncStatus] = useState<string | null>(null);
+  const [isSyncingTba, setIsSyncingTba] = useState(false);
 
   // Invite Management State
   const [invites, setInvites] = useState<any[]>([]);
@@ -196,6 +204,78 @@ export default function TeamManagementPage() {
     }
   };
 
+  const fetchTbaEventsList = useCallback(async () => {
+    setTbaEventsLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const res = await fetch(`/api/tba/events?year=${tbaYear}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Could not load events from The Blue Alliance');
+        setTbaEvents([]);
+        return;
+      }
+      const data = await res.json();
+      setTbaEvents(Array.isArray(data.events) ? data.events : []);
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to load TBA events');
+    } finally {
+      setTbaEventsLoading(false);
+    }
+  }, [tbaYear, supabase]);
+
+  useEffect(() => {
+    if (!isAdmin || adminLoading) return;
+    fetchTbaEventsList();
+  }, [isAdmin, adminLoading, fetchTbaEventsList]);
+
+  const runTbaSync = useCallback(async (opts?: { silent?: boolean }) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return;
+    if (!opts?.silent) setIsSyncingTba(true);
+    try {
+      const res = await fetch('/api/admin/sync-from-tba', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (!opts?.silent) toast.error(data.error || 'TBA sync failed');
+        setTbaSyncStatus(data.error || 'Sync failed');
+        return;
+      }
+      const msg = `Synced ${data.matchesUpserted ?? 0} matches, ${data.teamsUpserted ?? 0} teams`;
+      setTbaSyncStatus(msg);
+      if (!opts?.silent) toast.success(msg);
+    } catch (e) {
+      if (!opts?.silent) toast.error('TBA sync failed');
+      setTbaSyncStatus('Sync failed');
+    } finally {
+      if (!opts?.silent) setIsSyncingTba(false);
+    }
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!isAdmin || !eventKey.trim()) return;
+    runTbaSync({ silent: true });
+  }, [isAdmin, eventKey, runTbaSync]);
+
+  useEffect(() => {
+    if (!isAdmin || !eventKey.trim()) return;
+    const id = window.setInterval(() => {
+      runTbaSync({ silent: true });
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, [isAdmin, eventKey, runTbaSync]);
+
   const handleSaveCompetition = async () => {
     if (!eventKey.trim() || !eventName.trim()) {
       toast.error('Event key and name are required');
@@ -221,12 +301,49 @@ export default function TeamManagementPage() {
 
       if (res.ok) {
         toast.success('Competition settings updated');
+        await runTbaSync();
       } else {
         const err = await res.json();
         toast.error(err.error || 'Failed to update settings');
       }
     } catch (err) {
       toast.error('Failed to update settings');
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const handleClearCompetition = async () => {
+    if (
+      !confirm(
+        'Clear the active competition for your organization? New members are never auto-assigned an event — this only clears your saved event key/name. Use Archive when you want to move data to past competitions.'
+      )
+    ) {
+      return;
+    }
+    setIsSavingSettings(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('No session');
+      const res = await fetch('/api/admin/competition-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ clear: true }),
+      });
+      if (res.ok) {
+        setEventKey('');
+        setEventName('');
+        setTbaSyncStatus(null);
+        toast.success('Active competition cleared');
+      } else {
+        const err = await res.json();
+        toast.error(err.error || 'Failed to clear');
+      }
+    } catch {
+      toast.error('Failed to clear competition');
     } finally {
       setIsSavingSettings(false);
     }
@@ -471,19 +588,92 @@ export default function TeamManagementPage() {
                     Competition management
                   </CardTitle>
                   <CardDescription className="text-sm">
-                    Active event labels, match schedule CSV, and archiving.
+                    Choose an official FRC event from The Blue Alliance; teams and match schedule sync automatically about every minute while this page is open.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
                   <div className="rounded-xl border border-border/60 bg-muted/20 p-4 md:p-5 space-y-4">
                     <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                       <Settings className="h-4 w-4 text-primary shrink-0" aria-hidden />
-                      Active competition details
+                      Active competition (TBA)
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      New organizations start with no event until an admin selects one here. Students joining an org are never placed into a competition automatically.
+                    </p>
+                    <div className="flex flex-wrap items-end gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="tba-year" className="text-xs text-muted-foreground">
+                          Season year
+                        </Label>
+                        <Input
+                          id="tba-year"
+                          type="number"
+                          min={2000}
+                          max={2100}
+                          value={tbaYear}
+                          onChange={(e) => setTbaYear(Math.max(2000, parseInt(e.target.value, 10) || tbaYear))}
+                          className="h-10 w-28 bg-background/50"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="min-h-10"
+                        onClick={() => fetchTbaEventsList()}
+                        disabled={tbaEventsLoading}
+                      >
+                        {tbaEventsLoading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+                        Load events
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="tba-search" className="text-xs text-muted-foreground">
+                        Search events
+                      </Label>
+                      <Input
+                        id="tba-search"
+                        placeholder="City, name, or key…"
+                        value={tbaEventSearch}
+                        onChange={(e) => setTbaEventSearch(e.target.value)}
+                        className="h-10 bg-background/50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="tba-pick" className="text-xs text-muted-foreground">
+                        Select event
+                      </Label>
+                      <select
+                        id="tba-pick"
+                        className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        value={eventKey}
+                        onChange={(e) => {
+                          const key = e.target.value;
+                          setEventKey(key);
+                          const ev = tbaEvents.find((x) => x.key === key);
+                          if (ev) setEventName(ev.name);
+                        }}
+                      >
+                        <option value="">— No event selected —</option>
+                        {tbaEvents
+                          .filter((ev) => {
+                            const q = tbaEventSearch.trim().toLowerCase();
+                            if (!q) return true;
+                            const blob = `${ev.key} ${ev.name} ${ev.city || ''} ${ev.state_prov || ''}`.toLowerCase();
+                            return blob.includes(q);
+                          })
+                          .map((ev) => (
+                            <option key={ev.key} value={ev.key}>
+                              {ev.start_date ? `${ev.start_date} · ` : ''}
+                              {ev.name} ({ev.key})
+                            </option>
+                          ))}
+                      </select>
                     </div>
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="event-key" className="text-xs text-muted-foreground">
-                          Event key
+                          Event key (editable)
                         </Label>
                         <Input
                           id="event-key"
@@ -506,19 +696,43 @@ export default function TeamManagementPage() {
                         />
                       </div>
                     </div>
-                    <Button
-                      type="button"
-                      onClick={handleSaveCompetition}
-                      disabled={isSavingSettings || settingsLoading}
-                      className="w-full sm:w-auto min-h-10"
-                    >
-                      {isSavingSettings ? (
-                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                      ) : (
-                        <Check className="h-4 w-4" aria-hidden />
-                      )}
-                      Save competition details
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        onClick={handleSaveCompetition}
+                        disabled={isSavingSettings || settingsLoading}
+                        className="min-h-10"
+                      >
+                        {isSavingSettings ? (
+                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                        ) : (
+                          <Check className="h-4 w-4" aria-hidden />
+                        )}
+                        Save &amp; sync from TBA
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => runTbaSync()}
+                        disabled={isSyncingTba || !eventKey.trim()}
+                        className="min-h-10"
+                      >
+                        {isSyncingTba ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Database className="h-4 w-4" aria-hidden />}
+                        Sync now
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleClearCompetition}
+                        disabled={isSavingSettings}
+                        className="min-h-10 border-destructive/40 text-destructive hover:bg-destructive/10"
+                      >
+                        Clear competition
+                      </Button>
+                    </div>
+                    {tbaSyncStatus && (
+                      <p className="text-[11px] text-muted-foreground">{tbaSyncStatus}</p>
+                    )}
                   </div>
 
                   <div className="grid sm:grid-cols-2 gap-4">
@@ -559,9 +773,9 @@ export default function TeamManagementPage() {
                         Archive competition
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        Uses the event key and name above (saved to the server), or the app defaults in{' '}
-                        <code className="text-[10px]">lib/constants.ts</code> if those are empty. Moves matches, match
-                        scouting, pit, pick lists, and a team snapshot into past records; clears saved event settings.
+                        Uses the event key and name saved for your organization (or the dominant event from your match
+                        rows). Moves matches, match scouting, pit, pick lists, and a team snapshot into past records;
+                        clears saved event settings.
                       </p>
                       <Button
                         type="button"

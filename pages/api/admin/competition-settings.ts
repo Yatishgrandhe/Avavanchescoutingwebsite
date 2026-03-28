@@ -61,11 +61,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST' || req.method === 'PUT') {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
+
+    if (body.clear === true) {
+      const { error: delErr } = await supabase
+        .from('app_config')
+        .delete()
+        .eq('organization_id', orgId)
+        .in('key', [...KEYS]);
+      if (delErr) {
+        console.error('competition-settings clear', delErr);
+        res.status(500).json({ error: 'Failed to clear competition' });
+        return;
+      }
+      res.status(200).json({ ok: true, current_event_key: '', current_event_name: '', cleared: true });
+      return;
+    }
+
     const key = typeof body.current_event_key === 'string' ? body.current_event_key.trim() : '';
     const name = typeof body.current_event_name === 'string' ? body.current_event_name.trim() : '';
 
     if (!key || !name) {
-      res.status(400).json({ error: 'current_event_key and current_event_name are required' });
+      res.status(400).json({ error: 'current_event_key and current_event_name are required (or pass clear: true)' });
       return;
     }
 

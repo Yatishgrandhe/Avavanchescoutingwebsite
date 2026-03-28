@@ -467,12 +467,25 @@ export default function PitScouting() {
         organization_id: user.organization_id, // Add organization_id
       };
 
+      const { data: { session: submitSession } } = await supabase.auth.getSession();
+      let competitionKey = '';
+      if (submitSession?.access_token) {
+        const compRes = await fetch('/api/my-competition', {
+          headers: { Authorization: `Bearer ${submitSession.access_token}` },
+        });
+        if (compRes.ok) {
+          const compJson = await compRes.json();
+          competitionKey = String(compJson.current_event_key || '');
+        }
+      }
+
       await addToOfflineQueue('pit-scouting', {
         submissionData,
         photosToUpload,
         annotatedImageToUpload,
         editingId: isEditMode ? editingId : null,
       }, {
+        competitionKey,
         organizationId: user?.organization_id || '',
         teamNumber: formData.teamNumber,
       });

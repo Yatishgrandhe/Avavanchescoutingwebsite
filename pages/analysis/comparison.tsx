@@ -66,8 +66,9 @@ export default function TeamComparison() {
             ? `id=${encodeURIComponent(competitionId)}`
             : '';
         if (!params) return;
-        const orgFilter = (teamDataOnly && user?.organization_id) ? `&organization_id=${user.organization_id}` : '';
-        const res = await fetch(`/api/past-competitions?${params}${orgFilter}`);
+        const matchOrgOnly =
+          teamDataOnly && user?.organization_id ? `&match_my_org_only=1` : '';
+        const res = await fetch(`/api/past-competitions?${params}${matchOrgOnly}`);
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error || 'Failed to load competition');
@@ -292,15 +293,16 @@ export default function TeamComparison() {
                 <div className="flex items-center gap-4">
                   {/* Team Data Only Toggle */}
                   <div className="flex items-center gap-3 p-2 rounded-lg border border-white/10 bg-white/[0.02]">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold uppercase text-muted-foreground">Team Data Only</span>
-                      <span className="text-[9px] text-muted-foreground/60 whitespace-nowrap">
-                        Show only {user?.organization_id ? 'your organization' : 'Avalanche'}
+                    <div className="flex flex-col max-w-[220px]">
+                      <span className="text-[10px] font-bold uppercase text-muted-foreground">My org match data</span>
+                      <span className="text-[9px] text-muted-foreground/60 leading-tight">
+                        Off: all orgs&apos; match rows. Pit stays your org (guests: Avalanche).
                       </span>
                     </div>
                     <Button
                       size="sm"
                       variant={teamDataOnly ? 'default' : 'outline'}
+                      disabled={!user?.organization_id}
                       onClick={() => setTeamDataOnly(!teamDataOnly)}
                       className={cn(
                         "h-7 px-2.5 rounded-full transition-all text-[10px] font-bold",

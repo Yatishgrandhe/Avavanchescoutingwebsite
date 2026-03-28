@@ -55,6 +55,7 @@ interface CompetitionInfo {
 
 interface ViewDataRow {
   id?: string;
+  organization_id?: string | null;
   match_id?: string;
   match_number?: number;
   team_number: number;
@@ -110,14 +111,25 @@ export default function ViewDataPage() {
     }
   }, [event_key, id, router.isReady]);
 
+  useEffect(() => {
+    if (!user && activeTab === 'stats') {
+      setActiveTab('overview');
+    }
+  }, [user, activeTab]);
+
   const statsByPerson = React.useMemo(() => {
     const map = new Map<string, number>();
-    scoutingData.forEach((r: ViewDataRow) => {
+    const orgId = user?.organization_id;
+    const rows =
+      orgId != null && orgId !== ''
+        ? scoutingData.filter((r) => (r.organization_id ?? null) === orgId)
+        : [];
+    rows.forEach((r: ViewDataRow) => {
       const name = (r.submitted_by_name != null && String(r.submitted_by_name).trim()) ? String(r.submitted_by_name).trim() : 'Unknown';
       map.set(name, (map.get(name) || 0) + 1);
     });
     return Array.from(map.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
-  }, [scoutingData]);
+  }, [scoutingData, user?.organization_id]);
 
   const pitDisplayList = React.useMemo(() => {
     const byTeam = new Map<number, typeof pitScoutingData[0]>();
@@ -286,7 +298,9 @@ export default function ViewDataPage() {
       const params = new URLSearchParams();
       if (event_key) params.set('event_key', event_key as string);
       if (id) params.set('id', id as string);
-      if (teamDataOnly && user?.organization_id) params.set('organization_id', user.organization_id);
+      if (teamDataOnly && user?.organization_id) {
+        params.set('match_my_org_only', '1');
+      }
 
       const res = await fetch(`/api/past-competitions?${params.toString()}`);
       if (!res.ok) {
@@ -392,8 +406,24 @@ export default function ViewDataPage() {
       : '/view-data';
 
   if (personName) {
+    if (!user) {
+      return (
+        <CompetitionDataLayout activeTab="overview" backHref="/competition-history" queryString={queryString} showStatsTab={false}>
+          <main className="flex-1 w-full max-w-lg mx-auto px-4 py-16 text-center">
+            <p className="text-muted-foreground mb-4">Sign in to view per-scout form breakdowns.</p>
+            <Link href="/auth/signin">
+              <Button>Sign in</Button>
+            </Link>
+          </main>
+        </CompetitionDataLayout>
+      );
+    }
+    const orgId = user.organization_id;
     const personForms = scoutingData.filter(
-      (r: ViewDataRow) => (r.submitted_by_name != null && String(r.submitted_by_name).trim() === personName)
+      (r: ViewDataRow) =>
+        orgId != null &&
+        (r.organization_id ?? null) === orgId &&
+        (r.submitted_by_name != null && String(r.submitted_by_name).trim() === personName)
     );
     const sortedPersonForms = [...personForms].sort((a, b) => {
       const aVal = (a as any)[sortField];
@@ -473,7 +503,7 @@ export default function ViewDataPage() {
       </main>
     );
     return (
-      <CompetitionDataLayout activeTab="stats" backHref="/competition-history" queryString={queryString} showStatsTab={true}>
+      <CompetitionDataLayout activeTab="stats" backHref="/competition-history" queryString={queryString} showStatsTab={!!user}>
         {personFormsContent}
       </CompetitionDataLayout>
     );
@@ -553,15 +583,18 @@ export default function ViewDataPage() {
                 </div>
               )}
 
-              {/* Team Data Only Toggle */}
+              {/* Match data: all orgs by default; ON = only your org. Pit always your org (guests: Avalanche). */}
               <div className="flex items-center gap-3 p-2 rounded-lg border border-white/5 bg-white/[0.02] sm:ml-4">
-                <div className="flex flex-col">
-                  <span className="text-xs font-medium">Team Data Only</span>
-                  <span className="text-[10px] text-muted-foreground whitespace-nowrap">Show only {user?.organization_id ? 'your organization' : 'Avalanche'}</span>
+                <div className="flex flex-col max-w-[200px]">
+                  <span className="text-xs font-medium">My org match data</span>
+                  <span className="text-[10px] text-muted-foreground leading-tight">
+                    Off: all teams&apos; match scouting. Pit stays org-only.
+                  </span>
                 </div>
                 <Button
                   size="sm"
                   variant={teamDataOnly ? 'default' : 'outline'}
+                  disabled={!user?.organization_id}
                   onClick={() => setTeamDataOnly(!teamDataOnly)}
                   className={cn(
                     "h-7 px-2.5 rounded-full transition-all text-[10px]",
@@ -1193,7 +1226,7 @@ export default function ViewDataPage() {
         backHref="/competition-history"
         queryString={queryPrefix}
         showPitTab={pitScoutingData.length > 0}
-        showStatsTab={true}
+        showStatsTab={!!user}
       >
         {tabContent}
       </CompetitionDataLayout>

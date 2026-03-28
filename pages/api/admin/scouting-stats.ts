@@ -50,8 +50,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    // Strictly filter by user's organization
     const orgId = profile.organization_id;
+    if (!orgId) {
+      return res.status(400).json({ error: 'Your account must belong to an organization' });
+    }
 
     const [liveRes, pitRes, namesRes] = await Promise.all([
       supabase.from('scouting_data').select('submitted_by_name').eq('organization_id', orgId),

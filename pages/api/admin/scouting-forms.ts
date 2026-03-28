@@ -41,6 +41,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const orgId = profile.organization_id;
+    if (!orgId) {
+      return res.status(400).json({ error: 'Your account must belong to an organization' });
+    }
 
     const name = typeof req.query.name === 'string' ? req.query.name.trim() : '';
     if (!name) {

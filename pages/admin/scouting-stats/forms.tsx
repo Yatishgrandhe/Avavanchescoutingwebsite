@@ -55,7 +55,15 @@ interface FormsResponse {
 }
 
 export default function AdminScoutingFormsPage() {
-  const { user, supabase } = useSupabase();
+  return (
+    <ProtectedRoute>
+      <AdminScoutingFormsInner />
+    </ProtectedRoute>
+  );
+}
+
+function AdminScoutingFormsInner() {
+  const { supabase } = useSupabase();
   const { isAdmin, loading: adminLoading } = useAdmin();
   const router = useRouter();
   const { name } = router.query;
@@ -67,7 +75,7 @@ export default function AdminScoutingFormsPage() {
   const [expandedRowKey, setExpandedRowKey] = useState<string | null>(null);
 
   const loadForms = async () => {
-    if (!user || typeof name !== 'string' || !name.trim()) return;
+    if (typeof name !== 'string' || !name.trim()) return;
     setLoading(true);
     setError(null);
     try {
@@ -95,8 +103,8 @@ export default function AdminScoutingFormsPage() {
   };
 
   useEffect(() => {
-    if (user && name) loadForms();
-  }, [user, name]);
+    if (!adminLoading && isAdmin && name) loadForms();
+  }, [adminLoading, isAdmin, name]);
 
   const getTeamName = (teamNumber: number) => {
     return data?.teams?.[teamNumber] ?? `Team ${teamNumber}`;
@@ -126,36 +134,35 @@ export default function AdminScoutingFormsPage() {
       })
     : [];
 
-  if (adminLoading || !user) {
+  if (adminLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </Layout>
     );
   }
 
   if (!isAdmin) {
     return (
-      <ProtectedRoute>
-        <Layout>
-          <div className="flex flex-col items-center justify-center py-16 px-4">
-            <Shield className="w-16 h-16 text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold text-foreground mb-2">Admin access required</h2>
-            <p className="text-muted-foreground text-center mb-6">
-              You need administrator privileges to view this page.
-            </p>
-            <Button variant="outline" onClick={() => router.push('/admin/scouting-stats')}>
-              Back to Scouting Stats
-            </Button>
-          </div>
-        </Layout>
-      </ProtectedRoute>
+      <Layout>
+        <div className="flex flex-col items-center justify-center py-16 px-4">
+          <Shield className="w-16 h-16 text-muted-foreground mb-4" />
+          <h2 className="text-xl font-semibold text-foreground mb-2">Admin access required</h2>
+          <p className="text-muted-foreground text-center mb-6">
+            You need administrator privileges to view this page.
+          </p>
+          <Button variant="outline" onClick={() => router.push('/admin/scouting-stats')}>
+            Back to Scouting Stats
+          </Button>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <Layout>
+    <Layout>
         <div className="max-w-7xl mx-auto space-y-6 px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -444,6 +451,5 @@ export default function AdminScoutingFormsPage() {
           )}
         </div>
       </Layout>
-    </ProtectedRoute>
   );
 }

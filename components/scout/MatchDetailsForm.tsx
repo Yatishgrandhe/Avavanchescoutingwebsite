@@ -58,6 +58,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   const [submittedMatchIdsForName, setSubmittedMatchIdsForName] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [apiMessage, setApiMessage] = useState('');
 
   // Fetch matches and scout names on component mount
   useEffect(() => {
@@ -114,6 +115,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   const fetchMatches = async () => {
     setLoading(true);
     setError('');
+    setApiMessage('');
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -132,6 +134,9 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
 
       const data = await response.json();
       setMatches(data.matches || []);
+      if (data.message) {
+        setApiMessage(data.message);
+      }
     } catch (err) {
       console.error('Error fetching matches:', err);
       setError('Failed to load matches. Please try again.');
@@ -244,6 +249,16 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
                 <span className="ml-2 text-xs font-bold text-muted-foreground uppercase tracking-widest">
                   Fetching...
                 </span>
+              </div>
+            ) : apiMessage ? (
+              <div className="p-4 bg-amber-500/10 border border-amber-500/50 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-bold text-amber-500">Notice</p>
+                    <p className="text-sm text-amber-400/90 leading-relaxed mt-1">{apiMessage}</p>
+                  </div>
+                </div>
               </div>
             ) : (
               <Select value={selectedMatch?.match_id || ''} onValueChange={handleMatchSelect}>

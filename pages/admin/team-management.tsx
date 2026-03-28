@@ -79,14 +79,10 @@ export default function TeamManagementPage() {
   useEffect(() => {
     let cancelled = false;
     async function loadOrg() {
-      // If no org ID, check if they are a superadmin for a better fallback
+      // If no org ID is found on the profile, we mark it as null
       if (!user?.organization_id) {
         if (!cancelled) {
-          if (user?.role === 'superadmin') {
-            setOrgName('Avalanche (Global)');
-          } else {
-            setOrgName(null);
-          }
+          setOrgName(null);
           setOrgLoading(false);
         }
         return;
@@ -107,11 +103,12 @@ export default function TeamManagementPage() {
         } else if (data?.name) {
           setOrgName(data.name);
         } else {
-          // If ID exists but no record, or no name
-          setOrgName(user?.role === 'superadmin' ? 'Avalanche (Global)' : 'Unknown');
+          // If ID was present in profile but no organization row matched
+          setOrgName(null);
         }
       } catch (err) {
-        console.error('Failed to load organization', err);
+        console.error('Failed to load organization details', err);
+        setOrgName(null);
       } finally {
         if (!cancelled) setOrgLoading(false);
       }
@@ -427,12 +424,23 @@ export default function TeamManagementPage() {
               <span className="text-sm font-medium">
                 Organization:{' '}
                 {orgLoading ? (
-                  <span className="text-muted-foreground">Loading…</span>
+                  <span className="text-muted-foreground italic">Loading…</span>
                 ) : (
-                  <span className="text-foreground">{orgName ?? 'Unknown'}</span>
+                  <span className={cn(
+                    "font-bold",
+                    orgName ? "text-primary" : "text-destructive"
+                  )}>
+                    {orgName || 'Not Assigned'}
+                  </span>
                 )}
               </span>
             </div>
+            {!orgLoading && !orgName && (
+              <p className="text-[10px] text-destructive/80 mt-1 flex items-center gap-1.5 animate-pulse">
+                <AlertCircle className="w-3 h-3" />
+                This account is not associated with an organization. Contact a superadmin to be added to one.
+              </p>
+            )}
           </motion.div>
 
           <div className="grid gap-6 lg:grid-cols-3">

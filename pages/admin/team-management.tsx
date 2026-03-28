@@ -71,6 +71,11 @@ export default function TeamManagementPage() {
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
+  // Invite Management State
+  const [invites, setInvites] = useState<any[]>([]);
+  const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     async function loadOrg() {
@@ -91,10 +96,65 @@ export default function TeamManagementPage() {
     loadOrg();
     fetchScouts();
     fetchCompetitionSettings();
+    fetchInvites();
     return () => {
       cancelled = true;
     };
   }, [user?.organization_id, supabase]);
+
+  const fetchInvites = async () => {
+    if (!user?.organization_id) return;
+    const { data, error } = await supabase
+      .from('organization_invites')
+      .select('*')
+      .eq('target_organization_id', user.organization_id)
+      .eq('invite_type', 'join_org')
+      .order('created_at', { ascending: false })
+      .limit(5);
+    
+    if (!error && data) {
+      setInvites(data);
+    }
+  };
+
+  const generateJoinInvite = async () => {
+    if (!user?.organization_id) {
+      toast.error("Organization ID not found");
+      return;
+    }
+    setIsGeneratingInvite(true);
+    try {
+      const token = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+      const { data, error } = await supabase
+        .from('organization_invites')
+        .insert({
+          token,
+          invite_type: 'join_org',
+          target_organization_id: user.organization_id,
+          created_by: user?.id,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      setInvites([data, ...invites]);
+      toast.success("Student join invite created");
+    } catch (error: any) {
+      toast.error(error.message || "Error generating join invite");
+    } finally {
+      setIsGeneratingInvite(false);
+    }
+  };
+
+  const copyInviteLink = (token: string) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://avalanchescouting.vercel.app';
+    const link = `${origin}/auth/signin?token=${encodeURIComponent(token)}&invite_type=join_org`;
+    navigator.clipboard.writeText(link);
+    setCopiedToken(token);
+    setTimeout(() => setCopiedToken(null), 2000);
+    toast.success("Invite link copied to clipboard");
+  };
 
   const fetchCompetitionSettings = async () => {
     setSettingsLoading(true);
@@ -399,11 +459,11 @@ export default function TeamManagementPage() {
                     <Button 
                       onClick={handleSaveCompetition} 
                       disabled={isSavingSettings || settingsLoading}
-                      className="w-full sm:w-auto gap-2"
+                      className="w-full sm:w-auto gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20 brightness-110"
                       size="sm"
                     >
                       {isSavingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                      Save Competition Details
+                      Update Competition Details
                     </Button>
                   </div>
 
@@ -445,18 +505,18 @@ export default function TeamManagementPage() {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="w-full gap-2 border-amber-500/50 text-amber-500 hover:bg-amber-500 hover:text-white transition-colors"
+                        className="w-full gap-2 border-amber-500/50 text-amber-500 hover:bg-amber-500 hover:text-white hover:shadow-lg hover:shadow-amber-500/20 transition-all active:scale-95"
                         onClick={handleArchiveCompetition}
                         disabled={isArchiving}
                       >
                         {isArchiving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-                        Archive Current Event
+                        Archive Current Competition
                       </Button>
                     </div>
                   </div>
 
                   <div className="pt-2">
-                    <Link href="/past-competitions" className="text-sm font-medium text-primary hover:underline flex items-center gap-1.5 border border-primary/20 px-4 py-2 rounded-lg bg-primary/5 w-fit">
+                    <Link href="/past-competitions" className="text-sm font-medium text-primary hover:underline flex items-center gap-1.5 border border-primary/20 px-4 py-2 rounded-lg bg-primary/5 w-fit hover:bg-primary/10 transition-colors shadow-sm">
                       <ExternalLink className="w-4 h-4" />
                       View Competitive History & Records
                     </Link>
@@ -476,27 +536,27 @@ export default function TeamManagementPage() {
                 <CardContent>
                   <div className="grid sm:grid-cols-2 gap-4">
                     <Link href="/admin/scouting-stats/forms">
-                      <div className="p-4 rounded-xl border hover:bg-muted/30 transition-colors group cursor-pointer">
+                      <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-green-500/30 transition-all group cursor-pointer shadow-sm">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2 font-medium">
                             <ClipboardList className="w-4 h-4 text-green-500" />
                             Review Submissions
                           </div>
-                          <ChevronDown className="w-4 h-4 -rotate-90 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all" />
+                          <ChevronDown className="w-4 h-4 -rotate-90 text-muted-foreground opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                         </div>
-                        <p className="text-xs text-muted-foreground">View, edit, or delete match scouting forms.</p>
+                        <p className="text-xs text-muted-foreground">Detailed list of all match and pit scouting forms.</p>
                       </div>
                     </Link>
                     <Link href="/admin/scouting-stats">
-                      <div className="p-4 rounded-xl border hover:bg-muted/30 transition-colors group cursor-pointer">
+                      <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-green-500/30 transition-all group cursor-pointer shadow-sm">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2 font-medium">
                             <FileSpreadsheet className="w-4 h-4 text-green-500" />
-                            Scouting Stats
+                            Scouting Leaderboard
                           </div>
-                          <ChevronDown className="w-4 h-4 -rotate-90 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all" />
+                          <ChevronDown className="w-4 h-4 -rotate-90 text-muted-foreground opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                         </div>
-                        <p className="text-xs text-muted-foreground">Leaderboards and stats per student/scout.</p>
+                        <p className="text-xs text-muted-foreground">Performance metrics and student rankings.</p>
                       </div>
                     </Link>
                   </div>
@@ -517,38 +577,52 @@ export default function TeamManagementPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full justify-between h-10 px-4 group"
+                    className="w-full justify-between h-11 px-4 group border-white/10 hover:border-primary/50 hover:bg-white/[0.02] transition-all"
                     disabled={locksLoading}
                     onClick={() => setMatchScoutingLocked(!matchScoutingLocked)}
                   >
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-2.5">
                       {matchScoutingLocked ? (
-                        <Lock className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
+                        <div className="w-7 h-7 rounded-full bg-amber-500/10 flex items-center justify-center">
+                          <Lock className="w-3.5 h-3.5 text-amber-500" />
+                        </div>
                       ) : (
-                        <Unlock className="w-4 h-4 text-green-500 group-hover:scale-110 transition-transform" />
+                        <div className="w-7 h-7 rounded-full bg-green-500/10 flex items-center justify-center">
+                          <Unlock className="w-3.5 h-3.5 text-green-500" />
+                        </div>
                       )}
-                      {matchScoutingLocked ? 'Match Scouting: LOCKED' : 'Match Scouting: OPEN'}
+                      <span className="font-semibold text-xs tracking-tight text-white/90">Match Scouting</span>
                     </span>
-                    <Badge variant={matchScoutingLocked ? "destructive" : "outline"} className="text-[9px]">
+                    <Badge variant={matchScoutingLocked ? "destructive" : "outline"} className={cn(
+                      "text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 border-none",
+                      matchScoutingLocked ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"
+                    )}>
                       {matchScoutingLocked ? "LOCKED" : "OPEN"}
                     </Badge>
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full justify-between h-10 px-4 group"
+                    className="w-full justify-between h-11 px-4 group border-white/10 hover:border-primary/50 hover:bg-white/[0.02] transition-all"
                     disabled={locksLoading}
                     onClick={() => setPitScoutingLocked(!pitScoutingLocked)}
                   >
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-2.5">
                       {pitScoutingLocked ? (
-                        <Lock className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
+                        <div className="w-7 h-7 rounded-full bg-amber-500/10 flex items-center justify-center">
+                          <Lock className="w-3.5 h-3.5 text-amber-500" />
+                        </div>
                       ) : (
-                        <Unlock className="w-4 h-4 text-green-500 group-hover:scale-110 transition-transform" />
+                        <div className="w-7 h-7 rounded-full bg-green-500/10 flex items-center justify-center">
+                          <Unlock className="w-3.5 h-3.5 text-green-500" />
+                        </div>
                       )}
-                      {pitScoutingLocked ? 'Pit Scouting: LOCKED' : 'Pit Scouting: OPEN'}
+                      <span className="font-semibold text-xs tracking-tight text-white/90">Pit Scouting</span>
                     </span>
-                    <Badge variant={pitScoutingLocked ? "destructive" : "outline"} className="text-[9px]">
+                    <Badge variant={pitScoutingLocked ? "destructive" : "outline"} className={cn(
+                      "text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 border-none",
+                      pitScoutingLocked ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"
+                    )}>
                       {pitScoutingLocked ? "LOCKED" : "OPEN"}
                     </Badge>
                   </Button>
@@ -567,27 +641,85 @@ export default function TeamManagementPage() {
                 <CardContent className="space-y-4">
                   <div className="flex gap-2">
                     <Input 
-                      placeholder="Add student name..." 
-                      className="h-9 glass-input"
+                      placeholder="Enter student name..." 
+                      className="h-10 glass-input bg-white/[0.02]"
                       value={newScoutName}
                       onChange={(e) => setNewScoutName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && addScout()}
                     />
-                    <Button size="icon" className="h-9 w-9 shrink-0" onClick={addScout} disabled={scoutsLoading || !newScoutName.trim()}>
+                    <Button 
+                      size="icon" 
+                      className="h-10 w-10 shrink-0 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 brightness-110" 
+                      onClick={addScout} 
+                      disabled={scoutsLoading || !newScoutName.trim()}
+                    >
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
                   <div className="max-h-[200px] overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
                     {scouts.map((scout) => (
-                      <div key={scout.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border text-sm group hover:border-primary/30 transition-colors">
-                        <span className="font-medium tracking-tight">{scout.name}</span>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive hover:bg-destructive/10" onClick={() => deleteScout(scout.id)}>
+                      <div key={scout.id} className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.02] border border-white/5 text-sm group hover:border-primary/30 hover:bg-white/[0.04] transition-all">
+                        <span className="font-medium tracking-tight text-white/90">{scout.name}</span>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/50 hover:text-red-500 hover:bg-red-500/10 transition-colors" onClick={() => deleteScout(scout.id)}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     ))}
                     {scouts.length === 0 && (
-                      <p className="text-center text-xs text-muted-foreground py-4 italic">No students added yet.</p>
+                      <p className="text-center text-xs text-muted-foreground py-6 italic opacity-50">No students added yet.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Member Invites Card */}
+              <Card className="border-border/80 bg-gradient-to-br from-white/[0.02] to-transparent shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Plus className="w-4 h-4 text-blue-500" />
+                    Member Direct Invites
+                  </CardTitle>
+                  <CardDescription>Generate links for new students to join the team.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Button 
+                    onClick={generateJoinInvite}
+                    disabled={isGeneratingInvite}
+                    className="w-full bg-blue-600 hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20 gap-2 h-10 brightness-110 active:scale-95"
+                  >
+                    {isGeneratingInvite ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                    Generate New Join Link
+                  </Button>
+
+                  <div className="space-y-2 pt-2">
+                    {invites.map((invite) => (
+                      <div key={invite.id} className="p-3 rounded-lg border border-white/5 bg-white/[0.01] space-y-2 group hover:bg-white/[0.02] transition-colors shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <code className="text-[10px] font-mono text-blue-400/80 bg-blue-400/5 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                            {invite.token.substring(0, 10)}...
+                          </code>
+                          <Badge variant="outline" className={cn(
+                            "text-[9px] uppercase font-bold tracking-widest border-none px-1.5",
+                            invite.status === 'pending' ? "bg-amber-500/10 text-amber-500" : "bg-green-500/10 text-green-500"
+                          )}>
+                            {invite.status}
+                          </Badge>
+                        </div>
+                        {invite.status === 'pending' && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full h-8 text-[11px] font-bold border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5 gap-2 transition-all active:scale-95"
+                            onClick={() => copyInviteLink(invite.token)}
+                          >
+                            {copiedToken === invite.token ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Database className="w-3.5 h-3.5" />}
+                            {copiedToken === invite.token ? 'Copied URL!' : 'Copy Invite Link'}
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    {invites.length === 0 && (
+                      <p className="text-center text-xs text-muted-foreground py-2 italic opacity-40">No invitations generated yet.</p>
                     )}
                   </div>
                 </CardContent>
@@ -603,8 +735,8 @@ export default function TeamManagementPage() {
                   </CardHeader>
                   <CardContent>
                     <Link href="/admin/org-manager">
-                      <Button variant="outline" size="sm" className="w-full gap-2 text-xs border-primary/20 hover:bg-primary/10">
-                        <Building2 className="w-4 h-4" />
+                      <Button variant="outline" size="sm" className="w-full gap-2 text-[11px] font-black tracking-widest uppercase border-primary/20 hover:bg-primary/10 hover:border-primary/40 transition-all active:scale-95">
+                        <Building2 className="w-3.5 h-3.5" />
                         Open Org Manager
                       </Button>
                     </Link>

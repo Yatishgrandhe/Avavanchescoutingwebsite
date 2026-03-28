@@ -155,54 +155,9 @@ export default function OrgManager() {
     }
   };
 
-  const generateJoinInvite = async () => {
-    const target = orgs.find((o) => o.name.toLowerCase().includes('avalanche')) || orgs[0];
-    if (!target) {
-      toast({
-        title: "No organization",
-        description: "Create an organization first.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setIsGeneratingInvite(true);
-    try {
-      const token = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
-      const { data, error } = await supabase
-        .from('organization_invites')
-        .insert({
-          token,
-          invite_type: 'join_org',
-          target_organization_id: target.id,
-          created_by: user?.id,
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      setInvites([data, ...invites]);
-      toast({
-        title: "Join invite created",
-        description: `Students can sign in with Discord and join ${target.name}.`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error generating join invite",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsGeneratingInvite(false);
-    }
-  };
-
-  const copyInviteLink = (token: string, kind: 'new_org' | 'join_org' = 'new_org') => {
+  const copyInviteLink = (token: string) => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://avalanchescouting.vercel.app';
-    const link =
-      kind === 'join_org'
-        ? `${origin}/auth/signin?token=${encodeURIComponent(token)}&invite_type=join_org`
-        : `${origin}/auth/signin?token=${encodeURIComponent(token)}&invite_type=new_org`;
+    const link = `${origin}/auth/signin?token=${encodeURIComponent(token)}&invite_type=new_org`;
     navigator.clipboard.writeText(link);
     setCopiedToken(token);
     setTimeout(() => setCopiedToken(null), 2000);
@@ -276,7 +231,7 @@ export default function OrgManager() {
                     />
                     <Button 
                       type="submit" 
-                      className="w-full" 
+                      className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20 brightness-110 active:scale-95 transition-all" 
                       disabled={isCreatingOrg || !newOrgName.trim()}
                     >
                       {isCreatingOrg ? (
@@ -303,30 +258,21 @@ export default function OrgManager() {
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Generating a link allows a team lead to bypass the Avalanche Discord filter and set up their own organization.
                   </p>
-                  <Button 
-                    onClick={generateInvite} 
-                    className="w-full hover:bg-primary/90" 
-                    variant="default"
-                    disabled={isGeneratingInvite}
-                  >
-                    {isGeneratingInvite ? (
-                      <PlusCircle className="w-4 h-4 animate-spin mr-2" />
-                    ) : (
-                      <LinkIcon className="w-4 h-4 mr-2" />
-                    )}
-                    New org setup invite
-                  </Button>
-                  <Button
-                    onClick={generateJoinInvite}
-                    className="w-full"
-                    variant="secondary"
-                    disabled={isGeneratingInvite || orgs.length === 0}
-                  >
-                    <Users className="w-4 h-4 mr-2" />
-                    Student join invite (Avalanche)
-                  </Button>
-                </CardContent>
-              </Card>
+                    <Button 
+                      onClick={generateInvite} 
+                      className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 brightness-110 active:scale-95 transition-all" 
+                      variant="default"
+                      disabled={isGeneratingInvite}
+                    >
+                      {isGeneratingInvite ? (
+                        <PlusCircle className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <LinkIcon className="w-4 h-4 mr-2" />
+                      )}
+                      New Org Setup Invite
+                    </Button>
+                  </CardContent>
+                </Card>
             </div>
 
             {/* Right Column: List and Management */}
@@ -388,12 +334,7 @@ export default function OrgManager() {
                                 size="sm" 
                                 variant="outline" 
                                 className="h-8 gap-2 text-xs border-white/10"
-                                onClick={() =>
-                                  copyInviteLink(
-                                    invite.token,
-                                    invite.invite_type === 'join_org' ? 'join_org' : 'new_org'
-                                  )
-                                }
+                                onClick={() => copyInviteLink(invite.token)}
                               >
                                 {copiedToken === invite.token ? (
                                   <Check className="w-3.5 h-3.5 text-green-500" />

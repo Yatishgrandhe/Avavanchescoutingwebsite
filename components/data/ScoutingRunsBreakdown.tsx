@@ -2,8 +2,8 @@
  * 2026 REBUILT: Shows each shooting run in auto and teleop with time, ball range (multiple choice), and estimated pts.
  */
 import React from 'react';
-import { getRunsForDisplay } from '@/lib/analytics';
-import { Clock, Target, Award } from 'lucide-react';
+import { getRunsForDisplay, parseNotes } from '@/lib/analytics';
+import { Clock, Target, Award, Zap } from 'lucide-react';
 import { cn, formatDurationSec } from '@/lib/utils';
 
 interface ScoutingRunsBreakdownProps {
@@ -14,6 +14,7 @@ interface ScoutingRunsBreakdownProps {
 
 export function ScoutingRunsBreakdown({ notes, className, compact }: ScoutingRunsBreakdownProps) {
   const { auto, teleop, autoClimbPts, teleopClimbPts, estimatedTotal } = getRunsForDisplay(notes);
+  const teleopMeta = parseNotes(notes).teleop;
 
   return (
     <div className={cn('space-y-4', className)}>
@@ -80,6 +81,27 @@ export function ScoutingRunsBreakdown({ notes, className, compact }: ScoutingRun
           <p className={cn('text-xs text-green-400 mt-1', compact ? 'mt-1' : 'mt-2')}>
             <Award className="w-3 h-3 inline mr-1" /> Climb: +{teleopClimbPts} pts
           </p>
+        )}
+        {(teleopMeta.shuttle === true || teleopMeta.shuttle === false) && (
+          <div
+            className={cn(
+              'mt-2 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-4 text-xs',
+              compact ? 'mt-1' : 'mt-3'
+            )}
+          >
+            <span className="font-bold text-amber-400/90 uppercase tracking-wider flex items-center gap-1">
+              <Zap className="w-3.5 h-3.5 shrink-0" /> Shuttle
+            </span>
+            <span className="text-foreground">
+              Robot shuttles: <strong>{teleopMeta.shuttle ? 'Yes' : 'No'}</strong>
+            </span>
+            {teleopMeta.shuttle && teleopMeta.shuttle_consistency && (
+              <span className="text-foreground">
+                Consistency:{' '}
+                <strong className="capitalize">{teleopMeta.shuttle_consistency}</strong>
+              </span>
+            )}
+          </div>
         )}
       </div>
 

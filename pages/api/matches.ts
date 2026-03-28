@@ -90,6 +90,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
+      // Auto-sync from TBA synchronously to ensure fresh data every time the page is loaded.
+      try {
+        const { syncTbaEventToOrganization } = await import('@/lib/syncTbaToOrg');
+        await syncTbaEventToOrganization(supabase, orgId, eventKey);
+      } catch (syncErr) {
+        console.warn('Auto TBA sync failed during matches fetch:', syncErr);
+      }
+
       const { data: matches, error: matchesError } = await supabase
         .from('matches')
         .select('*')

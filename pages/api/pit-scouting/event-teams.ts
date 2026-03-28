@@ -53,6 +53,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
+  // Try to auto-sync fresh team roster data from TBA
+  try {
+    const { syncTbaEventToOrganization } = await import('@/lib/syncTbaToOrg');
+    await syncTbaEventToOrganization(supabase, orgId, eventKey);
+  } catch (syncErr) {
+    console.warn('Auto TBA sync failed during pit scouting team fetch:', syncErr);
+  }
+
   const { data: roster } = await supabase
     .from('event_team_roster')
     .select('team_number, team_name')

@@ -49,17 +49,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
+  // Row exists but no org yet (new-org invite / join in progress). Do not assign Avalanche — that
+  // would overwrite the org set by complete-new-org-setup on the next login.
+  if (existing && !existing.organization_id) {
+    res.status(200).json({ profile: existing, updated: false });
+    return;
+  }
+
   const row = {
     id: user.id,
-    email: user.email ?? existing?.email ?? null,
-    name: existing?.name || displayName,
-    image: existing?.image || meta?.avatar_url || null,
+    email: user.email ?? null,
+    name: displayName,
+    image: meta?.avatar_url || null,
     organization_id: AVALANCHE_ORG_ID,
-    role: (existing?.role as string) || 'user',
-    team_number: existing?.team_number ?? null,
-    can_edit_forms: existing?.can_edit_forms ?? false,
-    can_view_pick_list: existing?.can_view_pick_list ?? false,
-    can_view_stats: existing?.can_view_stats ?? true,
+    role: 'user',
+    team_number: null,
+    can_edit_forms: false,
+    can_view_pick_list: false,
+    can_view_stats: true,
     updated_at: new Date().toISOString(),
   };
 

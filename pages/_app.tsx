@@ -69,6 +69,18 @@ export default function App({ Component, pageProps }: AppProps) {
         }
       }
 
+      // Re-read profile after ensure-profile so RLS-visible row wins (matches server truth).
+      if (effective && u.id) {
+        const { data: again } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', u.id)
+          .maybeSingle();
+        if (again?.organization_id) {
+          effective = again;
+        }
+      }
+
       if (effective) {
         setUser({
           ...effective,

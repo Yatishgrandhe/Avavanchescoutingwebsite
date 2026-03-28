@@ -99,7 +99,11 @@ export default function SetupOrg() {
           title: 'Welcome!',
           description: 'You have been added to the organization.',
         });
-        router.replace('/');
+        if (typeof window !== 'undefined') {
+          window.location.assign('/');
+        } else {
+          router.replace('/');
+        }
       } catch (e: any) {
         joinAttemptedRef.current = false;
         setError(e?.message || 'Could not complete join');
@@ -148,8 +152,13 @@ export default function SetupOrg() {
         description: `Welcome to Avalanche Scouting, ${orgName}!`,
       });
 
-      // Redirect to home - profile changes should sync via trigger
-      router.push('/');
+      // Full navigation reload so _app refetches public.users with the new organization_id
+      // (avoids ensure-profile / stale client state showing no org).
+      if (typeof window !== 'undefined') {
+        window.location.assign('/');
+      } else {
+        router.replace('/');
+      }
     } catch (err: any) {
       toast({
         title: "Setup failed",

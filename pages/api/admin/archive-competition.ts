@@ -277,8 +277,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await supabase.from('scout_names').delete().eq('organization_id', orgId);
 
-    // 9. Reset app_config for this org
-    await supabase.from('app_config').delete().eq('organization_id', orgId).in('key', ['current_event_key', 'current_event_name']);
+    // 9. Clear all app_config for this org so nothing points at a stale competition
+    await supabase.from('app_config').delete().eq('organization_id', orgId);
 
     res.status(200).json({ success: true, message: 'Competition archived successfully', competitionId });
   } catch (error) {

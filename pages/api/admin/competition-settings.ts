@@ -1,7 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
-import { CURRENT_EVENT_KEY, CURRENT_EVENT_NAME } from '@/lib/constants';
-
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
@@ -52,9 +50,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       map[r.key] = r.value;
     });
 
+    // No env fallback: after archive, DB has no keys — UI must show "no active competition"
+    // instead of pulling default keys from code (which made schedules look live).
     res.status(200).json({
-      current_event_key: (map.current_event_key || '').trim() || CURRENT_EVENT_KEY,
-      current_event_name: (map.current_event_name || '').trim() || CURRENT_EVENT_NAME,
+      current_event_key: (map.current_event_key || '').trim(),
+      current_event_name: (map.current_event_name || '').trim(),
     });
     return;
   }

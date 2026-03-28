@@ -11,6 +11,17 @@ function competitionYearFromEventKey(eventKey: string): number {
   return new Date().getFullYear();
 }
 
+function dominantEventKey(rows: { event_key: string }[] | null | undefined): string | null {
+  const freq = new Map<string, number>();
+  for (const r of rows || []) {
+    const k = (r.event_key || '').trim();
+    if (!k) continue;
+    freq.set(k, (freq.get(k) || 0) + 1);
+  }
+  const sorted = Array.from(freq.entries()).sort((a, b) => b[1] - a[1]);
+  return sorted.length > 0 ? sorted[0][0] : null;
+}
+
 /** Avoid PK / FK conflicts when copying live rows into past_* tables. */
 function stripForPastInsert<T extends Record<string, unknown>>(
   row: T,
@@ -76,25 +87,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const keyFallback = (CURRENT_EVENT_KEY || '').trim();
     const nameFallback = (CURRENT_EVENT_NAME || '').trim();
 
-    const eventKey = keyFromDb || keyFallback;
-    const eventName = nameFromDb || nameFallback;
+    const { data: orgMatchRows } = await supabase
+      .from('matches')
+      .select('event_key')
+      .eq('organization_id', orgId);
 
-    if (!eventKey || !eventName) {
+    const dominant = dominantEventKey(orgMatchRows);
+
+    let configEventKey = (keyFromDb || keyFallback).trim();
+    let eventName = (nameFromDb || nameFallback).trim();
+
+    let effectiveEventKey = configEventKey;
+    if (effectiveEventKey) {
+      const countForConfig = (orgMatchRows || []).filter((m) => m.event_key === effectiveEventKey).length;
+      if (countForConfig === 0 && dominant) {
+        effectiveEventKey = dominant;
+      }
+    } else if (dominant) {
+      effectiveEventKey = dominant;
+    }
+
+    if (!effectiveEventKey) {
       res.status(400).json({
         error:
-          'No current competition to archive. Set Event Key and Competition Name in Team Management, or configure CURRENT_EVENT_KEY / CURRENT_EVENT_NAME in the app.',
+          'No competition to archive. Set Event Key in Team Management (or env fallbacks), or load matches so we can detect the event.',
       });
       return;
     }
 
-    const competitionYear = competitionYearFromEventKey(eventKey);
+    if (!eventName) {
+      eventName = effectiveEventKey;
+    }
 
-    // 2. Create past_competitions entry
+    const competitionYear = competitionYearFromEventKey(effectiveEventKey);
+
+    // 2. Create past_competitions entry (use live data key so scouting/matches align)
     const { data: pastComp, error: compErr } = await supabase
       .from('past_competitions')
       .insert({
         competition_name: eventName,
-        competition_key: eventKey,
+        competition_key: effectiveEventKey,
         competition_year: competitionYear,
         organization_id: orgId,
         migrated_at: new Date().toISOString()
@@ -110,13 +142,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const competitionId = pastComp.id;
 
-    // 3. Move Scouting Data
-    // Join matches to filter by eventKey (current competition) for matches in this org
+    // 3. Move Scouting Data (matches.event_key must match archived event)
     const { data: scoutingRecords } = await supabase
       .from('scouting_data')
       .select('*, matches!inner(event_key)')
       .eq('organization_id', orgId)
-      .eq('matches.event_key', eventKey);
+      .eq('matches.event_key', effectiveEventKey);
 
     if (scoutingRecords && scoutingRecords.length > 0) {
       const pastScouting = scoutingRecords.map((r) =>
@@ -161,12 +192,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await supabase.from('pit_scouting_data').delete().in('id', pitIds).eq('organization_id', orgId);
     }
 
-    // 5. Move Matches
+    // 5. Move Matches for this event
     const { data: matchRecords } = await supabase
       .from('matches')
       .select('*')
       .eq('organization_id', orgId)
-      .eq('event_key', eventKey);
+      .eq('event_key', effectiveEventKey);
 
     if (matchRecords && matchRecords.length > 0) {
       const pastMatches = matchRecords.map((r) =>
@@ -208,17 +239,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(500).json({ error: 'Failed to archive team snapshot', details: ptErr.message });
         return;
       }
-      
-      // Note: We don't delete teams from current, but we may want to reset their stats?
-      // For now, let's just keep them in current too as it's a team directory.
     }
 
-    // 7. Move Pick Lists
+    // 7. Move Pick Lists for this event, then wipe all live pick lists for the org
     const { data: pickLists } = await supabase
       .from('pick_lists')
       .select('*')
       .eq('organization_id', orgId)
-      .eq('event_key', eventKey);
+      .eq('event_key', effectiveEventKey);
 
     if (pickLists && pickLists.length > 0) {
       const pastPickLists = pickLists.map((r) =>
@@ -233,12 +261,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(500).json({ error: 'Failed to archive pick lists', details: plErr.message });
         return;
       }
-
-      const plIds = pickLists.map((r) => r.id);
-      await supabase.from('pick_lists').delete().in('id', plIds).eq('organization_id', orgId);
     }
 
-    // 8. Reset app_config for this org
+    await supabase.from('pick_lists').delete().eq('organization_id', orgId);
+
+    // 8. Clear live roster & schedules for this org (snapshot already in past_*)
+    await supabase.from('users').update({ team_number: null }).eq('organization_id', orgId);
+
+    await supabase
+      .from('teams')
+      .update({ organization_id: null, epa: 0, endgame_epa: 0 })
+      .eq('organization_id', orgId);
+
+    await supabase.from('matches').delete().eq('organization_id', orgId);
+
+    await supabase.from('scout_names').delete().eq('organization_id', orgId);
+
+    // 9. Reset app_config for this org
     await supabase.from('app_config').delete().eq('organization_id', orgId).in('key', ['current_event_key', 'current_event_name']);
 
     res.status(200).json({ success: true, message: 'Competition archived successfully', competitionId });

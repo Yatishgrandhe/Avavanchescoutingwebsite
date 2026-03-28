@@ -115,15 +115,6 @@ export default function SetupOrg() {
 
     setIsSubmitting(true);
     try {
-      // 1. Create the organization
-      const { data: org, error: orgError } = await supabase
-        .from('organizations')
-        .insert({ name: orgName.trim() })
-        .select()
-        .single();
-
-      if (orgError) throw orgError;
-
       const tn = parseInt(teamNumber, 10);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
@@ -138,7 +129,7 @@ export default function SetupOrg() {
         },
         body: JSON.stringify({
           token: inviteToken,
-          organizationId: org.id,
+          orgName: orgName.trim(),
           teamNumber: Number.isFinite(tn) ? tn : null,
         }),
       });

@@ -5,9 +5,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 /**
- * After the client creates an organization (RLS: creator can insert/select),
- * this endpoint assigns the authenticated user as org admin using the service role
- * so profile updates are not blocked by users-table RLS.
+ * Creates the organization server-side (service role), sets created_by explicitly,
+ * seeds teams row if needed, and assigns the user as org admin.
+ * Avoids client-side org insert + RLS/trigger issues where created_by was null or profile upsert failed.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   if (req.method !== 'POST') {
@@ -31,19 +31,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const inviteToken = typeof req.body?.token === 'string' ? req.body.token.trim() : '';
-  const organizationId = typeof req.body?.organizationId === 'string' ? req.body.organizationId.trim() : '';
+  const orgNameRaw = typeof req.body?.orgName === 'string' ? req.body.orgName.trim() : '';
   const teamNumberRaw = req.body?.teamNumber;
-
-  if (!inviteToken || !organizationId) {
-    res.status(400).json({ error: 'token and organizationId are required' });
-    return;
-  }
 
   const tn =
     teamNumberRaw === null || teamNumberRaw === undefined || teamNumberRaw === ''
       ? null
       : Number(teamNumberRaw);
   const teamNumber = Number.isFinite(tn) ? Math.trunc(tn as number) : null;
+
+  if (!inviteToken || !orgNameRaw || teamNumber === null) {
+    res.status(400).json({ error: 'token, orgName, and teamNumber are required' });
+    return;
+  }
 
   const { data: invite, error: invErr } = await admin
     .from('organization_invites')
@@ -67,100 +67,101 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  const { data: org, error: orgErr } = await admin
+  const { data: newOrg, error: orgInsErr } = await admin
     .from('organizations')
-    .select('id, created_by, name')
-    .eq('id', organizationId)
-    .maybeSingle();
+    .insert({
+      name: orgNameRaw,
+      created_by: user.id,
+    })
+    .select('id, name')
+    .single();
 
-  if (orgErr || !org) {
-    res.status(400).json({ error: 'Organization not found' });
+  if (orgInsErr || !newOrg) {
+    console.error('complete-new-org-setup org insert:', orgInsErr);
+    res.status(500).json({
+      error: 'Failed to create organization',
+      details: orgInsErr?.message,
+      code: orgInsErr?.code,
+    });
     return;
   }
 
-  if (org.created_by !== user.id) {
-    res.status(403).json({ error: 'You can only claim organizations you created' });
-    return;
-  }
+  const organizationId = newOrg.id as string;
+  let newRole = 'admin';
 
-  // users.team_number FK → teams(team_number). New orgs often use a number with no row yet.
-  if (teamNumber !== null) {
+  try {
     const { data: existingTeam } = await admin
       .from('teams')
-      .select('team_number')
+      .select('team_number, organization_id')
       .eq('team_number', teamNumber)
       .maybeSingle();
 
     if (!existingTeam) {
-      const orgName = typeof org.name === 'string' && org.name.trim() ? org.name.trim() : `Team ${teamNumber}`;
       const { error: teamInsErr } = await admin.from('teams').insert({
         team_number: teamNumber,
-        team_name: orgName,
+        team_name: orgNameRaw,
         organization_id: organizationId,
       });
       if (teamInsErr && teamInsErr.code !== '23505') {
         console.error('complete-new-org-setup teams insert:', teamInsErr);
-        res.status(500).json({
-          error: 'Failed to register team number',
-          details: teamInsErr.message,
-        });
-        return;
+        throw new Error(teamInsErr.message || 'teams insert failed');
       }
+    } else if (existingTeam.organization_id == null) {
+      await admin
+        .from('teams')
+        .update({ organization_id: organizationId })
+        .eq('team_number', teamNumber);
     }
-  }
 
-  const { data: existing } = await admin.from('users').select('role').eq('id', user.id).maybeSingle();
-  const newRole = existing?.role === 'superadmin' ? 'superadmin' : 'admin';
+    const { data: existing } = await admin.from('users').select('role').eq('id', user.id).maybeSingle();
+    newRole = existing?.role === 'superadmin' ? 'superadmin' : 'admin';
 
-  const meta = user.user_metadata as Record<string, string | undefined> | undefined;
-  const name =
-    meta?.full_name ||
-    meta?.name ||
-    user.email?.split('@')[0] ||
-    'User';
+    const meta = user.user_metadata as Record<string, string | undefined> | undefined;
+    const name =
+      meta?.full_name ||
+      meta?.name ||
+      user.email?.split('@')[0] ||
+      'User';
 
-  const { error: upsertErr } = await admin.from('users').upsert(
-    {
-      id: user.id,
-      email: user.email ?? null,
-      name,
-      image: (meta?.avatar_url as string) || null,
-      organization_id: organizationId,
-      role: newRole,
-      team_number: teamNumber,
-      can_edit_forms: true,
-      can_view_pick_list: true,
-      can_view_stats: true,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'id' }
-  );
+    const { error: upsertErr } = await admin.from('users').upsert(
+      {
+        id: user.id,
+        email: user.email ?? null,
+        name,
+        image: (meta?.avatar_url as string) || null,
+        organization_id: organizationId,
+        role: newRole,
+        team_number: teamNumber,
+        can_edit_forms: true,
+        can_view_pick_list: true,
+        can_view_stats: true,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'id' }
+    );
 
-  if (upsertErr) {
-    console.error('complete-new-org-setup upsert:', upsertErr);
-    res.status(500).json({
-      error: 'Failed to set you as organization admin',
-      details: upsertErr.message,
-      code: upsertErr.code,
-    });
-    return;
-  }
+    if (upsertErr) {
+      console.error('complete-new-org-setup upsert:', upsertErr);
+      throw new Error(upsertErr.message || 'profile upsert failed');
+    }
 
-  const { error: inviteUpdErr } = await admin
-    .from('organization_invites')
-    .update({
-      status: 'used',
-      used_at: new Date().toISOString(),
-      used_by: user.id,
-    })
-    .eq('id', invite.id);
+    const { error: inviteUpdErr } = await admin
+      .from('organization_invites')
+      .update({
+        status: 'used',
+        used_at: new Date().toISOString(),
+        used_by: user.id,
+      })
+      .eq('id', invite.id);
 
-  if (inviteUpdErr) {
-    console.error('complete-new-org-setup invite update:', inviteUpdErr);
-    res.status(500).json({
-      error: 'Profile updated but failed to mark invite as used',
-      details: inviteUpdErr.message,
-    });
+    if (inviteUpdErr) {
+      console.error('complete-new-org-setup invite update:', inviteUpdErr);
+      throw new Error(inviteUpdErr.message || 'invite update failed');
+    }
+  } catch (e: unknown) {
+    await admin.from('organizations').delete().eq('id', organizationId);
+    const msg = e instanceof Error ? e.message : 'Setup failed';
+    res.status(500).json({ error: 'Failed to finish organization setup', details: msg });
     return;
   }
 

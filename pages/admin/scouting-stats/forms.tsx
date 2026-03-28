@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { formatDurationSec } from '@/lib/utils';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
+import { Badge } from '@/components/ui/badge';
 
 interface FormRow {
   id: string;
@@ -35,6 +36,8 @@ interface FormRow {
   comments?: string | null;
   average_downtime?: number | null;
   broke?: boolean | null;
+  shuttling?: boolean | null;
+  shuttling_consistency?: string | null;
   created_at?: string;
 }
 
@@ -248,6 +251,7 @@ function AdminScoutingFormsInner() {
                           <th className="text-left py-3 px-4 whitespace-nowrap">Defense</th>
                           <th className="text-left py-3 px-4 whitespace-nowrap">Downtime</th>
                           <th className="text-left py-3 px-4 whitespace-nowrap">Broke</th>
+                          <th className="text-left py-3 px-4 whitespace-nowrap">Shuttle</th>
                           <th className="text-left py-3 px-4 min-w-[120px]">Comments</th>
                           <th className="text-right py-3 px-4 whitespace-nowrap">Action</th>
                         </tr>
@@ -316,7 +320,25 @@ function AdminScoutingFormsInner() {
                                   {row.average_downtime != null ? formatDurationSec(Number(row.average_downtime)) : '—'}
                                 </td>
                                 <td className="py-3 px-4 text-muted-foreground text-sm align-middle">
-                                  {row.broke === true ? 'Yes' : row.broke === false ? 'No' : '—'}
+                                  {row.broke === true ? (
+                                    <span className="text-red-400 font-bold uppercase text-[10px]">Yes</span>
+                                  ) : row.broke === false ? (
+                                    <span className="text-muted-foreground opacity-50 uppercase text-[10px]">No</span>
+                                  ) : '—'}
+                                </td>
+                                <td className="py-3 px-4 align-middle">
+                                  {row.shuttling ? (
+                                    <Badge variant="outline" className={cn(
+                                      "text-[10px] uppercase font-bold tracking-tight px-2 py-0.5",
+                                      row.shuttling_consistency === 'consistent' 
+                                        ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/20" 
+                                        : "bg-amber-500/20 text-amber-400 border-amber-500/20"
+                                    )}>
+                                      {row.shuttling_consistency || 'Yes'}
+                                    </Badge>
+                                  ) : row.shuttling === false ? (
+                                    <span className="text-muted-foreground opacity-50 uppercase text-[10px]">No</span>
+                                  ) : '—'}
                                 </td>
                                 <td className="py-3 px-4 align-middle">
                                   <div className="max-w-[180px] truncate italic text-sm text-muted-foreground" title={row.comments ?? undefined}>
@@ -358,7 +380,7 @@ function AdminScoutingFormsInner() {
                                       <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">
                                         2026 Rebuilt · Shooting runs &amp; estimated score
                                       </h4>
-                                      <ScoutingRunsBreakdown notes={row.notes} />
+                                      <ScoutingRunsBreakdown notes={row.notes} shuttleRow={row} />
                                     </td>
                                   </motion.tr>
                                 ) : null}

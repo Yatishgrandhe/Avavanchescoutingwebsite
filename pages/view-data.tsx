@@ -68,6 +68,8 @@ interface ViewDataRow {
   comments?: string;
   average_downtime?: number | null;
   broke?: boolean | null;
+  shuttling?: boolean | null;
+  shuttling_consistency?: string | null;
   created_at?: string;
   submitted_at?: string;
   submitted_by_name?: string | null;
@@ -998,7 +1000,7 @@ export default function ViewDataPage() {
                         >
                           <td colSpan={13} className="py-4 px-6">
                             <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">2026 Rebuilt · Shooting runs &amp; estimated score</h4>
-                            <ScoutingRunsBreakdown notes={data.notes} />
+                            <ScoutingRunsBreakdown notes={data.notes} shuttleRow={data} />
                           </td>
                         </motion.tr>
                       )}

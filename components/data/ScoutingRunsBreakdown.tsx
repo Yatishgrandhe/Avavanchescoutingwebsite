@@ -2,19 +2,21 @@
  * 2026 REBUILT: Shows each shooting run in auto and teleop with time, ball range (multiple choice), and estimated pts.
  */
 import React from 'react';
-import { getRunsForDisplay, parseNotes } from '@/lib/analytics';
+import { getRunsForDisplay, parseNotes, type ScoutingRowShuttleMeta } from '@/lib/analytics';
 import { Clock, Target, Award, Zap } from 'lucide-react';
 import { cn, formatDurationSec } from '@/lib/utils';
 
 interface ScoutingRunsBreakdownProps {
   notes: any;
+  /** DB row fields when notes JSON predates shuttle-in-teleop (optional). */
+  shuttleRow?: ScoutingRowShuttleMeta;
   className?: string;
   compact?: boolean;
 }
 
-export function ScoutingRunsBreakdown({ notes, className, compact }: ScoutingRunsBreakdownProps) {
+export function ScoutingRunsBreakdown({ notes, shuttleRow, className, compact }: ScoutingRunsBreakdownProps) {
   const { auto, teleop, autoClimbPts, teleopClimbPts, estimatedTotal } = getRunsForDisplay(notes);
-  const teleopMeta = parseNotes(notes).teleop;
+  const teleopMeta = parseNotes(notes, shuttleRow).teleop;
 
   return (
     <div className={cn('space-y-4', className)}>

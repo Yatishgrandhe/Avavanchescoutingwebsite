@@ -29,6 +29,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useScoutingLocks } from '@/hooks/use-scouting-locks';
 import { ScoringNotes, getBallChoiceLabel } from '@/lib/types';
 import { calculateScore, cn, formatDurationSec } from '@/lib/utils';
+import { mergeShuttleFromMiscIntoTeleop } from '@/lib/scouting-notes-merge';
 
 type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'miscellaneous' | 'review';
 
@@ -59,6 +60,8 @@ interface FormData {
     comments: string;
     average_downtime: number | null;
     broke: boolean | null;
+    shuttling: boolean;
+    shuttling_consistency: string;
   };
 }
 
@@ -86,6 +89,8 @@ export default function Scout() {
       comments: '',
       average_downtime: null,
       broke: null,
+      shuttling: false,
+      shuttling_consistency: 'N/A',
     },
   });
 
@@ -145,6 +150,8 @@ export default function Scout() {
         comments: formData.miscellaneous.comments,
         average_downtime: formData.miscellaneous.average_downtime ?? undefined,
         broke: formData.miscellaneous.broke ?? undefined,
+        shuttling: formData.miscellaneous.shuttling,
+        shuttling_consistency: formData.miscellaneous.shuttling_consistency,
         organization_id: user?.organization_id, // include org ID from user profile
         scout_id: user?.id,
         submitted_by_email: user?.email,
@@ -152,7 +159,7 @@ export default function Scout() {
         submitted_at: new Date().toISOString(),
         notes: {
           autonomous: formData.autonomous,
-          teleop: formData.teleop,
+          teleop: mergeShuttleFromMiscIntoTeleop(formData.teleop, formData.miscellaneous),
         },
       };
 
@@ -189,6 +196,8 @@ export default function Scout() {
             comments: '',
             average_downtime: null,
             broke: null,
+            shuttling: false,
+            shuttling_consistency: 'N/A',
           },
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -546,14 +555,6 @@ export default function Scout() {
                                     <span className="font-mono font-semibold">{formatDurationSec(Number(formData.teleop.climb_sec))}</span>
                                   </div>
                                 )}
-                                {formData.teleop?.shuttle && (
-                                  <div className="flex justify-between border-t border-white/5 mt-1 pt-1">
-                                    <span className="text-muted-foreground">Shuttling:</span>
-                                    <Badge variant="outline" className="text-[9px] h-4 px-1 border-primary/30 text-primary uppercase">
-                                      {formData.teleop?.shuttle_consistency || 'Yes'}
-                                    </Badge>
-                                  </div>
-                                )}
                               </div>
                               {((formData.autonomous?.runs?.length ?? 0) > 0 || (formData.teleop?.runs?.length ?? 0) > 0) && (
                                 <div className="text-[10px] text-muted-foreground pt-1">
@@ -562,7 +563,7 @@ export default function Scout() {
                               )}
                             </div>
 
-                            <div className="grid grid-cols-3 gap-2 pt-2">
+                            <div className="grid grid-cols-4 gap-2 pt-2">
                               <div className="text-center">
                                 <span className="text-[9px] font-bold text-muted-foreground uppercase block">Defense</span>
                                 <span className="text-sm font-black">{formData.miscellaneous.defense_rating}/10</span>
@@ -578,6 +579,15 @@ export default function Scout() {
                                   formData.miscellaneous.broke ? "text-red-500" : "text-green-500"
                                 )}>
                                   {formData.miscellaneous.broke ? 'YES' : 'NO'}
+                                </span>
+                              </div>
+                              <div className="text-center">
+                                <span className="text-[9px] font-bold text-muted-foreground uppercase block">Shuttle</span>
+                                <span className={cn(
+                                  "text-[10px] font-black leading-none mt-1 block",
+                                  formData.miscellaneous.shuttling ? "text-primary" : "text-muted-foreground/50"
+                                )}>
+                                  {formData.miscellaneous.shuttling ? (formData.miscellaneous.shuttling_consistency === 'Consistent' ? 'CON' : 'INC') : 'NO'}
                                 </span>
                               </div>
                             </div>

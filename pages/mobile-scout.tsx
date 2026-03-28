@@ -24,6 +24,7 @@ import TeleopForm from '@/components/scout/TeleopForm';
 import MiscellaneousForm from '@/components/scout/MiscellaneousForm';
 import { ScoringNotes, getBallChoiceLabel } from '@/lib/types';
 import { calculateScore, formatDurationSec } from '@/lib/utils';
+import { mergeShuttleFromMiscIntoTeleop } from '@/lib/scouting-notes-merge';
 import { useRouter } from 'next/router';
 
 type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'miscellaneous' | 'review';
@@ -55,6 +56,8 @@ interface FormData {
     comments: string;
     average_downtime: number | null;
     broke: boolean | null;
+    shuttling: boolean;
+    shuttling_consistency: string;
   };
 }
 
@@ -82,6 +85,8 @@ export default function MobileScout() {
       comments: '',
       average_downtime: null,
       broke: null,
+      shuttling: false,
+      shuttling_consistency: 'N/A',
     },
   });
 
@@ -116,6 +121,7 @@ export default function MobileScout() {
       const teleopPoints = calculateScore(formData.teleop).final_score;
       const finalScore = autonomousPoints + teleopPoints;
 
+      const misc = formData.miscellaneous;
       const scoutingData = {
         match_id: formData.matchData.match_id,
         team_number: formData.teamNumber,
@@ -124,10 +130,12 @@ export default function MobileScout() {
         autonomous_points: autonomousPoints,
         teleop_points: teleopPoints,
         final_score: finalScore,
-        defense_rating: formData.miscellaneous.defense_rating,
-        comments: formData.miscellaneous.comments,
-        average_downtime: formData.miscellaneous.average_downtime ?? undefined,
-        broke: formData.miscellaneous.broke ?? undefined,
+        defense_rating: misc.defense_rating,
+        comments: misc.comments,
+        average_downtime: misc.average_downtime ?? undefined,
+        broke: misc.broke ?? undefined,
+        shuttling: misc.shuttling,
+        shuttling_consistency: misc.shuttling ? misc.shuttling_consistency : undefined,
         scout_id: user?.id,
         submitted_by_email: user?.email,
         // Use username from user_metadata: full_name, username (Discord), or name
@@ -135,7 +143,15 @@ export default function MobileScout() {
         submitted_at: new Date().toISOString(),
         notes: {
           autonomous: formData.autonomous,
-          teleop: formData.teleop,
+          teleop: mergeShuttleFromMiscIntoTeleop(formData.teleop, misc),
+        },
+        miscellaneous: {
+          defense_rating: misc.defense_rating,
+          comments: misc.comments,
+          average_downtime: misc.average_downtime,
+          broke: misc.broke,
+          shuttling: misc.shuttling,
+          shuttling_consistency: misc.shuttling_consistency,
         },
       };
 
@@ -177,6 +193,8 @@ export default function MobileScout() {
             comments: '',
             average_downtime: null,
             broke: null,
+            shuttling: false,
+            shuttling_consistency: 'N/A',
           },
         });
         router.push('/');
@@ -449,6 +467,14 @@ export default function MobileScout() {
                         <div className="flex justify-between border-t pt-2 mt-2">
                           <span className="text-muted-foreground">Defense Rating:</span>
                           <span className="font-medium">{formData.miscellaneous.defense_rating}/10</span>
+                        </div>
+                        <div className="flex justify-between pt-1">
+                          <span className="text-muted-foreground">Shuttle:</span>
+                          <span className="font-medium">
+                            {formData.miscellaneous.shuttling
+                              ? (formData.miscellaneous.shuttling_consistency || 'Yes')
+                              : 'No'}
+                          </span>
                         </div>
                       </CardContent>
                     </Card>

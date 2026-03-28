@@ -36,6 +36,9 @@ export interface ScoutingData {
   comments: string;
   average_downtime?: number | null;
   broke?: boolean | null;
+  /** Stored alongside notes for reporting; mirrored into notes.teleop on submit. */
+  shuttling?: boolean | null;
+  shuttling_consistency?: string | null;
   created_at: string;
   submitted_by_name?: string;
   submitted_by_email?: string;

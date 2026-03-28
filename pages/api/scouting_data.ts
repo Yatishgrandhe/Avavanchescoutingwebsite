@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/supabase';
 import { calculateScore } from '@/lib/utils';
 import { updateTeamEpa } from '@/lib/epa_utils';
+import { mergeShuttlingIntoStoredNotes } from '@/lib/scouting-notes-merge';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -166,6 +167,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           finalNotes = scoringNotes;
         }
 
+        const shuttleFromBody =
+          miscellaneous?.shuttling === true || miscellaneous?.shuttling === false
+            ? miscellaneous.shuttling
+            : typeof req.body.shuttling === 'boolean'
+              ? req.body.shuttling
+              : undefined;
+        const shuttleConsFromBody =
+          miscellaneous?.shuttling_consistency ?? req.body.shuttling_consistency ?? null;
+
+        if (
+          finalNotes &&
+          typeof finalNotes === 'object' &&
+          (shuttleFromBody === true || shuttleFromBody === false)
+        ) {
+          const base = { ...(finalNotes as Record<string, unknown>) };
+          if (!base.teleop || typeof base.teleop !== 'object') {
+            base.teleop = {};
+          }
+          finalNotes = mergeShuttlingIntoStoredNotes(base, {
+            shuttling: shuttleFromBody,
+            shuttling_consistency: shuttleConsFromBody,
+          });
+        }
+
         // alliance_position from match scouting form (1, 2, or 3)
         const finalAlliancePosition = alliance_position ?? alliancePosition;
         const validAlliancePosition = (finalAlliancePosition === 1 || finalAlliancePosition === 2 || finalAlliancePosition === 3)
@@ -211,6 +236,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           comments: comments || miscellaneous?.comments || '',
           average_downtime: average_downtime ?? miscellaneous?.average_downtime ?? null,
           broke: broke !== undefined ? broke : (miscellaneous?.broke ?? null),
+          shuttling:
+            miscellaneous?.shuttling === true || miscellaneous?.shuttling === false
+              ? miscellaneous.shuttling
+              : typeof req.body.shuttling === 'boolean'
+                ? req.body.shuttling
+                : false,
+          shuttling_consistency:
+            miscellaneous?.shuttling_consistency ?? req.body.shuttling_consistency ?? null,
           submitted_by_name: submittedByName,
           submitted_by_email: requestSubmittedByEmail?.trim() || user.email || '',
           submitted_at: new Date().toISOString(),

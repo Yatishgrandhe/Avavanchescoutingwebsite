@@ -6,6 +6,7 @@
 import type { RunRecord } from '@/lib/types';
 import { getBallChoiceScoreFromRange, getBallChoiceLabel } from '@/lib/types';
 import { roundToTenth } from '@/lib/utils';
+import { normalizeShuttleConsistency } from '@/lib/scouting-notes-merge';
 
 const MATCH_LENGTH_SEC = 165;
 
@@ -56,7 +57,13 @@ function fuelFromRuns(runs: RunRecord[] | undefined): number {
   return runs.reduce((sum, r) => sum + getBallChoiceScoreFromRange(r.ball_choice), 0);
 }
 
-export function parseNotes(notes: any): ParsedNotes {
+/** Optional DB row fields when `notes.teleop` lacks shuttle (legacy submissions). */
+export type ScoutingRowShuttleMeta = {
+  shuttling?: boolean | null;
+  shuttling_consistency?: string | null;
+};
+
+export function parseNotes(notes: any, row?: ScoutingRowShuttleMeta): ParsedNotes {
   const parsed = typeof notes === 'string' ? (JSON.parse(notes || '{}') || {}) : notes || {};
   const auto = parsed.autonomous || (parsed.auto_fuel_active_hub !== undefined ? parsed : {});
   const teleop = parsed.teleop || (parsed.teleop_fuel_active_hub !== undefined ? parsed : {});
@@ -80,6 +87,17 @@ export function parseNotes(notes: any): ParsedNotes {
 
   const autoFuel = autoFuelFromRuns > 0 ? autoFuelFromRuns : (autoFuelFromBalls > 0 ? autoFuelFromBalls : (Number(auto.auto_fuel_active_hub) || 0));
   const teleopFuel = teleopFuelFromRuns > 0 ? teleopFuelFromRuns : (teleopFuelFromBalls > 0 ? teleopFuelFromBalls : (Number(teleop.teleop_fuel_active_hub) || 0));
+
+  let shuttle = Boolean(teleop.shuttle);
+  let shuttle_consistency = normalizeShuttleConsistency(teleop.shuttle_consistency);
+  if (row && (row.shuttling === true || row.shuttling === false)) {
+    shuttle = row.shuttling;
+  }
+  if (row?.shuttling_consistency != null && String(row.shuttling_consistency).trim() !== '') {
+    const fromRow = normalizeShuttleConsistency(row.shuttling_consistency);
+    if (fromRow) shuttle_consistency = fromRow;
+  }
+  if (!shuttle) shuttle_consistency = undefined;
 
   return {
     autonomous: {
@@ -112,8 +130,8 @@ export function parseNotes(notes: any): ParsedNotes {
       balls_60_75: Number(teleop.balls_60_75) || 0,
       balls_75_90: Number(teleop.balls_75_90) || 0,
       teleop_cleansing: Number(teleop.teleop_cleansing) || 0,
-      shuttle: Boolean(teleop.shuttle),
-      shuttle_consistency: teleop.shuttle_consistency as 'consistent' | 'inconsistent' | undefined,
+      shuttle,
+      shuttle_consistency,
     },
   };
 }
@@ -329,6 +347,9 @@ export interface ScoutingRowForAnalytics {
   defense_rating?: number;
   autonomous_cleansing?: number;
   teleop_cleansing?: number;
+  /** DB columns when shuttle was stored outside notes (optional). */
+  shuttling?: boolean | null;
+  shuttling_consistency?: string | null;
   /** For sequential EPA: sort matches by time so EPA is a moving average (Statbotics-style). */
   created_at?: string;
 }
@@ -433,7 +454,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[], starterEp
 
   rows.forEach((row) => {
     const notes = row.notes;
-    const p = parseNotes(row.notes); // Moved to top of loop for shuttle logic
+    const p = parseNotes(row.notes, row); // Shuttle from notes or legacy columns
     const autoFuel = getAutoFuelCount(notes);
     const teleopFuel = getTeleopFuelCount(notes);
     totalAutoFuel += autoFuel;

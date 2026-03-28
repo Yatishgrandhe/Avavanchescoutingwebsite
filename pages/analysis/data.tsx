@@ -1048,7 +1048,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 className="mt-4 pt-4 border-t border-white/5 space-y-6"
                               >
                                 {(() => {
-                                  const formNotes = parseNotes(data.notes);
+                                  const formNotes = parseNotes(data.notes, data);
                                   const autoRuns = formNotes.autonomous.runs || [];
                                   const teleopRuns = formNotes.teleop.runs || [];
                                   return (
@@ -1130,12 +1130,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                         </div>
                                         <div className="bg-white/5 p-2 rounded-lg border border-white/5 text-center">
                                           <span className="text-[8px] text-muted-foreground uppercase block">Shuttle</span>
-                                          <span className="text-xs font-bold">{parseNotes(data.notes).teleop.shuttle ? 'Yes' : 'No'}</span>
+                                          <span className="text-xs font-bold">{parseNotes(data.notes, data).teleop.shuttle ? 'Yes' : 'No'}</span>
                                         </div>
-                                        {parseNotes(data.notes).teleop.shuttle && (
+                                        {parseNotes(data.notes, data).teleop.shuttle && (
                                           <div className="bg-white/5 p-2 rounded-lg border border-white/5 text-center">
                                             <span className="text-[8px] text-muted-foreground uppercase block">Consistent</span>
-                                            <span className="text-xs font-bold">{parseNotes(data.notes).teleop.shuttle_consistency}</span>
+                                            <span className="text-xs font-bold">{parseNotes(data.notes, data).teleop.shuttle_consistency}</span>
                                           </div>
                                         )}
                                       </div>
@@ -1299,14 +1299,14 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                   >
                                     <td colSpan={isAdmin ? 12 : 11} className="p-6">
                                       {(() => {
-                                        const formNotes = parseNotes(data.notes);
+                                        const formNotes = parseNotes(data.notes, data);
                                         const autoRuns = formNotes.autonomous.runs || [];
                                         const teleopRuns = formNotes.teleop.runs || [];
                                         return (
                                           <div className="space-y-6">
                                             <div className="pb-4 border-b border-white/10">
                                               <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">2026 Rebuilt · Shooting runs &amp; estimated score</h4>
-                                              <ScoutingRunsBreakdown notes={data.notes} compact />
+                                              <ScoutingRunsBreakdown notes={data.notes} shuttleRow={data} compact />
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                               <div className="space-y-4">

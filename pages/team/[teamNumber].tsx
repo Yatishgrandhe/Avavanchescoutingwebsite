@@ -385,8 +385,8 @@ const TeamDetail: React.FC = () => {
     };
   };
 
-  const renderScoringBreakdown = (notes: any) => {
-    const p = parseNotes(notes);
+  const renderScoringBreakdown = (notes: any, row?: { shuttling?: boolean | null; shuttling_consistency?: string | null }) => {
+    const p = parseNotes(notes, row);
     const autoFuel = getAutoFuelCount(notes);
     const teleopFuel = getTeleopFuelCount(notes);
     const climb = getClimbAchieved(notes); // One climb per robot
@@ -1119,14 +1119,14 @@ const TeamDetail: React.FC = () => {
                                   <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Shooting attempts (range + time per attempt)</h4>
                                 </div>
                                 <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4">
-                                  <ScoutingRunsBreakdown notes={data.notes} />
+                                  <ScoutingRunsBreakdown notes={data.notes} shuttleRow={data} />
                                 </div>
                                 <div className="flex items-center gap-2 mb-2">
                                   <div className="h-1 w-4 bg-primary rounded-full" />
                                   <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Full Scoring Breakdown</h4>
                                 </div>
                                 <div className="bg-white/[0.02] rounded-2xl border border-white/5">
-                                  {renderScoringBreakdown(data.notes)}
+                                  {renderScoringBreakdown(data.notes, data)}
                                 </div>
                               </div>
                             </div>

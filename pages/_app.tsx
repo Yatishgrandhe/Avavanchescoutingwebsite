@@ -44,17 +44,44 @@ export default function App({ Component, pageProps }: AppProps) {
         .from('users')
         .select('*')
         .eq('id', u.id)
-        .single();
+        .maybeSingle();
 
-      if (profile) {
+      let effective = profile;
+
+      if (!effective?.organization_id) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        if (accessToken) {
+          try {
+            const syncRes = await fetch('/api/auth/ensure-profile', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (syncRes.ok) {
+              const body = (await syncRes.json()) as { profile?: AppUser };
+              if (body.profile) {
+                effective = body.profile as typeof profile;
+              }
+            }
+          } catch (e) {
+            console.warn('ensure-profile failed', e);
+          }
+        }
+      }
+
+      if (effective) {
         setUser({
-          ...profile,
-          name: profile.name || u.user_metadata?.full_name || u.user_metadata?.username || u.email?.split('@')[0] || 'Unknown',
-          email: u.email || profile.email,
+          ...effective,
+          name:
+            effective.name ||
+            u.user_metadata?.full_name ||
+            u.user_metadata?.username ||
+            u.email?.split('@')[0] ||
+            'Unknown',
+          email: u.email || effective.email,
           user_metadata: u.user_metadata,
         } as AppUser);
       } else {
-        // Fallback for new users or if profile fetch fails
         setUser({
           id: u.id,
           name: u.user_metadata?.full_name || u.user_metadata?.username || u.email?.split('@')[0] || 'Unknown',

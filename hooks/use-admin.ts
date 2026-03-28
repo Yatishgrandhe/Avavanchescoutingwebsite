@@ -18,8 +18,12 @@ export function useAdmin() {
       }
 
       try {
-        // Check if user has admin role in their metadata or in the users table
-        const adminRole = user.role === 'admin' || user.role === 'superadmin' || user.user_metadata?.role === 'admin';
+        const role = user.role;
+        const adminRole =
+          role === 'admin' ||
+          role === 'superadmin' ||
+          user.user_metadata?.role === 'admin' ||
+          user.user_metadata?.role === 'superadmin';
         setIsAdmin(adminRole);
         setUserData(user);
       } catch (error) {
@@ -39,7 +43,7 @@ export function useAdmin() {
   const canAccessPickList = (isAdmin || user?.role === 'superadmin' || !!user?.can_view_pick_list) && !isBlockedFromPickList;
 
   return {
-    isAdmin: isAdmin || user?.role === 'superadmin',
+    isAdmin: isAdmin || user?.role === 'superadmin' || user?.role === 'admin',
     isSuperAdmin: user?.role === 'superadmin',
     canAccessPickList,
     user: userData,

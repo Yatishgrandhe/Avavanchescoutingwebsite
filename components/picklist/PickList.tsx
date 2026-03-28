@@ -25,7 +25,6 @@ import { TeamStatsCard, QuickStats } from './TeamStatsCard';
 import { TeamComparisonModal, QuickComparison } from './TeamComparisonModal';
 import { AdvancedTeamAnalysis } from './AdvancedTeamAnalysis';
 import { TeamStats, PickListTeam } from '@/lib/types';
-import { CURRENT_EVENT_KEY } from '@/lib/constants';
 import { GripVertical, Plus, Save, Trash2, Edit3, Brain, Target, BarChart3, Shield, ExternalLink, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -296,7 +295,7 @@ interface PickListProps {
   session?: any;
 }
 
-export function PickList({ pickListId, eventKey = CURRENT_EVENT_KEY, onSave, session }: PickListProps) {
+export function PickList({ pickListId, eventKey = '', onSave, session }: PickListProps) {
   const [teams, setTeams] = useState<PickListTeam[]>([]);
   const [availableTeams, setAvailableTeams] = useState<Array<{ team_number: number; team_name: string; stats?: TeamStats }>>([]);
   const [pickListName, setPickListName] = useState('My Pick List');

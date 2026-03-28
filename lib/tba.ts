@@ -6,9 +6,14 @@
 const TBA_BASE = 'https://www.thebluealliance.com/api/v3';
 
 export function getTbaApiKey(): string {
-  const key = process.env.TBA_API_KEY?.trim();
+  const key =
+    process.env.TBA_API_KEY?.trim() ||
+    process.env.THE_BLUE_ALLIANCE_API_KEY?.trim() ||
+    process.env.BLUE_ALLIANCE_API_KEY?.trim();
   if (!key) {
-    throw new Error('TBA_API_KEY is not configured');
+    throw new Error(
+      'TBA_API_KEY is not configured (set TBA_API_KEY, or THE_BLUE_ALLIANCE_API_KEY / BLUE_ALLIANCE_API_KEY, in server env)'
+    );
   }
   return key;
 }

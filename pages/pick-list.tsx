@@ -8,7 +8,6 @@ import { ScoutingEducation } from '@/components/picklist/ScoutingEducation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PickList as PickListType } from '@/lib/types';
-import { CURRENT_EVENT_KEY } from '@/lib/constants';
 import { useSupabase } from '@/pages/_app';
 import { useAdmin } from '@/hooks/use-admin';
 import { cn } from '@/lib/utils';
@@ -82,7 +81,6 @@ export default function PickListPage() {
         },
         body: JSON.stringify({
           name: newPickListName,
-          event_key: CURRENT_EVENT_KEY,
           teams: [],
         }),
       });

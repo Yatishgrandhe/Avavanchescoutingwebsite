@@ -67,8 +67,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json({ year, events: simple });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'TBA request failed';
-    if (msg.includes('TBA_API_KEY')) {
-      res.status(503).json({ error: 'The Blue Alliance is not configured (set TBA_API_KEY).' });
+    if (msg.includes('TBA_API_KEY') || msg.includes('not configured')) {
+      res.status(503).json({
+        error:
+          'The Blue Alliance API key is missing. Add TBA_API_KEY to Vercel/host env (see .env.example).',
+      });
       return;
     }
     console.error('tba/events', e);

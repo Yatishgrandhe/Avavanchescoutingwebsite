@@ -102,8 +102,6 @@ export default function PitScoutingMobile() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
-  const [scoutedTeamNumbers, setScoutedTeamNumbers] = useState<Set<number>>(new Set());
-
   const totalSteps = 4;
   const saveDraftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -189,27 +187,28 @@ export default function PitScoutingMobile() {
     const loadTeams = async () => {
       setLoadingTeams(true);
       setTeamsError(null);
-      
+
       try {
-        // Load teams and pit scouting data in parallel
-        const [teamsResult, scoutedResult] = await Promise.all([
-          supabase.from('teams').select('team_number, team_name, team_color').order('team_number'),
-          supabase.from('pit_scouting_data').select('team_number')
-        ]);
-
-        if (teamsResult.error) {
-          throw new Error('Failed to load teams');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          setTeams([]);
+          setTeamsError('Sign in to load your organization’s event teams.');
+          return;
         }
 
-        if (scoutedResult.error) {
-          console.warn('Failed to load scouted teams:', scoutedResult.error);
+        const res = await fetch('/api/pit-scouting/event-teams', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const json = res.ok ? await res.json() : { teams: [], error: 'Failed to load teams' };
+        if (!res.ok) {
+          setTeams([]);
+          setTeamsError(json.error || 'Could not load teams for your event');
+          return;
         }
-
-        setTeams(teamsResult.data || []);
-        
-        // Set scouted team numbers
-        const scoutedNumbers = new Set<number>(scoutedResult.data?.map((item: { team_number: number }) => item.team_number) || []);
-        setScoutedTeamNumbers(scoutedNumbers);
+        const list = Array.isArray(json.teams) ? json.teams : [];
+        setTeams(list);
+        if (list.length > 0) setTeamsError(null);
+        else if (json.message) setTeamsError(json.message);
       } catch (err) {
         console.error('Error loading teams:', err);
         setTeamsError(err instanceof Error ? err.message : 'Failed to load teams');
@@ -219,7 +218,7 @@ export default function PitScoutingMobile() {
     };
 
     loadTeams();
-  }, []);
+  }, [supabase.auth]);
 
   const validateStep = (step: number): ValidationResult => {
     return validatePitScoutingStep(step, formData);
@@ -553,7 +552,7 @@ export default function PitScoutingMobile() {
                             ) : (
                               teams.map((team) => (
                                 <SelectItem key={team.team_number} value={team.team_number.toString()}>
-                                  {scoutedTeamNumbers.has(team.team_number) ? '✓ ' : ''}{team.team_number} - {team.team_name || 'Unknown Team'}
+                                  {team.team_number} — {team.team_name || 'Team ' + team.team_number}
                                 </SelectItem>
                               ))
                             )}

@@ -6,7 +6,6 @@ import { useSupabase } from '@/pages/_app';
 import { useAdmin } from '@/hooks/use-admin';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button, Input, Label } from '@/components/ui';
 import { Loader2, Calendar } from 'lucide-react';
-import { CURRENT_EVENT_KEY, CURRENT_EVENT_NAME } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 
 export default function CompetitionSettingsPage() {
@@ -27,15 +26,15 @@ export default function CompetitionSettingsPage() {
         });
         if (res.ok) {
           const data = await res.json();
-          setEventKey(data.current_event_key || CURRENT_EVENT_KEY);
-          setEventName(data.current_event_name || CURRENT_EVENT_NAME);
+          setEventKey(data.current_event_key || '');
+          setEventName(data.current_event_name || '');
         } else {
-          setEventKey(CURRENT_EVENT_KEY);
-          setEventName(CURRENT_EVENT_NAME);
+          setEventKey('');
+          setEventName('');
         }
       } catch {
-        setEventKey(CURRENT_EVENT_KEY);
-        setEventName(CURRENT_EVENT_NAME);
+        setEventKey('');
+        setEventName('');
       } finally {
         setLoading(false);
       }

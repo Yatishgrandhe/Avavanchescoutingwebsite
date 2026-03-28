@@ -115,7 +115,6 @@ export default function PitScouting() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
-  const [scoutedTeamNumbers, setScoutedTeamNumbers] = useState<Set<number>>(new Set());
   const [scoutNames, setScoutNames] = useState<string[]>([]);
   const annotatorRef = React.useRef<AutoPathAnnotatorRef>(null);
   /** Stored blob when leaving step 2 so we can upload it on submit (annotator unmounted on step 3) */
@@ -215,20 +214,39 @@ export default function PitScouting() {
       setTeamsError(null);
 
       try {
-        const [teamsResult, scoutedResult, scoutNamesResult] = await Promise.all([
-          supabase.from('teams').select('team_number, team_name, team_color').order('team_number'),
-          supabase.from('pit_scouting_data').select('team_number'),
-          fetch('/api/scout-names').then(res => res.ok ? res.json() : { names: [] })
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          setTeams([]);
+          setScoutNames([]);
+          setTeamsError('Sign in to load your organization’s event teams and scout names.');
+          return;
+        }
+
+        const [eventTeamsRes, scoutNamesRes] = await Promise.all([
+          fetch('/api/pit-scouting/event-teams', {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          }),
+          fetch('/api/scout-names', {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          }),
         ]);
 
-        if (teamsResult.error) throw new Error('Failed to load teams');
-        if (scoutedResult.error) console.warn('Failed to load scouted teams:', scoutedResult.error);
+        const eventJson = eventTeamsRes.ok ? await eventTeamsRes.json() : { teams: [], message: 'Failed to load event teams' };
+        if (!eventTeamsRes.ok) {
+          setTeams([]);
+          setTeamsError(eventJson.error || eventJson.message || 'Could not load teams for your event');
+        } else {
+          const list = Array.isArray(eventJson.teams) ? eventJson.teams : [];
+          setTeams(list);
+          if (list.length > 0) {
+            setTeamsError(null);
+          } else if (eventJson.message) {
+            setTeamsError(eventJson.message);
+          }
+        }
 
-        setTeams(teamsResult.data || []);
-        setScoutNames(scoutNamesResult.names || []);
-
-        const scoutedNumbers = new Set<number>(scoutedResult.data?.map((item: { team_number: number }) => item.team_number) || []);
-        setScoutedTeamNumbers(scoutedNumbers);
+        const scoutJson = scoutNamesRes.ok ? await scoutNamesRes.json() : { names: [] };
+        setScoutNames(Array.isArray(scoutJson.names) ? scoutJson.names : []);
       } catch (err) {
         console.error('Error loading data:', err);
         setTeamsError(err instanceof Error ? err.message : 'Failed to load data');
@@ -238,7 +256,7 @@ export default function PitScouting() {
     };
 
     loadTeams();
-  }, []);
+  }, [supabase.auth]);
 
   // Normalize value from DB to array (handles string or array)
   const toArray = (v: unknown): string[] => {
@@ -725,19 +743,17 @@ export default function PitScouting() {
                             </SelectTrigger>
                             <SelectContent className="glass border-white/10 max-h-[300px]">
                               {teams.length === 0 ? (
-                                <SelectItem value="no-teams" disabled>No teams found</SelectItem>
-                              ) : (() => {
-                                const availableTeams = teams.filter((team) => !scoutedTeamNumbers.has(team.team_number) || team.team_number === formData.teamNumber);
-                                if (availableTeams.length === 0) {
-                                  return <SelectItem value="no-teams" disabled>All teams scouted</SelectItem>;
-                                }
-                                return availableTeams.map((team) => (
+                                <SelectItem value="no-teams" disabled>
+                                  {teamsError || 'No teams for your event — sync TBA in Team Management'}
+                                </SelectItem>
+                              ) : (
+                                teams.map((team) => (
                                   <SelectItem key={team.team_number} value={team.team_number.toString()} className="focus:bg-white/10">
                                     <span>{team.team_number}</span>
-                                    {team.team_name && <span className="text-muted-foreground ml-2">— {team.team_name}</span>}
+                                    {team.team_name ? <span className="text-muted-foreground ml-2">— {team.team_name}</span> : null}
                                   </SelectItem>
-                                ));
-                              })()}
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                         )}

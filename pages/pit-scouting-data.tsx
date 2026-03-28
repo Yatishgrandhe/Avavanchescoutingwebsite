@@ -24,7 +24,6 @@ import {
   User,
   Calendar,
   Wrench,
-  Target,
   RefreshCw,
   Edit,
   Trash2,
@@ -113,9 +112,6 @@ export default function PitScoutingData() {
   const [editingItem, setEditingItem] = useState<PitScoutingData | null>(null);
   const [deletingItem, setDeletingItem] = useState<PitScoutingData | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [allTeams, setAllTeams] = useState<Array<{ team_number: number, team_name: string }>>([]);
-  const [scoutedTeamNumbers, setScoutedTeamNumbers] = useState<Set<number>>(new Set());
-  const [showUnscoutedTeams, setShowUnscoutedTeams] = useState(false);
   const [selectedDetailItem, setSelectedDetailItem] = useState<PitScoutingData | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
@@ -134,33 +130,43 @@ export default function PitScoutingData() {
     return Array.from(byTeam.values());
   }, [filteredData]);
 
-  // Load pit scouting data
+  // Load pit scouting data (org-scoped) + TBA roster names for this org’s event
   useEffect(() => {
     const loadPitData = async () => {
       setLoadingData(true);
       try {
-        // Load all teams and pit scouting data in parallel
-        const [teamsResult, pitScoutingResult] = await Promise.all([
-          supabase.from('teams').select('team_number, team_name').order('team_number'),
-          supabase.from('pit_scouting_data').select('*').order('created_at', { ascending: false })
-        ]);
-
-        if (teamsResult.error) {
-          throw new Error(`Failed to load teams: ${teamsResult.error.message}`);
+        if (!user?.organization_id) {
+          setPitData([]);
+          setFilteredData([]);
+          return;
         }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        const teamNameByNumber = new Map<number, string>();
+        if (session?.access_token) {
+          const etRes = await fetch('/api/pit-scouting/event-teams', {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+          if (etRes.ok) {
+            const etJson = await etRes.json();
+            for (const t of etJson.teams || []) {
+              teamNameByNumber.set(t.team_number, t.team_name || `Team ${t.team_number}`);
+            }
+          }
+        }
+
+        const pitScoutingResult = await supabase
+          .from('pit_scouting_data')
+          .select('*')
+          .eq('organization_id', user.organization_id)
+          .order('created_at', { ascending: false });
 
         if (pitScoutingResult.error) {
           throw new Error(`Failed to load pit scouting data: ${pitScoutingResult.error.message}`);
         }
 
         const pitScoutingData = pitScoutingResult.data;
-        const teamsData = teamsResult.data || [];
-        const teamNameByNumber = new Map<number, string>();
-        (teamsData as Array<{ team_number: number; team_name: string }>).forEach((t) => {
-          teamNameByNumber.set(t.team_number, t.team_name || '');
-        });
 
-        // Transform the data to match our interface (include team_name from teams table)
         const transformedData: PitScoutingData[] = (pitScoutingData || []).map((item: any) => ({
           id: item.id,
           team_number: item.team_number,
@@ -200,18 +206,10 @@ export default function PitScoutingData() {
 
         setPitData(transformedData);
         setFilteredData(transformedData);
-
-        // Set teams and scouted team numbers
-        setAllTeams(teamsData);
-        const scoutedNumbers = new Set<number>(pitScoutingData?.map((item: any) => item.team_number) || []);
-        setScoutedTeamNumbers(scoutedNumbers);
       } catch (error) {
         console.error('Error loading pit scouting data:', error);
-        // Fallback to empty array on error
         setPitData([]);
         setFilteredData([]);
-        setAllTeams([]);
-        setScoutedTeamNumbers(new Set());
       } finally {
         setLoadingData(false);
       }
@@ -220,7 +218,7 @@ export default function PitScoutingData() {
     if (user) {
       loadPitData();
     }
-  }, [user]);
+  }, [user, supabase.auth]);
 
   // Filter data based on search and team selection
   useEffect(() => {
@@ -291,17 +289,31 @@ export default function PitScoutingData() {
   const refreshData = async () => {
     setRefreshing(true);
     try {
+      if (!user?.organization_id) return;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const teamNameByNumber = new Map<number, string>();
+      if (session?.access_token) {
+        const etRes = await fetch('/api/pit-scouting/event-teams', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (etRes.ok) {
+          const etJson = await etRes.json();
+          for (const t of etJson.teams || []) {
+            teamNameByNumber.set(t.team_number, t.team_name || `Team ${t.team_number}`);
+          }
+        }
+      }
+
       const { data: pitScoutingData, error } = await supabase
         .from('pit_scouting_data')
         .select('*')
+        .eq('organization_id', user.organization_id)
         .order('created_at', { ascending: false });
 
       if (error) {
         throw new Error(`Failed to load pit scouting data: ${error.message}`);
       }
-
-      const teamNameByNumber = new Map<number, string>();
-      allTeams.forEach((t) => { teamNameByNumber.set(t.team_number, t.team_name || ''); });
 
       const transformedData: PitScoutingData[] = (pitScoutingData || []).map((item: any) => ({
         id: item.id,
@@ -391,79 +403,6 @@ export default function PitScoutingData() {
               </div>
             </motion.div>
 
-            {/* Pit Scouting Status Summary */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="mb-8"
-            >
-              <Card className="bg-gray-800/30 backdrop-blur-sm border-gray-700">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-white">
-                    <Target className="w-5 h-5 text-blue-400" />
-                    <span>Pit Scouting Progress</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                      <Badge variant="outline" className="bg-blue-500/20 text-blue-300 border-blue-500 w-fit">
-                        {scoutedTeamNumbers.size}/{allTeams.length} Teams Scouted
-                      </Badge>
-                      <span className="text-gray-300 text-sm">
-                        {allTeams.length - scoutedTeamNumbers.size} teams remaining
-                      </span>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowUnscoutedTeams(!showUnscoutedTeams)}
-                      className="text-gray-300 hover:text-white border-gray-600 hover:border-gray-500 w-full sm:w-auto h-8 sm:h-7 text-xs px-3 sm:px-2"
-                    >
-                      {showUnscoutedTeams ? 'Hide' : 'Show'} Unscouted Teams
-                    </Button>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="w-full bg-gray-700 rounded-full h-2">
-                    <motion.div
-                      className="bg-blue-500 h-2 rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${allTeams.length > 0 ? (scoutedTeamNumbers.size / allTeams.length) * 100 : 0}%` }}
-                      transition={{ duration: 0.8, delay: 0.3 }}
-                    />
-                  </div>
-
-                  {/* Unscouted Teams List */}
-                  {showUnscoutedTeams && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mt-4 p-4 bg-gray-900/50 rounded-lg border border-gray-600"
-                    >
-                      <h4 className="text-sm font-medium text-gray-300 mb-3">Teams Not Yet Scouted:</h4>
-                      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                        {allTeams
-                          .filter(team => !scoutedTeamNumbers.has(team.team_number))
-                          .map(team => (
-                            <div
-                              key={team.team_number}
-                              className="text-xs sm:text-xs text-gray-400 bg-gray-800/50 px-2 py-2 sm:py-1 rounded border border-gray-600 min-h-[44px] sm:min-h-[32px] flex items-center justify-center text-center"
-                            >
-                              <span className="truncate">
-                                {team.team_number} - {team.team_name}
-                              </span>
-                            </div>
-                          ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-
             {/* Filters */}
             <Card className="mb-8 bg-gray-800/30 backdrop-blur-sm border-gray-700">
               <CardContent className="p-6">
@@ -486,7 +425,7 @@ export default function PitScoutingData() {
                     <SelectContent className="bg-gray-800 border-gray-600">
                       <SelectItem value="all" className="text-white hover:bg-gray-700">All Teams</SelectItem>
                       {Array.from(new Set(pitData.map(item => item.team_number))).map(teamNum => {
-                        const name = allTeams.find(t => t.team_number === teamNum)?.team_name;
+                        const name = pitData.find((p) => p.team_number === teamNum)?.team_name;
                         return (
                           <SelectItem key={teamNum} value={teamNum.toString()} className="text-white hover:bg-gray-700">
                             {name ? `Team ${teamNum} — ${name}` : `Team ${teamNum}`}

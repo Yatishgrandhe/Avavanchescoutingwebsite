@@ -32,8 +32,6 @@ import Logo from '../components/ui/Logo';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useSupabase } from '@/pages/_app';
 import { useRefreshHandler } from '@/lib/refresh-handler';
-import { CURRENT_EVENT_NAME } from '@/lib/constants';
-
 // Enhanced Avalanche Animation
 const AvalancheAnimation = () => {
   return (
@@ -177,6 +175,7 @@ export default function Home() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingActivity, setLoadingActivity] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [dashboardEventLabel, setDashboardEventLabel] = useState<string | null>(null);
 
   useRefreshHandler();
 
@@ -232,6 +231,28 @@ export default function Home() {
       loadRecentActivity();
     }
   }, [user, supabase]);
+
+  useEffect(() => {
+    if (!user?.organization_id || !supabase) {
+      setDashboardEventLabel(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token || cancelled) return;
+      const res = await fetch('/api/my-competition', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok || cancelled) return;
+      const j = await res.json();
+      const label = String(j.current_event_name || j.current_event_key || '').trim();
+      if (!cancelled) setDashboardEventLabel(label || null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.organization_id, supabase]);
 
   const loadDashboardStats = async () => {
     setLoadingStats(true);
@@ -357,7 +378,8 @@ export default function Home() {
                     Welcome back, {user.user_metadata?.full_name?.split(' ')[0] || 'Scout'}. Ready for the competition?
                   </p>
                   <p className="text-sm text-muted-foreground/80 mt-0.5">
-                    Event: {CURRENT_EVENT_NAME}
+                    Event:{' '}
+                    {dashboardEventLabel || 'None set — admin picks competition in Team Management'}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

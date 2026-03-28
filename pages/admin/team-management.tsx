@@ -41,7 +41,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function TeamManagementPage() {
-  const { user, supabase } = useSupabase();
+  const { user, supabase, session } = useSupabase();
   const { isAdmin, isSuperAdmin, loading: adminLoading } = useAdmin();
   const {
     matchScoutingLocked,
@@ -72,6 +72,7 @@ export default function TeamManagementPage() {
     { key: string; name: string; short_name?: string; city?: string; state_prov?: string; start_date?: string }[]
   >([]);
   const [tbaEventsLoading, setTbaEventsLoading] = useState(false);
+  const [tbaEventsHint, setTbaEventsHint] = useState<string | null>(null);
   const [tbaEventSearch, setTbaEventSearch] = useState('');
   const [tbaSyncStatus, setTbaSyncStatus] = useState<string | null>(null);
   const [isSyncingTba, setIsSyncingTba] = useState(false);
@@ -216,13 +217,21 @@ export default function TeamManagementPage() {
         const err = await res.json().catch(() => ({}));
         toast.error(err.error || 'Could not load events from The Blue Alliance');
         setTbaEvents([]);
+        setTbaEventsHint(null);
         return;
       }
       const data = await res.json();
-      setTbaEvents(Array.isArray(data.events) ? data.events : []);
+      const list = Array.isArray(data.events) ? data.events : [];
+      setTbaEvents(list);
+      setTbaEventsHint(
+        list.length === 0
+          ? 'TBA returned no events for this year. Try another season, or ensure the server has TBA_API_KEY (or THE_BLUE_ALLIANCE_API_KEY) set.'
+          : null
+      );
     } catch (e) {
       console.error(e);
       toast.error('Failed to load TBA events');
+      setTbaEventsHint(null);
     } finally {
       setTbaEventsLoading(false);
     }
@@ -230,8 +239,9 @@ export default function TeamManagementPage() {
 
   useEffect(() => {
     if (!isAdmin || adminLoading) return;
+    if (!session?.access_token) return;
     fetchTbaEventsList();
-  }, [isAdmin, adminLoading, fetchTbaEventsList]);
+  }, [isAdmin, adminLoading, session?.access_token, fetchTbaEventsList]);
 
   const runTbaSync = useCallback(async (opts?: { silent?: boolean }) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -669,6 +679,11 @@ export default function TeamManagementPage() {
                             </option>
                           ))}
                       </select>
+                      {tbaEventsHint ? (
+                        <p className="text-xs text-amber-600 dark:text-amber-400" role="status">
+                          {tbaEventsHint}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="space-y-2">

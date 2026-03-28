@@ -1,7 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { PickList, PickListTeam } from '@/lib/types';
-import { CURRENT_EVENT_KEY, PICKLIST_BLOCKED_ADMIN_USER_IDS } from '@/lib/constants';
+import { PICKLIST_BLOCKED_ADMIN_USER_IDS } from '@/lib/constants';
+import { getOrgCurrentEvent } from '@/lib/org-app-config';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -134,6 +135,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Name and teams are required' });
       }
 
+      const { eventKey: orgEventKey } = await getOrgCurrentEvent(supabaseAdmin, profile.organization_id);
+      const resolvedEventKey =
+        (typeof event_key === 'string' && event_key.trim()) || orgEventKey;
+      if (!resolvedEventKey) {
+        return res.status(400).json({
+          error: 'No event key. Set your organization competition in Team Management, or pass event_key when creating the pick list.',
+        });
+      }
+
       // Validate teams data
       const validatedTeams = teams.map((team: any, index: number) => ({
         team_number: team.team_number,
@@ -146,7 +156,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         user_id: user.id,
         organization_id: profile.organization_id,
         name,
-        event_key: event_key || CURRENT_EVENT_KEY,
+        event_key: resolvedEventKey,
         teams: validatedTeams,
       };
 

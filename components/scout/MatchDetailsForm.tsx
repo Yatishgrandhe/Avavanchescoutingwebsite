@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui';
 import { ChevronDown, Loader2, AlertCircle, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSupabase } from '@/pages/_app';
 
 interface Match {
   match_id: string;
@@ -46,6 +47,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   fetchSubmittedMatchIdsForName,
   initialData,
 }) => {
+  const { supabase } = useSupabase();
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(initialData?.matchData || null);
   const [selectedTeam, setSelectedTeam] = useState<number | null>(initialData?.teamNumber || null);
@@ -65,7 +67,14 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   useEffect(() => {
     const fetchScoutNames = async () => {
       try {
-        const res = await fetch('/api/scout-names');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+
+        const res = await fetch('/api/scout-names', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
         if (res.ok) {
           const { names } = await res.json();
           setScoutNames(names || []);
@@ -75,7 +84,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
       }
     };
     fetchScoutNames();
-  }, []);
+  }, [supabase.auth]);
 
   // Sync initialData with state when it changes
   useEffect(() => {
@@ -107,7 +116,16 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
     setError('');
 
     try {
-      const response = await fetch('/api/matches');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No active session');
+      }
+
+      const response = await fetch('/api/matches', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch matches');
       }

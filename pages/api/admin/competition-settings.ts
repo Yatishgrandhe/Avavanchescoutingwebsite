@@ -7,7 +7,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const KEYS = ['current_event_key', 'current_event_name'] as const;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -16,29 +16,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const token = authHeader.split(' ')[1];
-  const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-  if (authErr || !user) {
+  const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+  if (authErr || !authUser) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
 
-  const { data: profile } = await supabaseAdmin
+  const { data: user } = await supabase
     .from('users')
-    .select('role')
-    .eq('id', user.id)
+    .select('role, organization_id')
+    .eq('id', authUser.id)
     .maybeSingle();
 
-  if (profile?.role !== 'admin' && profile?.role !== 'superadmin') {
+  if (user?.role !== 'admin' && user?.role !== 'superadmin') {
     res.status(403).json({ error: 'Admin access required' });
     return;
   }
 
+  const orgId = user.organization_id;
+  if (!orgId) {
+    res.status(400).json({ error: 'User is not in an organization' });
+    return;
+  }
+
   if (req.method === 'GET') {
-    const { data: rows } = await supabaseAdmin.from('app_config').select('key, value').in('key', [...KEYS]);
+    const { data: rows } = await supabase
+      .from('app_config')
+      .select('key, value')
+      .eq('organization_id', orgId)
+      .in('key', [...KEYS]);
+
     const map: Record<string, string> = {};
     (rows || []).forEach((r: { key: string; value: string }) => {
       map[r.key] = r.value;
     });
+
     res.status(200).json({
       current_event_key: map.current_event_key ?? '',
       current_event_name: map.current_event_name ?? '',
@@ -61,9 +73,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ['current_event_key', key],
       ['current_event_name', name],
     ] as const) {
-      const { error } = await supabaseAdmin.from('app_config').upsert(
-        { key: k, value: v, updated_at: now },
-        { onConflict: 'key' }
+      const { error } = await supabase.from('app_config').upsert(
+        { key: k, value: v, organization_id: orgId, updated_at: now },
+        { onConflict: 'key,organization_id' }
       );
       if (error) {
         console.error('competition-settings upsert', error);
@@ -79,3 +91,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   res.setHeader('Allow', ['GET', 'POST', 'PUT']);
   res.status(405).end(`Method ${req.method} Not Allowed`);
 }
+

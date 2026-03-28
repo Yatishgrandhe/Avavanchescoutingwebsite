@@ -99,11 +99,13 @@ export default function ViewDataPage() {
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
   const [minAvgScoreFilter, setMinAvgScoreFilter] = useState<number | ''>('');
   const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF
+  /** Live event only: show pit from every org that scouted these teams. */
+  const [pitAllOrgs, setPitAllOrgs] = useState(false);
 
   useEffect(() => {
     if (!event_key && !id) return;
     loadData();
-  }, [event_key, id, teamDataOnly]);
+  }, [event_key, id, teamDataOnly, pitAllOrgs]);
 
   useEffect(() => {
     if (!event_key && !id && router.isReady) {
@@ -300,6 +302,9 @@ export default function ViewDataPage() {
       if (id) params.set('id', id as string);
       if (teamDataOnly && user?.organization_id) {
         params.set('match_my_org_only', '1');
+      }
+      if (pitAllOrgs && event_key) {
+        params.set('pit_all_orgs', '1');
       }
 
       const res = await fetch(`/api/past-competitions?${params.toString()}`);
@@ -583,26 +588,49 @@ export default function ViewDataPage() {
                 </div>
               )}
 
-              {/* Match data: all orgs by default; ON = only your org. Pit always your org (guests: Avalanche). */}
-              <div className="flex items-center gap-3 p-2 rounded-lg border border-white/5 bg-white/[0.02] sm:ml-4">
-                <div className="flex flex-col max-w-[200px]">
-                  <span className="text-xs font-medium">My org match data</span>
-                  <span className="text-[10px] text-muted-foreground leading-tight">
-                    Off: all teams&apos; match scouting. Pit stays org-only.
-                  </span>
+              {/* Match: all orgs by default; ON = your org only. Pit: default org-only (guests: Avalanche); ON = all orgs (live events only). */}
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:ml-4">
+                <div className="flex items-center gap-3 p-2 rounded-lg border border-white/5 bg-white/[0.02]">
+                  <div className="flex flex-col max-w-[200px]">
+                    <span className="text-xs font-medium">My org match data</span>
+                    <span className="text-[10px] text-muted-foreground leading-tight">
+                      Off: all orgs&apos; match rows.
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={teamDataOnly ? 'default' : 'outline'}
+                    disabled={!user?.organization_id}
+                    onClick={() => setTeamDataOnly(!teamDataOnly)}
+                    className={cn(
+                      "h-7 px-2.5 rounded-full transition-all text-[10px]",
+                      teamDataOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                    )}
+                  >
+                    {teamDataOnly ? 'ON' : 'OFF'}
+                  </Button>
                 </div>
-                <Button
-                  size="sm"
-                  variant={teamDataOnly ? 'default' : 'outline'}
-                  disabled={!user?.organization_id}
-                  onClick={() => setTeamDataOnly(!teamDataOnly)}
-                  className={cn(
-                    "h-7 px-2.5 rounded-full transition-all text-[10px]",
-                    teamDataOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                  )}
-                >
-                  {teamDataOnly ? 'ON' : 'OFF'}
-                </Button>
+                {event_key && (
+                  <div className="flex items-center gap-3 p-2 rounded-lg border border-white/5 bg-white/[0.02]">
+                    <div className="flex flex-col max-w-[200px]">
+                      <span className="text-xs font-medium">All orgs pit</span>
+                      <span className="text-[10px] text-muted-foreground leading-tight">
+                        Off: Avalanche pit (guests) or your org (signed in).
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={pitAllOrgs ? 'default' : 'outline'}
+                      onClick={() => setPitAllOrgs(!pitAllOrgs)}
+                      className={cn(
+                        'h-7 px-2.5 rounded-full transition-all text-[10px]',
+                        pitAllOrgs ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
+                      )}
+                    >
+                      {pitAllOrgs ? 'ON' : 'OFF'}
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <Button onClick={loadData} variant="outline" size="sm" className="sm:ml-auto">

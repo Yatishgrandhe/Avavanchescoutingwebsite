@@ -559,7 +559,9 @@ export default function TeamManagementPage() {
                         Archive competition
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        Moves current matches and scouting data into past records and resets the active event.
+                        Uses the event key and name above (saved to the server), or the app defaults in{' '}
+                        <code className="text-[10px]">lib/constants.ts</code> if those are empty. Moves matches, match
+                        scouting, pit, pick lists, and a team snapshot into past records; clears saved event settings.
                       </p>
                       <Button
                         type="button"

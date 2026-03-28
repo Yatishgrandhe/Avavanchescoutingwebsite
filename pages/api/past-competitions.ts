@@ -104,6 +104,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const pitOrgId = viewer.isGuest ? AVALANCHE_ORG_ID : viewer.organizationId;
+        const pitAllOrgs = req.query.pit_all_orgs === '1' || req.query.pit_scope === 'all';
 
         let matchQuery = supabaseAdmin
           .from('matches')
@@ -199,15 +200,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         };
 
         const teamNumArr = Array.from(teamNumbers);
-        const { data: pitScoutingData = [] } =
-          pitOrgId && teamNumArr.length > 0
-            ? await supabaseAdmin
-                .from('pit_scouting_data')
-                .select('*')
-                .eq('organization_id', pitOrgId)
-                .in('team_number', teamNumArr)
-                .order('created_at', { ascending: false })
-            : { data: [] };
+        let pitScoutingData: unknown[] = [];
+        if (teamNumArr.length > 0) {
+          if (pitAllOrgs) {
+            const { data: pitRows } = await supabaseAdmin
+              .from('pit_scouting_data')
+              .select('*')
+              .in('team_number', teamNumArr)
+              .order('created_at', { ascending: false });
+            pitScoutingData = pitRows || [];
+          } else if (pitOrgId) {
+            const { data: pitRows } = await supabaseAdmin
+              .from('pit_scouting_data')
+              .select('*')
+              .eq('organization_id', pitOrgId)
+              .in('team_number', teamNumArr)
+              .order('created_at', { ascending: false });
+            pitScoutingData = pitRows || [];
+          }
+        }
 
         return res.status(200).json({
           competition,

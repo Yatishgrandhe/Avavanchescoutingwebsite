@@ -1,8 +1,24 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { CURRENT_EVENT_KEY, CURRENT_EVENT_NAME } from '@/lib/constants';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+function competitionYearFromEventKey(eventKey: string): number {
+  const m = eventKey.match(/^(\d{4})/);
+  if (m) return parseInt(m[1], 10);
+  return new Date().getFullYear();
+}
+
+/** Avoid PK / FK conflicts when copying live rows into past_* tables. */
+function stripForPastInsert<T extends Record<string, unknown>>(
+  row: T,
+  extra: Record<string, unknown>
+): Record<string, unknown> {
+  const { id: _id, matches: _m, ...rest } = row as T & { id?: unknown; matches?: unknown };
+  return { ...rest, ...extra };
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   if (req.method !== 'POST') {
@@ -55,13 +71,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const configMap: Record<string, string> = {};
     (configRows || []).forEach(r => configMap[r.key] = r.value);
 
-    const eventKey = configMap.current_event_key;
-    const eventName = configMap.current_event_name;
+    const keyFromDb = (configMap.current_event_key || '').trim();
+    const nameFromDb = (configMap.current_event_name || '').trim();
+    const keyFallback = (CURRENT_EVENT_KEY || '').trim();
+    const nameFallback = (CURRENT_EVENT_NAME || '').trim();
+
+    const eventKey = keyFromDb || keyFallback;
+    const eventName = nameFromDb || nameFallback;
 
     if (!eventKey || !eventName) {
-      res.status(400).json({ error: 'No current competition set to archive' });
+      res.status(400).json({
+        error:
+          'No current competition to archive. Set Event Key and Competition Name in Team Management, or configure CURRENT_EVENT_KEY / CURRENT_EVENT_NAME in the app.',
+      });
       return;
     }
+
+    const competitionYear = competitionYearFromEventKey(eventKey);
 
     // 2. Create past_competitions entry
     const { data: pastComp, error: compErr } = await supabase
@@ -69,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .insert({
         competition_name: eventName,
         competition_key: eventKey,
-        competition_year: new Date().getFullYear(), // Defaulting to current year
+        competition_year: competitionYear,
         organization_id: orgId,
         migrated_at: new Date().toISOString()
       })
@@ -93,37 +119,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq('matches.event_key', eventKey);
 
     if (scoutingRecords && scoutingRecords.length > 0) {
-      const pastScouting = scoutingRecords.map(r => {
-        const { matches, ...rest } = r;
-        return {
-          ...rest,
+      const pastScouting = scoutingRecords.map((r) =>
+        stripForPastInsert(r as Record<string, unknown>, {
           competition_id: competitionId,
-          organization_id: orgId
-        };
-      });
-      await supabase.from('past_scouting_data').insert(pastScouting);
-      
-      // Delete from current
-      const scoutIds = scoutingRecords.map(r => r.id);
+          organization_id: orgId,
+        })
+      );
+      const { error: psErr } = await supabase.from('past_scouting_data').insert(pastScouting);
+      if (psErr) {
+        console.error('Archive: past_scouting_data insert', psErr);
+        await supabase.from('past_competitions').delete().eq('id', competitionId);
+        res.status(500).json({ error: 'Failed to archive match scouting data', details: psErr.message });
+        return;
+      }
+
+      const scoutIds = scoutingRecords.map((r) => r.id);
       await supabase.from('scouting_data').delete().in('id', scoutIds).eq('organization_id', orgId);
     }
 
-    // 4. Move Pit Scouting Data
+    // 4. Move Pit Scouting Data (org only — tied to this archive snapshot)
     const { data: pitRecords } = await supabase
       .from('pit_scouting_data')
       .select('*')
       .eq('organization_id', orgId);
 
     if (pitRecords && pitRecords.length > 0) {
-      const pastPit = pitRecords.map(r => ({
-        ...r,
-        competition_id: competitionId,
-        organization_id: orgId
-      }));
-      await supabase.from('past_pit_scouting_data').insert(pastPit);
-      
-      // Delete from current
-      const pitIds = pitRecords.map(r => r.id);
+      const pastPit = pitRecords.map((r) =>
+        stripForPastInsert(r as Record<string, unknown>, {
+          competition_id: competitionId,
+          organization_id: orgId,
+        })
+      );
+      const { error: ppErr } = await supabase.from('past_pit_scouting_data').insert(pastPit);
+      if (ppErr) {
+        console.error('Archive: past_pit_scouting_data insert', ppErr);
+        res.status(500).json({ error: 'Failed to archive pit scouting data', details: ppErr.message });
+        return;
+      }
+
+      const pitIds = pitRecords.map((r) => r.id);
       await supabase.from('pit_scouting_data').delete().in('id', pitIds).eq('organization_id', orgId);
     }
 
@@ -135,15 +169,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq('event_key', eventKey);
 
     if (matchRecords && matchRecords.length > 0) {
-      const pastMatches = matchRecords.map(r => ({
-        ...r,
-        competition_id: competitionId,
-        organization_id: orgId
-      }));
-      await supabase.from('past_matches').insert(pastMatches);
-      
-      // Delete from current
-      const matchIds = matchRecords.map(r => r.match_id);
+      const pastMatches = matchRecords.map((r) =>
+        stripForPastInsert(r as Record<string, unknown>, {
+          competition_id: competitionId,
+          organization_id: orgId,
+        })
+      );
+      const { error: pmErr } = await supabase.from('past_matches').insert(pastMatches);
+      if (pmErr) {
+        console.error('Archive: past_matches insert', pmErr);
+        res.status(500).json({ error: 'Failed to archive matches', details: pmErr.message });
+        return;
+      }
+
+      const matchIds = matchRecords.map((r) => r.match_id);
       await supabase.from('matches').delete().in('match_id', matchIds).eq('organization_id', orgId);
     }
 
@@ -154,7 +193,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq('organization_id', orgId);
 
     if (teamRecords && teamRecords.length > 0) {
-      const pastTeams = teamRecords.map(r => ({
+      const pastTeams = teamRecords.map((r) => ({
         team_number: r.team_number,
         team_name: r.team_name,
         team_color: r.team_color,
@@ -163,7 +202,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         competition_id: competitionId,
         organization_id: orgId
       }));
-      await supabase.from('past_teams').insert(pastTeams);
+      const { error: ptErr } = await supabase.from('past_teams').insert(pastTeams);
+      if (ptErr) {
+        console.error('Archive: past_teams insert', ptErr);
+        res.status(500).json({ error: 'Failed to archive team snapshot', details: ptErr.message });
+        return;
+      }
       
       // Note: We don't delete teams from current, but we may want to reset their stats?
       // For now, let's just keep them in current too as it's a team directory.
@@ -177,15 +221,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq('event_key', eventKey);
 
     if (pickLists && pickLists.length > 0) {
-      const pastPickLists = pickLists.map(r => ({
-        ...r,
-        competition_id: competitionId,
-        organization_id: orgId
-      }));
-      await supabase.from('past_pick_lists').insert(pastPickLists);
-      
-      // Delete from current
-      const plIds = pickLists.map(r => r.id);
+      const pastPickLists = pickLists.map((r) =>
+        stripForPastInsert(r as Record<string, unknown>, {
+          competition_id: competitionId,
+          organization_id: orgId,
+        })
+      );
+      const { error: plErr } = await supabase.from('past_pick_lists').insert(pastPickLists);
+      if (plErr) {
+        console.error('Archive: past_pick_lists insert', plErr);
+        res.status(500).json({ error: 'Failed to archive pick lists', details: plErr.message });
+        return;
+      }
+
+      const plIds = pickLists.map((r) => r.id);
       await supabase.from('pick_lists').delete().in('id', plIds).eq('organization_id', orgId);
     }
 

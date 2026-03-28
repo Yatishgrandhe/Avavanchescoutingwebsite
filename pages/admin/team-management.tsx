@@ -19,15 +19,12 @@ import {
   Shield,
   Plus,
   Trash2,
-  Upload,
-  FileUp,
-  X,
   Check,
   AlertCircle,
   Settings,
   Clock,
   ExternalLink,
-  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { 
   Card, 
@@ -391,10 +388,14 @@ export default function TeamManagementPage() {
       <ProtectedRoute>
         <Layout>
           <div className="flex items-center justify-center min-h-[60vh] px-4">
-            <Card className="max-w-md w-full text-center p-8 border-destructive/20">
-              <Shield className="w-14 h-14 text-muted-foreground mx-auto mb-4 opacity-60" />
-              <h2 className="text-xl font-bold mb-2">Access denied</h2>
-              <p className="text-muted-foreground text-sm">Team Management is only available to organization admins.</p>
+            <Card className="max-w-md w-full text-center border-destructive/30 shadow-xl">
+              <CardContent className="pt-8 pb-8 px-6">
+                <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4" aria-hidden />
+                <h2 className="text-xl font-heading font-bold mb-2">Access denied</h2>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  Team Management is only available to organization admins.
+                </p>
+              </CardContent>
             </Card>
           </div>
         </Layout>
@@ -409,186 +410,233 @@ export default function TeamManagementPage() {
           <title>Team Management | Avalanche Scouting</title>
         </Head>
 
-        <div className="max-w-5xl mx-auto space-y-8 pb-16 px-4 md:px-6">
+        <div className="max-w-5xl mx-auto space-y-8 pb-20 px-4 md:px-6">
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-2"
+            className="space-y-4"
           >
-            <h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight">Team Management</h1>
-            <p className="text-muted-foreground text-sm md:text-base max-w-2xl">
-              Manage your organization's scouting operations, students, and competition data.
-            </p>
-            <div className="flex items-center gap-2 pt-2">
-              <Building2 className="w-4 h-4 text-primary shrink-0" />
-              <span className="text-sm font-medium">
-                Organization:{' '}
-                {orgLoading ? (
-                  <span className="text-muted-foreground italic">Loading…</span>
-                ) : (
-                  <span className={cn(
-                    "font-bold",
-                    orgName ? "text-primary" : "text-destructive"
-                  )}>
-                    {orgName || 'Not Assigned'}
-                  </span>
-                )}
-              </span>
-            </div>
-            {!orgLoading && !orgName && (
-              <p className="text-[10px] text-destructive/80 mt-1 flex items-center gap-1.5 animate-pulse">
-                <AlertCircle className="w-3 h-3" />
-                This account is not associated with an organization. Contact a superadmin to be added to one.
+            <div>
+              <h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight text-foreground">
+                Team Management
+              </h1>
+              <p className="text-muted-foreground text-sm md:text-base max-w-2xl mt-2 leading-relaxed">
+                Manage your organization&apos;s scouting operations, students, and competition data.
               </p>
-            )}
+            </div>
+            <div
+              className={cn(
+                'rounded-xl border px-4 py-3 flex flex-wrap items-center gap-3',
+                orgName
+                  ? 'border-border/80 bg-muted/25'
+                  : 'border-destructive/40 bg-destructive/5'
+              )}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                  <Building2 className="h-4 w-4" aria-hidden />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Organization</p>
+                  <p className="text-sm font-semibold truncate">
+                    {orgLoading ? (
+                      <span className="text-muted-foreground font-normal">Loading…</span>
+                    ) : (
+                      <span className={cn(orgName ? 'text-primary' : 'text-destructive')}>
+                        {orgName || 'Not assigned'}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              {!orgLoading && !orgName && (
+                <p className="text-xs text-destructive/90 flex items-start gap-2 w-full sm:w-auto sm:flex-1 sm:min-w-[200px]">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
+                  <span>
+                    This account is not linked to an organization. Ask a superadmin to add you, or use a join invite link.
+                  </span>
+                </p>
+              )}
+            </div>
           </motion.div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
             <div className="lg:col-span-2 space-y-6">
-              {/* Competition Card */}
-              <Card className="border-border/80">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Database className="w-5 h-5 text-primary" />
-                        Competition Management
-                      </CardTitle>
-                      <CardDescription>Manage active competition and match schedules.</CardDescription>
-                    </div>
-                  </div>
+              <Card className="border-border/60 shadow-md overflow-hidden">
+                <CardHeader className="pb-3 border-b border-border/40">
+                  <CardTitle className="text-lg flex items-center gap-2.5 text-foreground">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary shrink-0">
+                      <Database className="h-4 w-4" aria-hidden />
+                    </span>
+                    Competition management
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    Active event labels, match schedule CSV, and archiving.
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Active Competition Settings */}
-                  <div className="p-4 rounded-xl border bg-muted/10 space-y-4">
-                    <div className="flex items-center gap-2 font-medium">
-                      <Settings className="w-4 h-4 text-primary" />
-                      Active Competition Details
+                <CardContent className="space-y-6 pt-6">
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-4 md:p-5 space-y-4">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <Settings className="h-4 w-4 text-primary shrink-0" aria-hidden />
+                      Active competition details
                     </div>
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="event-key" className="text-xs">Event Key (e.g. 2024ncral)</Label>
-                        <Input 
+                      <div className="space-y-2">
+                        <Label htmlFor="event-key" className="text-xs text-muted-foreground">
+                          Event key
+                        </Label>
+                        <Input
                           id="event-key"
-                          placeholder="2024ncral"
+                          placeholder="e.g. 2026ncash"
                           value={eventKey}
                           onChange={(e) => setEventKey(e.target.value)}
-                          className="h-9"
+                          className="h-10 bg-background/50"
                         />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="event-name" className="text-xs">Competition Name</Label>
-                        <Input 
+                      <div className="space-y-2">
+                        <Label htmlFor="event-name" className="text-xs text-muted-foreground">
+                          Display name
+                        </Label>
+                        <Input
                           id="event-name"
-                          placeholder="Greater Raleigh Regional"
+                          placeholder="e.g. Asheville Regional"
                           value={eventName}
                           onChange={(e) => setEventName(e.target.value)}
-                          className="h-9"
+                          className="h-10 bg-background/50"
                         />
                       </div>
                     </div>
-                    <Button 
-                      onClick={handleSaveCompetition} 
+                    <Button
+                      type="button"
+                      onClick={handleSaveCompetition}
                       disabled={isSavingSettings || settingsLoading}
-                      className="w-full sm:w-auto gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20 brightness-110"
-                      size="sm"
+                      className="w-full sm:w-auto min-h-10"
                     >
-                      {isSavingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                      Update Competition Details
+                      {isSavingSettings ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      ) : (
+                        <Check className="h-4 w-4" aria-hidden />
+                      )}
+                      Save competition details
                     </Button>
                   </div>
 
                   <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-xl border bg-muted/30 space-y-3">
-                      <div className="flex items-center gap-2 font-medium">
-                        <ClipboardList className="w-4 h-4 text-primary" />
-                        Schedule Upload
+                    <div className="rounded-xl border border-border/60 bg-muted/15 p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <ClipboardList className="h-4 w-4 text-primary shrink-0" aria-hidden />
+                        Schedule upload
                       </div>
-                      <div className="space-y-2">
-                        <Input 
-                          id="schedule-upload" 
-                          type="file" 
-                          accept=".csv" 
-                          className="text-xs"
+                      <label
+                        htmlFor="schedule-upload"
+                        className="flex flex-col gap-2 cursor-pointer rounded-lg border border-dashed border-border/80 bg-background/30 px-3 py-4 text-center transition-colors hover:border-primary/40 hover:bg-muted/20"
+                      >
+                        <span className="text-xs font-medium text-foreground">Choose CSV file</span>
+                        <Input
+                          id="schedule-upload"
+                          type="file"
+                          accept=".csv"
+                          className="h-auto cursor-pointer text-xs file:mr-2 file:rounded-md file:border-0 file:bg-primary/15 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary"
                           onChange={handleScheduleUpload}
                           disabled={uploadingSchedule}
                         />
-                        <p className="text-[10px] text-muted-foreground leading-tight">
-                          CSV Format: match_key,scheduled_date,scheduled_time,comp_level,match_number,set_number,red1...blue3,red_score,blue_score
-                        </p>
-                      </div>
+                      </label>
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        Columns: match_key, scheduled_date, scheduled_time, comp_level, match_number, set_number, red1…blue3,
+                        red_score, blue_score
+                      </p>
                       {uploadingSchedule && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse">
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                          Processing schedule...
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" aria-hidden />
+                          Processing…
                         </div>
                       )}
                     </div>
 
-                    <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 space-y-3">
-                      <div className="flex items-center gap-2 font-medium text-amber-500">
-                        <Clock className="w-4 h-4" />
-                        Archive Competition
+                    <div className="rounded-xl border border-amber-500/35 bg-amber-500/[0.06] p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-amber-200">
+                        <Clock className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />
+                        Archive competition
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Snapshot the current competition and move it to past records.
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Moves current matches and scouting data into past records and resets the active event.
                       </p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full gap-2 border-amber-500/50 text-amber-500 hover:bg-amber-500 hover:text-white hover:shadow-lg hover:shadow-amber-500/20 transition-all active:scale-95"
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full min-h-10 border-amber-500/45 text-amber-100 hover:bg-amber-500/15 hover:text-amber-50"
                         onClick={handleArchiveCompetition}
                         disabled={isArchiving}
                       >
-                        {isArchiving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-                        Archive Current Competition
+                        {isArchiving ? (
+                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                        ) : (
+                          <Database className="h-4 w-4" aria-hidden />
+                        )}
+                        Archive current competition
                       </Button>
                     </div>
                   </div>
 
-                  <div className="pt-2">
-                    <Link href="/past-competitions" className="text-sm font-medium text-primary hover:underline flex items-center gap-1.5 border border-primary/20 px-4 py-2 rounded-lg bg-primary/5 w-fit hover:bg-primary/10 transition-colors shadow-sm">
-                      <ExternalLink className="w-4 h-4" />
-                      View Competitive History & Records
+                  <Button variant="secondary" className="w-full sm:w-auto gap-2" asChild>
+                    <Link href="/past-competitions">
+                      <ExternalLink className="h-4 w-4" aria-hidden />
+                      Past competitions &amp; records
                     </Link>
-                  </div>
+                  </Button>
                 </CardContent>
               </Card>
 
-              {/* Data & Stats Card */}
-              <Card className="border-border/80">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <FileSpreadsheet className="w-5 h-5 text-green-500" />
-                    Review & Analytics
+              <Card className="border-border/60 shadow-md overflow-hidden">
+                <CardHeader className="pb-3 border-b border-border/40">
+                  <CardTitle className="text-lg flex items-center gap-2.5 text-foreground">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400 shrink-0">
+                      <FileSpreadsheet className="h-4 w-4" aria-hidden />
+                    </span>
+                    Review &amp; analytics
                   </CardTitle>
-                  <CardDescription>Verify scouting submissions and track scout performance.</CardDescription>
+                  <CardDescription className="text-sm">
+                    Audit submissions and scout activity.
+                  </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <Link href="/admin/scouting-stats/forms">
-                      <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-green-500/30 transition-all group cursor-pointer shadow-sm">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2 font-medium">
-                            <ClipboardList className="w-4 h-4 text-green-500" />
-                            Review Submissions
-                          </div>
-                          <ChevronDown className="w-4 h-4 -rotate-90 text-muted-foreground opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                <CardContent className="pt-6">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <Link
+                      href="/admin/scouting-stats/forms"
+                      className="group rounded-xl border border-border/60 bg-muted/15 p-4 transition-colors hover:border-emerald-500/35 hover:bg-muted/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 font-medium text-foreground text-sm">
+                          <ClipboardList className="h-4 w-4 text-emerald-400 shrink-0" aria-hidden />
+                          Review submissions
                         </div>
-                        <p className="text-xs text-muted-foreground">Detailed list of all match and pit scouting forms.</p>
+                        <ChevronRight
+                          className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5"
+                          aria-hidden
+                        />
                       </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Match and pit forms submitted by scouts.
+                      </p>
                     </Link>
-                    <Link href="/admin/scouting-stats">
-                      <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-green-500/30 transition-all group cursor-pointer shadow-sm">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2 font-medium">
-                            <FileSpreadsheet className="w-4 h-4 text-green-500" />
-                            Scouting Leaderboard
-                          </div>
-                          <ChevronDown className="w-4 h-4 -rotate-90 text-muted-foreground opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                    <Link
+                      href="/admin/scouting-stats"
+                      className="group rounded-xl border border-border/60 bg-muted/15 p-4 transition-colors hover:border-emerald-500/35 hover:bg-muted/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 font-medium text-foreground text-sm">
+                          <FileSpreadsheet className="h-4 w-4 text-emerald-400 shrink-0" aria-hidden />
+                          Scouting leaderboard
                         </div>
-                        <p className="text-xs text-muted-foreground">Performance metrics and student rankings.</p>
+                        <ChevronRight
+                          className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5"
+                          aria-hidden
+                        />
                       </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Rankings and performance metrics.
+                      </p>
                     </Link>
                   </div>
                 </CardContent>
@@ -596,181 +644,234 @@ export default function TeamManagementPage() {
             </div>
 
             <div className="space-y-6">
-              {/* Locks Card */}
-              <Card className="border-border/80">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    Scouting Locks
+              <Card className="border-border/60 shadow-md overflow-hidden">
+                <CardHeader className="pb-3 border-b border-border/40">
+                  <CardTitle className="text-base flex items-center gap-2 text-foreground">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                      <Lock className="h-4 w-4" aria-hidden />
+                    </span>
+                    Scouting locks
                   </CardTitle>
+                  <CardDescription className="text-xs">Tap to toggle match and pit form access.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-2 pt-5">
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full justify-between h-11 px-4 group border-white/10 hover:border-primary/50 hover:bg-white/[0.02] transition-all"
+                    className="w-full justify-between min-h-12 px-3 border-border/70 hover:bg-muted/30 hover:border-primary/35"
                     disabled={locksLoading}
                     onClick={() => setMatchScoutingLocked(!matchScoutingLocked)}
                   >
-                    <span className="flex items-center gap-2.5">
+                    <span className="flex items-center gap-3">
                       {matchScoutingLocked ? (
-                        <div className="w-7 h-7 rounded-full bg-amber-500/10 flex items-center justify-center">
-                          <Lock className="w-3.5 h-3.5 text-amber-500" />
-                        </div>
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/15">
+                          <Lock className="h-4 w-4 text-amber-400" aria-hidden />
+                        </span>
                       ) : (
-                        <div className="w-7 h-7 rounded-full bg-green-500/10 flex items-center justify-center">
-                          <Unlock className="w-3.5 h-3.5 text-green-500" />
-                        </div>
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/15">
+                          <Unlock className="h-4 w-4 text-emerald-400" aria-hidden />
+                        </span>
                       )}
-                      <span className="font-semibold text-xs tracking-tight text-white/90">Match Scouting</span>
+                      <span className="font-medium text-sm text-foreground text-left">Match scouting</span>
                     </span>
-                    <Badge variant={matchScoutingLocked ? "destructive" : "outline"} className={cn(
-                      "text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 border-none",
-                      matchScoutingLocked ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"
-                    )}>
-                      {matchScoutingLocked ? "LOCKED" : "OPEN"}
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'shrink-0 text-[10px] uppercase tracking-wide border-0',
+                        matchScoutingLocked
+                          ? 'bg-destructive/15 text-red-300'
+                          : 'bg-emerald-500/15 text-emerald-300'
+                      )}
+                    >
+                      {matchScoutingLocked ? 'Locked' : 'Open'}
                     </Badge>
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full justify-between h-11 px-4 group border-white/10 hover:border-primary/50 hover:bg-white/[0.02] transition-all"
+                    className="w-full justify-between min-h-12 px-3 border-border/70 hover:bg-muted/30 hover:border-primary/35"
                     disabled={locksLoading}
                     onClick={() => setPitScoutingLocked(!pitScoutingLocked)}
                   >
-                    <span className="flex items-center gap-2.5">
+                    <span className="flex items-center gap-3">
                       {pitScoutingLocked ? (
-                        <div className="w-7 h-7 rounded-full bg-amber-500/10 flex items-center justify-center">
-                          <Lock className="w-3.5 h-3.5 text-amber-500" />
-                        </div>
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/15">
+                          <Lock className="h-4 w-4 text-amber-400" aria-hidden />
+                        </span>
                       ) : (
-                        <div className="w-7 h-7 rounded-full bg-green-500/10 flex items-center justify-center">
-                          <Unlock className="w-3.5 h-3.5 text-green-500" />
-                        </div>
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/15">
+                          <Unlock className="h-4 w-4 text-emerald-400" aria-hidden />
+                        </span>
                       )}
-                      <span className="font-semibold text-xs tracking-tight text-white/90">Pit Scouting</span>
+                      <span className="font-medium text-sm text-foreground text-left">Pit scouting</span>
                     </span>
-                    <Badge variant={pitScoutingLocked ? "destructive" : "outline"} className={cn(
-                      "text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 border-none",
-                      pitScoutingLocked ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"
-                    )}>
-                      {pitScoutingLocked ? "LOCKED" : "OPEN"}
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'shrink-0 text-[10px] uppercase tracking-wide border-0',
+                        pitScoutingLocked
+                          ? 'bg-destructive/15 text-red-300'
+                          : 'bg-emerald-500/15 text-emerald-300'
+                      )}
+                    >
+                      {pitScoutingLocked ? 'Locked' : 'Open'}
                     </Badge>
                   </Button>
                 </CardContent>
               </Card>
 
-              {/* Student management Card */}
-              <Card className="border-border/80">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    Scouts & Student Management
+              <Card className="border-border/60 shadow-md overflow-hidden">
+                <CardHeader className="pb-3 border-b border-border/40">
+                  <CardTitle className="text-base flex items-center gap-2 text-foreground">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                      <Users className="h-4 w-4" aria-hidden />
+                    </span>
+                    Scouts
                   </CardTitle>
-                  <CardDescription>Manage students who will appear in the form dropdown.</CardDescription>
+                  <CardDescription className="text-xs">
+                    Names shown in scouting form dropdowns.
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 pt-5">
                   <div className="flex gap-2">
-                    <Input 
-                      placeholder="Enter student name..." 
-                      className="h-10 glass-input bg-white/[0.02]"
+                    <Input
+                      placeholder="Student name"
+                      className="h-10 flex-1 min-w-0 bg-background/50"
                       value={newScoutName}
                       onChange={(e) => setNewScoutName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && addScout()}
+                      aria-label="New scout name"
                     />
-                    <Button 
-                      size="icon" 
-                      className="h-10 w-10 shrink-0 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 brightness-110" 
-                      onClick={addScout} 
+                    <Button
+                      type="button"
+                      size="icon"
+                      className="h-10 w-10 shrink-0"
+                      onClick={addScout}
                       disabled={scoutsLoading || !newScoutName.trim()}
+                      aria-label="Add scout"
                     >
-                      <Plus className="w-4 h-4" />
+                      {scoutsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                     </Button>
                   </div>
-                  <div className="max-h-[200px] overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                  <div className="max-h-[220px] overflow-y-auto space-y-1.5 pr-1 custom-scrollbar rounded-lg border border-border/50 bg-muted/10 p-2">
                     {scouts.map((scout) => (
-                      <div key={scout.id} className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.02] border border-white/5 text-sm group hover:border-primary/30 hover:bg-white/[0.04] transition-all">
-                        <span className="font-medium tracking-tight text-white/90">{scout.name}</span>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/50 hover:text-red-500 hover:bg-red-500/10 transition-colors" onClick={() => deleteScout(scout.id)}>
-                          <Trash2 className="w-4 h-4" />
+                      <div
+                        key={scout.id}
+                        className="flex items-center justify-between gap-2 rounded-md border border-transparent bg-background/40 px-3 py-2.5 text-sm hover:border-border/80 transition-colors"
+                      >
+                        <span className="font-medium text-foreground truncate">{scout.name}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => deleteScout(scout.id)}
+                          aria-label={`Remove ${scout.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     ))}
                     {scouts.length === 0 && (
-                      <p className="text-center text-xs text-muted-foreground py-6 italic opacity-50">No students added yet.</p>
+                      <p className="text-center text-xs text-muted-foreground py-8">No scouts yet. Add a name above.</p>
                     )}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Member Invites Card */}
-              <Card className="border-border/80 bg-gradient-to-br from-white/[0.02] to-transparent shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Plus className="w-4 h-4 text-blue-500" />
-                    Member Direct Invites
+              <Card className="border-border/60 shadow-md overflow-hidden border-l-2 border-l-primary/50">
+                <CardHeader className="pb-3 border-b border-border/40">
+                  <CardTitle className="text-base flex items-center gap-2 text-foreground">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+                      <Plus className="h-4 w-4" aria-hidden />
+                    </span>
+                    Join invites
                   </CardTitle>
-                  <CardDescription>Generate links for new students to join the team.</CardDescription>
+                  <CardDescription className="text-xs">
+                    Share a link so new members can join this organization in Discord.
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <Button 
+                <CardContent className="space-y-4 pt-5">
+                  <Button
+                    type="button"
                     onClick={generateJoinInvite}
                     disabled={isGeneratingInvite}
-                    className="w-full bg-blue-600 hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20 gap-2 h-10 brightness-110 active:scale-95"
+                    className="w-full min-h-10 gap-2"
+                    variant="secondary"
                   >
-                    {isGeneratingInvite ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                    Generate New Join Link
+                    {isGeneratingInvite ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    ) : (
+                      <Plus className="h-4 w-4" aria-hidden />
+                    )}
+                    Generate join link
                   </Button>
 
-                  <div className="space-y-2 pt-2">
+                  <div className="space-y-2">
                     {invites.map((invite) => (
-                      <div key={invite.id} className="p-3 rounded-lg border border-white/5 bg-white/[0.01] space-y-2 group hover:bg-white/[0.02] transition-colors shadow-sm">
-                        <div className="flex items-center justify-between">
-                          <code className="text-[10px] font-mono text-blue-400/80 bg-blue-400/5 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                            {invite.token.substring(0, 10)}...
+                      <div
+                        key={invite.id}
+                        className="rounded-lg border border-border/60 bg-muted/10 p-3 space-y-2"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <code className="text-[10px] font-mono text-primary/90 bg-primary/10 px-2 py-1 rounded truncate max-w-[60%]">
+                            {invite.token.substring(0, 10)}…
                           </code>
-                          <Badge variant="outline" className={cn(
-                            "text-[9px] uppercase font-bold tracking-widest border-none px-1.5",
-                            invite.status === 'pending' ? "bg-amber-500/10 text-amber-500" : "bg-green-500/10 text-green-500"
-                          )}>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              'shrink-0 text-[10px] capitalize border-0',
+                              invite.status === 'pending'
+                                ? 'bg-amber-500/15 text-amber-200'
+                                : 'bg-emerald-500/15 text-emerald-200'
+                            )}
+                          >
                             {invite.status}
                           </Badge>
                         </div>
                         {invite.status === 'pending' && (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="w-full h-8 text-[11px] font-bold border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5 gap-2 transition-all active:scale-95"
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-full min-h-9 text-xs"
                             onClick={() => copyInviteLink(invite.token)}
                           >
-                            {copiedToken === invite.token ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Database className="w-3.5 h-3.5" />}
-                            {copiedToken === invite.token ? 'Copied URL!' : 'Copy Invite Link'}
+                            {copiedToken === invite.token ? (
+                              <Check className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
+                            ) : (
+                              <ClipboardList className="h-3.5 w-3.5" aria-hidden />
+                            )}
+                            {copiedToken === invite.token ? 'Copied' : 'Copy invite link'}
                           </Button>
                         )}
                       </div>
                     ))}
                     {invites.length === 0 && (
-                      <p className="text-center text-xs text-muted-foreground py-2 italic opacity-40">No invitations generated yet.</p>
+                      <p className="text-center text-xs text-muted-foreground py-4">No invites yet.</p>
                     )}
                   </div>
                 </CardContent>
               </Card>
 
               {isSuperAdmin && (
-                <Card className="border-primary/20 bg-primary/5">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2 text-primary font-bold">
-                      <Shield className="w-4 h-4" />
-                      GLOBAL ORG MANAGER
+                <Card className="border-primary/35 bg-primary/5 shadow-md overflow-hidden">
+                  <CardHeader className="pb-3 border-b border-primary/20">
+                    <CardTitle className="text-sm flex items-center gap-2 text-primary font-semibold">
+                      <Shield className="h-4 w-4 shrink-0" aria-hidden />
+                      Organization admin
                     </CardTitle>
+                    <CardDescription className="text-xs text-muted-foreground">
+                      Create organizations and manage invites across the site.
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <Link href="/admin/org-manager">
-                      <Button variant="outline" size="sm" className="w-full gap-2 text-[11px] font-black tracking-widest uppercase border-primary/20 hover:bg-primary/10 hover:border-primary/40 transition-all active:scale-95">
-                        <Building2 className="w-3.5 h-3.5" />
-                        Open Org Manager
-                      </Button>
-                    </Link>
+                  <CardContent className="pt-4">
+                    <Button variant="outline" size="sm" className="w-full min-h-10 gap-2 border-primary/30 hover:bg-primary/10" asChild>
+                      <Link href="/admin/org-manager">
+                        <Building2 className="h-4 w-4" aria-hidden />
+                        Open org manager
+                      </Link>
+                    </Button>
                   </CardContent>
                 </Card>
               )}

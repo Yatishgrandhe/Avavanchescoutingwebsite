@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
   DialogFooter,
 } from '../ui/dialog';
 import { Button } from '../ui/Button';
-import { CloudUpload, Wifi, AlertTriangle, CheckCircle2, Loader2, Gauge } from 'lucide-react';
+import { CloudUpload, Wifi, AlertTriangle, CheckCircle2, Loader2, Gauge, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +22,7 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
   const [status, setStatus] = useState<'idle' | 'testing' | 'success' | 'fail'>('idle');
   const [speed, setSpeed] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const MIN_SPEED_MBPS = 5;
 
@@ -30,8 +31,11 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
     setError(null);
     setSpeed(0);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     const TEST_DURATION_MS = 5000;
-    const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB chunk
+    const CHUNK_SIZE = 256 * 1024; // 256KB chunk for more frequent sampling
     const chunk = new Uint8Array(CHUNK_SIZE);
     crypto.getRandomValues(chunk);
 
@@ -40,13 +44,17 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
     const samples: number[] = [];
 
     try {
+      // Use an interval or check within the while to ensure we stop ~5s
       while (performance.now() - startTime < TEST_DURATION_MS) {
+        if (controller.signal.aborted) break;
+
         const chunkStart = performance.now();
         
         const response = await fetch('/api/speedtest', {
           method: 'POST',
           body: chunk,
-          cache: 'no-store'
+          cache: 'no-store',
+          signal: controller.signal
         });
 
         if (!response.ok) throw new Error('Upload link lost. Connection unstable.');
@@ -62,18 +70,21 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
         setSpeed(Number(chunkMbps.toFixed(2)));
       }
 
+      if (controller.signal.aborted) return;
+
       const totalTime = (performance.now() - startTime) / 1000;
       const avgMbps = (totalBytesSent * 8 / totalTime) / 1000000;
       
-      // Stability check: Must have at least 3 samples and minimum sample must be > 1 Mbps to be "stable" 
-      // AND Average must be >= threshold.
-      const minMbps = Math.min(...samples);
-      const isStable = minMbps > 1.0; // Very basic stability check
+      const minMbps = samples.length > 0 ? Math.min(...samples) : 0;
+      const isStable = samples.length >= 3 && minMbps > 1.0; 
 
       setSpeed(Number(avgMbps.toFixed(2)));
 
       if (avgMbps >= MIN_SPEED_MBPS && isStable) {
         setStatus('success');
+      } else if (samples.length < 3) {
+        setError('Sample rate was too low for a stable reading. Try again.');
+        setStatus('fail');
       } else if (!isStable) {
         setError('Connection is unstable. Upload speed fluctuated too much.');
         setStatus('fail');
@@ -81,9 +92,12 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
         setStatus('fail');
       }
     } catch (err: any) {
+      if (err.name === 'AbortError') return;
       console.error('Speed test error:', err);
       setError(err.message || 'An error occurred during upload test.');
       setStatus('fail');
+    } finally {
+      abortControllerRef.current = null;
     }
   }, []);
 
@@ -91,14 +105,34 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
     if (isOpen && status === 'idle') {
       runSpeedTest();
     }
+    
+    // Auto-abort if dialogue is closed while testing
+    if (!isOpen && status === 'testing') {
+      abortControllerRef.current?.abort();
+      setStatus('idle');
+    }
   }, [isOpen, status, runSpeedTest]);
+
+  const handleCancelClick = () => {
+    abortControllerRef.current?.abort();
+    setStatus('fail');
+    setError('Test cancelled by user.');
+  };
 
   const handleReset = () => {
     setStatus('idle');
   };
 
+  const handleDialogClose = () => {
+    if (status === 'testing') {
+      abortControllerRef.current?.abort();
+    }
+    onClose();
+    setStatus('idle'); 
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open && status !== 'testing') onClose(); }}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleDialogClose(); }}>
       <DialogContent className="sm:max-w-md bg-background/95 backdrop-blur-xl border-border/50 shadow-2xl overflow-hidden">
         {/* Animated Background Glow */}
         <div className={cn(
@@ -128,7 +162,7 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
                 exit={{ opacity: 0, scale: 1.1 }}
                 className="flex flex-col items-center gap-6"
               >
-                {/* Speedometer Visualization */}
+                {/* Speedometer Visualization - Fixed Clockwise Rotation */}
                 <div className="relative w-40 h-40 flex items-center justify-center">
                   <svg className="w-full h-full -rotate-90">
                     <circle
@@ -148,8 +182,13 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
                       stroke="currentColor"
                       strokeWidth="8"
                       strokeDasharray="440"
-                      animate={{ strokeDashoffset: [440, 220, 100, 300] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                      animate={{ strokeDashoffset: [440, 220, 110] }} // Always decreases to show "loading" progress or stays spinning
+                      transition={{ 
+                        duration: 3, 
+                        repeat: Infinity, 
+                        ease: "linear",
+                        fill: "none"
+                      }}
                       className="text-primary"
                     />
                   </svg>
@@ -158,7 +197,10 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
                     <span className="text-[10px] font-black tracking-widest text-muted-foreground uppercase">Measuring</span>
                   </div>
                 </div>
-                <p className="text-sm font-medium animate-pulse text-muted-foreground">Analysing upload stability (5s)...</p>
+                <div className="flex flex-col items-center gap-1">
+                  <p className="text-sm font-medium text-muted-foreground">Analysing upload stability (5s)...</p>
+                  <p className="text-2xl font-black text-foreground">{speed} Mbps</p>
+                </div>
               </motion.div>
             )}
 
@@ -176,7 +218,9 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
                   <h3 className="text-4xl font-black text-foreground">{speed} <span className="text-lg text-muted-foreground">Mbps</span></h3>
                   <p className="text-sm font-semibold text-emerald-500/80 uppercase tracking-widest">Great Connection</p>
                 </div>
+                <p className="max-w-[280px] text-xs text-muted-foreground leading-relaxed">
                   Your upload connection is stable and exceeds the 5 Mbps requirement. Reliable sync is ready.
+                </p>
               </motion.div>
             )}
 
@@ -203,6 +247,17 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
         </div>
 
         <DialogFooter className="relative z-10 flex flex-col gap-2 sm:flex-row sm:justify-center pt-4 border-t border-border/40">
+          {status === 'testing' && (
+             <Button
+             variant="ghost"
+             onClick={handleCancelClick}
+             className="w-full flex items-center justify-center gap-2 text-rose-500/70 hover:text-rose-500 hover:bg-rose-500/5 py-6 rounded-xl font-bold transition-all"
+           >
+             <X className="w-4 h-4" />
+             CANCEL TEST
+           </Button>
+          )}
+
           {status === 'success' && (
             <Button
               onClick={onPass}
@@ -225,7 +280,7 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
               </Button>
               <Button
                 variant="ghost"
-                onClick={onClose}
+                onClick={handleDialogClose}
                 className="flex-1 hover:bg-rose-500/5 text-muted-foreground py-6 rounded-xl"
               >
                 CANCEL

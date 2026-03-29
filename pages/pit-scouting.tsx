@@ -18,6 +18,7 @@ import {
   FileText,
   Settings,
   AlertCircle,
+  Lock,
   Cpu,
   Ruler,
   Target,
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, ValidationResult } from '@/lib/form-validation';
 import { compressImageForUpload } from '@/lib/image-upload';
+import { useAdmin } from '@/hooks/use-admin';
 import { useScoutingLocks } from '@/hooks/use-scouting-locks';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -74,8 +76,10 @@ interface PitScoutingData {
 }
 
 export default function PitScouting() {
-  const { user, loading, supabase } = useSupabase();
+  const { user, loading: userLoading, supabase } = useSupabase();
   const { pitScoutingLocked, loading: locksLoading } = useScoutingLocks();
+  const { canEditForms, isAdmin, loading: adminLoading } = useAdmin();
+  const loading = userLoading || adminLoading;
   const router = useRouter();
   const { id, edit } = router.query;
   const [currentStep, setCurrentStep] = useState(1);
@@ -528,6 +532,31 @@ export default function PitScouting() {
   if (!user) {
     router.push('/');
     return null;
+  }
+
+  if (!canEditForms) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[60vh] px-4 text-center">
+          <Card className="max-w-md w-full border-destructive/30 shadow-xl overflow-hidden p-8">
+            <CardContent className="pt-6 pb-6 p-0">
+              <div className="w-16 h-16 bg-destructive/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <Lock className="w-8 h-8 text-destructive" />
+              </div>
+              <h2 className="text-2xl font-bold mb-3 tracking-tight">Pit Scouting Locked</h2>
+              <p className="text-muted-foreground leading-relaxed text-sm">
+                Your account does not have permission to edit pit scouting data. Please contact your administrator to unlock this feature.
+              </p>
+              <div className="mt-8">
+                <Button variant="outline" onClick={() => router.push('/')}>
+                  Return to Dashboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
   }
 
   if (!locksLoading && pitScoutingLocked) {

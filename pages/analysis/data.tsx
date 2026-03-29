@@ -93,7 +93,7 @@ interface DataAnalysisProps { }
 
 const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const { supabase, user } = useSupabase();
-  const { isAdmin } = useAdmin();
+  const { isAdmin, canAccessStats, loading: adminLoading } = useAdmin();
   const [scoutingData, setScoutingData] = useState<ScoutingData[]>([]);
   const [teams, setTeams] = useState<Team[]>([]); // For filter dropdown (excludes Avalanche)
   const [allTeams, setAllTeams] = useState<Team[]>([]); // All teams for name lookups
@@ -545,12 +545,38 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   };
 
 
-  if (loading) {
+  if (loading || adminLoading) {
     return (
       <ProtectedRoute>
         <Layout>
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="flex flex-col items-center gap-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              <p className="text-muted-foreground animate-pulse">Loading analytics...</p>
+            </div>
+          </div>
+        </Layout>
+      </ProtectedRoute>
+    );
+  }
+
+  if (!canAccessStats) {
+    return (
+      <ProtectedRoute>
+        <Layout>
+          <div className="flex items-center justify-center min-h-[60vh] px-4 text-center">
+            <Card className="max-w-md w-full border-destructive/30 shadow-xl">
+              <CardContent className="pt-10 pb-10">
+                <Shield className="w-14 h-14 text-destructive mx-auto mb-6" />
+                <h2 className="text-2xl font-bold mb-3">Access Restricted</h2>
+                <p className="text-muted-foreground leading-relaxed">
+                  Viewing organization analytics requires specific permission or an admin role.
+                </p>
+                <Button variant="outline" className="mt-8" asChild>
+                  <a href="/">Go Back Home</a>
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </Layout>
       </ProtectedRoute>

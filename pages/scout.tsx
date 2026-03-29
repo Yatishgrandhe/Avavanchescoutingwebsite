@@ -18,7 +18,8 @@ import {
   Trophy,
   FileText,
   Eye,
-  AlertCircle
+  AlertCircle,
+  Lock
 } from 'lucide-react';
 import MatchDetailsForm from '@/components/scout/MatchDetailsForm';
 import AutonomousForm from '@/components/scout/AutonomousForm';
@@ -26,6 +27,7 @@ import TeleopForm from '@/components/scout/TeleopForm';
 import MiscellaneousForm from '@/components/scout/MiscellaneousForm';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { useAdmin } from '@/hooks/use-admin';
 import { useScoutingLocks } from '@/hooks/use-scouting-locks';
 import { ScoringNotes, getBallChoiceLabel } from '@/lib/types';
 import { calculateScore, cn, formatDurationSec } from '@/lib/utils';
@@ -66,8 +68,10 @@ interface FormData {
 }
 
 export default function Scout() {
-  const { user, loading, supabase } = useSupabase();
+  const { user, loading: userLoading, supabase } = useSupabase();
   const { matchScoutingLocked, loading: locksLoading } = useScoutingLocks();
+  const { canEditForms, loading: adminLoading } = useAdmin();
+  const loading = userLoading || adminLoading;
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
@@ -212,15 +216,49 @@ export default function Scout() {
     }
   };
 
-  if (loading) {
+  if (loading || locksLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
+      <ProtectedRoute>
+        <Layout>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="flex flex-col items-center gap-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              <p className="text-muted-foreground animate-pulse text-sm font-medium">Initialising scouting session...</p>
+            </div>
+          </div>
+        </Layout>
+      </ProtectedRoute>
     );
   }
 
   if (!user) return null;
+
+  if (!canEditForms) {
+    return (
+      <ProtectedRoute>
+        <Layout>
+          <div className="flex items-center justify-center min-h-[60vh] px-4 text-center">
+            <Card className="max-w-md w-full border-destructive/30 shadow-xl overflow-hidden">
+              <CardContent className="pt-10 pb-10">
+                <div className="w-16 h-16 bg-destructive/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Lock className="w-8 h-8 text-destructive" />
+                </div>
+                <h2 className="text-2xl font-bold mb-3 tracking-tight">Scouting Locked</h2>
+                <p className="text-muted-foreground leading-relaxed text-sm">
+                  Your account does not have permission to submit scouting forms. Please contact your organization lead or administrator to unlock this feature.
+                </p>
+                <div className="mt-8 flex flex-col gap-3">
+                  <Button variant="outline" asChild>
+                    <a href="/">Return to Dashboard</a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </Layout>
+      </ProtectedRoute>
+    );
+  }
 
   if (!locksLoading && matchScoutingLocked) {
     return (

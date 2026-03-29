@@ -799,6 +799,24 @@ export default function TeamManagementPage() {
                         Rankings and performance metrics.
                       </p>
                     </Link>
+                    <Link
+                      href="/admin/role-management"
+                      className="group rounded-xl border border-border/60 bg-muted/15 p-4 transition-colors hover:border-blue-500/35 hover:bg-muted/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 font-medium text-foreground text-sm">
+                          <Shield className="h-4 w-4 text-blue-400 shrink-0" aria-hidden />
+                          Role management
+                        </div>
+                        <ChevronRight
+                          className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5"
+                          aria-hidden
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Manage user roles and page permissions.
+                      </p>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>

@@ -31,7 +31,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, supabase } = useSupabase();
-  const { isAdmin, canAccessPickList } = useAdmin();
+  const { isAdmin, canAccessPickList, canAccessStats } = useAdmin();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -49,6 +49,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         } : undefined}
         isAdmin={isAdmin}
         canAccessPickList={canAccessPickList}
+        canAccessStats={canAccessStats}
       />
 
       {/* Main Content Area - SidebarInset handles the proper spacing */}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
+import { useAdmin } from '@/hooks/use-admin';
 import { Card, CardDescription, CardHeader, CardTitle, Button } from '@/components/ui';
 import { BarChart3, TrendingUp, ArrowLeftRight, Database, Users, FileSpreadsheet, ClipboardList } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
@@ -34,8 +35,10 @@ const quickAccess = [
 
 export default function AnalysisIndex() {
   const router = useRouter();
+  const { user, loading: userLoading, supabase } = useSupabase();
+  const { canAccessStats, loading: adminLoading } = useAdmin();
+  const loading = userLoading || adminLoading;
   const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF
-  const { user, supabase } = useSupabase();
   const [stats, setStats] = useState<{ teams: number; matchForms: number; pitForms: number } | null>(null);
   const [activeEventKey, setActiveEventKey] = useState<string>('');
   const [activeEventName, setActiveEventName] = useState<string>('');
@@ -86,6 +89,18 @@ export default function AnalysisIndex() {
     };
     loadStats();
   }, [supabase, teamDataOnly, user?.organization_id]);
+
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <Layout>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          </div>
+        </Layout>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>
@@ -138,7 +153,7 @@ export default function AnalysisIndex() {
               Quick Access
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {quickAccess.map((item) => {
+              {quickAccess.filter(item => item.href !== '/analysis/data' || canAccessStats).map((item) => {
                 const Icon = item.icon;
                 const isActive = router.pathname === item.href;
                 return (

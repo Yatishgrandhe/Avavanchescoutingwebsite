@@ -16,7 +16,8 @@ import {
   Trophy,
   Building2,
   Settings2,
-  Activity
+  Activity,
+  Shield
 } from 'lucide-react';
 import { Badge, Logo, Avatar, AvatarFallback, AvatarImage } from '../ui';
 import {
@@ -44,12 +45,14 @@ interface SidebarProps {
   };
   isAdmin?: boolean;
   canAccessPickList?: boolean;
+  canAccessStats?: boolean;
 }
 
 const AppSidebar: React.FC<SidebarProps> = ({
   user,
   isAdmin = false,
-  canAccessPickList = false
+  canAccessPickList = false,
+  canAccessStats = false
 }) => {
   const router = useRouter();
   const { state } = useSidebar();
@@ -99,6 +102,10 @@ const AppSidebar: React.FC<SidebarProps> = ({
           href: '/admin/team-management',
           icon: Settings2,
         }, {
+          label: 'Role Management',
+          href: '/admin/role-management',
+          icon: Shield,
+        }, {
           label: 'Scouting Stats',
           href: '/admin/scouting-stats',
           icon: Activity,
@@ -118,17 +125,17 @@ const AppSidebar: React.FC<SidebarProps> = ({
           href: '/past-competitions',
           icon: Archive,
         },
-        {
+        ...(canAccessStats ? [{
           label: 'Data Analysis',
           href: '/analysis/data',
           icon: Database,
-        },
+        }] : []),
         {
           label: 'Scouting Data',
           href: '/analysis',
           icon: BarChart3,
         },
-      ],
+      ].filter(Boolean),
     },
     ...(appUser?.role === 'superadmin' ? [{
       title: 'System',

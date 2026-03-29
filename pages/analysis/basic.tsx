@@ -48,6 +48,7 @@ import { computeRebuiltMetrics } from '@/lib/analytics';
 import { formatDurationSec } from '@/lib/utils';
 import { SCOUTING_MATCH_ID_SEASON_PATTERN, CURRENT_EVENT_KEY, CURRENT_EVENT_NAME } from '@/lib/constants';
 import { cn } from '@/lib/utils';
+import { getOrgCurrentEvent } from '@/lib/org-app-config';
 
 interface TeamData {
   team_number: number;
@@ -113,7 +114,7 @@ export default function BasicAnalysis() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string>('all');
   const [selectedEvent, setSelectedEvent] = useState<string>('all');
-  const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF
+  const [teamDataOnly, setTeamDataOnly] = useState(true); // Default ON (Show organization's data)
   type TeamSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'avg_climb_pts' | 'team_number' | 'team_name' | 'epa' | 'avg_defense_rating';
   const [teamSortField, setTeamSortField] = useState<TeamSortKey>('avg_total_score');
   const [teamSortDirection, setTeamSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -128,11 +129,24 @@ export default function BasicAnalysis() {
     try {
       setLoading(true);
 
-      // Load scouting data exactly like data.tsx does — 2026 season only
+      // Fetch organization's active event if available
+      let currentEventKey = '';
+      if (user?.organization_id) {
+        const { eventKey } = await getOrgCurrentEvent(supabase, user.organization_id);
+        currentEventKey = eventKey;
+      }
+
+      // Load scouting data exactly like data.tsx does
       let scoutingQuery = supabase
         .from('scouting_data')
-        .select('*')
-        .like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN);
+        .select('*');
+
+      // Use active competition filter if found, otherwise season pattern
+      if (currentEventKey) {
+        scoutingQuery = scoutingQuery.eq('event_key', currentEventKey);
+      } else {
+        scoutingQuery = scoutingQuery.like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN);
+      }
 
       if (teamDataOnly && user?.organization_id) {
         scoutingQuery = scoutingQuery.eq('organization_id', user.organization_id);

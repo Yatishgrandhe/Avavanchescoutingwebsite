@@ -27,6 +27,7 @@ import { formatDurationSec, cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { computeRebuiltMetrics, formatScoreRange } from '@/lib/analytics';
 import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
+import { getOrgCurrentEvent } from '@/lib/org-app-config';
 import {
   RadarChart,
   PolarGrid,
@@ -106,7 +107,7 @@ export default function AdvancedAnalysis() {
   const [showFilters, setShowFilters] = useState(false);
   const [availableTeams, setAvailableTeams] = useState<Array<{ team_number: number, team_name: string }>>([]);
   const [teamsLoading, setTeamsLoading] = useState(true);
-  const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF
+  const [teamDataOnly, setTeamDataOnly] = useState(true); // Default ON (Show organization's data)
 
   // Load available teams from Supabase
   useEffect(() => {
@@ -156,13 +157,29 @@ export default function AdvancedAnalysis() {
         throw new Error('Team not found');
       }
 
-      // Fetch scouting data with filters — 2026 season only
+      // Fetch organization's active event if available
+      let currentEventKey = '';
+      if (user?.organization_id) {
+        const { eventKey } = await getOrgCurrentEvent(supabase, user.organization_id);
+        currentEventKey = eventKey;
+      }
+
+      // Fetch scouting data with filters
       let scoutingQuery = supabase
         .from('scouting_data')
         .select('*')
-        .eq('team_number', selectedTeam)
-        .like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN)
-        .order('created_at', { ascending: false });
+        .eq('team_number', selectedTeam);
+
+      // Filter by event: explicit filter > active event > season pattern
+      if (filters.event_key) {
+        scoutingQuery = scoutingQuery.eq('event_key', filters.event_key);
+      } else if (currentEventKey) {
+        scoutingQuery = scoutingQuery.eq('event_key', currentEventKey);
+      } else {
+        scoutingQuery = scoutingQuery.like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN);
+      }
+
+      scoutingQuery = scoutingQuery.order('created_at', { ascending: false });
 
       if (teamDataOnly && user?.organization_id) {
         scoutingQuery = scoutingQuery.eq('organization_id', user.organization_id);

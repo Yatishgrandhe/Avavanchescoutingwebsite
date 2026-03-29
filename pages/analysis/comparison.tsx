@@ -32,6 +32,8 @@ import { formatScoreRange } from '@/lib/analytics';
 import { buildTeamComparisonFromRows, type TeamComparison } from '@/lib/comparison';
 import { TeamComparisonPanel } from '@/components/data/TeamComparisonPanel';
 import { cn } from '@/lib/utils';
+import { getOrgCurrentEvent } from '@/lib/org-app-config';
+import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
 
 export default function TeamComparison() {
   const router = useRouter();
@@ -153,11 +155,28 @@ export default function TeamComparison() {
         throw new Error(`Team ${teamNumber} not found`);
       }
 
+      // Fetch organization's active event if available
+      let currentEventKey = '';
+      if (user?.organization_id) {
+        const { eventKey } = await getOrgCurrentEvent(supabase, user.organization_id);
+        currentEventKey = eventKey;
+      }
+
       let scoutingQuery = supabase
         .from('scouting_data')
         .select('*')
-        .eq('team_number', teamNumber)
-        .order('created_at', { ascending: false });
+        .eq('team_number', teamNumber);
+
+      // Filter by event: URL eventKey > active event > season pattern
+      if (eventKey) {
+        scoutingQuery = scoutingQuery.eq('event_key', eventKey);
+      } else if (currentEventKey) {
+        scoutingQuery = scoutingQuery.eq('event_key', currentEventKey);
+      } else {
+        scoutingQuery = scoutingQuery.like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN);
+      }
+
+      scoutingQuery = scoutingQuery.order('created_at', { ascending: false });
 
       if (!seeAllOrgs && user?.organization_id) {
         scoutingQuery = scoutingQuery.eq('organization_id', user.organization_id);

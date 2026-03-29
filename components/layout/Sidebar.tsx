@@ -15,7 +15,8 @@ import {
   Sparkles,
   Trophy,
   Building2,
-  Settings2
+  Settings2,
+  Activity
 } from 'lucide-react';
 import { Badge, Logo, Avatar, AvatarFallback, AvatarImage } from '../ui';
 import {
@@ -97,6 +98,10 @@ const AppSidebar: React.FC<SidebarProps> = ({
           label: 'Team Management',
           href: '/admin/team-management',
           icon: Settings2,
+        }, {
+          label: 'Scouting Stats',
+          href: '/admin/scouting-stats',
+          icon: Activity,
         }] : []),
       ].filter(Boolean),
     }] : []),

@@ -63,11 +63,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
 
     if (body.clear === true) {
+      // 1. Delete match scouting data for the org
+      await supabase.from('scouting_data').delete().eq('organization_id', orgId);
+
+      // 2. Delete pit scouting data for the org
+      await supabase.from('pit_scouting_data').delete().eq('organization_id', orgId);
+
+      // 3. Delete matches for the org
+      await supabase.from('matches').delete().eq('organization_id', orgId);
+
+      // 4. Delete pick lists for the org
+      await supabase.from('pick_lists').delete().eq('organization_id', orgId);
+
+      // 5. Delete scout names for the org
+      await supabase.from('scout_names').delete().eq('organization_id', orgId);
+
+      // 6. Reset teams for the org
+      await supabase
+        .from('teams')
+        .update({ organization_id: null, epa: 0, endgame_epa: 0 })
+        .eq('organization_id', orgId);
+
+      // 7. Reset user team numbers for the org
+      await supabase.from('users').update({ team_number: null }).eq('organization_id', orgId);
+
+      // 8. Clear current event settings last
       const { error: delErr } = await supabase
         .from('app_config')
         .delete()
         .eq('organization_id', orgId)
         .in('key', [...KEYS]);
+
       if (delErr) {
         console.error('competition-settings clear', delErr);
         res.status(500).json({ error: 'Failed to clear competition' });

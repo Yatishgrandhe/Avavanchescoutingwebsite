@@ -322,7 +322,7 @@ export default function TeamManagementPage() {
   const handleClearCompetition = async () => {
     if (
       !confirm(
-        'Clear the active competition for your organization? New members are never auto-assigned an event — this only clears your saved event key/name. Use Archive when you want to move data to past competitions.'
+        'WARNING: This will PERMANENTLY DELETE all matches, match scouting, pit data, and pick lists for your organization. This action CANNOT be undone.\n\nUse "Archive" instead if you want to save this data to past records before starting a new competition.\n\nAre you sure you want to clear EVERYTHING for this organization?'
       )
     ) {
       return;

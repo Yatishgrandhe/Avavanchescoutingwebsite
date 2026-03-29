@@ -8,6 +8,8 @@ import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useSupabase } from '@/pages/_app';
 import { cn } from '@/lib/utils';
+import { getOrgCurrentEvent } from '@/lib/org-app-config';
+import { Activity } from 'lucide-react';
 
 const quickAccess = [
   {
@@ -32,16 +34,34 @@ const quickAccess = [
 
 export default function AnalysisIndex() {
   const router = useRouter();
-  const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF
+  const [teamDataOnly, setTeamDataOnly] = useState(true); // Default ON
   const { user, supabase } = useSupabase();
   const [stats, setStats] = useState<{ teams: number; matchForms: number; pitForms: number } | null>(null);
+  const [activeEventKey, setActiveEventKey] = useState<string>('');
+  const [activeEventName, setActiveEventName] = useState<string>('');
 
   useEffect(() => {
     const loadStats = async () => {
       try {
+        // Fetch organization's active event
+        let currentEventKey = '';
+        if (user?.organization_id) {
+          const { eventKey, eventName } = await getOrgCurrentEvent(supabase, user.organization_id);
+          currentEventKey = eventKey;
+          setActiveEventKey(eventKey);
+          setActiveEventName(eventName);
+        }
+
         let matchQuery = supabase.from('scouting_data').select('team_number');
         let matchCountQuery = supabase.from('scouting_data').select('*', { count: 'exact', head: true });
         let pitCountQuery = supabase.from('pit_scouting_data').select('*', { count: 'exact', head: true });
+
+        // ALWAYS filter by active event if available to prevent data leakage from other competitions
+        if (currentEventKey) {
+          matchQuery = matchQuery.eq('event_key', currentEventKey);
+          matchCountQuery = matchCountQuery.eq('event_key', currentEventKey);
+          pitCountQuery = pitCountQuery.eq('event_key', currentEventKey);
+        }
 
         if (teamDataOnly && user?.organization_id) {
           matchQuery = matchQuery.eq('organization_id', user.organization_id);
@@ -74,11 +94,19 @@ export default function AnalysisIndex() {
           {/* Hero — Polar Edge style */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-heading font-bold text-foreground tracking-tight">
-                  Scouting Data
-                </h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl font-heading font-bold text-foreground tracking-tight">
+                    Scouting Data
+                  </h1>
+                  {activeEventName && (
+                    <div className="flex items-center gap-2 px-2.5 py-1 rounded-full border border-primary/20 bg-primary/5 mt-1">
+                      <Activity className="w-3 h-3 text-primary" />
+                      <span className="text-[10px] font-bold text-primary truncate max-w-[200px] uppercase tracking-wider">{activeEventName}</span>
+                    </div>
+                  )}
+                </div>
                 <p className="text-muted-foreground mt-1.5 text-base">
-                  Match and team data collected across all events.
+                  Analysis and metrics for the current competition.
                 </p>
               </div>
 

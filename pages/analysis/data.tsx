@@ -122,7 +122,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [starterEpaMap, setStarterEpaMap] = useState<Record<number, number>>({});
   const [activeEventKey, setActiveEventKey] = useState<string>('');
   const [activeEventName, setActiveEventName] = useState<string>('');
-  const [teamDataOnly, setTeamDataOnly] = useState(false); // Default to OFF (show all data)
+  const [teamDataOnly, setTeamDataOnly] = useState(true); // Default to ON (show organization's data)
 
   useEffect(() => {
     loadData();

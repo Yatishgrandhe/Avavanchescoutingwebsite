@@ -170,7 +170,7 @@ export default function PastCompetitionsPage() {
                     <Card
                       key={ev.event_key}
                       className="p-4 sm:p-6 rounded-lg shadow-sm border border-emerald-500/30 bg-emerald-500/5 hover:shadow-md transition-shadow duration-200 cursor-pointer"
-                      onClick={() => router.push(`/analysis/data?event_key=${encodeURIComponent(ev.event_key)}`)}
+                      onClick={() => router.push(`/view-data?event_key=${encodeURIComponent(ev.event_key)}&see_all_orgs=1`)}
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">

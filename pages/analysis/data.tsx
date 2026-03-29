@@ -41,6 +41,7 @@ import { getBallChoiceScoreFromRange, getBallChoiceLabel } from '@/lib/types';
 import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
 import { TeamComparisonPanel } from '@/components/data/TeamComparisonPanel';
+import { getOrgCurrentEvent } from '@/lib/org-app-config';
 
 interface TeamStat extends RebuiltTeamMetrics {
   team_number: number;
@@ -119,7 +120,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [minAvgScoreFilter, setMinAvgScoreFilter] = useState<number | ''>('');
   const [pitByTeam, setPitByTeam] = useState<Record<number, { robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }>>({});
   const [starterEpaMap, setStarterEpaMap] = useState<Record<number, number>>({});
-  const [detectedEvents, setDetectedEvents] = useState<string[]>([]);
+  const [activeEventKey, setActiveEventKey] = useState<string>('');
+  const [activeEventName, setActiveEventName] = useState<string>('');
   const [teamDataOnly, setTeamDataOnly] = useState(false); // Default to OFF (show all data)
 
   useEffect(() => {
@@ -130,12 +132,40 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     try {
       setLoading(true);
 
-      // Load scouting data - select all fields including submitted_by_name and submitted_by_email
-      // Only 2026 season: match_id must contain 2026 (e.g. avalanche_2026_qm1)
+      let targetEventKey = '';
+      let targetEventName = '';
+
+      // 1. Check URL for event_key
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlEventKey = urlParams.get('event_key');
+
+      if (urlEventKey) {
+        targetEventKey = urlEventKey;
+        // Try to find name in URL or leave blank
+        targetEventName = urlParams.get('event_name') || urlEventKey;
+      } else if (user?.organization_id) {
+        // 2. No URL param, use organization's current_event_key from app_config
+        const { eventKey, eventName } = await getOrgCurrentEvent(supabase, user.organization_id);
+        targetEventKey = eventKey;
+        targetEventName = eventName;
+      }
+
+      setActiveEventKey(targetEventKey);
+      setActiveEventName(targetEventName);
+
+      // If still no event key, we can't show specific data
+      if (!targetEventKey) {
+        setScoutingData([]);
+        setTeamStats([]);
+        setLoading(false);
+        return;
+      }
+
+      // Load scouting data for this event
       let query = supabase
         .from('scouting_data')
         .select('*')
-        .like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN);
+        .eq('event_key', targetEventKey);
 
       // Apply organization filter if toggle is ON
       if (teamDataOnly && user?.organization_id) {
@@ -149,39 +179,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         throw scoutingError;
       }
 
-      // Detection System: Determine which events the current org is scouting
-      // and filter the global data to ONLY show matches from those events
-      let finalScoutingData: ScoutingData[] = scoutingDataResult || [];
-      let detected: string[] = [];
-      
-      if (!teamDataOnly && user?.organization_id) {
-        // Find which event keys (e.g. 2026cabarrus) my organization has submitted data for
-        const myOrgsData = finalScoutingData.filter((d: ScoutingData) => d.organization_id === user.organization_id);
-        const myEventKeys = new Set<string>();
-        
-        myOrgsData.forEach((d: ScoutingData) => {
-          if (d.match_id) {
-            const eventKey = d.match_id.split('_')[0];
-            if (eventKey) myEventKeys.add(eventKey);
-          }
-        });
-        
-        detected = Array.from(myEventKeys);
-
-        // If we have established which events we are at, filter the global data to only those events!
-        if (myEventKeys.size > 0) {
-          finalScoutingData = finalScoutingData.filter((d: ScoutingData) => {
-            if (!d.match_id) return false;
-            const eventKey = d.match_id.split('_')[0];
-            return eventKey && myEventKeys.has(eventKey);
-          });
-        }
-      }
-      
-      setDetectedEvents(detected);
-
       // Sort by submitted_at first, then created_at as fallback (most recent first)
-      const sortedScoutingData = finalScoutingData.sort((a: ScoutingData, b: ScoutingData) => {
+      const sortedScoutingData = (scoutingDataResult || []).sort((a: ScoutingData, b: ScoutingData) => {
         const aTime = a.submitted_at || a.created_at;
         const bTime = b.submitted_at || b.created_at;
         return new Date(bTime).getTime() - new Date(aTime).getTime();
@@ -692,16 +691,16 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                       </Button>
                     </div>
 
-                    {/* Detection System Indicator */}
-                    {!teamDataOnly && detectedEvents.length > 0 && (
-                      <div className="flex items-start gap-2 p-2 rounded-lg border border-blue-500/20 bg-blue-500/5">
-                        <Target className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                    {/* Active Event Indicator */}
+                    {activeEventName && (
+                      <div className="flex items-start gap-2 p-2 rounded-lg border border-primary/20 bg-primary/5">
+                        <Activity className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                         <div className="flex flex-col">
-                           <span className="text-xs font-medium text-blue-300">
-                             Cross-Org Match History Detection Active
+                           <span className="text-xs font-medium text-foreground">
+                             Viewing Event Analysis
                            </span>
-                           <span className="text-[10px] text-blue-400/80">
-                             Automatically pulling data for your scouted events: {detectedEvents.join(', ')}
+                           <span className="text-[10px] text-muted-foreground">
+                             Compiling matches for: <span className="text-primary font-semibold">{activeEventName}</span>
                            </span>
                         </div>
                       </div>
@@ -760,7 +759,23 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {viewMode === 'teams' ? (
+                {!activeEventKey ? (
+                  <div className="text-center py-16 px-4">
+                    <div className="bg-orange-500/10 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-orange-500/20">
+                      <Calendar className="w-8 h-8 text-orange-500" />
+                    </div>
+                    <h3 className="text-xl font-bold text-foreground mb-2 font-display">No Active Event Selected</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto mb-6 text-sm">
+                      We couldn't determine which event you are currently scouting. Please select an event from the Competitions page to begin analysis.
+                    </p>
+                    <Button onClick={() => window.location.href = '/past-competitions'}>
+                      Go to Competitions
+                      <ChevronRight className="ml-2 w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    {viewMode === 'teams' ? (
                   // Team Statistics View
                   <div className="space-y-4">
                     {/* Mobile Card View for Team Stats */}
@@ -1489,6 +1504,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                       </div>
                     )}
                   </div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>

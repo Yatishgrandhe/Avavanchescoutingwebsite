@@ -106,6 +106,12 @@ export default function ViewDataPage() {
   const [pitAllOrgs, setPitAllOrgs] = useState(false);
 
   useEffect(() => {
+    if (!router.isReady) return;
+    if (router.query.see_all_orgs === '1') setSeeAllOrgsData(true);
+    if (router.query.pit_all_orgs === '1') setPitAllOrgs(true);
+  }, [router.isReady, router.query.see_all_orgs, router.query.pit_all_orgs]);
+
+  useEffect(() => {
     if (!event_key && !id) return;
     loadData();
   }, [event_key, id, seeAllOrgsData, pitAllOrgs]);

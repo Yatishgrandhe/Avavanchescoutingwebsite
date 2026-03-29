@@ -119,6 +119,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [minAvgScoreFilter, setMinAvgScoreFilter] = useState<number | ''>('');
   const [pitByTeam, setPitByTeam] = useState<Record<number, { robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }>>({});
   const [starterEpaMap, setStarterEpaMap] = useState<Record<number, number>>({});
+  const [detectedEvents, setDetectedEvents] = useState<string[]>([]);
   const [teamDataOnly, setTeamDataOnly] = useState(false); // Default to OFF (show all data)
 
   useEffect(() => {
@@ -148,8 +149,39 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         throw scoutingError;
       }
 
+      // Detection System: Determine which events the current org is scouting
+      // and filter the global data to ONLY show matches from those events
+      let finalScoutingData: ScoutingData[] = scoutingDataResult || [];
+      let detected: string[] = [];
+      
+      if (!teamDataOnly && user?.organization_id) {
+        // Find which event keys (e.g. 2026cabarrus) my organization has submitted data for
+        const myOrgsData = finalScoutingData.filter((d: ScoutingData) => d.organization_id === user.organization_id);
+        const myEventKeys = new Set<string>();
+        
+        myOrgsData.forEach((d: ScoutingData) => {
+          if (d.match_id) {
+            const eventKey = d.match_id.split('_')[0];
+            if (eventKey) myEventKeys.add(eventKey);
+          }
+        });
+        
+        detected = Array.from(myEventKeys);
+
+        // If we have established which events we are at, filter the global data to only those events!
+        if (myEventKeys.size > 0) {
+          finalScoutingData = finalScoutingData.filter((d: ScoutingData) => {
+            if (!d.match_id) return false;
+            const eventKey = d.match_id.split('_')[0];
+            return eventKey && myEventKeys.has(eventKey);
+          });
+        }
+      }
+      
+      setDetectedEvents(detected);
+
       // Sort by submitted_at first, then created_at as fallback (most recent first)
-      const sortedScoutingData = (scoutingDataResult || []).sort((a: ScoutingData, b: ScoutingData) => {
+      const sortedScoutingData = finalScoutingData.sort((a: ScoutingData, b: ScoutingData) => {
         const aTime = a.submitted_at || a.created_at;
         const bTime = b.submitted_at || b.created_at;
         return new Date(bTime).getTime() - new Date(aTime).getTime();
@@ -635,28 +667,45 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                   </div>
 
                   {/* Org-only data toggle — default OFF = all orgs */}
-                  <div className="flex items-center justify-between p-2 rounded-lg border border-white/5 bg-white/[0.02]">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">
-                        {teamDataOnly ? 'Org Only' : 'All Organizations'}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {teamDataOnly
-                          ? 'Showing data from your organization only'
-                          : 'Analysis compiled from all organizations (recommended)'}
-                      </span>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between p-2 rounded-lg border border-white/5 bg-white/[0.02]">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">
+                          {teamDataOnly ? 'Org Only' : 'All Organizations'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {teamDataOnly
+                            ? 'Showing data from your organization only'
+                            : 'Analysis compiled from all organizations (recommended)'}
+                        </span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={teamDataOnly ? 'default' : 'outline'}
+                        onClick={() => setTeamDataOnly(!teamDataOnly)}
+                        className={cn(
+                          "h-8 px-3 rounded-full transition-all flex-shrink-0 ml-2",
+                          teamDataOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                        )}
+                      >
+                        {teamDataOnly ? 'Org Only' : 'All Orgs'}
+                      </Button>
                     </div>
-                    <Button
-                      size="sm"
-                      variant={teamDataOnly ? 'default' : 'outline'}
-                      onClick={() => setTeamDataOnly(!teamDataOnly)}
-                      className={cn(
-                        "h-8 px-3 rounded-full transition-all",
-                        teamDataOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                      )}
-                    >
-                      {teamDataOnly ? 'Org Only' : 'All Orgs'}
-                    </Button>
+
+                    {/* Detection System Indicator */}
+                    {!teamDataOnly && detectedEvents.length > 0 && (
+                      <div className="flex items-start gap-2 p-2 rounded-lg border border-blue-500/20 bg-blue-500/5">
+                        <Target className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                        <div className="flex flex-col">
+                           <span className="text-xs font-medium text-blue-300">
+                             Cross-Org Match History Detection Active
+                           </span>
+                           <span className="text-[10px] text-blue-400/80">
+                             Automatically pulling data for your scouted events: {detectedEvents.join(', ')}
+                           </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions */}

@@ -2,6 +2,7 @@ import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useSupabase } from '@/pages/_app';
+import { storeAuthReturnPath } from '@/lib/auth-return';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -28,9 +29,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/');
+      const nextPath = router.asPath || '/';
+      storeAuthReturnPath(nextPath);
+      router.replace(`/auth/signin?next=${encodeURIComponent(nextPath)}`);
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, router.asPath]);
 
   if (loading) {
     return <>{fallback}</>;

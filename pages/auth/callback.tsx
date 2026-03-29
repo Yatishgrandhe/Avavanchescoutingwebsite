@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { getSupabaseClient } from '@/lib/supabase';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui';
+import { consumeAuthReturnPath, pickAuthReturnPath } from '@/lib/auth-return';
 
 export default function AuthCallback() {
   const router = useRouter();
@@ -84,6 +85,8 @@ export default function AuthCallback() {
       const PROVIDER_TOKEN_ERR = "Discord permissions could not be verified. Please sign in again and ensure you grant all requested permissions (including server list).";
 
       const VERIFY_TIMEOUT_MS = 15000;
+      const desiredPath =
+        consumeAuthReturnPath() || pickAuthReturnPath(router.query.next, '/');
 
       const runGuildCheck = async (session: { access_token: string; provider_token?: string | null }): Promise<{ inGuild: boolean; invited?: boolean } | 'timeout'> => {
         if (!session?.provider_token) return { inGuild: false };
@@ -138,7 +141,7 @@ export default function AuthCallback() {
       const finishWithGuildCheck = async (session: any) => {
         if (await shouldSkipGuildForEstablishedUser(session)) {
           setLoading(false);
-          router.replace('/');
+          router.replace(desiredPath);
           return;
         }
 
@@ -153,7 +156,7 @@ export default function AuthCallback() {
           if (result.invited) {
             router.replace('/setup-org');
           } else {
-            router.replace('/');
+            router.replace(desiredPath);
           }
           return;
         }

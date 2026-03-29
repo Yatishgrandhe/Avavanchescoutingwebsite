@@ -21,6 +21,7 @@ import {
 import Logo from '../../components/ui/Logo';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { pickAuthReturnPath, storeAuthReturnPath } from '@/lib/auth-return';
 
 // Avalanche animation background
 const AvalancheBackground = () => {
@@ -89,6 +90,10 @@ export default function SignIn() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
+      const nextFromQuery = urlParams.get('next');
+      if (nextFromQuery?.startsWith('/')) {
+        storeAuthReturnPath(nextFromQuery);
+      }
       const token = urlParams.get('token');
       if (token) {
         localStorage.setItem('org_invite_token', token);
@@ -126,7 +131,8 @@ export default function SignIn() {
         .eq('id', session.user.id)
         .maybeSingle();
       if (!cancelled && prof?.organization_id) {
-        router.replace('/');
+        const target = pickAuthReturnPath(router.query.next, '/');
+        router.replace(target);
       }
     })();
     return () => {
@@ -168,6 +174,8 @@ export default function SignIn() {
           ? window.location.origin
           : (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : null) ?? 'https://avalanchescouting.vercel.app';
       const redirectTo = `${callbackOrigin}/auth/callback`;
+      // Preserve destination across OAuth redirect round-trip.
+      storeAuthReturnPath(pickAuthReturnPath(router.query.next, '/'));
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',

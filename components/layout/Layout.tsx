@@ -23,7 +23,6 @@ import AppSidebar from './Sidebar';
 import { useSupabase } from '@/pages/_app';
 import { useAdmin } from '@/hooks/use-admin';
 import { ConnectionMonitor } from './ConnectionMonitor';
-import NetworkSpeedIndicator from './NetworkSpeedIndicator';
 import SyncButton from './SyncButton';
 
 interface LayoutProps {
@@ -76,7 +75,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
             <div className="flex items-center space-x-3">
               <ConnectionMonitor />
-              <NetworkSpeedIndicator />
               {user && (
                 <div className="flex items-center space-x-3 pl-3 border-l border-border">
                   <SyncButton />

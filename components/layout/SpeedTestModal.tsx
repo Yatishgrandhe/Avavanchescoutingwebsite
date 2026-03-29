@@ -23,7 +23,7 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
   const [speed, setSpeed] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
-  const MIN_SPEED_MBPS = 15;
+  const MIN_SPEED_MBPS = 5;
 
   const runSpeedTest = useCallback(async () => {
     setStatus('testing');
@@ -146,9 +146,7 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
                   <h3 className="text-4xl font-black text-foreground">{speed} <span className="text-lg text-muted-foreground">Mbps</span></h3>
                   <p className="text-sm font-semibold text-emerald-500/80 uppercase tracking-widest">Great Connection</p>
                 </div>
-                <p className="max-w-[280px] text-xs text-muted-foreground leading-relaxed">
-                  Your connection is stable and exceeds the 15 Mbps requirement. Reliable sync is ready.
-                </p>
+                  Your connection is stable and exceeds the 5 Mbps requirement. Reliable sync is ready.
               </motion.div>
             )}
 
@@ -167,7 +165,7 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
                   <p className="text-sm font-semibold text-rose-500 uppercase tracking-widest">Insufficient Speed</p>
                 </div>
                 <p className="max-w-[280px] text-xs text-muted-foreground leading-relaxed">
-                  {error ? error : `Connection speed is below the required 15 Mbps. Direct upload is disabled to prevent data corruption.`}
+                  {error ? error : `Connection speed is below the required 5 Mbps. Direct upload is disabled to prevent data corruption.`}
                 </p>
               </motion.div>
             )}

@@ -23,13 +23,15 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
   const [speed, setSpeed] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const testingRef = useRef(false);
 
   const MIN_SPEED_MBPS = 5;
 
   const runSpeedTest = useCallback(async () => {
     // Avoid double-running
-    if (status === 'testing') return;
+    if (testingRef.current || status === 'success') return;
     
+    testingRef.current = true;
     setStatus('testing');
     setError(null);
     setSpeed(0);
@@ -38,13 +40,14 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
     abortControllerRef.current = controller;
 
     const TEST_DURATION_MS = 5000;
-    const CHUNK_SIZE = 128 * 1024; // 128KB chunks for high frequency sampling
+    const CHUNK_SIZE = 64 * 1024; // 64KB chunks (max quota for getRandomValues)
     const chunk = new Uint8Array(CHUNK_SIZE);
     crypto.getRandomValues(chunk);
 
     let totalBytesSent = 0;
     const startTime = performance.now();
     const samples: number[] = [];
+    let lastUpdate = 0;
 
     // Overall timeout to stop the test exactly at 5s
     const testTimeout = setTimeout(() => {
@@ -69,11 +72,18 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
           
           const chunkEnd = performance.now();
           const chunkDuration = (chunkEnd - chunkStart) / 1000;
+          
           if (chunkDuration > 0) {
             const chunkMbps = (CHUNK_SIZE * 8 / chunkDuration) / 1000000;
             samples.push(chunkMbps);
             totalBytesSent += CHUNK_SIZE;
-            setSpeed(Number(chunkMbps.toFixed(2)));
+            
+            // Throttle speed updates to UI to avoid constant resetting/flickering
+            const now = performance.now();
+            if (now - lastUpdate > 200) {
+              setSpeed(Number(chunkMbps.toFixed(2)));
+              lastUpdate = now;
+            }
           }
         } catch (fetchErr: any) {
           if (fetchErr.name === 'AbortError') break;
@@ -85,34 +95,38 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
       const endTime = performance.now();
       const totalTime = (endTime - startTime) / 1000;
       
-      // If we aborted due to timeout or loop ended
       const avgMbps = totalTime > 0 ? (totalBytesSent * 8 / totalTime) / 1000000 : 0;
       const minMbps = samples.length > 0 ? Math.min(...samples) : 0;
-      const isStable = samples.length >= 5 && minMbps > 0.5; // Require some minimal activity
+      // Stricter stability check: require at least 15 chunks (enough for 1s of fast activity)
+      const isStable = samples.length >= 15 && minMbps > 0.1;
 
       setSpeed(Number(avgMbps.toFixed(2)));
 
       if (avgMbps >= MIN_SPEED_MBPS && isStable) {
         setStatus('success');
-      } else if (!isStable && samples.length < 5) {
-        setError('Connection interrupted or too slow to measure. Please check your signal.');
+      } else if (!isStable && samples.length < 15) {
+        setError('Connection interrupted or too slow to measure reliably. Please check your signal.');
         setStatus('fail');
       } else if (!isStable) {
-        setError('Connection is unstable. Upload speed fluctuated too much.');
+        setError('Connection is unstable. Upload speed fluctuated too much for a reliable sync.');
         setStatus('fail');
       } else {
         setStatus('fail');
       }
     } catch (err: any) {
-      if (err.name === 'AbortError') return;
-      console.error('Speed test error:', err);
-      setError(err.message || 'An error occurred during upload test.');
-      setStatus('fail');
+      if (err.name !== 'AbortError') {
+        console.error('Speed test error:', err);
+        setError(err.message || 'An error occurred during upload test.');
+        setStatus('fail');
+      }
     } finally {
+
       clearTimeout(testTimeout);
       abortControllerRef.current = null;
+      testingRef.current = false;
     }
-  }, [status]); // Status in deps to prevent double execution if called rapidly
+  }, [status]); // Status in deps to allow reset to work
+
 
   useEffect(() => {
     let active = true;
@@ -197,11 +211,11 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
                       strokeWidth="8"
                       strokeLinecap="round"
                       strokeDasharray="440"
-                      animate={{ strokeDashoffset: [440, 110] }}
+                      initial={{ strokeDashoffset: 440 }}
+                      animate={{ strokeDashoffset: 110 }}
                       transition={{ 
                         duration: 5, 
-                        ease: "linear",
-                        times: [0, 1]
+                        ease: "linear"
                       }}
                       className="text-primary"
                     />

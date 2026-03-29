@@ -5,11 +5,13 @@ import { getOfflineQueue, removeFromOfflineQueue, QueueItem } from '@/lib/offlin
 import { toast } from 'sonner';
 import { useSupabase } from '@/pages/_app';
 import { cn } from '@/lib/utils';
+import SpeedTestModal from './SpeedTestModal';
 
 export default function SyncButton() {
   const [queueCount, setQueueCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const { session, supabase } = useSupabase();
+  const [showSpeedTest, setShowSpeedTest] = useState(false);
 
   const checkQueue = async () => {
     const queue = await getOfflineQueue();
@@ -48,7 +50,9 @@ export default function SyncButton() {
     return (upData as any).directViewUrl;
   };
 
-  const handleSync = async () => {
+
+  const performActualSync = async () => {
+    setShowSpeedTest(false);
     if (isSyncing || queueCount === 0 || !session?.access_token) return;
     setIsSyncing(true);
     let successCount = 0;
@@ -142,34 +146,47 @@ export default function SyncButton() {
     }
   };
 
+  const handleSyncClick = () => {
+    if (isSyncing || queueCount === 0 || !session?.access_token) return;
+    setShowSpeedTest(true);
+  };
+
   return (
-    <Button 
-      variant="outline" 
-      size="sm" 
-      onClick={handleSync}
-      disabled={isSyncing || queueCount === 0}
-      className={cn(
-        "relative flex items-center gap-2 h-9 px-4 transition-all duration-300 rounded-lg border",
-        queueCount > 0 
-          ? "border-primary bg-primary/20 text-primary hover:bg-primary/30 shadow-[0_0_15px_rgba(59,130,246,0.3)] ring-1 ring-primary/50" 
-          : "border-border/30 bg-transparent text-muted-foreground/30 opacity-40"
-      )}
-    >
-      {isSyncing ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
-      ) : (
-        <CloudUpload className={cn("w-4 h-4", queueCount > 0 && "animate-pulse")} />
-      )}
-      <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
-        {queueCount > 0 ? `SUBMIT ${queueCount} PENDING` : "UP TO DATE"}
-      </span>
-      
-      {queueCount > 0 && (
-        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
+    <>
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={handleSyncClick}
+        disabled={isSyncing || queueCount === 0}
+        className={cn(
+          "relative flex items-center gap-2 h-9 px-4 transition-all duration-300 rounded-lg border",
+          queueCount > 0 
+            ? "border-primary bg-primary/20 text-primary hover:bg-primary/30 shadow-[0_0_15px_rgba(59,130,246,0.3)] ring-1 ring-primary/50" 
+            : "border-border/30 bg-transparent text-muted-foreground/30 opacity-40"
+        )}
+      >
+        {isSyncing ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <CloudUpload className={cn("w-4 h-4", queueCount > 0 && "animate-pulse")} />
+        )}
+        <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+          {queueCount > 0 ? `SUBMIT ${queueCount} PENDING` : "UP TO DATE"}
         </span>
-      )}
-    </Button>
+        
+        {queueCount > 0 && (
+          <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
+          </span>
+        )}
+      </Button>
+
+      <SpeedTestModal 
+        isOpen={showSpeedTest}
+        onClose={() => setShowSpeedTest(false)}
+        onPass={performActualSync}
+      />
+    </>
   );
 }

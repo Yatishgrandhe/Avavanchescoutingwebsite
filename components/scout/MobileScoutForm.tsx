@@ -49,6 +49,10 @@ interface FormData {
   miscellaneous: {
     defense_rating: number;
     comments: string;
+    shuttling?: boolean;
+    shuttling_consistency?: string;
+    average_downtime?: number | null;
+    broke?: boolean | null;
   };
 }
 
@@ -75,6 +79,10 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
     miscellaneous: {
       defense_rating: 0,
       comments: '',
+      shuttling: false,
+      shuttling_consistency: 'N/A',
+      average_downtime: null,
+      broke: null,
     },
   });
 

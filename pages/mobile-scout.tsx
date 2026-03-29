@@ -26,6 +26,7 @@ import { ScoringNotes, getBallChoiceLabel } from '@/lib/types';
 import { calculateScore, formatDurationSec } from '@/lib/utils';
 import { mergeShuttleFromMiscIntoTeleop } from '@/lib/scouting-notes-merge';
 import { useRouter } from 'next/router';
+import { addToOfflineQueue } from '@/lib/offline-queue';
 
 type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'miscellaneous' | 'review';
 
@@ -136,6 +137,7 @@ export default function MobileScout() {
         broke: misc.broke ?? undefined,
         shuttling: misc.shuttling,
         shuttling_consistency: misc.shuttling ? misc.shuttling_consistency : undefined,
+        organization_id: user?.organization_id,
         scout_id: user?.id,
         submitted_by_email: user?.email,
         // Use username from user_metadata: full_name, username (Discord), or name
@@ -155,23 +157,19 @@ export default function MobileScout() {
         },
       };
 
-      // Get the current session token
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('No active session');
-      }
-
-      const response = await fetch('/api/scouting_data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(scoutingData),
-      });
-
-      if (response.ok) {
-        alert('Scouting data submitted successfully!');
+      try {
+        await addToOfflineQueue('match-scouting', scoutingData, {
+          competitionKey: formData.matchData.event_key,
+          organizationId: user?.organization_id || '',
+          teamNumber: formData.teamNumber,
+          matchKey: formData.matchData.match_id,
+        });
+        
+        // Dispatch event for SyncButton
+        window.dispatchEvent(new Event('offline-queue-updated'));
+        
+        alert('Saved locally! Click "Submit Pending" in the menu to upload.');
+        
         // Reset form or redirect
         setCurrentStep('match-details');
         setFormData({
@@ -198,12 +196,12 @@ export default function MobileScout() {
           },
         });
         router.push('/');
-      } else {
-        throw new Error('Failed to submit scouting data');
+      } catch (err) {
+        throw new Error('Failed to save form locally. Your browser might not support local storage or it is full.');
       }
     } catch (error) {
       console.error('Error submitting scouting data:', error);
-      alert('Error submitting scouting data. Please try again.');
+      alert(error instanceof Error ? error.message : 'Error saving scouting data. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

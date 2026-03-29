@@ -20,8 +20,9 @@ import {
 import { useRouter } from 'next/router';
 import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, ValidationResult } from '@/lib/form-validation';
 import { compressImageForUpload } from '@/lib/image-upload';
+import { addToOfflineQueue } from '@/lib/offline-queue';
 import PitPhotosUpload, { PhotoItem } from '@/components/ui/PitPhotosUpload';
-
+import { toast } from 'react-hot-toast';
 interface Team {
   team_number: number;
   team_name: string;
@@ -269,51 +270,23 @@ export default function PitScoutingMobile() {
         throw new Error(errorMessage);
       }
 
-      // Upload photos only on Submit (Files → URLs)
       const photoItems = (formData.photos || []).slice(0, 6);
+      const photosToUpload: { name: string; blob: Blob }[] = [];
       const photoUrls: string[] = [];
-      const uploadFailures: string[] = [];
+
       for (const item of photoItems) {
         if (!item) continue;
         if (typeof item === 'string') {
           const url = item.trim();
           if (url) photoUrls.push(url);
         } else {
-          const fd = new FormData();
           const name = item.name && /\.(jpe?g|png|gif|webp|heic)$/i.test(item.name) ? item.name : `robot_${formData.teamNumber}_${Date.now()}.jpg`;
           const toUpload = await compressImageForUpload(item);
           const uploadName = toUpload.type === 'image/jpeg' ? (name.replace(/\.[a-z]+$/i, '') + '.jpg') : name;
-          fd.append('image', toUpload, uploadName);
-          fd.append('teamNumber', formData.teamNumber.toString());
-          fd.append('teamName', formData.robotName || 'Unknown');
-          try {
-            const upRes = await fetch('/api/upload-robot-image', { method: 'POST', body: fd });
-            const text = await upRes.text();
-            let upData: { directViewUrl?: string; error?: string; details?: string; driveError?: string } = {};
-            try {
-              if (text && text.trim().startsWith('{')) upData = JSON.parse(text);
-            } catch {
-              if (upRes.status === 413) upData = { error: 'Image too large (max 10MB). Try a smaller image.' };
-              else if (text) upData = { error: text.length > 80 ? text.slice(0, 80) + '…' : text };
-              else upData = { error: upRes.statusText || 'Upload failed' };
-            }
-            if (upRes.ok && upData.directViewUrl) {
-              photoUrls.push(upData.directViewUrl);
-            } else {
-              uploadFailures.push(upData?.driveError || upData?.details || upData?.error || upRes.statusText || 'Upload failed');
-            }
-          } catch (err) {
-            uploadFailures.push(err instanceof Error ? err.message : 'Network error');
-          }
+          photosToUpload.push({ name: uploadName, blob: toUpload });
         }
       }
-      if (uploadFailures.length > 0) {
-        setSubmitError(`Image upload failed: ${uploadFailures[0]}. ${uploadFailures.length > 1 ? `(${uploadFailures.length} failed)` : ''}`);
-        setSubmitting(false);
-        return;
-      }
 
-      // Prepare the data with submitter information
       const submissionData = {
         team_number: formData.teamNumber,
         robot_name: formData.robotName,
@@ -361,23 +334,43 @@ export default function PitScoutingMobile() {
         submitted_by_name: user.user_metadata?.full_name || user.email,
         submitted_at: new Date().toISOString(),
         auto_fuel_count: formData.autoFuelCount,
+        organization_id: user.organization_id // Added organization_id
       };
 
       console.log('User info:', { id: user.id, email: user.email });
-      console.log('Pit scouting data:', submissionData);
+      console.log('Pit scouting data queued:', submissionData);
       
-      // Submit to Supabase
-      const { data, error } = await supabase
-        .from('pit_scouting_data')
-        .insert([submissionData])
-        .select();
-
-      if (error) {
-        console.error('Supabase error:', error);
-        throw new Error(`Failed to save pit scouting data: ${error.message}`);
+      const { data: { session: submitSession } } = await supabase.auth.getSession();
+      let competitionKey = '';
+      if (submitSession?.access_token) {
+        try {
+          const compRes = await fetch('/api/my-competition', {
+            headers: { Authorization: `Bearer ${submitSession.access_token}` },
+          });
+          if (compRes.ok) {
+            const compJson = await compRes.json();
+            competitionKey = String(compJson.current_event_key || '');
+          }
+        } catch (e) {
+          console.warn('Failed to fetch competition key', e);
+        }
       }
-      
-      console.log('Successfully saved pit scouting data:', data);
+
+      await addToOfflineQueue('pit-scouting', {
+        submissionData,
+        photosToUpload,
+        annotatedImageToUpload: null, // Mobile might not have annotated image support
+        editingId: null, // Mobile currently doesn't support edit mode
+      }, {
+        competitionKey,
+        organizationId: user?.organization_id || '',
+        teamNumber: formData.teamNumber,
+      });
+
+      // Dispatch event to update SyncButton
+      window.dispatchEvent(new Event('offline-queue-updated'));
+      toast.success('Saved locally! Click "Submit Pending" in the menu to upload.');
+
       try {
         sessionStorage.removeItem('pitScoutingDraft');
       } catch {}

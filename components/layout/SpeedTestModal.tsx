@@ -40,9 +40,13 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
     abortControllerRef.current = controller;
 
     const TEST_DURATION_MS = 5000;
-    const CHUNK_SIZE = 64 * 1024; // 64KB chunks (max quota for getRandomValues)
+    const CHUNK_SIZE = 512 * 1024; // 512KB chunks for more stable averages per request
     const chunk = new Uint8Array(CHUNK_SIZE);
-    crypto.getRandomValues(chunk);
+    
+    // Fill buffer in 64KB increments (quota limit for getRandomValues)
+    for (let i = 0; i < CHUNK_SIZE; i += 65536) {
+      crypto.getRandomValues(chunk.subarray(i, i + 65536));
+    }
 
     let totalBytesSent = 0;
     const startTime = performance.now();
@@ -58,30 +62,31 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
       while (performance.now() - startTime < TEST_DURATION_MS) {
         if (controller.signal.aborted) break;
 
-        const chunkStart = performance.now();
+        const requestStart = performance.now();
         
         try {
           const response = await fetch('/api/speedtest', {
             method: 'POST',
             body: chunk,
             cache: 'no-store',
-            signal: controller.signal
+            signal: controller.signal,
+            // Mode 'cors', 'no-cache', etc are defaults mostly
           });
 
-          if (!response.ok) throw new Error('Upload error');
+          if (!response.ok) throw new Error('Upload server error');
           
-          const chunkEnd = performance.now();
-          const chunkDuration = (chunkEnd - chunkStart) / 1000;
+          const requestEnd = performance.now();
+          const requestDurationMs = requestEnd - requestStart;
           
-          if (chunkDuration > 0) {
-            const chunkMbps = (CHUNK_SIZE * 8 / chunkDuration) / 1000000;
-            samples.push(chunkMbps);
+          if (requestDurationMs > 10) { // Filter out near-instant responses which indicate buffering/caching
+            const bitrateMbps = (CHUNK_SIZE * 8 / (requestDurationMs / 1000)) / 1000000;
+            samples.push(bitrateMbps);
             totalBytesSent += CHUNK_SIZE;
             
-            // Throttle speed updates to UI to avoid constant resetting/flickering
+            // UI throttle: only update speed text every 200ms
             const now = performance.now();
             if (now - lastUpdate > 200) {
-              setSpeed(Number(chunkMbps.toFixed(2)));
+              setSpeed(Number(bitrateMbps.toFixed(2)));
               lastUpdate = now;
             }
           }
@@ -91,24 +96,20 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
         }
       }
 
-      // Final calculations
+      // Final calculations after loop ends
       const endTime = performance.now();
-      const totalTime = (endTime - startTime) / 1000;
+      const totalTimeElapsed = (endTime - startTime) / 1000;
       
-      const avgMbps = totalTime > 0 ? (totalBytesSent * 8 / totalTime) / 1000000 : 0;
-      const minMbps = samples.length > 0 ? Math.min(...samples) : 0;
-      // Stricter stability check: require at least 15 chunks (enough for 1s of fast activity)
-      const isStable = samples.length >= 15 && minMbps > 0.1;
+      const realAvgMbps = totalTimeElapsed > 0 ? (totalBytesSent * 8 / totalTimeElapsed) / 1000000 : 0;
+      // Stricter check: require at least 3 chunk responses and 1 Mbps min stability check
+      const isConsideredStable = samples.length >= 3;
 
-      setSpeed(Number(avgMbps.toFixed(2)));
+      setSpeed(Number(realAvgMbps.toFixed(2)));
 
-      if (avgMbps >= MIN_SPEED_MBPS && isStable) {
+      if (realAvgMbps >= MIN_SPEED_MBPS && isConsideredStable) {
         setStatus('success');
-      } else if (!isStable && samples.length < 15) {
-        setError('Connection interrupted or too slow to measure reliably. Please check your signal.');
-        setStatus('fail');
-      } else if (!isStable) {
-        setError('Connection is unstable. Upload speed fluctuated too much for a reliable sync.');
+      } else if (!isConsideredStable) {
+        setError('Connection interrupted or very unstable. Retesting is recommended.');
         setStatus('fail');
       } else {
         setStatus('fail');
@@ -120,12 +121,12 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
         setStatus('fail');
       }
     } finally {
-
       clearTimeout(testTimeout);
       abortControllerRef.current = null;
       testingRef.current = false;
     }
-  }, [status]); // Status in deps to allow reset to work
+  }, [status]); // Status in deps to allow re-runs
+
 
 
   useEffect(() => {

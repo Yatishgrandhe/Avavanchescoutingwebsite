@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import Logo from '../../components/ui/Logo';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 // Avalanche animation background
 const AvalancheBackground = () => {
@@ -79,6 +80,7 @@ const AvalancheBackground = () => {
 };
 
 export default function SignIn() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -101,6 +103,36 @@ export default function SignIn() {
       }
     }
   }, []);
+
+  /** Already signed in with an org: do not force Discord again (unless completing an invite). */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (typeof window === 'undefined') return;
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('token')) return;
+
+      const { getSupabaseClient } = await import('@/lib/supabase');
+      const supabase = getSupabaseClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user || cancelled) return;
+      if (localStorage.getItem('org_invite_token')) return;
+
+      const { data: prof } = await supabase
+        .from('users')
+        .select('organization_id')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      if (!cancelled && prof?.organization_id) {
+        router.replace('/');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   const notifyDiscordError = async (errorMessage: string, userInfo?: any) => {
     try {

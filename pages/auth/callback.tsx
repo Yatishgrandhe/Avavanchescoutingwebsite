@@ -115,7 +115,33 @@ export default function AuthCallback() {
         }
       };
 
+      /**
+       * Returning users: Supabase often omits `provider_token` on refreshed sessions.
+       * If they already have an organization and are not mid–invite flow, skip guild verification.
+       */
+      const shouldSkipGuildForEstablishedUser = async (session: { user?: { id?: string } } | null) => {
+        const uid = session?.user?.id;
+        if (!uid) return false;
+        const inviteToken =
+          typeof window !== 'undefined' ? localStorage.getItem('org_invite_token') : null;
+        if (inviteToken) return false;
+
+        const { data: prof } = await supabase
+          .from('users')
+          .select('organization_id')
+          .eq('id', uid)
+          .maybeSingle();
+
+        return Boolean(prof?.organization_id);
+      };
+
       const finishWithGuildCheck = async (session: any) => {
+        if (await shouldSkipGuildForEstablishedUser(session)) {
+          setLoading(false);
+          router.replace('/');
+          return;
+        }
+
         if (!session?.provider_token) {
           await supabase.auth.signOut();
           router.push(`/auth/error?message=${encodeURIComponent(PROVIDER_TOKEN_ERR)}&error=provider_token`);

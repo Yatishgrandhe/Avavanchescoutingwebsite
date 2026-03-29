@@ -147,7 +147,7 @@ export default function PublicCompetitionHistoryPage() {
                 Competition History
               </h1>
               <p className="text-sm sm:text-base text-muted-foreground">
-                View live and past competition data.
+                Past competitions and archives. Live events appear only when a current event is configured for the reference organization.
               </p>
             </div>
             <div className="flex items-center space-x-2">

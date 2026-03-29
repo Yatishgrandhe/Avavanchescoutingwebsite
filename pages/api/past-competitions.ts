@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getAutoFuelCount, getTeleopFuelCount, getClimbPoints } from '@/lib/analytics';
 import { AVALANCHE_ORG_ID } from '@/lib/constants';
+import { getOrgCurrentEvent } from '@/lib/org-app-config';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -511,16 +512,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         total_matches: matchCountMap.get(c.id) ?? 0,
       }));
 
-      // Live events: scope to viewer's own org so they see their own current events
-      const pastKeys = competitionsWithCounts.map((c) => c.competition_key);
-      let allMatchesQuery = supabaseAdmin
-        .from('matches')
-        .select('match_id, event_key, red_teams, blue_teams, organization_id');
-      if (scopeOrgId) {
-        allMatchesQuery = allMatchesQuery.eq('organization_id', scopeOrgId);
-      }
-      const { data: allMatches, error: matchesErr } = await allMatchesQuery;
-
+      /**
+       * "Live" only when Team Management has a current competition set (app_config current_event_key).
+       * Do not infer live from leftover matches rows — that showed fake live events after archive/clear.
+       */
       let live: Array<{
         event_key: string;
         competition_name: string;
@@ -530,47 +525,61 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         organization_name: string | null;
       }> = [];
 
-      if (!matchesErr && allMatches && allMatches.length > 0) {
-        const eventKeys = Array.from(new Set((allMatches as { event_key: string }[]).map((m) => m.event_key)));
-        const liveEventKeys = eventKeys.filter((ek) => !pastKeys.includes(ek));
+      if (scopeOrgId) {
+        const { eventKey: currentEventKey, eventName: currentEventName } = await getOrgCurrentEvent(
+          supabaseAdmin,
+          scopeOrgId
+        );
+        if (currentEventKey) {
+          const { data: eventMatchesRaw, error: matchesErr } = await supabaseAdmin
+            .from('matches')
+            .select('match_id, event_key, red_teams, blue_teams, organization_id')
+            .eq('organization_id', scopeOrgId)
+            .eq('event_key', currentEventKey);
 
-        for (const eventKey of liveEventKeys) {
-          const eventMatches = (allMatches as {
-            match_id: string;
-            event_key: string;
-            red_teams: number[];
-            blue_teams: number[];
-            organization_id: string;
-          }[]).filter((m) => m.event_key === eventKey);
-          const matchIds = eventMatches.map((m) => m.match_id);
-          const teamSet = new Set<number>();
-          eventMatches.forEach((m) => {
-            (m.red_teams || []).forEach((t: number) => teamSet.add(t));
-            (m.blue_teams || []).forEach((t: number) => teamSet.add(t));
-          });
+          if (!matchesErr && eventMatchesRaw && eventMatchesRaw.length > 0) {
+            const eventMatches = eventMatchesRaw as {
+              match_id: string;
+              event_key: string;
+              red_teams: number[];
+              blue_teams: number[];
+              organization_id: string;
+            }[];
+            const matchIds = eventMatches.map((m) => m.match_id);
+            const teamSet = new Set<number>();
+            eventMatches.forEach((m) => {
+              (m.red_teams || []).forEach((t: number) => teamSet.add(t));
+              (m.blue_teams || []).forEach((t: number) => teamSet.add(t));
+            });
 
-          let scoutingQuery = supabaseAdmin
-            .from('scouting_data')
-            .select('*', { count: 'exact', head: true })
-            .in('match_id', matchIds);
-          if (scopeOrgId) scoutingQuery = scoutingQuery.eq('organization_id', scopeOrgId);
+            const { count: scoutingCount } = await supabaseAdmin
+              .from('scouting_data')
+              .select('*', { count: 'exact', head: true })
+              .eq('organization_id', scopeOrgId)
+              .in('match_id', matchIds);
 
-          const { count: scoutingCount } = await scoutingQuery;
+            let orgLabel = orgNameMap.get(scopeOrgId) ?? null;
+            if (!orgLabel) {
+              const { data: orow } = await supabaseAdmin
+                .from('organizations')
+                .select('name')
+                .eq('id', scopeOrgId)
+                .maybeSingle();
+              orgLabel = (orow as { name?: string } | null)?.name ?? null;
+            }
 
-          const liveOrgId = eventMatches[0]?.organization_id ?? null;
-          live.push({
-            event_key: eventKey,
-            competition_name: eventKey,
-            total_teams: teamSet.size,
-            total_matches: eventMatches.length,
-            scouting_count: scoutingCount ?? 0,
-            organization_name: liveOrgId ? (orgNameMap.get(liveOrgId) ?? null) : null,
-          });
+            live.push({
+              event_key: currentEventKey,
+              competition_name: currentEventName || currentEventKey,
+              total_teams: teamSet.size,
+              total_matches: eventMatches.length,
+              scouting_count: scoutingCount ?? 0,
+              organization_name: orgLabel,
+            });
+          }
         }
-        live.sort((a, b) => (b.scouting_count || 0) - (a.scouting_count || 0));
       }
 
-      // Show live events to all users (guests only see reference-org data, logged-in see their own org).
       const liveForResponse = live;
 
       return res.status(200).json({

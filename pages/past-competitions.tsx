@@ -145,7 +145,7 @@ export default function PastCompetitionsPage() {
                     Competition History
                   </h1>
                   <p className="text-sm sm:text-base text-muted-foreground">
-                    Live data being scouted and archived past competitions
+                    Archived competitions from all organizations. Live appears only when your org has a current event set in Team Management.
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">

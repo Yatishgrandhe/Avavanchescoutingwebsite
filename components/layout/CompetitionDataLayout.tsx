@@ -1,5 +1,5 @@
 /**
- * Layout for view-data and team page in competition context: sidebar with Back to Competition History, Back to current competition, tabs.
+ * Layout for view-data and team page in competition context: sidebar with Back to Competition History, Home, tabs.
  * Shows user avatar and sign-out in header when logged in.
  */
 import React from 'react';
@@ -68,7 +68,7 @@ export default function CompetitionDataLayout({
                 {isLoggedIn && (
                   <Link href="/">
                     <Button variant="ghost" size="sm" className="gap-2">
-                      <Home className="h-4 w-4" /> Current competition
+                      <Home className="h-4 w-4" /> Home
                     </Button>
                   </Link>
                 )}

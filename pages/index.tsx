@@ -370,12 +370,14 @@ export default function Home() {
                     Dashboard
                   </h1>
                   <p className="text-muted-foreground mt-1.5">
-                    Welcome back, {user.user_metadata?.full_name?.split(' ')[0] || 'Scout'}. Ready for the competition?
+                    Welcome back, {user.user_metadata?.full_name?.split(' ')[0] || 'Scout'}.
                   </p>
-                  <p className="text-sm text-muted-foreground/80 mt-0.5">
-                    Event:{' '}
-                    {dashboardEventLabel || 'None set — admin picks competition in Team Management'}
-                  </p>
+                  {dashboardEventLabel ? (
+                    <p className="text-sm text-muted-foreground/80 mt-0.5">
+                      Active competition:{' '}
+                      <span className="text-foreground font-medium">{dashboardEventLabel}</span>
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button

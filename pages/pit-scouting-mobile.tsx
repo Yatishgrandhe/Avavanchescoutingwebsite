@@ -22,7 +22,7 @@ import { validatePitScoutingStep, getStepErrorMessage, validatePitScoutingForm, 
 import { compressImageForUpload } from '@/lib/image-upload';
 import { addToOfflineQueue } from '@/lib/offline-queue';
 import PitPhotosUpload, { PhotoItem } from '@/components/ui/PitPhotosUpload';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 interface Team {
   team_number: number;
   team_name: string;

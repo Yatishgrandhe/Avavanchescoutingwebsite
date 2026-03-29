@@ -52,15 +52,16 @@ export default function AnalysisIndex() {
           setActiveEventName(eventName);
         }
 
-        let matchQuery = supabase.from('scouting_data').select('team_number');
-        let matchCountQuery = supabase.from('scouting_data').select('*', { count: 'exact', head: true });
+        let matchQuery = supabase.from('scouting_data').select('team_number, matches!inner(event_key)');
+        let matchCountQuery = supabase.from('scouting_data').select('id, matches!inner(event_key)', { count: 'exact', head: true });
         let pitCountQuery = supabase.from('pit_scouting_data').select('*', { count: 'exact', head: true });
 
         // ALWAYS filter by active event if available to prevent data leakage from other competitions
         if (currentEventKey) {
-          matchQuery = matchQuery.eq('event_key', currentEventKey);
-          matchCountQuery = matchCountQuery.eq('event_key', currentEventKey);
-          pitCountQuery = pitCountQuery.eq('event_key', currentEventKey);
+          matchQuery = matchQuery.eq('matches.event_key', currentEventKey);
+          matchCountQuery = matchCountQuery.eq('matches.event_key', currentEventKey);
+          // pit_scouting_data does not have event-key at the moment, so we omit filtering it by event to prevent query failure.
+          // pitCountQuery = pitCountQuery.eq('event_key', currentEventKey); 
         }
 
         if (teamDataOnly && user?.organization_id) {

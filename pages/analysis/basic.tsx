@@ -139,11 +139,11 @@ export default function BasicAnalysis() {
       // Load scouting data exactly like data.tsx does
       let scoutingQuery = supabase
         .from('scouting_data')
-        .select('*');
+        .select('*, matches!inner(event_key)');
 
       // Use active competition filter if found, otherwise season pattern
       if (currentEventKey) {
-        scoutingQuery = scoutingQuery.eq('event_key', currentEventKey);
+        scoutingQuery = scoutingQuery.eq('matches.event_key', currentEventKey);
       } else {
         scoutingQuery = scoutingQuery.like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN);
       }

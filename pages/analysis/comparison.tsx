@@ -164,14 +164,14 @@ export default function TeamComparison() {
 
       let scoutingQuery = supabase
         .from('scouting_data')
-        .select('*')
+        .select('*, matches!inner(event_key)')
         .eq('team_number', teamNumber);
 
       // Filter by event: URL eventKey > active event > season pattern
       if (eventKey) {
-        scoutingQuery = scoutingQuery.eq('event_key', eventKey);
+        scoutingQuery = scoutingQuery.eq('matches.event_key', eventKey);
       } else if (currentEventKey) {
-        scoutingQuery = scoutingQuery.eq('event_key', currentEventKey);
+        scoutingQuery = scoutingQuery.eq('matches.event_key', currentEventKey);
       } else {
         scoutingQuery = scoutingQuery.like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN);
       }

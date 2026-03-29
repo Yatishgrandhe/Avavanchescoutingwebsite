@@ -167,14 +167,14 @@ export default function AdvancedAnalysis() {
       // Fetch scouting data with filters
       let scoutingQuery = supabase
         .from('scouting_data')
-        .select('*')
+        .select('*, matches!inner(event_key)')
         .eq('team_number', selectedTeam);
 
       // Filter by event: explicit filter > active event > season pattern
       if (filters.event_key) {
-        scoutingQuery = scoutingQuery.eq('event_key', filters.event_key);
+        scoutingQuery = scoutingQuery.eq('matches.event_key', filters.event_key);
       } else if (currentEventKey) {
-        scoutingQuery = scoutingQuery.eq('event_key', currentEventKey);
+        scoutingQuery = scoutingQuery.eq('matches.event_key', currentEventKey);
       } else {
         scoutingQuery = scoutingQuery.like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN);
       }
@@ -185,9 +185,7 @@ export default function AdvancedAnalysis() {
         scoutingQuery = scoutingQuery.eq('organization_id', user.organization_id);
       }
 
-      if (filters.event_key) {
-        scoutingQuery = scoutingQuery.eq('event_key', filters.event_key);
-      }
+
 
       if (filters.date_range?.start) {
         scoutingQuery = scoutingQuery.gte('created_at', filters.date_range.start);

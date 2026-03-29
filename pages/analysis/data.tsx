@@ -164,8 +164,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       // Load scouting data for this event
       let query = supabase
         .from('scouting_data')
-        .select('*')
-        .eq('event_key', targetEventKey);
+        .select('*, matches!inner(event_key)')
+        .eq('matches.event_key', targetEventKey);
 
       // Apply organization filter if toggle is ON
       if (teamDataOnly && user?.organization_id) {
@@ -248,10 +248,16 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       setTeamStats(stats);
 
       // Load pit scouting data so we can show robot name / drive type per team
-      const { data: pitDataResult } = await supabase
+      let pitQuery = supabase
         .from('pit_scouting_data')
         .select('team_number, robot_name, drive_type, weight, overall_rating')
         .order('created_at', { ascending: false });
+
+      if (teamDataOnly && user?.organization_id) {
+        pitQuery = pitQuery.eq('organization_id', user.organization_id);
+      }
+      const { data: pitDataResult } = await pitQuery;
+
       const pitMap: Record<number, { robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }> = {};
       (pitDataResult || []).forEach((row: { team_number: number; robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }) => {
         if (!pitMap[row.team_number]) {

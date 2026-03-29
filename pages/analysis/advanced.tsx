@@ -107,7 +107,7 @@ export default function AdvancedAnalysis() {
   const [showFilters, setShowFilters] = useState(false);
   const [availableTeams, setAvailableTeams] = useState<Array<{ team_number: number, team_name: string }>>([]);
   const [teamsLoading, setTeamsLoading] = useState(true);
-  const [teamDataOnly, setTeamDataOnly] = useState(true); // Default ON (Show organization's data)
+  const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF (Show all data for active competition)
 
   // Load available teams from Supabase
   useEffect(() => {

@@ -122,7 +122,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [starterEpaMap, setStarterEpaMap] = useState<Record<number, number>>({});
   const [activeEventKey, setActiveEventKey] = useState<string>('');
   const [activeEventName, setActiveEventName] = useState<string>('');
-  const [teamDataOnly, setTeamDataOnly] = useState(true); // Default to ON (show organization's data)
+  const [teamDataOnly, setTeamDataOnly] = useState(false); // Default to OFF (show all data for active competition)
 
   useEffect(() => {
     loadData();
@@ -248,9 +248,11 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       setTeamStats(stats);
 
       // Load pit scouting data so we can show robot name / drive type per team
+      // Filter by event_team_roster to only show teams at THIS competition
       let pitQuery = supabase
         .from('pit_scouting_data')
-        .select('team_number, robot_name, drive_type, weight, overall_rating')
+        .select('team_number, robot_name, drive_type, weight, overall_rating, roster:event_team_roster!inner(event_key)')
+        .eq('roster.event_key', targetEventKey)
         .order('created_at', { ascending: false });
 
       if (teamDataOnly && user?.organization_id) {

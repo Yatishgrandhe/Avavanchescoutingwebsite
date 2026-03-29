@@ -50,7 +50,7 @@ export default function TeamComparison() {
   const [competitionTeams, setCompetitionTeams] = useState<Array<{ team_number: number; team_name: string }>>([]);
   const [competitionName, setCompetitionName] = useState<string | null>(null);
   /** Live competition from API: default org-scoped; ON = merge all orgs. */
-  const [seeAllOrgs, setSeeAllOrgs] = useState(false);
+  const [seeAllOrgs, setSeeAllOrgs] = useState(true);
 
   const eventKey = (router.query.event_key as string) || undefined;
   const competitionId = (router.query.id as string) || undefined;

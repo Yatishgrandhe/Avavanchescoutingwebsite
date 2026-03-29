@@ -34,7 +34,7 @@ const quickAccess = [
 
 export default function AnalysisIndex() {
   const router = useRouter();
-  const [teamDataOnly, setTeamDataOnly] = useState(true); // Default ON
+  const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF
   const { user, supabase } = useSupabase();
   const [stats, setStats] = useState<{ teams: number; matchForms: number; pitForms: number } | null>(null);
   const [activeEventKey, setActiveEventKey] = useState<string>('');
@@ -54,14 +54,13 @@ export default function AnalysisIndex() {
 
         let matchQuery = supabase.from('scouting_data').select('team_number, matches!inner(event_key)');
         let matchCountQuery = supabase.from('scouting_data').select('id, matches!inner(event_key)', { count: 'exact', head: true });
-        let pitCountQuery = supabase.from('pit_scouting_data').select('*', { count: 'exact', head: true });
+        let pitCountQuery = supabase.from('pit_scouting_data').select('id, roster:event_team_roster!inner(event_key)', { count: 'exact', head: true });
 
         // ALWAYS filter by active event if available to prevent data leakage from other competitions
         if (currentEventKey) {
           matchQuery = matchQuery.eq('matches.event_key', currentEventKey);
           matchCountQuery = matchCountQuery.eq('matches.event_key', currentEventKey);
-          // pit_scouting_data does not have event-key at the moment, so we omit filtering it by event to prevent query failure.
-          // pitCountQuery = pitCountQuery.eq('event_key', currentEventKey); 
+          pitCountQuery = pitCountQuery.eq('roster.event_key', currentEventKey);
         }
 
         if (teamDataOnly && user?.organization_id) {

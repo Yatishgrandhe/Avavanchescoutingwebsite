@@ -114,7 +114,7 @@ export default function BasicAnalysis() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string>('all');
   const [selectedEvent, setSelectedEvent] = useState<string>('all');
-  const [teamDataOnly, setTeamDataOnly] = useState(true); // Default ON (Show organization's data)
+  const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF (Show all data for active competition)
   type TeamSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'avg_climb_pts' | 'team_number' | 'team_name' | 'epa' | 'avg_defense_rating';
   const [teamSortField, setTeamSortField] = useState<TeamSortKey>('avg_total_score');
   const [teamSortDirection, setTeamSortDirection] = useState<'asc' | 'desc'>('desc');

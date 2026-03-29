@@ -40,6 +40,7 @@ import {
   getUptimePct,
   parseNotes,
 } from '@/lib/analytics';
+import { generateScoutingSummary } from '@/lib/scouting-summarizer';
 import {
   Radar,
   RadarChart,
@@ -383,7 +384,8 @@ const TeamDetail: React.FC = () => {
           score: Number(d.final_score) || 0,
           tele: Number(d.teleop_points) || 0,
           auto: Number(d.autonomous_points) || 0,
-        }))
+        })),
+      strategicSummary: generateScoutingSummary(scoutingData.map(d => d.comments || ""))
     };
   };
 
@@ -633,24 +635,28 @@ const TeamDetail: React.FC = () => {
                     <div className="space-y-4 relative z-10">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-3">
-                          <h4 className="text-[10px] font-bold text-muted-foreground uppercase opacity-60 tracking-widest">Aggregated Scouting Intelligence</h4>
-                          <div className="max-h-[200px] overflow-y-auto pr-2 custom-scrollbar space-y-3">
-                            {scoutingData
-                              .filter(d => d.comments && d.comments.trim())
-                              .map((d, i) => (
-                                <div key={d.id} className="flex gap-3 text-sm group/note">
-                                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center font-mono text-[10px] text-muted-foreground group-hover/note:text-amber-500 group-hover/note:border-amber-500/30 transition-colors">
-                                    {getMatchLabel(d.match_id)}
+                          <h4 className="text-[10px] font-bold text-muted-foreground uppercase opacity-60 tracking-widest">Strategic Intelligence Summary</h4>
+                          <div className="glass-card p-4 rounded-xl border-amber-500/10 bg-amber-500/5 transition-colors group-hover:bg-amber-500/10 min-h-[140px] flex flex-col justify-center border border-white/5">
+                            <p className="text-foreground/90 leading-relaxed text-sm font-medium italic">
+                              "{teamStats.strategicSummary}"
+                            </p>
+                            <div className="mt-3 flex items-center justify-between border-t border-amber-500/10 pt-3">
+                              <span className="text-[8px] text-amber-500 font-bold uppercase tracking-widest">Aggregated Natural Intelligence</span>
+                              <Badge variant="outline" className="text-[8px] bg-amber-500/10 text-amber-500 border-amber-500/20 font-black">AI-SUMMARIZED</Badge>
+                            </div>
+                          </div>
+                          <div className="space-y-2 mt-4">
+                            <h4 className="text-[10px] font-bold text-muted-foreground uppercase opacity-60 tracking-widest">Raw Scout Reports</h4>
+                            <div className="max-h-[120px] overflow-y-auto pr-2 custom-scrollbar space-y-2">
+                              {scoutingData
+                                .filter(d => d.comments && d.comments.trim())
+                                .map((d, i) => (
+                                  <div key={d.id} className="flex gap-2 text-[10px] group/note border-b border-white/5 pb-2 last:border-0">
+                                    <span className="text-amber-500 font-black shrink-0">[{getMatchLabel(d.match_id)}]</span>
+                                    <p className="text-muted-foreground line-clamp-2 italic">{d.comments}</p>
                                   </div>
-                                  <p className="text-foreground/80 leading-relaxed pt-1">
-                                    <span className="text-amber-500/50 font-black text-[8px] mr-2 uppercase tracking-tighter">[{d.submitted_by_name || 'Scout'}]</span>
-                                    {d.comments}
-                                  </p>
-                                </div>
-                              ))}
-                            {scoutingData.every(d => !d.comments || !d.comments.trim()) && (
-                              <p className="text-sm text-muted-foreground italic">No qualitative match comments recorded yet.</p>
-                            )}
+                                ))}
+                            </div>
                           </div>
                         </div>
 

@@ -28,6 +28,7 @@ import {
 import Layout from '@/components/layout/Layout';
 import GuestLayout from '@/components/layout/GuestLayout';
 import CompetitionDataLayout from '@/components/layout/CompetitionDataLayout';
+import { useAdmin } from '@/hooks/use-admin';
 import { ScoutingData, Team } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
@@ -103,6 +104,7 @@ const TeamDetail: React.FC = () => {
   const router = useRouter();
   const { teamNumber } = router.query;
   const { supabase, user } = useSupabase();
+  const { isSuperAdmin } = useAdmin();
 
   const [team, setTeam] = useState<Team | null>(null);
   const [scoutingData, setScoutingData] = useState<ScoutingData[]>([]);
@@ -610,6 +612,85 @@ const TeamDetail: React.FC = () => {
           <TabsContent value="overview" className="space-y-6 outline-none">
             {teamStats ? (
               <>
+                {/* Super Admin Tactical Summary */}
+                {isSuperAdmin && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="glass-card p-6 border-amber-500/20 bg-amber-500/[0.03] rounded-2xl relative overflow-hidden group shadow-lg shadow-amber-900/10"
+                  >
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                      <Shield className="w-24 h-24 text-amber-500 rotate-12" />
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                        <Shield className="w-4 h-4 text-amber-500" />
+                      </div>
+                      <h3 className="text-xs font-black text-amber-500 uppercase tracking-[0.2em]">Super Admin Strategy Intelligence</h3>
+                    </div>
+
+                    <div className="space-y-4 relative z-10">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <h4 className="text-[10px] font-bold text-muted-foreground uppercase opacity-60 tracking-widest">Aggregated Scouting Intelligence</h4>
+                          <div className="max-h-[200px] overflow-y-auto pr-2 custom-scrollbar space-y-3">
+                            {scoutingData
+                              .filter(d => d.comments && d.comments.trim())
+                              .map((d, i) => (
+                                <div key={d.id} className="flex gap-3 text-sm group/note">
+                                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center font-mono text-[10px] text-muted-foreground group-hover/note:text-amber-500 group-hover/note:border-amber-500/30 transition-colors">
+                                    {getMatchLabel(d.match_id)}
+                                  </div>
+                                  <p className="text-foreground/80 leading-relaxed pt-1">
+                                    <span className="text-amber-500/50 font-black text-[8px] mr-2 uppercase tracking-tighter">[{d.submitted_by_name || 'Scout'}]</span>
+                                    {d.comments}
+                                  </p>
+                                </div>
+                              ))}
+                            {scoutingData.every(d => !d.comments || !d.comments.trim()) && (
+                              <p className="text-sm text-muted-foreground italic">No qualitative match comments recorded yet.</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 border-l border-white/5 pl-6">
+                          <h4 className="text-[10px] font-bold text-muted-foreground uppercase opacity-60 tracking-widest">Tactical Vulnerabilities</h4>
+                          <div className="space-y-2">
+                            {teamStats.broke_count > 0 && (
+                              <div className="flex items-center gap-2 text-sm text-red-400 font-medium">
+                                <AlertCircle className="w-4 h-4" />
+                                <span>Failed to function in {teamStats.broke_count} matches ({(teamStats.broke_rate ?? 0).toFixed(1)}%)</span>
+                              </div>
+                            )}
+                            {(teamStats.avg_uptime_pct ?? 0) < 80 && teamStats.totalMatches > 0 && (
+                              <div className="flex items-center gap-2 text-sm text-amber-400 font-medium">
+                                <Activity className="w-4 h-4" />
+                                <span>Warning: Low uptime ({(teamStats.avg_uptime_pct ?? 0).toFixed(0)}%)</span>
+                              </div>
+                            )}
+                            {scoutingData.filter(d => (d.defense_rating ?? 0) > 7).length > 0 && (
+                              <div className="flex items-center gap-2 text-sm text-blue-400 font-medium">
+                                <Shield className="w-4 h-4" />
+                                <span>High Defensive Threat ({scoutingData.filter(d => (d.defense_rating ?? 0) > 7).length} shutdown games)</span>
+                              </div>
+                            )}
+                            {(teamStats.shuttle_rate ?? 0) > 30 && (
+                              <div className="flex items-center gap-2 text-sm text-green-400 font-medium">
+                                <Route className="w-4 h-4" />
+                                <span>Elite Shuttling Capability ({(teamStats.shuttle_rate ?? 0).toFixed(0)}%)</span>
+                              </div>
+                            )}
+                            <div className="pt-2 text-[10px] text-muted-foreground italic leading-tight">
+                              This intelligence is compiled from all match scout reports globally. Use for final alliance selection and defensive assignments.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Stats Grid — aligned with data analysis: core EPAs + consistency */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
                   <StatCard label="Avg Score" value={teamStats.avgTotal} color="primary" icon={TrendingUp} subLabel="total pts" />

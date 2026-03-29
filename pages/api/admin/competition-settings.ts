@@ -75,19 +75,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // 4. Delete pick lists for the org
       await supabase.from('pick_lists').delete().eq('organization_id', orgId);
 
-      // 5. Delete scout names for the org
-      await supabase.from('scout_names').delete().eq('organization_id', orgId);
-
-      // 6. Reset teams for the org
+      // 5. Reset teams for the org
       await supabase
         .from('teams')
         .update({ organization_id: null, epa: 0, endgame_epa: 0 })
         .eq('organization_id', orgId);
 
-      // 7. Reset user team numbers for the org
+      // 6. Reset user team numbers for the org
       await supabase.from('users').update({ team_number: null }).eq('organization_id', orgId);
 
-      // 8. Clear current event settings last
+      // 7. Clear current event settings last
       const { error: delErr } = await supabase
         .from('app_config')
         .delete()

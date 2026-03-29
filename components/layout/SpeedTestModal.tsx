@@ -30,29 +30,59 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
     setError(null);
     setSpeed(0);
 
+    const TEST_DURATION_MS = 5000;
+    const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB chunk
+    const chunk = new Uint8Array(CHUNK_SIZE);
+    crypto.getRandomValues(chunk);
+
+    let totalBytesSent = 0;
     const startTime = performance.now();
+    const samples: number[] = [];
+
     try {
-      // Fetch 1MB of random data
-      const response = await fetch('/api/speedtest', { cache: 'no-store' });
-      if (!response.ok) throw new Error('Failed to reach speed test server.');
+      while (performance.now() - startTime < TEST_DURATION_MS) {
+        const chunkStart = performance.now();
+        
+        const response = await fetch('/api/speedtest', {
+          method: 'POST',
+          body: chunk,
+          cache: 'no-store'
+        });
+
+        if (!response.ok) throw new Error('Upload link lost. Connection unstable.');
+        
+        const chunkEnd = performance.now();
+        const chunkDuration = (chunkEnd - chunkStart) / 1000;
+        const chunkMbps = (CHUNK_SIZE * 8 / chunkDuration) / 1000000;
+        
+        samples.push(chunkMbps);
+        totalBytesSent += CHUNK_SIZE;
+        
+        // Update live speed display
+        setSpeed(Number(chunkMbps.toFixed(2)));
+      }
+
+      const totalTime = (performance.now() - startTime) / 1000;
+      const avgMbps = (totalBytesSent * 8 / totalTime) / 1000000;
       
-      const buffer = await response.arrayBuffer();
-      const endTime = performance.now();
-      
-      const durationSeconds = (endTime - startTime) / 1000;
-      const sizeBits = buffer.byteLength * 8;
-      const mbps = (sizeBits / durationSeconds) / 1000000;
-      
-      setSpeed(Number(mbps.toFixed(2)));
-      
-      if (mbps >= MIN_SPEED_MBPS) {
+      // Stability check: Must have at least 3 samples and minimum sample must be > 1 Mbps to be "stable" 
+      // AND Average must be >= threshold.
+      const minMbps = Math.min(...samples);
+      const isStable = minMbps > 1.0; // Very basic stability check
+
+      setSpeed(Number(avgMbps.toFixed(2)));
+
+      if (avgMbps >= MIN_SPEED_MBPS && isStable) {
         setStatus('success');
+      } else if (!isStable) {
+        setError('Connection is unstable. Upload speed fluctuated too much.');
+        setStatus('fail');
       } else {
         setStatus('fail');
       }
     } catch (err: any) {
       console.error('Speed test error:', err);
-      setError(err.message || 'An error occurred during speed test.');
+      setError(err.message || 'An error occurred during upload test.');
       setStatus('fail');
     }
   }, []);
@@ -84,7 +114,7 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
             CONNECTION GUARD
           </DialogTitle>
           <DialogDescription className="text-muted-foreground/80 font-medium">
-            Verifying network throughput for reliable data sync.
+            Verifying upload throughput for reliable data sync.
           </DialogDescription>
         </DialogHeader>
 
@@ -128,7 +158,7 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
                     <span className="text-[10px] font-black tracking-widest text-muted-foreground uppercase">Measuring</span>
                   </div>
                 </div>
-                <p className="text-sm font-medium animate-pulse text-muted-foreground">Analysing bandwidth...</p>
+                <p className="text-sm font-medium animate-pulse text-muted-foreground">Analysing upload stability (5s)...</p>
               </motion.div>
             )}
 
@@ -146,7 +176,7 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
                   <h3 className="text-4xl font-black text-foreground">{speed} <span className="text-lg text-muted-foreground">Mbps</span></h3>
                   <p className="text-sm font-semibold text-emerald-500/80 uppercase tracking-widest">Great Connection</p>
                 </div>
-                  Your connection is stable and exceeds the 5 Mbps requirement. Reliable sync is ready.
+                  Your upload connection is stable and exceeds the 5 Mbps requirement. Reliable sync is ready.
               </motion.div>
             )}
 

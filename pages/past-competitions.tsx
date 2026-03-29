@@ -36,6 +36,8 @@ interface PastCompetition {
   total_matches: number;
   migrated_at: string;
   created_at: string;
+  organization_id?: string;
+  organization_name?: string | null;
 }
 
 interface CompetitionDetails {
@@ -53,6 +55,7 @@ interface LiveEvent {
   total_teams: number;
   total_matches: number;
   scouting_count: number;
+  organization_name?: string | null;
 }
 
 export default function PastCompetitionsPage() {
@@ -171,9 +174,16 @@ export default function PastCompetitionsPage() {
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mb-2 block">
-                            Live
-                          </span>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                              Live
+                            </span>
+                            {ev.organization_name && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                                {ev.organization_name}
+                              </span>
+                            )}
+                          </div>
                           <h3 className="text-lg font-semibold text-foreground">{ev.competition_name}</h3>
                           <p className="text-xs text-muted-foreground font-mono mt-1">{ev.event_key}</p>
                         </div>
@@ -260,10 +270,15 @@ export default function PastCompetitionsPage() {
                   <Card 
                     key={competition.id} 
                     className="p-4 sm:p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow duration-200 cursor-pointer"
-                    onClick={() => router.push(`/view-data?id=${encodeURIComponent(competition.id)}`)}
+                    onClick={() => loadCompetitionDetails(competition.id)}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
+                        {competition.organization_name && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20 mb-2 block w-fit">
+                            {competition.organization_name}
+                          </span>
+                        )}
                         <h3 className="text-lg font-semibold text-foreground mb-1">
                           {competition.competition_name}
                         </h3>
@@ -308,7 +323,7 @@ export default function PastCompetitionsPage() {
                       </div>
                       <div className="flex items-center">
                         <Clock className="h-3 w-3 mr-1" />
-                        {new Date(competition.migrated_at).toLocaleDateString()}
+                        {competition.migrated_at ? new Date(competition.migrated_at).toLocaleDateString() : '—'}
                       </div>
                     </div>
                   </Card>
@@ -323,12 +338,17 @@ export default function PastCompetitionsPage() {
                   <div className="p-6">
                     <div className="flex items-center justify-between mb-6">
                       <div>
-                        <h2 className="text-2xl font-bold text-foreground mb-2">
+                        <h2 className="text-2xl font-bold text-foreground mb-1">
                           {selectedCompetition.competition.competition_name}
                         </h2>
-                        <p className="text-muted-foreground">
+                        <p className="text-muted-foreground mb-1">
                           {selectedCompetition.competition.competition_key} • {selectedCompetition.competition.competition_year}
                         </p>
+                        {selectedCompetition.competition.organization_name && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                            {selectedCompetition.competition.organization_name}
+                          </span>
+                        )}
                       </div>
                       <Button 
                         variant="outline" 

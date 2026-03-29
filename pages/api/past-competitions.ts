@@ -317,13 +317,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const scopeOrgId = effectiveFilterOrgId(viewer, queryOrgId);
 
-      if (!scopeOrgId) {
-        if (id) {
-          return res.status(403).json({ error: 'No organization on your account' });
-        }
-        return res.status(200).json({ competitions: [], live: [] });
-      }
-
+      // --- Detail view by id ---
       if (id) {
         const { data: competition, error: compError } = await supabaseAdmin
           .from('past_competitions')
@@ -336,9 +330,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(404).json({ error: 'Competition not found' });
         }
 
-        if (competition.organization_id !== scopeOrgId) {
+        // Guests must have a valid scope; logged-in users can view any org's competition.
+        if (viewer.isGuest && competition.organization_id !== scopeOrgId) {
           return res.status(404).json({ error: 'Competition not found' });
         }
+
+        // Enrich with org name
+        const { data: orgRow } = await supabaseAdmin
+          .from('organizations')
+          .select('name')
+          .eq('id', competition.organization_id)
+          .maybeSingle();
+        const enrichedCompetition = { ...competition, organization_name: orgRow?.name ?? null };
 
         const orgId = competition.organization_id as string;
 
@@ -425,7 +428,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const matchesList = matches || [];
         return res.status(200).json({
           competition: {
-            ...competition,
+            ...enrichedCompetition,
             total_teams: teamsList.length,
             total_matches: matchesList.length,
           },
@@ -437,12 +440,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
+      // --- List view: show ALL orgs' past competitions ---
       let query = supabaseAdmin
         .from('past_competitions')
         .select('*')
-        .eq('organization_id', scopeOrgId)
         .order('competition_year', { ascending: false })
         .order('competition_name', { ascending: true });
+
+      // Guests: restrict to reference org only
+      if (viewer.isGuest && scopeOrgId) {
+        query = (query as any).eq('organization_id', scopeOrgId);
+      }
 
       if (competition_key) {
         query = query.eq('competition_key', competition_key as string);
@@ -459,6 +467,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: 'Failed to fetch competitions' });
       }
 
+      // Fetch org names for all competitions in batch
+      const allOrgIds = Array.from(new Set((competitions || []).map((c) => c.organization_id).filter(Boolean)));
+      const orgNameMap = new Map<string, string>();
+      if (allOrgIds.length > 0) {
+        const { data: orgRows } = await supabaseAdmin
+          .from('organizations')
+          .select('id, name')
+          .in('id', allOrgIds);
+        for (const o of orgRows || []) {
+          orgNameMap.set((o as { id: string; name: string }).id, (o as { id: string; name: string }).name);
+        }
+      }
+
       const compIds = (competitions || []).map((c) => c.id);
       const teamCountMap = new Map<string, number>();
       const matchCountMap = new Map<string, number>();
@@ -467,12 +488,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           supabaseAdmin
             .from('past_teams')
             .select('competition_id')
-            .eq('organization_id', scopeOrgId)
             .in('competition_id', compIds),
           supabaseAdmin
             .from('past_matches')
             .select('competition_id')
-            .eq('organization_id', scopeOrgId)
             .in('competition_id', compIds),
         ]);
         for (const row of teamsCountRes.data || []) {
@@ -487,15 +506,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const competitionsWithCounts = (competitions || []).map((c) => ({
         ...c,
+        organization_name: orgNameMap.get(c.organization_id) ?? null,
         total_teams: teamCountMap.get(c.id) ?? 0,
         total_matches: matchCountMap.get(c.id) ?? 0,
       }));
 
+      // Live events: scope to viewer's own org so they see their own current events
       const pastKeys = competitionsWithCounts.map((c) => c.competition_key);
-      const { data: allMatches, error: matchesErr } = await supabaseAdmin
+      let allMatchesQuery = supabaseAdmin
         .from('matches')
-        .select('match_id, event_key, red_teams, blue_teams')
-        .eq('organization_id', scopeOrgId);
+        .select('match_id, event_key, red_teams, blue_teams, organization_id');
+      if (scopeOrgId) {
+        allMatchesQuery = allMatchesQuery.eq('organization_id', scopeOrgId);
+      }
+      const { data: allMatches, error: matchesErr } = await allMatchesQuery;
 
       let live: Array<{
         event_key: string;
@@ -503,6 +527,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         total_teams: number;
         total_matches: number;
         scouting_count: number;
+        organization_name: string | null;
       }> = [];
 
       if (!matchesErr && allMatches && allMatches.length > 0) {
@@ -515,6 +540,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             event_key: string;
             red_teams: number[];
             blue_teams: number[];
+            organization_id: string;
           }[]).filter((m) => m.event_key === eventKey);
           const matchIds = eventMatches.map((m) => m.match_id);
           const teamSet = new Set<number>();
@@ -523,25 +549,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             (m.blue_teams || []).forEach((t: number) => teamSet.add(t));
           });
 
-          const { count: scoutingCount } = await supabaseAdmin
+          let scoutingQuery = supabaseAdmin
             .from('scouting_data')
             .select('*', { count: 'exact', head: true })
-            .eq('organization_id', scopeOrgId)
             .in('match_id', matchIds);
+          if (scopeOrgId) scoutingQuery = scoutingQuery.eq('organization_id', scopeOrgId);
 
+          const { count: scoutingCount } = await scoutingQuery;
+
+          const liveOrgId = eventMatches[0]?.organization_id ?? null;
           live.push({
             event_key: eventKey,
             competition_name: eventKey,
             total_teams: teamSet.size,
             total_matches: eventMatches.length,
             scouting_count: scoutingCount ?? 0,
+            organization_name: liveOrgId ? (orgNameMap.get(liveOrgId) ?? null) : null,
           });
         }
         live.sort((a, b) => (b.scouting_count || 0) - (a.scouting_count || 0));
       }
 
-      // Guests see org-scoped live blocks; logged-in users use the list for archived only (same as before).
-      const liveForResponse = viewer.isGuest ? live : [];
+      // Show live events to all users (guests only see reference-org data, logged-in see their own org).
+      const liveForResponse = live;
 
       return res.status(200).json({
         competitions: competitionsWithCounts,

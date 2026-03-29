@@ -634,11 +634,17 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                     </div>
                   </div>
 
-                  {/* Team Data Only Toggle */}
+                  {/* Org-only data toggle — default OFF = all orgs */}
                   <div className="flex items-center justify-between p-2 rounded-lg border border-white/5 bg-white/[0.02]">
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium">Team Data Only</span>
-                      <span className="text-xs text-muted-foreground">Show only data from {user?.organization_id ? 'your organization' : 'Avalanche'}</span>
+                      <span className="text-sm font-medium">
+                        {teamDataOnly ? 'Org Only' : 'All Organizations'}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {teamDataOnly
+                          ? 'Showing data from your organization only'
+                          : 'Analysis compiled from all organizations (recommended)'}
+                      </span>
                     </div>
                     <Button
                       size="sm"
@@ -649,7 +655,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                         teamDataOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                       )}
                     >
-                      {teamDataOnly ? 'ON' : 'OFF'}
+                      {teamDataOnly ? 'Org Only' : 'All Orgs'}
                     </Button>
                   </div>
 

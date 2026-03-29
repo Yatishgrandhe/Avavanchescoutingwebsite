@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Switch } from '../../components/ui';
 import { Button } from '../../components/ui';
 import { Input } from '../../components/ui';
 import { Badge } from '../../components/ui/badge';
@@ -701,29 +701,18 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
                   {/* Org-only data toggle — default OFF = all orgs */}
                   <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between p-2 rounded-lg border border-white/5 bg-white/[0.02]">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">
-                          {teamDataOnly ? 'Org Only' : 'All Organizations'}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {teamDataOnly
-                            ? 'Showing data from your organization only'
-                            : 'Analysis compiled from all organizations (recommended)'}
-                        </span>
+                      <div className="flex items-center gap-3 p-2 px-3 rounded-lg border border-white/5 bg-white/[0.02]">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider leading-none mb-1">Data Mode</span>
+                          <span className="text-[11px] font-medium text-white/70 whitespace-nowrap">
+                            {teamDataOnly ? 'Organization Only' : 'Global Events'}
+                          </span>
+                        </div>
+                        <Switch
+                          checked={teamDataOnly}
+                          onClick={() => setTeamDataOnly(!teamDataOnly)}
+                        />
                       </div>
-                      <Button
-                        size="sm"
-                        variant={teamDataOnly ? 'default' : 'outline'}
-                        onClick={() => setTeamDataOnly(!teamDataOnly)}
-                        className={cn(
-                          "h-8 px-3 rounded-full transition-all flex-shrink-0 ml-2",
-                          teamDataOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                        )}
-                      >
-                        {teamDataOnly ? 'Org Only' : 'All Orgs'}
-                      </Button>
-                    </div>
 
                     {/* Active Event Indicator */}
                     {activeEventName && (

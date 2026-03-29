@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useSupabase } from '@/pages/_app';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, Switch } from '../../components/ui';
 import { Button } from '../../components/ui';
 import { Input } from '../../components/ui';
 import { Badge } from '../../components/ui/badge';
@@ -311,24 +311,17 @@ export default function TeamComparison() {
 
                 <div className="flex items-center gap-4">
                   {eventKey && (
-                    <div className="flex items-center gap-3 p-2 rounded-lg border border-white/10 bg-white/[0.02]">
-                      <div className="flex flex-col max-w-[220px]">
-                        <span className="text-[10px] font-bold uppercase text-muted-foreground">See all orgs</span>
-                        <span className="text-[9px] text-muted-foreground/60 leading-tight">
-                          Off: your org&apos;s data only for this event (guests: reference org).
+                    <div className="flex items-center gap-3 p-2 px-3 rounded-lg border border-white/5 bg-white/[0.02]">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider leading-none mb-1">Data Mode</span>
+                        <span className="text-[11px] font-medium text-white/70 whitespace-nowrap">
+                          {seeAllOrgs ? 'Global Events' : 'Organization Only'}
                         </span>
                       </div>
-                      <Button
-                        size="sm"
-                        variant={seeAllOrgs ? 'default' : 'outline'}
+                      <Switch
+                        checked={seeAllOrgs}
                         onClick={() => setSeeAllOrgs(!seeAllOrgs)}
-                        className={cn(
-                          'h-7 px-2.5 rounded-full transition-all text-[10px] font-bold',
-                          seeAllOrgs ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
-                        )}
-                      >
-                        {seeAllOrgs ? 'ON' : 'OFF'}
-                      </Button>
+                      />
                     </div>
                   )}
 

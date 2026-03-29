@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { useAdmin } from '@/hooks/use-admin';
-import { Card, CardDescription, CardHeader, CardTitle, Button } from '@/components/ui';
+import { Card, CardDescription, CardHeader, CardTitle, Button, Switch } from '@/components/ui';
 import { BarChart3, TrendingUp, ArrowLeftRight, Database, Users, FileSpreadsheet, ClipboardList } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -126,24 +126,18 @@ export default function AnalysisIndex() {
               </div>
 
               {/* Team Data Only Toggle */}
-              <div className="flex items-center gap-3 p-2 rounded-lg border border-white/10 bg-white/[0.02]">
+              {/* Team Data Only Toggle */}
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.03] shadow-inner self-start md:self-center">
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground">Team Data Only</span>
-                  <span className="text-[9px] text-muted-foreground/60 whitespace-nowrap">
-                    Show only {user?.organization_id ? 'your organization' : 'Avalanche'}
+                  <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider leading-none mb-1">Data Mode</span>
+                  <span className="text-[11px] font-medium text-white/70 whitespace-nowrap">
+                    {teamDataOnly ? 'Organization Only' : 'Global Events'}
                   </span>
                 </div>
-                <Button
-                  size="sm"
-                  variant={teamDataOnly ? 'default' : 'outline'}
+                <Switch
+                  checked={teamDataOnly}
                   onClick={() => setTeamDataOnly(!teamDataOnly)}
-                  className={cn(
-                    "h-7 px-2.5 rounded-full transition-all text-[10px] font-bold",
-                    teamDataOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                  )}
-                >
-                  {teamDataOnly ? 'ON' : 'OFF'}
-                </Button>
+                />
               </div>
             </div>
 

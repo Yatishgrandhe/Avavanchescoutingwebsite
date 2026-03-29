@@ -12,6 +12,7 @@ export { useFormField, Form, FormItem, FormLabel, FormControl, FormDescription, 
 export { Input } from './Input'
 export { Label } from './label'
 export { default as Logo } from './Logo'
+export { Switch } from './Switch'
 export { Progress } from './progress'
 export { Select, SelectGroup, SelectValue, SelectTrigger, SelectContent, SelectLabel, SelectItem, SelectSeparator, SelectScrollUpButton, SelectScrollDownButton } from './select'
 export { Separator } from './separator'

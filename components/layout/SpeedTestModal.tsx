@@ -27,6 +27,9 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
   const MIN_SPEED_MBPS = 5;
 
   const runSpeedTest = useCallback(async () => {
+    // Avoid double-running
+    if (status === 'testing') return;
+    
     setStatus('testing');
     setError(null);
     setSpeed(0);
@@ -35,7 +38,7 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
     abortControllerRef.current = controller;
 
     const TEST_DURATION_MS = 5000;
-    const CHUNK_SIZE = 256 * 1024; // 256KB chunk for more frequent sampling
+    const CHUNK_SIZE = 128 * 1024; // 128KB chunks for high frequency sampling
     const chunk = new Uint8Array(CHUNK_SIZE);
     crypto.getRandomValues(chunk);
 
@@ -43,47 +46,56 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
     const startTime = performance.now();
     const samples: number[] = [];
 
+    // Overall timeout to stop the test exactly at 5s
+    const testTimeout = setTimeout(() => {
+      controller.abort();
+    }, TEST_DURATION_MS);
+
     try {
-      // Use an interval or check within the while to ensure we stop ~5s
       while (performance.now() - startTime < TEST_DURATION_MS) {
         if (controller.signal.aborted) break;
 
         const chunkStart = performance.now();
         
-        const response = await fetch('/api/speedtest', {
-          method: 'POST',
-          body: chunk,
-          cache: 'no-store',
-          signal: controller.signal
-        });
+        try {
+          const response = await fetch('/api/speedtest', {
+            method: 'POST',
+            body: chunk,
+            cache: 'no-store',
+            signal: controller.signal
+          });
 
-        if (!response.ok) throw new Error('Upload link lost. Connection unstable.');
-        
-        const chunkEnd = performance.now();
-        const chunkDuration = (chunkEnd - chunkStart) / 1000;
-        const chunkMbps = (CHUNK_SIZE * 8 / chunkDuration) / 1000000;
-        
-        samples.push(chunkMbps);
-        totalBytesSent += CHUNK_SIZE;
-        
-        // Update live speed display
-        setSpeed(Number(chunkMbps.toFixed(2)));
+          if (!response.ok) throw new Error('Upload error');
+          
+          const chunkEnd = performance.now();
+          const chunkDuration = (chunkEnd - chunkStart) / 1000;
+          if (chunkDuration > 0) {
+            const chunkMbps = (CHUNK_SIZE * 8 / chunkDuration) / 1000000;
+            samples.push(chunkMbps);
+            totalBytesSent += CHUNK_SIZE;
+            setSpeed(Number(chunkMbps.toFixed(2)));
+          }
+        } catch (fetchErr: any) {
+          if (fetchErr.name === 'AbortError') break;
+          throw fetchErr;
+        }
       }
 
-      if (controller.signal.aborted) return;
-
-      const totalTime = (performance.now() - startTime) / 1000;
-      const avgMbps = (totalBytesSent * 8 / totalTime) / 1000000;
+      // Final calculations
+      const endTime = performance.now();
+      const totalTime = (endTime - startTime) / 1000;
       
+      // If we aborted due to timeout or loop ended
+      const avgMbps = totalTime > 0 ? (totalBytesSent * 8 / totalTime) / 1000000 : 0;
       const minMbps = samples.length > 0 ? Math.min(...samples) : 0;
-      const isStable = samples.length >= 3 && minMbps > 1.0; 
+      const isStable = samples.length >= 5 && minMbps > 0.5; // Require some minimal activity
 
       setSpeed(Number(avgMbps.toFixed(2)));
 
       if (avgMbps >= MIN_SPEED_MBPS && isStable) {
         setStatus('success');
-      } else if (samples.length < 3) {
-        setError('Sample rate was too low for a stable reading. Try again.');
+      } else if (!isStable && samples.length < 5) {
+        setError('Connection interrupted or too slow to measure. Please check your signal.');
         setStatus('fail');
       } else if (!isStable) {
         setError('Connection is unstable. Upload speed fluctuated too much.');
@@ -97,26 +109,27 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
       setError(err.message || 'An error occurred during upload test.');
       setStatus('fail');
     } finally {
+      clearTimeout(testTimeout);
       abortControllerRef.current = null;
     }
-  }, []);
+  }, [status]); // Status in deps to prevent double execution if called rapidly
 
   useEffect(() => {
-    if (isOpen && status === 'idle') {
+    let active = true;
+    if (isOpen && status === 'idle' && active) {
       runSpeedTest();
     }
     
-    // Auto-abort if dialogue is closed while testing
-    if (!isOpen && status === 'testing') {
-      abortControllerRef.current?.abort();
-      setStatus('idle');
-    }
+    return () => { active = false; };
   }, [isOpen, status, runSpeedTest]);
 
+  // Handle manual cancel from button
   const handleCancelClick = () => {
-    abortControllerRef.current?.abort();
-    setStatus('fail');
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
     setError('Test cancelled by user.');
+    setStatus('fail');
   };
 
   const handleReset = () => {
@@ -124,11 +137,12 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
   };
 
   const handleDialogClose = () => {
-    if (status === 'testing') {
-      abortControllerRef.current?.abort();
+    if (status === 'testing' && abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
     onClose();
-    setStatus('idle'); 
+    // Use timeout to delay reset to idle so the UI transition looks clean
+    setTimeout(() => setStatus('idle'), 300);
   };
 
   return (
@@ -143,7 +157,7 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
         )} />
 
         <DialogHeader className="relative z-10">
-          <DialogTitle className="flex items-center gap-2 text-2xl font-heading font-black tracking-tight">
+          <DialogTitle className="flex items-center gap-2 text-2xl font-heading font-black tracking-tight text-foreground">
             <Gauge className={cn("w-6 h-6", status === 'testing' && "animate-pulse")} />
             CONNECTION GUARD
           </DialogTitle>
@@ -162,7 +176,7 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
                 exit={{ opacity: 0, scale: 1.1 }}
                 className="flex flex-col items-center gap-6"
               >
-                {/* Speedometer Visualization - Fixed Clockwise Rotation */}
+                {/* Speedometer Visualization - Improved constant rotation */}
                 <div className="relative w-40 h-40 flex items-center justify-center">
                   <svg className="w-full h-full -rotate-90">
                     <circle
@@ -181,13 +195,13 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="8"
+                      strokeLinecap="round"
                       strokeDasharray="440"
-                      animate={{ strokeDashoffset: [440, 220, 110] }} // Always decreases to show "loading" progress or stays spinning
+                      animate={{ strokeDashoffset: [440, 110] }}
                       transition={{ 
-                        duration: 3, 
-                        repeat: Infinity, 
+                        duration: 5, 
                         ease: "linear",
-                        fill: "none"
+                        times: [0, 1]
                       }}
                       className="text-primary"
                     />
@@ -198,8 +212,11 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
                   </div>
                 </div>
                 <div className="flex flex-col items-center gap-1">
-                  <p className="text-sm font-medium text-muted-foreground">Analysing upload stability (5s)...</p>
-                  <p className="text-2xl font-black text-foreground">{speed} Mbps</p>
+                  <p className="text-sm font-medium text-muted-foreground animate-pulse">Analysing upload stability (5s)...</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-black text-foreground tabular-nums">{speed}</span>
+                    <span className="text-sm font-bold text-muted-foreground uppercase tracking-tight">Mbps</span>
+                  </div>
                 </div>
               </motion.div>
             )}

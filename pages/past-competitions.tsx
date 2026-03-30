@@ -38,15 +38,7 @@ interface PastCompetition {
   created_at: string;
   organization_id?: string;
   organization_name?: string | null;
-}
-
-interface CompetitionDetails {
-  competition: PastCompetition;
-  teams: any[];
-  matches: any[];
-  scoutingData: any[];
-  pitScoutingData: any[];
-  pickLists: any[];
+  is_multi_org?: boolean;
 }
 
 interface LiveEvent {
@@ -56,6 +48,7 @@ interface LiveEvent {
   total_matches: number;
   scouting_count: number;
   organization_name?: string | null;
+  is_multi_org?: boolean;
 }
 
 export default function PastCompetitionsPage() {
@@ -64,11 +57,9 @@ export default function PastCompetitionsPage() {
   const { isAdmin, loading: adminLoading } = useAdmin();
   const [competitions, setCompetitions] = useState<PastCompetition[]>([]);
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
-  const [selectedCompetition, setSelectedCompetition] = useState<CompetitionDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [yearFilter, setYearFilter] = useState<string>('');
-  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     loadCompetitions();
@@ -103,12 +94,6 @@ export default function PastCompetitionsPage() {
   });
 
   const uniqueYears = Array.from(new Set(competitions.map(comp => comp.competition_year))).sort((a, b) => b - a);
-  const competitionKeyCounts = filteredCompetitions.reduce<Record<string, number>>((acc, comp) => {
-    const key = (comp.competition_key || '').trim();
-    if (!key) return acc;
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, {});
 
   if (isLoading) {
     return (
@@ -135,14 +120,14 @@ export default function PastCompetitionsPage() {
                     Competition History
                   </h1>
                   <p className="text-sm sm:text-base text-muted-foreground">
-                    Archived competitions from all organizations. Live appears only when your org has a current event set in Team Management.
+                    Consolidated competition data from all organizations. Click any card to view aggregated scouting intelligence.
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Database className="h-5 w-5 text-primary" />
                   <span className="text-sm text-muted-foreground">
                     {liveEvents.length > 0 && `${liveEvents.length} live · `}
-                    {competitions.length} past archived
+                    {competitions.length} past events
                   </span>
                 </div>
               </div>
@@ -164,10 +149,15 @@ export default function PastCompetitionsPage() {
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                               Live
                             </span>
+                            {ev.is_multi_org && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                                Global View
+                              </span>
+                            )}
                             {ev.organization_name && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">
                                 {ev.organization_name}
@@ -260,20 +250,28 @@ export default function PastCompetitionsPage() {
                   <Card 
                     key={competition.id} 
                     className="p-4 sm:p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow duration-200 cursor-pointer"
-                    onClick={() => router.push(`/view-data?id=${encodeURIComponent(competition.id)}`)}
+                    onClick={() => {
+                      if (competition.is_multi_org) {
+                        router.push(`/view-data?competition_key=${encodeURIComponent(competition.competition_key)}&year=${competition.competition_year}&see_all_orgs=1`);
+                      } else {
+                        router.push(`/view-data?id=${encodeURIComponent(competition.id)}`);
+                      }
+                    }}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        {competition.organization_name && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20 mb-2 block w-fit">
-                            {competition.organization_name}
-                          </span>
-                        )}
-                        {(competitionKeyCounts[competition.competition_key] || 0) > 1 && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500/10 text-amber-600 border border-amber-500/20 mb-2 block w-fit">
-                            Multiple teams
-                          </span>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          {competition.is_multi_org && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                              Global View
+                            </span>
+                          )}
+                          {competition.organization_name && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                              {competition.organization_name}
+                            </span>
+                          )}
+                        </div>
                         <h3 className="text-lg font-semibold text-foreground mb-1">
                           {competition.competition_name}
                         </h3>

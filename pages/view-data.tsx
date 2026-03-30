@@ -81,7 +81,7 @@ export default function ViewDataPage() {
   const router = useRouter();
   const { user, supabase } = useSupabase();
   const { isAdmin } = useAdmin();
-  const { event_key, id } = router.query;
+  const { event_key, id, competition_key, year } = router.query;
 
   const [competition, setCompetition] = useState<CompetitionInfo | null>(null);
   const [scoutingData, setScoutingData] = useState<ViewDataRow[]>([]);
@@ -112,15 +112,15 @@ export default function ViewDataPage() {
   }, [router.isReady, router.query.see_all_orgs, router.query.pit_all_orgs]);
 
   useEffect(() => {
-    if (!event_key && !id) return;
+    if (!event_key && !id && !competition_key) return;
     loadData();
-  }, [event_key, id, seeAllOrgsData, pitAllOrgs]);
+  }, [event_key, id, competition_key, year, seeAllOrgsData, pitAllOrgs]);
 
   useEffect(() => {
-    if (!event_key && !id && router.isReady) {
+    if (!event_key && !id && !competition_key && router.isReady) {
       router.replace('/competition-history');
     }
-  }, [event_key, id, router.isReady]);
+  }, [event_key, id, competition_key, router.isReady]);
 
   useEffect(() => {
     if (!user && activeTab === 'stats') {
@@ -309,10 +309,13 @@ export default function ViewDataPage() {
       const params = new URLSearchParams();
       if (event_key) params.set('event_key', event_key as string);
       if (id) params.set('id', id as string);
-      if (seeAllOrgsData && event_key) {
+      if (competition_key) params.set('competition_key', competition_key as string);
+      if (year) params.set('year', year as string);
+      
+      if (seeAllOrgsData && (event_key || competition_key)) {
         params.set('see_all_orgs', '1');
       }
-      if (pitAllOrgs && event_key) {
+      if (pitAllOrgs && (event_key || competition_key)) {
         params.set('pit_all_orgs', '1');
       }
 
@@ -381,7 +384,13 @@ export default function ViewDataPage() {
   });
 
   const guestBackLink = { href: '/competition-history', label: 'Back to Competition History' };
-  const queryString = id ? `id=${encodeURIComponent(id as string)}` : event_key ? `event_key=${encodeURIComponent(event_key as string)}` : '';
+  const queryString = competition_key 
+    ? `competition_key=${encodeURIComponent(competition_key as string)}&year=${year}&see_all_orgs=1`
+    : id 
+      ? `id=${encodeURIComponent(id as string)}` 
+      : event_key 
+        ? `event_key=${encodeURIComponent(event_key as string)}${router.query.see_all_orgs === '1' ? '&see_all_orgs=1' : ''}` 
+        : '';
   const queryPrefix = queryString ? '?' + queryString : '';
 
   if (loading) {

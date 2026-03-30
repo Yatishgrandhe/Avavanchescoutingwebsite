@@ -3,7 +3,19 @@ import Link from 'next/link';
 import { useSupabase } from '@/pages/_app';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, Switch } from '../../components/ui';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  Switch,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui';
 import { Button } from '../../components/ui';
 import { Input } from '../../components/ui';
 import { Badge } from '../../components/ui/badge';
@@ -356,26 +368,46 @@ export default function TeamComparison() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 mb-4">
-                <select
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  disabled={teamsLoading || loading}
-                  className={`flex-1 px-3 py-3 sm:py-2 border rounded-md text-sm sm:text-base min-h-[44px] ${isDarkMode
-                    ? 'bg-gray-700 border-gray-600 text-white'
-                    : 'bg-background border-border text-foreground'
-                    } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                <Select
+                  value={inputValue || undefined}
+                  onValueChange={setInputValue}
+                  disabled={
+                    teamsLoading ||
+                    loading ||
+                    availableTeams.filter((t) => !selectedTeams.includes(t.team_number)).length === 0
+                  }
                 >
-                  <option value="">
-                    {teamsLoading ? 'Loading teams...' : 'Select a team to compare'}
-                  </option>
-                  {availableTeams
-                    .filter(team => !selectedTeams.includes(team.team_number))
-                    .map(team => (
-                      <option key={team.team_number} value={team.team_number.toString()}>
-                        {team.team_name} ({team.team_number})
-                      </option>
-                    ))}
-                </select>
+                  <SelectTrigger
+                    className={cn(
+                      'min-h-[44px] flex-1 border-border bg-background text-foreground shadow-sm sm:text-base',
+                      'focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
+                      isDarkMode && 'border-white/15 bg-muted/40 text-foreground'
+                    )}
+                  >
+                    <SelectValue
+                      placeholder={
+                        teamsLoading
+                          ? 'Loading teams...'
+                          : availableTeams.filter((t) => !selectedTeams.includes(t.team_number)).length === 0
+                            ? 'No teams left to add'
+                            : 'Select a team to compare'
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent
+                    position="popper"
+                    sideOffset={4}
+                    className="z-[100] max-h-[min(320px,var(--radix-select-content-available-height))] border-border bg-popover text-popover-foreground shadow-lg"
+                  >
+                    {availableTeams
+                      .filter((team) => !selectedTeams.includes(team.team_number))
+                      .map((team) => (
+                        <SelectItem key={team.team_number} value={String(team.team_number)}>
+                          {team.team_name} ({team.team_number})
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
                 <Button
                   onClick={handleAddTeam}
                   disabled={!inputValue || loading || selectedTeams.length >= 4 || teamsLoading}

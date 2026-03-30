@@ -362,52 +362,99 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const scopeOrgId = effectiveFilterOrgId(viewer, queryOrgId);
 
-      // --- Detail view by id ---
-      if (id) {
-        const { data: competition, error: compError } = await supabaseAdmin
-          .from('past_competitions')
-          .select('*')
-          .eq('id', id as string)
-          .single();
+      // --- Detail view by id OR competition_key ---
+      if (id || competition_key) {
+        let competition: any = null;
+        let compError: any = null;
+        let orgIds: string[] = [];
+        let compIds: string[] = [];
+
+        if (id) {
+          const { data, error } = await supabaseAdmin
+            .from('past_competitions')
+            .select('*')
+            .eq('id', id as string)
+            .single();
+          competition = data;
+          compError = error;
+          if (data) {
+            orgIds = [data.organization_id];
+            compIds = [data.id];
+          }
+        } else if (competition_key) {
+          let query = supabaseAdmin
+            .from('past_competitions')
+            .select('*')
+            .eq('competition_key', competition_key as string);
+          
+          if (year) {
+            query = query.eq('competition_year', parseInt(year as string, 10));
+          }
+          
+          const { data, error } = await query;
+          compError = error;
+          if (data && data.length > 0) {
+            // Use the first one as basic info, but collect all orgs/ids
+            competition = data[0];
+            orgIds = Array.from(new Set(data.map(d => d.organization_id)));
+            compIds = data.map(d => d.id);
+            
+            // If multiple orgs, clear the specific org name and set a flag
+            if (orgIds.length > 1) {
+              competition.is_global = true;
+            }
+          }
+        }
 
         if (compError || !competition) {
           console.error('Error fetching competition:', compError);
           return res.status(404).json({ error: 'Competition not found' });
         }
 
-        // Guests must have a valid scope; logged-in users can view any org's competition.
-        if (viewer.isGuest && competition.organization_id !== scopeOrgId) {
+        // Guests must have a valid scope if it's not global; logged-in users can view any org's competition.
+        if (viewer.isGuest && !competition.is_global && competition.organization_id !== scopeOrgId) {
           return res.status(404).json({ error: 'Competition not found' });
         }
 
-        // Enrich with org name
-        const { data: orgRow } = await supabaseAdmin
+        // Enrich with org name(s)
+        const { data: orgRows } = await supabaseAdmin
           .from('organizations')
-          .select('name')
-          .eq('id', competition.organization_id)
-          .maybeSingle();
-        const enrichedCompetition = { ...competition, organization_name: orgRow?.name ?? null };
-
-        const orgId = competition.organization_id as string;
+          .select('id, name')
+          .in('id', orgIds);
+        
+        const orgNames = (orgRows || []).map(o => (o as { name: string }).name);
+        const enrichedCompetition = { 
+          ...competition, 
+          organization_name: orgNames.length > 1 ? `Shared by ${orgNames.join(', ')}` : (orgNames[0] ?? null),
+          contributing_organizations: orgRows || []
+        };
 
         const { data: teams, error: teamsError } = await supabaseAdmin
           .from('past_teams')
           .select('*')
-          .eq('competition_id', id as string)
-          .eq('organization_id', orgId)
+          .in('competition_id', compIds)
           .order('team_number');
 
         if (teamsError) {
           console.error('past_teams:', teamsError);
         }
 
-        const teamNumArr = (teams || []).map((t) => t.team_number);
+        // Unique teams across all orgs if global
+        const uniqueTeamsMap = new Map<number, any>();
+        (teams || []).forEach(t => {
+          if (!uniqueTeamsMap.has(t.team_number)) {
+            uniqueTeamsMap.set(t.team_number, t);
+          }
+        });
+        const teamNumArr = Array.from(uniqueTeamsMap.keys());
+        const teamsList = Array.from(uniqueTeamsMap.values());
+
         const { data: historicalData } = await supabaseAdmin
           .from('past_scouting_data')
           .select('team_number, notes')
-          .eq('organization_id', orgId)
+          .in('organization_id', orgIds)
           .in('team_number', teamNumArr)
-          .neq('competition_id', id as string);
+          .not('competition_id', 'in', `(${compIds.join(',')})`);
 
         const teamScoresMap = new Map<number, number[]>();
         if (historicalData) {
@@ -423,7 +470,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
         }
 
-        const updatedTeams = (teams || []).map((t) => {
+        const updatedTeams = teamsList.map((t) => {
           const pastScores = teamScoresMap.get(t.team_number) || [];
           const starterEpa = pastScores.length > 0 ? pastScores.reduce((a, b) => a + b, 0) / pastScores.length : 0;
           return {
@@ -435,19 +482,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data: matches, error: matchesError } = await supabaseAdmin
           .from('past_matches')
           .select('*')
-          .eq('competition_id', id as string)
-          .eq('organization_id', orgId)
+          .in('competition_id', compIds)
           .order('match_number');
 
         if (matchesError) {
           console.error('past_matches:', matchesError);
         }
 
+        // Unique matches across all orgs
+        const uniqueMatchesMap = new Map<number, any>();
+        (matches || []).forEach(m => {
+          if (!uniqueMatchesMap.has(m.match_number)) {
+            uniqueMatchesMap.set(m.match_number, m);
+          }
+        });
+        const matchesList = Array.from(uniqueMatchesMap.values()).sort((a, b) => a.match_number - b.match_number);
+
         const { data: scoutingData, error: scoutingError } = await supabaseAdmin
           .from('past_scouting_data')
           .select('*')
-          .eq('competition_id', id as string)
-          .eq('organization_id', orgId);
+          .in('competition_id', compIds)
+          .in('organization_id', orgIds);
 
         if (scoutingError) {
           console.error('past_scouting_data:', scoutingError);
@@ -456,8 +511,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data: pitScoutingDataRaw = [] } = await supabaseAdmin
           .from('past_pit_scouting_data')
           .select('*')
-          .eq('competition_id', id as string)
-          .eq('organization_id', orgId);
+          .in('competition_id', compIds)
+          .in('organization_id', orgIds);
+        
         const pitScoutingData = mapPitRowsToTeams(
           (pitScoutingDataRaw || []) as Record<string, unknown>[],
           teamNumArr
@@ -468,20 +524,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const { data: pickData } = await supabaseAdmin
             .from('past_pick_lists')
             .select('*')
-            .eq('competition_id', id as string)
-            .eq('organization_id', orgId);
+            .in('competition_id', compIds)
+            .in('organization_id', orgIds);
           pickLists = pickData || [];
         }
 
-        const teamsList = updatedTeams || [];
-        const matchesList = matches || [];
         return res.status(200).json({
           competition: {
             ...enrichedCompetition,
             total_teams: teamsList.length,
             total_matches: matchesList.length,
           },
-          teams: teamsList,
+          teams: updatedTeams,
           matches: matchesList,
           scoutingData: scoutingData || [],
           pitScoutingData,
@@ -489,7 +543,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      // --- List view: show ALL orgs' past competitions ---
+      // --- List view: group competitions by key + year, showing multi-org badges ---
       let query = supabaseAdmin
         .from('past_competitions')
         .select('*')
@@ -504,70 +558,94 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         query = query.eq('competition_year', parseInt(year as string, 10));
       }
 
-      const { data: competitions, error } = await query;
+      const { data: allCompetitions, error } = await query;
 
       if (error) {
         console.error('Error fetching competitions:', error);
         return res.status(500).json({ error: 'Failed to fetch competitions' });
       }
 
-      // Fetch org names for all competitions in batch
-      const allOrgIds = Array.from(new Set((competitions || []).map((c) => c.organization_id).filter(Boolean)));
+      // Group past competitions by [key, year]
+      const groupedCompMap = new Map<string, any>();
+      for (const c of allCompetitions || []) {
+        const groupKey = `${c.competition_key}-${c.competition_year}`;
+        if (!groupedCompMap.has(groupKey)) {
+          groupedCompMap.set(groupKey, { 
+            ...c, 
+            contributing_org_ids: [c.organization_id],
+            contributing_comp_ids: [c.id]
+          });
+        } else {
+          const existing = groupedCompMap.get(groupKey);
+          existing.contributing_org_ids.push(c.organization_id);
+          existing.contributing_comp_ids.push(c.id);
+        }
+      }
+      const groupedCompetitions = Array.from(groupedCompMap.values());
+
+      // Fetch org names for all grouped competitions in batch
+      const allDistinctOrgIds = Array.from(new Set((allCompetitions || []).map((c) => c.organization_id).filter(Boolean)));
       const orgNameMap = new Map<string, string>();
-      if (allOrgIds.length > 0) {
+      if (allDistinctOrgIds.length > 0) {
         const { data: orgRows } = await supabaseAdmin
           .from('organizations')
           .select('id, name')
-          .in('id', allOrgIds);
+          .in('id', allDistinctOrgIds);
         for (const o of orgRows || []) {
           orgNameMap.set((o as { id: string; name: string }).id, (o as { id: string; name: string }).name);
         }
       }
 
-      const compIds = (competitions || []).map((c) => c.id);
-      const teamCountMap = new Map<string, number>();
-      const matchCountMap = new Map<string, number>();
-      if (compIds.length > 0) {
-        const [teamsCountRes, matchesCountRes] = await Promise.all([
+      // Fetch team and match counts for all contributing competition IDs
+      const allCompIds = (allCompetitions || []).map(c => c.id);
+      const teamCountsByCompId = new Map<string, Set<number>>();
+      const matchCountsByCompId = new Map<string, Set<number>>();
+      
+      if (allCompIds.length > 0) {
+        const [teamsRes, matchesRes] = await Promise.all([
           supabaseAdmin
             .from('past_teams')
-            .select('competition_id')
-            .in('competition_id', compIds),
+            .select('competition_id, team_number')
+            .in('competition_id', allCompIds),
           supabaseAdmin
             .from('past_matches')
-            .select('competition_id')
-            .in('competition_id', compIds),
+            .select('competition_id, match_number')
+            .in('competition_id', allCompIds),
         ]);
-        for (const row of teamsCountRes.data || []) {
-          const cid = (row as { competition_id: string }).competition_id;
-          teamCountMap.set(cid, (teamCountMap.get(cid) || 0) + 1);
-        }
-        for (const row of matchesCountRes.data || []) {
-          const cid = (row as { competition_id: string }).competition_id;
-          matchCountMap.set(cid, (matchCountMap.get(cid) || 0) + 1);
-        }
+        
+        (teamsRes.data || []).forEach(row => {
+          const cid = row.competition_id;
+          if (!teamCountsByCompId.has(cid)) teamCountsByCompId.set(cid, new Set());
+          teamCountsByCompId.get(cid)!.add(row.team_number);
+        });
+        (matchesRes.data || []).forEach(row => {
+          const cid = row.competition_id;
+          if (!matchCountsByCompId.has(cid)) matchCountsByCompId.set(cid, new Set());
+          matchCountsByCompId.get(cid)!.add(row.match_number);
+        });
       }
 
-      const competitionsWithCounts = (competitions || []).map((c) => ({
-        ...c,
-        organization_name: orgNameMap.get(c.organization_id) ?? null,
-        total_teams: teamCountMap.get(c.id) ?? 0,
-        total_matches: matchCountMap.get(c.id) ?? 0,
-      }));
+      const competitionsForResponse = groupedCompetitions.map((c) => {
+        const orgNames = Array.from(new Set(c.contributing_org_ids.map((oid: string) => orgNameMap.get(oid)).filter(Boolean)));
+        
+        // Aggregate unique teams and matches across all contributing competitions in this group
+        const groupTeamSet = new Set<number>();
+        const groupMatchSet = new Set<number>();
+        c.contributing_comp_ids.forEach((cid: string) => {
+          (teamCountsByCompId.get(cid) || []).forEach(tn => groupTeamSet.add(tn));
+          (matchCountsByCompId.get(cid) || []).forEach(mn => groupMatchSet.add(mn));
+        });
 
-      /**
-       * "Live" only when Team Management has a current competition set (app_config current_event_key).
-       * Do not infer live from leftover matches rows — that showed fake live events after archive/clear.
-       */
-      let live: Array<{
-        event_key: string;
-        competition_name: string;
-        total_teams: number;
-        total_matches: number;
-        scouting_count: number;
-        organization_name: string | null;
-      }> = [];
+        return {
+          ...c,
+          organization_name: orgNames.length > 1 ? `Shared by ${orgNames.join(', ')}` : (orgNames[0] ?? null),
+          is_multi_org: orgNames.length > 1,
+          total_teams: groupTeamSet.size,
+          total_matches: groupMatchSet.size,
+        };
+      });
 
+      // --- Group Live Events by event_key ---
       const { data: currentEventRows } = await supabaseAdmin
         .from('app_config')
         .select('organization_id, key, value')
@@ -591,24 +669,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           eventName: cfg.eventName,
         }));
 
-      for (const candidate of liveCandidates) {
-        const { data: eventMatchesRaw, error: matchesErr } = await supabaseAdmin
+      // Group live candidates by eventKey
+      const groupedLiveMap = new Map<string, any>();
+      for (const cand of liveCandidates) {
+        if (!groupedLiveMap.has(cand.eventKey)) {
+          groupedLiveMap.set(cand.eventKey, {
+            event_key: cand.eventKey,
+            competition_name: cand.eventName || cand.eventKey,
+            org_ids: [cand.organization_id]
+          });
+        } else {
+          groupedLiveMap.get(cand.eventKey).org_ids.push(cand.organization_id);
+        }
+      }
+
+      const liveFull: any[] = [];
+      for (const [evtKey, info] of Array.from(groupedLiveMap.entries())) {
+        const orgIds = info.org_ids as string[];
+        
+        // Fetch matches and scouting count for all orgs in this live event
+        const { data: eventMatchesRaw } = await supabaseAdmin
           .from('matches')
           .select('match_id, event_key, red_teams, blue_teams, organization_id')
-          .eq('organization_id', candidate.organization_id)
-          .eq('event_key', candidate.eventKey);
+          .in('organization_id', orgIds)
+          .eq('event_key', evtKey);
 
-        if (matchesErr || !eventMatchesRaw || eventMatchesRaw.length === 0) {
-          continue;
-        }
-
-        const eventMatches = eventMatchesRaw as {
-          match_id: string;
-          event_key: string;
-          red_teams: number[];
-          blue_teams: number[];
-          organization_id: string;
-        }[];
+        const eventMatches = (eventMatchesRaw || []) as any[];
         const matchIds = eventMatches.map((m) => m.match_id);
         const teamSet = new Set<number>();
         eventMatches.forEach((m) => {
@@ -619,33 +705,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { count: scoutingCount } = await supabaseAdmin
           .from('scouting_data')
           .select('*', { count: 'exact', head: true })
-          .eq('organization_id', candidate.organization_id)
+          .in('organization_id', orgIds)
           .in('match_id', matchIds);
 
-        let orgLabel = orgNameMap.get(candidate.organization_id) ?? null;
-        if (!orgLabel) {
-          const { data: orow } = await supabaseAdmin
-            .from('organizations')
-            .select('name')
-            .eq('id', candidate.organization_id)
-            .maybeSingle();
-          orgLabel = (orow as { name?: string } | null)?.name ?? null;
-        }
+        const orgNames = Array.from(new Set(orgIds.map(oid => orgNameMap.get(oid)).filter(Boolean)));
 
-        live.push({
-          event_key: candidate.eventKey,
-          competition_name: candidate.eventName || candidate.eventKey,
+        liveFull.push({
+          event_key: evtKey,
+          competition_name: info.competition_name,
           total_teams: teamSet.size,
-          total_matches: eventMatches.length,
+          total_matches: new Set(eventMatches.map(m => m.match_id)).size,
           scouting_count: scoutingCount ?? 0,
-          organization_name: orgLabel,
+          organization_name: orgNames.length > 1 ? `Shared by ${orgNames.join(', ')}` : (orgNames[0] ?? null),
+          is_multi_org: orgNames.length > 1,
         });
       }
 
-      const liveForResponse = live;
+      const liveForResponse = liveFull;
 
       return res.status(200).json({
-        competitions: competitionsWithCounts,
+        competitions: competitionsForResponse,
         live: liveForResponse,
       });
     } catch (error) {

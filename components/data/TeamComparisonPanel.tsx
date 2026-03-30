@@ -6,6 +6,13 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import {
   Users,
@@ -20,6 +27,7 @@ import {
 } from 'lucide-react';
 import { buildTeamComparisonFromRows, type TeamComparison } from '@/lib/comparison';
 import { formatScoreRange } from '@/lib/analytics';
+import { cn } from '@/lib/utils';
 
 export interface TeamComparisonPanelProps {
   teams: Array<{ team_number: number; team_name: string }>;
@@ -110,7 +118,7 @@ export function TeamComparisonPanel({
     window.URL.revokeObjectURL(url);
   };
 
-  const cl = (light: string, darkCl: string) => (dark ? darkCl : light);
+  const selectableTeams = availableTeams.filter((t) => !selectedTeams.includes(t.team_number));
 
   return (
     <div className="space-y-6">
@@ -141,23 +149,39 @@ export function TeamComparisonPanel({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
-            <select
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              className={cl(
-                'flex-1 px-3 py-2 border rounded-md text-sm bg-background border-border text-foreground focus:ring-2 focus:ring-primary',
-                'flex-1 px-3 py-2 border rounded-md text-sm bg-white/5 border-white/10 text-foreground focus:ring-2 focus:ring-primary'
-              )}
+            <Select
+              value={inputValue || undefined}
+              onValueChange={setInputValue}
+              disabled={selectableTeams.length === 0}
             >
-              <option value="">Select a team</option>
-              {availableTeams
-                .filter((t) => !selectedTeams.includes(t.team_number))
-                .map((t) => (
-                  <option key={t.team_number} value={String(t.team_number)}>
+              <SelectTrigger
+                className={cn(
+                  'min-h-10 w-full flex-1 border-border bg-background text-foreground shadow-sm sm:min-h-11',
+                  'focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
+                  dark && 'border-white/15 bg-muted/40'
+                )}
+              >
+                <SelectValue
+                  placeholder={
+                    selectableTeams.length === 0 ? 'No teams left to add' : 'Select a team'
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent
+                position="popper"
+                sideOffset={4}
+                className={cn(
+                  'z-[100] max-h-[min(320px,var(--radix-select-content-available-height))] border-border bg-popover text-popover-foreground shadow-lg',
+                  dark && 'border-white/10'
+                )}
+              >
+                {selectableTeams.map((t) => (
+                  <SelectItem key={t.team_number} value={String(t.team_number)}>
                     {t.team_name} ({t.team_number})
-                  </option>
+                  </SelectItem>
                 ))}
-            </select>
+              </SelectContent>
+            </Select>
             <Button
               onClick={() => {
                 const n = parseInt(inputValue, 10);

@@ -524,16 +524,16 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[], starterEp
   const teleopPtsMax = teleopPtsList.length ? Math.max(...teleopPtsList) : 0;
   const totalPtsMin = scores.length ? Math.min(...scores) : 0;
   const totalPtsMax = scores.length ? Math.max(...scores) : 0;
-  const ballsPerCycleMin = ballsPerCycleList.length ? roundToTenth(Math.min(...ballsPerCycleList)) : 0;
-  const ballsPerCycleMax = ballsPerCycleList.length ? roundToTenth(Math.max(...ballsPerCycleList)) : 0;
-  const avgBallsPerCycle = ballsPerCycleList.length ? roundToTenth(ballsPerCycleList.reduce((a, b) => a + b, 0) / ballsPerCycleList.length) : 0;
+  const ballsPerCycleMin = ballsPerCycleList.length ? Math.round(Math.min(...ballsPerCycleList)) : 0;
+  const ballsPerCycleMax = ballsPerCycleList.length ? Math.round(Math.max(...ballsPerCycleList)) : 0;
+  const avgBallsPerCycle = ballsPerCycleList.length ? Math.round(ballsPerCycleList.reduce((a, b) => a + b, 0) / ballsPerCycleList.length) : 0;
   const autoFuelMin = autoFuelList.length ? Math.min(...autoFuelList) : 0;
   const autoFuelMax = autoFuelList.length ? Math.max(...autoFuelList) : 0;
   const teleopFuelMin = teleopFuelList.length ? Math.min(...teleopFuelList) : 0;
   const teleopFuelMax = teleopFuelList.length ? Math.max(...teleopFuelList) : 0;
 
   const avgDowntimeSec =
-    downtimeCount > 0 ? roundToTenth(downtimeSum / downtimeCount) : null;
+    downtimeCount > 0 ? Math.round(downtimeSum / downtimeCount) : null;
 
   const avgScore = scores.reduce((a, b) => a + b, 0) / n;
   const totalSum = scores.reduce((a, b) => a + b, 0);
@@ -557,12 +557,12 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[], starterEp
   }
 
   // CLANK: Climb Level Accuracy & No-Knockdown. Avg of (climb pts + speed adj): +2 for ≤3s, -2 for >6s.
-  const clank = n > 0 ? Math.round((totalClimbAdjusted / n) * 10) / 10 : 0;
+  const clank = n > 0 ? Math.round(totalClimbAdjusted / n) : 0;
 
-  // RPMAGIC: Marginal probability of earning an RP from this team's scoring contribution per match (0–1).
+  // RPMAGIC: Marginal probability of earning an RP from this team's scoring contribution per match (0–100).
   const climbRate = climbAttempts > 0 ? climbSuccesses / climbAttempts : 0;
   const rpmagicRaw = (avgScore / 200) * 0.5 + climbRate * 0.4;
-  const rpmagic = roundToTenth(Math.min(1, Math.max(0, rpmagicRaw)));
+  const rpmagic = Math.round(Math.min(100, Math.max(0, rpmagicRaw * 100)));
 
   // GOBLIN: Difference between actual match margin and expected margin. Positive = luckier than expected.
   let goblin = 0;
@@ -573,14 +573,14 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[], starterEp
     });
     goblin = diffs.reduce((a, b) => a + b, 0) / n;
   }
-  goblin = Math.round(goblin * 10) / 10;
+  goblin = Math.round(goblin);
 
   const avgClimbSpeedSec =
-    climbSpeedCount > 0 ? roundToTenth(climbSpeedSum / climbSpeedCount) : null;
+    climbSpeedCount > 0 ? Math.round(climbSpeedSum / climbSpeedCount) : null;
 
   const avgShootingTimeSec =
     shootingDurations.length > 0
-      ? roundToTenth(shootingDurations.reduce((a, b) => a + b, 0) / shootingDurations.length)
+      ? Math.round(shootingDurations.reduce((a, b) => a + b, 0) / shootingDurations.length)
       : null;
 
   const avgTotal = totalMatchScores / n;
@@ -593,23 +593,23 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[], starterEp
   const consistencyScore = avgTotal > 0 ? Math.max(0, Math.min(100, 100 - (stdDev / avgTotal) * 100)) : 0;
 
   return {
-    avg_auto_fuel: roundToTenth(totalAutoFuel / n),
-    avg_teleop_fuel: roundToTenth(totalTeleopFuel / n),
-    avg_climb_pts: roundToTenth(totalClimbPts / n),
-    avg_auto_climb_pts: roundToTenth(totalAutoClimbPts / n),
-    avg_teleop_climb_pts: roundToTenth(totalTeleopClimbPts / n),
-    avg_autonomous_points: roundToTenth(totalAutoPts / n),
-    avg_teleop_points: roundToTenth(totalTeleopPts / n),
-    avg_total_score: roundToTenth(avgTotal),
-    avg_defense_rating: roundToTenth(totalDefenseRating / n),
-    avg_downtime: totalUptimeMatches > 0 ? roundToTenth(totalDowntimeS / totalUptimeMatches / 60) : null,
+    avg_auto_fuel: Math.round(totalAutoFuel / n),
+    avg_teleop_fuel: Math.round(totalTeleopFuel / n),
+    avg_climb_pts: Math.round(totalClimbPts / n),
+    avg_auto_climb_pts: Math.round(totalAutoClimbPts / n),
+    avg_teleop_climb_pts: Math.round(totalTeleopClimbPts / n),
+    avg_autonomous_points: Math.round(totalAutoPts / n),
+    avg_teleop_points: Math.round(totalTeleopPts / n),
+    avg_total_score: Math.round(avgTotal),
+    avg_defense_rating: Math.round(totalDefenseRating / n),
+    avg_downtime: totalUptimeMatches > 0 ? Math.round(totalDowntimeS / totalUptimeMatches / 60) : null,
     avg_uptime_pct: totalUptimeMatches > 0 ? Math.round((totalUptimeS / (totalUptimeS + totalDowntimeS)) * 100) : null,
     avg_downtime_sec: avgDowntimeSec,
     avg_climb_speed_sec: avgClimbSpeedSec,
     broke_count: brokeCount,
     broke_rate: Math.round((brokeCount / n) * 100),
-    avg_autonomous_cleansing: roundToTenth(totalAutoCleansing / n),
-    avg_teleop_cleansing: roundToTenth(totalTeleopCleansing / n),
+    avg_autonomous_cleansing: Math.round(totalAutoCleansing / n),
+    avg_teleop_cleansing: Math.round(totalTeleopCleansing / n),
     clank,
     rpmagic,
     goblin,
@@ -629,8 +629,8 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[], starterEp
     auto_fuel_max: autoFuelMax,
     teleop_fuel_min: teleopFuelMin,
     teleop_fuel_max: teleopFuelMax,
-    epa: roundToTenth(epa),
-    endgame_epa: roundToTenth(totalClimbPts / n), // climbing points = endgame EPA
+    epa: Math.round(epa),
+    endgame_epa: Math.round(totalClimbPts / n), // climbing points = endgame EPA
     avg_shooting_time_sec: avgShootingTimeSec,
     shuttle_rate: Math.round((shuttleMatches / n) * 100),
     shuttle_consistency_score: shuttleMatches > 0 ? Math.round((consistentShuttles / shuttleMatches) * 100) : null,

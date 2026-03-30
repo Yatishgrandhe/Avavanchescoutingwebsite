@@ -24,6 +24,7 @@ import {
   Target,
   Route,
   X,
+  Loader2,
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import GuestLayout from '@/components/layout/GuestLayout';
@@ -105,7 +106,7 @@ const TeamDetail: React.FC = () => {
   const router = useRouter();
   const { teamNumber } = router.query;
   const { supabase, user } = useSupabase();
-  const { isSuperAdmin } = useAdmin();
+  const { isSuperAdmin, isAdmin, loading: adminLoading } = useAdmin();
 
   const [team, setTeam] = useState<Team | null>(null);
   const [scoutingData, setScoutingData] = useState<ScoutingData[]>([]);
@@ -114,6 +115,10 @@ const TeamDetail: React.FC = () => {
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [fullScreenImageUrl, setFullScreenImageUrl] = useState<string | null>(null);
   const [activeTeamTab, setActiveTeamTab] = useState<string>('overview');
+  
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [summarizeError, setSummarizeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!fullScreenImageUrl) return;
@@ -326,13 +331,13 @@ const TeamDetail: React.FC = () => {
 
     return {
       totalMatches,
-      avgAutonomous: scoutingData.reduce((sum, d) => sum + (d.autonomous_points || 0), 0) / totalMatches,
-      avgTeleop: scoutingData.reduce((sum, d) => sum + (d.teleop_points || 0), 0) / totalMatches,
-      avgTotal: Math.round(avgTotal * 10) / 10,
-      avgDefense: Math.round(avgDefense * 10) / 10,
+      avgAutonomous: Math.round(scoutingData.reduce((sum, d) => sum + (d.autonomous_points || 0), 0) / totalMatches),
+      avgTeleop: Math.round(scoutingData.reduce((sum, d) => sum + (d.teleop_points || 0), 0) / totalMatches),
+      avgTotal: Math.round(avgTotal),
+      avgDefense: Math.round(avgDefense),
       bestScore,
       worstScore,
-      consistencyScore: Math.round(consistencyScore * 100) / 100,
+      consistencyScore: Math.round(consistencyScore),
       // REBUILT + EPA
       avg_auto_fuel: rebuilt.avg_auto_fuel,
       avg_teleop_fuel: rebuilt.avg_teleop_fuel,
@@ -364,7 +369,7 @@ const TeamDetail: React.FC = () => {
       shuttle_rate: rebuilt.shuttle_rate,
       shuttle_consistency_score: rebuilt.shuttle_consistency_score,
       endgame_epa: rebuilt.endgame_epa ?? rebuilt.avg_climb_pts ?? 0, // Endgame EPA = climbing points
-      epa: rebuilt.epa ?? Math.round(avgTotal * 10) / 10, // Expected points per match (actual when available, else estimated)
+      epa: Math.round(rebuilt.epa ?? avgTotal), // Expected points per match (actual when available, else estimated)
 
       // Data for Radar Chart (all values 0–100 for correct scale; Recharts expects numeric A and fullMark)
       radarData: [
@@ -474,7 +479,37 @@ const TeamDetail: React.FC = () => {
     </CompetitionDataLayout>
   );
 
-  if (loading) {
+  const handleAiSummarize = async () => {
+    if (!scoutingData.length || isSummarizing) return;
+    
+    setIsSummarizing(true);
+    setSummarizeError(null);
+    
+    try {
+      const comments = scoutingData.map(d => d.comments).filter(c => c && c.trim()) as string[];
+      
+      const response = await fetch('/api/summarize-comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comments })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to generate intelligence');
+      }
+      
+      const { summary } = await response.json();
+      setAiSummary(summary);
+    } catch (err: any) {
+      console.error('AI Summarization failed:', err);
+      setSummarizeError(err.message || 'The intelligence engine is currently offline.');
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
+  if (loading || adminLoading) {
     const spinner = (
       <div className="min-h-[50vh] flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -636,13 +671,54 @@ const TeamDetail: React.FC = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-3">
                           <h4 className="text-[10px] font-bold text-muted-foreground uppercase opacity-60 tracking-widest">Strategic Intelligence Summary</h4>
-                          <div className="glass-card p-4 rounded-xl border-amber-500/10 bg-amber-500/5 transition-colors group-hover:bg-amber-500/10 min-h-[140px] flex flex-col justify-center border border-white/5">
-                            <p className="text-foreground/90 leading-relaxed text-sm font-medium italic">
-                              "{teamStats.strategicSummary}"
-                            </p>
-                            <div className="mt-3 flex items-center justify-between border-t border-amber-500/10 pt-3">
-                              <span className="text-[8px] text-amber-500 font-bold uppercase tracking-widest">Aggregated Natural Intelligence</span>
-                              <Badge variant="outline" className="text-[8px] bg-amber-500/10 text-amber-500 border-amber-500/20 font-black">AI-SUMMARIZED</Badge>
+                          <div className="glass-card p-4 rounded-xl border-amber-500/10 bg-amber-500/5 transition-all group-hover:bg-amber-500/10 min-h-[160px] flex flex-col justify-center border border-white/5 relative overflow-hidden">
+                            {aiSummary ? (
+                              <p className="text-foreground/90 leading-relaxed text-sm font-medium italic animate-in fade-in slide-in-from-bottom-1 duration-500">
+                                "{aiSummary}"
+                              </p>
+                            ) : isSummarizing ? (
+                              <div className="flex flex-col items-center justify-center gap-3">
+                                <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
+                                <span className="text-[10px] font-bold tracking-widest text-amber-500/50 uppercase">Aggregating Global Intelligence...</span>
+                              </div>
+                            ) : summarizeError ? (
+                              <div className="text-center space-y-2">
+                                <p className="text-xs text-red-400 font-medium">{summarizeError}</p>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={handleAiSummarize}
+                                  className="h-7 text-[10px] border-amber-500/20 text-amber-500 hover:bg-amber-500/10"
+                                >
+                                  Retry Intelligence Engine
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="text-center space-y-4">
+                                <p className="text-foreground/50 leading-relaxed text-xs italic">
+                                  Rule-based: "{teamStats.strategicSummary}"
+                                </p>
+                                <Button 
+                                  onClick={handleAiSummarize}
+                                  disabled={scoutingData.length === 0}
+                                  className="w-full bg-amber-600 hover:bg-amber-500 text-white font-black text-[10px] tracking-widest uppercase shadow-lg shadow-amber-900/20 py-5 group/btn overflow-hidden relative"
+                                >
+                                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
+                                  <Zap className="w-3 h-3 mr-2" />
+                                  Generate Advanced Strategic Intelligence
+                                </Button>
+                              </div>
+                            )}
+                            <div className="mt-auto pt-3 flex items-center justify-between border-t border-amber-500/10">
+                              <span className="text-[8px] text-amber-500 font-bold uppercase tracking-widest">
+                                {aiSummary ? 'Gemini 1.5 Flash Precision' : 'Aggregated Natural Intelligence'}
+                              </span>
+                              <Badge variant="outline" className={cn(
+                                "text-[8px] font-black tracking-tighter",
+                                aiSummary ? "bg-amber-500 text-black border-none" : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                              )}>
+                                {aiSummary ? 'AI-QUANTUM' : 'AI-SUMMARIZED'}
+                              </Badge>
                             </div>
                           </div>
                           <div className="space-y-2 mt-4">
@@ -666,7 +742,7 @@ const TeamDetail: React.FC = () => {
                             {teamStats.broke_count > 0 && (
                               <div className="flex items-center gap-2 text-sm text-red-400 font-medium">
                                 <AlertCircle className="w-4 h-4" />
-                                <span>Failed to function in {teamStats.broke_count} matches ({(teamStats.broke_rate ?? 0).toFixed(1)}%)</span>
+                                <span>Failed to function in {teamStats.broke_count} matches ({(teamStats.broke_rate ?? 0).toFixed(0)}%)</span>
                               </div>
                             )}
                             {(teamStats.avg_uptime_pct ?? 0) < 80 && teamStats.totalMatches > 0 && (
@@ -798,7 +874,7 @@ const TeamDetail: React.FC = () => {
                   <div className="p-6 space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-bold">RPMAGIC</h3>
-                      <Badge variant="outline" className="bg-green-500/10 text-green-500">{teamStats.rpmagic.toFixed(3)}</Badge>
+                      <Badge variant="outline" className="bg-green-500/10 text-green-500">{teamStats.rpmagic}%</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       Ranking Points — Match Advantage Generated In Cycles. Marginal probability of earning RP.

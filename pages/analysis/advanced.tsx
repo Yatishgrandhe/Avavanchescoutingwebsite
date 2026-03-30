@@ -249,12 +249,12 @@ export default function AdvancedAnalysis() {
         team_number: selectedTeam,
         team_name: teamData?.team_name || `Team ${selectedTeam}`,
         total_matches: totalMatches,
-        avg_autonomous_points: Math.round(avgAutonomous * 100) / 100,
-        avg_teleop_points: Math.round(avgTeleop * 100) / 100,
-        avg_endgame_points: Math.round(avgEndgame * 100) / 100,
-        avg_total_score: Math.round(avgTotal * 100) / 100,
-        avg_defense_rating: Math.round(avgDefense * 100) / 100,
-        avg_downtime: avgDowntime != null ? Math.round(avgDowntime * 100) / 100 : null,
+        avg_autonomous_points: Math.round(avgAutonomous),
+        avg_teleop_points: Math.round(avgTeleop),
+        avg_endgame_points: Math.round(avgEndgame),
+        avg_total_score: Math.round(avgTotal),
+        avg_defense_rating: Math.round(avgDefense),
+        avg_downtime: avgDowntime != null ? Math.round(avgDowntime) : null,
         broke_rate: brokeRate,
         avg_auto_fuel: rebuilt.avg_auto_fuel,
         avg_teleop_fuel: rebuilt.avg_teleop_fuel,
@@ -271,7 +271,7 @@ export default function AdvancedAnalysis() {
         epa: rebuilt.epa,
         best_score: bestScore,
         worst_score: worstScore,
-        consistency_score: Math.round(consistencyScore * 100) / 100,
+        consistency_score: Math.round(consistencyScore),
         win_rate: winRate,
         recent_performance: scoutingData.slice(0, 10).map((match: any) => ({
           match_id: match.match_id,
@@ -675,7 +675,7 @@ export default function AdvancedAnalysis() {
                 <Card className="bg-card border-border">
                   <CardContent className="p-3">
                     <p className={`text-[10px] font-medium uppercase ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>RPMAGIC</p>
-                    <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{teamStats.rpmagic ?? '—'}</p>
+                    <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{teamStats.rpmagic != null ? `${teamStats.rpmagic}%` : '—'}</p>
                   </CardContent>
                 </Card>
                 <Card className="bg-card border-border">
@@ -786,7 +786,7 @@ export default function AdvancedAnalysis() {
                       <PolarAngleAxis dataKey="subject" tick={{ fill: isDarkMode ? '#9ca3af' : '#4b5563', fontSize: 11 }} />
                       <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: isDarkMode ? '#9ca3af' : '#6b7280' }} />
                       <Radar name="Team" dataKey="value" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.4} strokeWidth={2} />
-                      <Tooltip contentStyle={{ background: isDarkMode ? '#1f2937' : '#fff', border: '1px solid #374151' }} formatter={(value: number) => [value.toFixed(1), 'Score (0–100)']} />
+                      <Tooltip contentStyle={{ background: isDarkMode ? '#1f2937' : '#fff', border: '1px solid #374151' }} formatter={(value: number) => [value.toFixed(0), 'Score (0–100)']} />
                     </RadarChart>
                   </ResponsiveContainer>
                 </CardContent>

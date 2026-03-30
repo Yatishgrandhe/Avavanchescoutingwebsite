@@ -489,7 +489,7 @@ export default function BasicAnalysis() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-white">
-                  {teams.length > 0 ? (teams.reduce((sum, team) => sum + (team.avg_total_score || 0), 0) / teams.length).toFixed(1) : '0'}
+                  {teams.length > 0 ? (teams.reduce((sum, team) => sum + (team.avg_total_score || 0), 0) / teams.length).toFixed(0) : '0'}
                 </div>
                 <p className="text-xs text-slate-400">
                   Across all teams
@@ -507,7 +507,7 @@ export default function BasicAnalysis() {
                   {topTeams.length > 0 ? (topTeams[0].team_name || `Team ${topTeams[0].team_number}`) : 'N/A'}
                 </div>
                 <p className="text-xs text-slate-400">
-                  {topTeams.length > 0 && topTeams[0].avg_total_score ? `Team ${topTeams[0].team_number} - ${topTeams[0].avg_total_score.toFixed(1)} avg` : 'No data'}
+                  {topTeams.length > 0 && topTeams[0].avg_total_score ? `Team ${topTeams[0].team_number} - ${topTeams[0].avg_total_score.toFixed(0)} avg` : 'No data'}
                 </p>
               </CardContent>
             </Card>
@@ -657,7 +657,7 @@ export default function BasicAnalysis() {
                           <TableCell className="text-sm">{team.avg_climb_pts ?? '—'}</TableCell>
                           <TableCell className="text-sm">{team.avg_auto_climb_pts ?? '—'}</TableCell>
                           <TableCell className="text-sm">{team.avg_teleop_climb_pts ?? '—'}</TableCell>
-                          <TableCell className="text-sm">{team.avg_downtime_sec != null ? `${team.avg_downtime_sec}s` : (team.avg_downtime != null ? `${Number(team.avg_downtime).toFixed(1)}s` : '—')}</TableCell>
+                          <TableCell className="text-sm">{team.avg_downtime_sec != null ? `${Math.round(team.avg_downtime_sec)}s` : (team.avg_downtime != null ? `${Number(team.avg_downtime).toFixed(0)}s` : '—')}</TableCell>
                           <TableCell className="text-sm">{team.total_matches ? `${team.broke_count ?? 0}/${team.total_matches}` : '—'}</TableCell>
                           <TableCell className="font-medium">{team.avg_total_score ?? 0}</TableCell>
                           <TableCell className="text-sm">{team.avg_balls_per_cycle ?? 0}</TableCell>
@@ -669,12 +669,12 @@ export default function BasicAnalysis() {
                                   style={{ width: `${((team.avg_defense_rating || 0) / 10) * 100}%` }}
                                 />
                               </div>
-                              <span className="text-sm">{(team.avg_defense_rating || 0).toFixed(1)}</span>
+                              <span className="text-sm">{(team.avg_defense_rating || 0).toFixed(0)}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-sm">{team.clank != null ? `${team.clank}` : '—'}</TableCell>
                           <TableCell className="text-sm">{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</TableCell>
-                          <TableCell className="text-sm">{team.rpmagic ?? '—'}</TableCell>
+                          <TableCell className="text-sm">{team.rpmagic != null ? `${team.rpmagic}%` : '—'}</TableCell>
                           <TableCell className="text-sm">{team.goblin ?? '—'}</TableCell>
                           <TableCell className="text-sm font-bold text-primary">{team.epa ?? '—'}</TableCell>
                         </TableRow>

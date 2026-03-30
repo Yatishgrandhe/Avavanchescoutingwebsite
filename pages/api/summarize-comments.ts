@@ -17,6 +17,25 @@ const DEFAULT_MODEL_CHAIN = [
   'gemini-1.5-flash',
 ];
 
+/** Vercel env names: GEMINI_API_KEY (required), GEMINI_API_KEY_BACKUP_1, GEMINI_API_KEY_BACKUP_2 */
+function buildApiKeyChain(): { keys: string[]; labels: ('primary' | 'backup_1' | 'backup_2')[] } {
+  const entries: Array<{ key: string; label: 'primary' | 'backup_1' | 'backup_2' }> = [
+    { key: process.env.GEMINI_API_KEY?.trim() ?? '', label: 'primary' },
+    { key: process.env.GEMINI_API_KEY_BACKUP_1?.trim() ?? '', label: 'backup_1' },
+    { key: process.env.GEMINI_API_KEY_BACKUP_2?.trim() ?? '', label: 'backup_2' },
+  ];
+  const seen = new Set<string>();
+  const keys: string[] = [];
+  const labels: ('primary' | 'backup_1' | 'backup_2')[] = [];
+  for (const { key, label } of entries) {
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    keys.push(key);
+    labels.push(label);
+  }
+  return { keys, labels };
+}
+
 function parseRetryDelayMs(message: string): number {
   const m = /retry in ([\d.]+)\s*s/i.exec(message);
   if (!m) return 0;
@@ -110,9 +129,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ message: 'Invalid comments' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ message: 'GEMINI_API_KEY not configured in Vercel' });
+  const { keys: apiKeys, labels: keyLabels } = buildApiKeyChain();
+  if (apiKeys.length === 0) {
+    return res.status(500).json({
+      message: 'GEMINI_API_KEY not configured in Vercel (set at least the primary key)',
+    });
   }
 
   const validComments = comments
@@ -150,44 +171,63 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const errors: string[] = [];
 
-  for (let i = 0; i < models.length; i++) {
-    const modelId = models[i];
-    const result = await callGenerateContent(apiKey, apiVersion, modelId, requestBody);
+  for (let mi = 0; mi < models.length; mi++) {
+    const modelId = models[mi];
 
-    if (result.ok) {
-      const summary = extractSummary(result.data);
-      if (summary) {
-        return res.status(200).json({
-          summary,
-          modelUsed: modelId,
+    for (let ki = 0; ki < apiKeys.length; ki++) {
+      const apiKey = apiKeys[ki];
+      const keyLabel = keyLabels[ki];
+
+      const result = await callGenerateContent(apiKey, apiVersion, modelId, requestBody);
+
+      if (result.ok) {
+        const summary = extractSummary(result.data);
+        if (summary) {
+          return res.status(200).json({
+            summary,
+            modelUsed: modelId,
+            apiKeySlot: keyLabel,
+          });
+        }
+        errors.push(`${modelId} [${keyLabel}]: empty or blocked response`);
+        continue;
+      }
+
+      const msg = result.errorData.error?.message || `HTTP ${result.status}`;
+      errors.push(`${modelId} [${keyLabel}]: ${msg}`);
+
+      if (result.status === 400) {
+        return res.status(400).json({
+          message: msg,
+          code: 'GEMINI_BAD_REQUEST',
         });
       }
-      errors.push(`${modelId}: empty or blocked response`);
-      continue;
-    }
 
-    const msg = result.errorData.error?.message || `HTTP ${result.status}`;
-    errors.push(`${modelId}: ${msg}`);
+      if (result.status === 401 || result.status === 403) {
+        continue;
+      }
 
-    if (result.status === 400 || result.status === 401 || result.status === 403) {
-      return res.status(result.status).json({
-        message: msg,
-        code: 'GEMINI_AUTH_OR_BAD_REQUEST',
-      });
-    }
+      if (!isQuotaOrModelUnavailable(result.status, result.errorData)) {
+        if (ki < apiKeys.length - 1) {
+          continue;
+        }
+        return res.status(500).json({
+          message: msg,
+          code: 'GEMINI_ERROR',
+          modelTried: modelId,
+        });
+      }
 
-    if (!isQuotaOrModelUnavailable(result.status, result.errorData)) {
-      return res.status(500).json({
-        message: msg,
-        code: 'GEMINI_ERROR',
-        modelTried: modelId,
-      });
-    }
-
-    if (i < models.length - 1) {
       const waitMs = parseRetryDelayMs(msg);
-      if (waitMs > 0) {
+      if (waitMs > 0 && ki < apiKeys.length - 1) {
         await sleep(waitMs);
+      }
+    }
+
+    if (mi < models.length - 1) {
+      const waitMs = parseRetryDelayMs(errors[errors.length - 1] ?? '');
+      if (waitMs > 0) {
+        await sleep(Math.min(waitMs, 5_000));
       }
     }
   }
@@ -197,11 +237,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const payload = {
     message:
       'The summarizer could not complete (quota, rate limit, or no working model). ' +
-      'Try again shortly, enable billing on your Google AI project, or set GEMINI_MODEL / GEMINI_MODEL_FALLBACKS to a model your plan supports. ' +
+      'Try again shortly, add GEMINI_API_KEY_BACKUP_1 / BACKUP_2, enable billing, or adjust GEMINI_MODEL. ' +
       `Details: ${combined.slice(0, 1200)}`,
     code: 'GEMINI_UNAVAILABLE' as const,
     retryAfterSeconds: retryAfterMs > 0 ? Math.ceil(retryAfterMs / 1000) : undefined,
     modelsTried: models,
+    keysTried: keyLabels.length,
   };
 
   return res.status(429).json(payload);

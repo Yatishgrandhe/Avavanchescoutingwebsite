@@ -25,6 +25,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ summary: "No qualitative match reports available to summarize." });
   }
 
+  // Google AI Studio: many Flash models are exposed on v1beta; bare `gemini-1.5-flash` on v1 is often unavailable.
+  // Override with GEMINI_MODEL / GEMINI_API_VERSION if your project lists different IDs (ListModels).
+  const apiVersion = process.env.GEMINI_API_VERSION || 'v1beta';
+  const modelId = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  const endpoint = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelId}:generateContent`;
+
   try {
     const prompt = `You are a professional FRC (First Robotics Competition) strategy analyst and lead scout. 
     Review these raw scouting notes from multiple matches and provide a high-level, ONE-PARA GRAPH strategic summary (max 3-4 sentences total).
@@ -40,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     Your summary should be objective, professional, and actionable for an alliance selection captain.`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch(`${endpoint}?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

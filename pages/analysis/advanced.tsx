@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
@@ -20,9 +20,11 @@ import {
   AlertCircle,
   ChevronDown,
   Filter,
-  Download
+  Download,
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
+import { useAdmin } from '@/hooks/use-admin';
+import { Badge } from '@/components/ui/badge';
 import { formatDurationSec, cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { computeRebuiltMetrics, formatScoreRange } from '@/lib/analytics';
@@ -98,6 +100,7 @@ interface AnalysisFilters {
 
 export default function AdvancedAnalysis() {
   const { user, loading: authLoading } = useSupabase();
+  const { isSuperAdmin, loading: adminLoading } = useAdmin();
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
   const [teamStats, setTeamStats] = useState<TeamStats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -108,6 +111,12 @@ export default function AdvancedAnalysis() {
   const [availableTeams, setAvailableTeams] = useState<Array<{ team_number: number, team_name: string }>>([]);
   const [teamsLoading, setTeamsLoading] = useState(true);
   const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF (Show all data for active competition)
+  const [scoutingRowsForAi, setScoutingRowsForAi] = useState<Array<{ comments?: string | null }>>([]);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [summarizeError, setSummarizeError] = useState<string | null>(null);
+  const summarizeInFlightRef = useRef(false);
+  const superAdminAutoSummarizeRef = useRef(false);
 
   // Load available teams from Supabase
   useEffect(() => {
@@ -139,11 +148,44 @@ export default function AdvancedAnalysis() {
     }
   }, [user, teamDataOnly]);
 
+  const handleAiSummarize = useCallback(async (rows: Array<{ comments?: string | null }>) => {
+    const comments = rows.map(r => r.comments).filter((c): c is string => Boolean(c?.trim()));
+    if (!comments.length || summarizeInFlightRef.current) return;
+
+    summarizeInFlightRef.current = true;
+    setIsSummarizing(true);
+    setSummarizeError(null);
+
+    try {
+      const response = await fetch('/api/summarize-comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comments }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to generate summary');
+      }
+      const { summary } = await response.json();
+      setAiSummary(summary);
+    } catch (err: unknown) {
+      console.error('AI summarization failed:', err);
+      setSummarizeError(err instanceof Error ? err.message : 'Summary unavailable');
+    } finally {
+      summarizeInFlightRef.current = false;
+      setIsSummarizing(false);
+    }
+  }, []);
+
   const handleTeamSearch = async () => {
     if (!selectedTeam) return;
 
     setLoading(true);
     setError(null);
+    setScoutingRowsForAi([]);
+    setAiSummary(null);
+    setSummarizeError(null);
+    superAdminAutoSummarizeRef.current = false;
 
     try {
       // Fetch team data
@@ -204,8 +246,11 @@ export default function AdvancedAnalysis() {
       if (!scoutingData || scoutingData.length === 0) {
         setError('No scouting data available for this team');
         setTeamStats(null);
+        setScoutingRowsForAi([]);
         return;
       }
+
+      setScoutingRowsForAi(scoutingData);
 
       // Calculate advanced statistics
       const totalMatches = scoutingData.length;
@@ -289,10 +334,31 @@ export default function AdvancedAnalysis() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch team data');
       setTeamStats(null);
+      setScoutingRowsForAi([]);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    superAdminAutoSummarizeRef.current = false;
+  }, [selectedTeam]);
+
+  useEffect(() => {
+    if (!isSuperAdmin || adminLoading || authLoading || !teamStats || loading) return;
+    if (superAdminAutoSummarizeRef.current) return;
+    if (!scoutingRowsForAi.some(r => r.comments?.trim())) return;
+    superAdminAutoSummarizeRef.current = true;
+    void handleAiSummarize(scoutingRowsForAi);
+  }, [
+    isSuperAdmin,
+    adminLoading,
+    authLoading,
+    teamStats,
+    loading,
+    scoutingRowsForAi,
+    handleAiSummarize,
+  ]);
 
   const exportData = () => {
     if (!teamStats) return;
@@ -519,6 +585,57 @@ export default function AdvancedAnalysis() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="space-y-6"
             >
+              {isSuperAdmin && (
+                <Card className="bg-amber-500/[0.06] border-amber-500/25">
+                  <CardHeader className="pb-2">
+                    <CardTitle className={`flex items-center gap-2 text-sm ${isDarkMode ? 'text-amber-400' : 'text-amber-700'}`}>
+                      <Shield className="w-5 h-5 shrink-0" />
+                      Superadmin — comment intelligence (Gemini)
+                    </CardTitle>
+                    <CardDescription className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                      Runs automatically after you analyze a team with scouting comments. Same engine as Team Details.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {aiSummary ? (
+                      <p className={`text-sm leading-relaxed italic ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                        &ldquo;{aiSummary}&rdquo;
+                      </p>
+                    ) : isSummarizing ? (
+                      <div className="flex items-center gap-2 text-amber-500">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span className="text-sm">Summarizing comments…</span>
+                      </div>
+                    ) : summarizeError ? (
+                      <div className="space-y-2">
+                        <p className="text-sm text-red-400">{summarizeError}</p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleAiSummarize(scoutingRowsForAi)}
+                          disabled={!scoutingRowsForAi.length}
+                        >
+                          Retry
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
+                        No qualitative comments in this dataset, or summary not started yet.
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between pt-2 border-t border-amber-500/20">
+                      <span className="text-[10px] uppercase tracking-widest text-amber-600/80">
+                        {aiSummary ? 'Gemini AI summary' : 'Ready'}
+                      </span>
+                      <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-600">
+                        Superadmin
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="bg-card border-border">

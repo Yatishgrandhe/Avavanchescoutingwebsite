@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent, Switch } from '../../components/ui';
@@ -29,7 +29,8 @@ import {
   XCircle,
   ChevronRight,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Loader2,
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -93,7 +94,7 @@ interface DataAnalysisProps { }
 
 const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const { supabase, user } = useSupabase();
-  const { isAdmin, canAccessStats, loading: adminLoading } = useAdmin();
+  const { isAdmin, isSuperAdmin, canAccessStats, loading: adminLoading } = useAdmin();
   const [scoutingData, setScoutingData] = useState<ScoutingData[]>([]);
   const [teams, setTeams] = useState<Team[]>([]); // For filter dropdown (excludes Avalanche)
   const [allTeams, setAllTeams] = useState<Team[]>([]); // All teams for name lookups
@@ -123,6 +124,64 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [activeEventKey, setActiveEventKey] = useState<string>('');
   const [activeEventName, setActiveEventName] = useState<string>('');
   const [teamDataOnly, setTeamDataOnly] = useState(false); // Default to OFF (show all data for active competition)
+  const [dataPageAiSummary, setDataPageAiSummary] = useState<string | null>(null);
+  const [dataPageAiLoading, setDataPageAiLoading] = useState(false);
+  const [dataPageAiError, setDataPageAiError] = useState<string | null>(null);
+  const dataPageSummarizeOnceRef = useRef(false);
+  const dataPageSummarizeInFlightRef = useRef(false);
+
+  const rowsForDataPageAi = useMemo(() => {
+    if (selectedTeam == null) return [];
+    return scoutingData.filter(d => d.team_number === selectedTeam);
+  }, [scoutingData, selectedTeam]);
+
+  const runDataPageAiSummarize = useCallback(async (rows: ScoutingData[]) => {
+    const comments = rows.map(d => d.comments).filter((c): c is string => Boolean(c?.trim()));
+    if (!comments.length || dataPageSummarizeInFlightRef.current) return;
+    dataPageSummarizeInFlightRef.current = true;
+    setDataPageAiLoading(true);
+    setDataPageAiError(null);
+    try {
+      const response = await fetch('/api/summarize-comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comments }),
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Summary failed');
+      }
+      const { summary } = await response.json();
+      setDataPageAiSummary(summary);
+    } catch (e: unknown) {
+      setDataPageAiError(e instanceof Error ? e.message : 'Summary unavailable');
+    } finally {
+      dataPageSummarizeInFlightRef.current = false;
+      setDataPageAiLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    dataPageSummarizeOnceRef.current = false;
+    setDataPageAiSummary(null);
+    setDataPageAiError(null);
+  }, [selectedTeam, activeEventKey]);
+
+  useEffect(() => {
+    if (!isSuperAdmin || adminLoading || loading || viewMode !== 'individual' || selectedTeam == null) return;
+    if (dataPageSummarizeOnceRef.current) return;
+    if (!rowsForDataPageAi.some(d => d.comments?.trim())) return;
+    dataPageSummarizeOnceRef.current = true;
+    void runDataPageAiSummarize(rowsForDataPageAi);
+  }, [
+    isSuperAdmin,
+    adminLoading,
+    loading,
+    viewMode,
+    selectedTeam,
+    rowsForDataPageAi,
+    runDataPageAiSummarize,
+  ]);
 
   useEffect(() => {
     loadData();
@@ -1046,6 +1105,40 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                 ) : (
                   // Individual Forms View
                   <div className="space-y-4">
+                    {isSuperAdmin && selectedTeam != null && (
+                      <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4 space-y-2">
+                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-500">
+                          <Shield className="w-4 h-4" />
+                          Superadmin — Gemini comment summary
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          Auto-runs for team #{selectedTeam} when comments exist. Filter the team dropdown above, then open Individual Forms.
+                        </p>
+                        {dataPageAiSummary ? (
+                          <p className="text-sm text-foreground/90 italic leading-relaxed">&ldquo;{dataPageAiSummary}&rdquo;</p>
+                        ) : dataPageAiLoading ? (
+                          <div className="flex items-center gap-2 text-amber-500 text-sm">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Summarizing…
+                          </div>
+                        ) : dataPageAiError ? (
+                          <div className="space-y-2">
+                            <p className="text-sm text-red-400">{dataPageAiError}</p>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => void runDataPageAiSummarize(rowsForDataPageAi)}
+                              disabled={!rowsForDataPageAi.some(d => d.comments?.trim())}
+                            >
+                              Retry
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">No comments for this team in the current event data.</p>
+                        )}
+                      </div>
+                    )}
                     {/* Mobile Card View for Individual Forms */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:hidden gap-4">
                       {sortedData.map((data, index) => (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -479,35 +479,58 @@ const TeamDetail: React.FC = () => {
     </CompetitionDataLayout>
   );
 
-  const handleAiSummarize = async () => {
-    if (!scoutingData.length || isSummarizing) return;
-    
+  const summarizeInFlightRef = useRef(false);
+
+  const handleAiSummarize = useCallback(async () => {
+    if (!scoutingData.length || summarizeInFlightRef.current) return;
+
+    summarizeInFlightRef.current = true;
     setIsSummarizing(true);
     setSummarizeError(null);
-    
+
     try {
       const comments = scoutingData.map(d => d.comments).filter(c => c && c.trim()) as string[];
-      
+
       const response = await fetch('/api/summarize-comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ comments })
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to generate intelligence');
       }
-      
+
       const { summary } = await response.json();
       setAiSummary(summary);
     } catch (err: any) {
       console.error('AI Summarization failed:', err);
       setSummarizeError(err.message || 'The intelligence engine is currently offline.');
     } finally {
+      summarizeInFlightRef.current = false;
       setIsSummarizing(false);
     }
-  };
+  }, [scoutingData]);
+
+  const superAdminAutoSummarizeRef = useRef(false);
+
+  useEffect(() => {
+    superAdminAutoSummarizeRef.current = false;
+  }, [
+    team?.team_number,
+    router.query.competition_id,
+    router.query.event_key,
+  ]);
+
+  useEffect(() => {
+    if (!isSuperAdmin || adminLoading || loading || !team) return;
+    if (superAdminAutoSummarizeRef.current) return;
+    const hasComments = scoutingData.some(d => d.comments?.trim());
+    if (!hasComments) return;
+    superAdminAutoSummarizeRef.current = true;
+    void handleAiSummarize();
+  }, [isSuperAdmin, adminLoading, loading, team, scoutingData, handleAiSummarize]);
 
   if (loading || adminLoading) {
     const spinner = (
@@ -711,7 +734,7 @@ const TeamDetail: React.FC = () => {
                             )}
                             <div className="mt-auto pt-3 flex items-center justify-between border-t border-amber-500/10">
                               <span className="text-[8px] text-amber-500 font-bold uppercase tracking-widest">
-                                {aiSummary ? 'Gemini 1.5 Flash Precision' : 'Aggregated Natural Intelligence'}
+                                {aiSummary ? 'Gemini AI summary' : 'Aggregated Natural Intelligence'}
                               </span>
                               <Badge variant="outline" className={cn(
                                 "text-[8px] font-black tracking-tighter",

@@ -1,5 +1,99 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Default order: models that typically still have free-tier quota when 2.0-flash shows limit 0. */
+const DEFAULT_MODEL_CHAIN = [
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash-8b',
+  'gemini-1.5-flash',
+];
+
+function parseRetryDelayMs(message: string): number {
+  const m = /retry in ([\d.]+)\s*s/i.exec(message);
+  if (!m) return 0;
+  const sec = parseFloat(m[1]);
+  if (!Number.isFinite(sec) || sec < 0) return 0;
+  return Math.min(30_000, Math.ceil(sec * 1000) + 500);
+}
+
+function isQuotaOrModelUnavailable(status: number, errorData: unknown): boolean {
+  if (status === 429 || status === 503) return true;
+  const msg = String((errorData as { error?: { message?: string } })?.error?.message ?? '').toLowerCase();
+  return (
+    msg.includes('quota') ||
+    msg.includes('rate limit') ||
+    msg.includes('resource exhausted') ||
+    msg.includes('limit: 0') ||
+    msg.includes('too many requests') ||
+    msg.includes('not found') ||
+    msg.includes('not supported for generatecontent')
+  );
+}
+
+function buildModelChain(): string[] {
+  const primary = process.env.GEMINI_MODEL?.trim();
+  const extras = (process.env.GEMINI_MODEL_FALLBACKS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const add = (m: string) => {
+    if (!m || seen.has(m)) return;
+    seen.add(m);
+    out.push(m);
+  };
+  if (primary) add(primary);
+  extras.forEach(add);
+  DEFAULT_MODEL_CHAIN.forEach(add);
+  return out;
+}
+
+type GeminiErrorBody = { error?: { message?: string; code?: number; status?: string } };
+
+async function callGenerateContent(
+  apiKey: string,
+  apiVersion: string,
+  modelId: string,
+  requestBody: Record<string, unknown>
+): Promise<{ ok: true; data: unknown } | { ok: false; status: number; errorData: GeminiErrorBody }> {
+  const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelId}:generateContent?key=${apiKey}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    let errorData: GeminiErrorBody = {};
+    try {
+      errorData = (await response.json()) as GeminiErrorBody;
+    } catch {
+      const text = await response.text();
+      errorData = { error: { message: text || response.statusText } };
+    }
+    return { ok: false, status: response.status, errorData };
+  }
+
+  const data = await response.json();
+  return { ok: true, data };
+}
+
+function extractSummary(data: unknown): string | null {
+  const d = data as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> }; finishReason?: string }>;
+    promptFeedback?: { blockReason?: string };
+  };
+  if (d.promptFeedback?.blockReason) {
+    return null;
+  }
+  const text = d.candidates?.[0]?.content?.parts?.[0]?.text;
+  return typeof text === 'string' && text.trim() ? text.trim() : null;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
@@ -12,27 +106,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    // Return a clear error so the UI can handle it (e.g. show "Not configured")
     return res.status(500).json({ message: 'GEMINI_API_KEY not configured in Vercel' });
   }
 
-  // Filter out empty or too short comments to save tokens and improve quality
   const validComments = comments
-    .map(c => c?.trim())
-    .filter(c => c && c.length > 3);
+    .map((c: unknown) => (typeof c === 'string' ? c.trim() : ''))
+    .filter((c: string) => c.length > 3);
 
   if (validComments.length === 0) {
-    return res.status(200).json({ summary: "No qualitative match reports available to summarize." });
+    return res.status(200).json({ summary: 'No qualitative match reports available to summarize.' });
   }
 
-  // Google AI Studio: many Flash models are exposed on v1beta; bare `gemini-1.5-flash` on v1 is often unavailable.
-  // Override with GEMINI_MODEL / GEMINI_API_VERSION if your project lists different IDs (ListModels).
   const apiVersion = process.env.GEMINI_API_VERSION || 'v1beta';
-  const modelId = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-  const endpoint = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelId}:generateContent`;
+  const models = buildModelChain();
 
-  try {
-    const prompt = `You are a professional FRC (First Robotics Competition) strategy analyst and lead scout. 
+  const prompt = `You are a professional FRC (First Robotics Competition) strategy analyst and lead scout. 
     Review these raw scouting notes from multiple matches and provide a high-level, ONE-PARA GRAPH strategic summary (max 3-4 sentences total).
     
     Focus on:
@@ -46,34 +134,69 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     Your summary should be objective, professional, and actionable for an alliance selection captain.`;
 
-    const response = await fetch(`${endpoint}?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: prompt }]
-        }]
-      })
-    });
+  const requestBody = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      maxOutputTokens: 512,
+      temperature: 0.35,
+    },
+  };
 
-    if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Gemini API Error Response:', errorData);
-        throw new Error(errorData.error?.message || 'Failed to call Gemini API');
+  const errors: string[] = [];
+
+  for (let i = 0; i < models.length; i++) {
+    const modelId = models[i];
+    const result = await callGenerateContent(apiKey, apiVersion, modelId, requestBody);
+
+    if (result.ok) {
+      const summary = extractSummary(result.data);
+      if (summary) {
+        return res.status(200).json({
+          summary,
+          modelUsed: modelId,
+        });
+      }
+      errors.push(`${modelId}: empty or blocked response`);
+      continue;
     }
 
-    const data = await response.json();
-    const summary = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const msg = result.errorData.error?.message || `HTTP ${result.status}`;
+    errors.push(`${modelId}: ${msg}`);
 
-    if (!summary) {
-      throw new Error('No summary generated in the response');
+    if (result.status === 400 || result.status === 401 || result.status === 403) {
+      return res.status(result.status).json({
+        message: msg,
+        code: 'GEMINI_AUTH_OR_BAD_REQUEST',
+      });
     }
 
-    res.status(200).json({ summary: summary.trim() });
-  } catch (error: any) {
-    console.error('Summarize API Error:', error);
-    res.status(500).json({ message: error.message || 'Error generating summary' });
+    if (!isQuotaOrModelUnavailable(result.status, result.errorData)) {
+      return res.status(500).json({
+        message: msg,
+        code: 'GEMINI_ERROR',
+        modelTried: modelId,
+      });
+    }
+
+    if (i < models.length - 1) {
+      const waitMs = parseRetryDelayMs(msg);
+      if (waitMs > 0) {
+        await sleep(waitMs);
+      }
+    }
   }
+
+  const combined = errors.join(' | ');
+  const retryAfterMs = parseRetryDelayMs(combined);
+  const payload = {
+    message:
+      'Gemini could not summarize (quota, rate limit, or no working model). ' +
+      'Try again shortly, enable billing on your Google AI project, or set GEMINI_MODEL / GEMINI_MODEL_FALLBACKS to a model your plan supports. ' +
+      `Details: ${combined.slice(0, 1200)}`,
+    code: 'GEMINI_UNAVAILABLE' as const,
+    retryAfterSeconds: retryAfterMs > 0 ? Math.ceil(retryAfterMs / 1000) : undefined,
+    modelsTried: models,
+  };
+
+  return res.status(429).json(payload);
 }

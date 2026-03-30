@@ -148,8 +148,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         body: JSON.stringify({ comments }),
       });
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.message || 'Summary failed');
+        const err = await response.json().catch(() => ({}));
+        let msg = err.message || 'Summary failed';
+        if (err.retryAfterSeconds) {
+          msg += ` Try again in ~${err.retryAfterSeconds}s.`;
+        }
+        throw new Error(msg);
       }
       const { summary } = await response.json();
       setDataPageAiSummary(summary);

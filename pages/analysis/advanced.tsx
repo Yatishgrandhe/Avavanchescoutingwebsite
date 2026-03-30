@@ -163,8 +163,12 @@ export default function AdvancedAnalysis() {
         body: JSON.stringify({ comments }),
       });
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to generate summary');
+        const error = await response.json().catch(() => ({}));
+        let msg = error.message || 'Failed to generate summary';
+        if (error.retryAfterSeconds) {
+          msg += ` Try again in ~${error.retryAfterSeconds}s.`;
+        }
+        throw new Error(msg);
       }
       const { summary } = await response.json();
       setAiSummary(summary);

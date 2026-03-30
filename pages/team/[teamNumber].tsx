@@ -498,8 +498,12 @@ const TeamDetail: React.FC = () => {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to generate intelligence');
+        const error = await response.json().catch(() => ({}));
+        let msg = error.message || 'Failed to generate intelligence';
+        if (error.retryAfterSeconds) {
+          msg += ` Try again in ~${error.retryAfterSeconds}s.`;
+        }
+        throw new Error(msg);
       }
 
       const { summary } = await response.json();

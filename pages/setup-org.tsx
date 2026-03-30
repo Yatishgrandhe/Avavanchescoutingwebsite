@@ -16,6 +16,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { formatInviteExpiryLabel } from '@/lib/invite-config';
 
 export default function SetupOrg() {
   const { user, supabase } = useSupabase();
@@ -27,6 +28,15 @@ export default function SetupOrg() {
   const [teamNumber, setTeamNumber] = useState('');
   const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [inviteRow, setInviteRow] = useState<{ invite_type?: string; target_organization_id?: string | null } | null>(null);
+  const [invitePreview, setInvitePreview] = useState<{
+    valid?: boolean;
+    reason?: string;
+    invite_type?: string;
+    expires_at?: string;
+    organization_name?: string | null;
+    unlimited_uses?: boolean;
+    redemption_count?: number;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const joinAttemptedRef = useRef(false);
 
@@ -39,6 +49,10 @@ export default function SetupOrg() {
     }
     setInviteToken(token);
     checkToken(token);
+    void fetch(`/api/invite-preview?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((j) => setInvitePreview(j))
+      .catch(() => setInvitePreview(null));
   }, []);
 
   const checkToken = async (token: string) => {
@@ -182,7 +196,11 @@ export default function SetupOrg() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-3 p-6">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground text-center">Adding you to the organization…</p>
+        <p className="text-sm text-muted-foreground text-center">
+          Adding you
+          {invitePreview?.organization_name ? ` to ${invitePreview.organization_name}` : ' to the organization'}
+          …
+        </p>
       </div>
     );
   }
@@ -225,6 +243,18 @@ export default function SetupOrg() {
             <h1 className="text-3xl font-heading font-bold">Setup Your Organization</h1>
             <p className="text-muted-foreground mt-2">Create a workspace for your team to start scouting.</p>
           </div>
+
+          {invitePreview?.valid && invitePreview.invite_type === 'new_org' && (
+            <div className="mb-4 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-left text-sm">
+              <p className="font-medium text-foreground">New organization invite</p>
+              <ul className="mt-2 list-disc list-inside text-xs text-muted-foreground space-y-1">
+                <li>Single use: one team completes setup with this link.</li>
+                <li>
+                  Active until {formatInviteExpiryLabel(invitePreview.expires_at)} (local time).
+                </li>
+              </ul>
+            </div>
+          )}
 
           <Card className="glass border-white/10 shadow-2xl">
             <CardContent className="pt-6">

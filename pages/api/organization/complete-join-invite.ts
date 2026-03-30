@@ -48,8 +48,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+  if (invite.expires_at && new Date(invite.expires_at as string) < new Date()) {
     res.status(400).json({ error: 'Invite has expired' });
+    return;
+  }
+
+  const maxRedemptions = invite.max_redemptions as number | null | undefined;
+  const currentCount = (invite.redemption_count as number) ?? 0;
+  if (maxRedemptions != null && currentCount >= maxRedemptions) {
+    res.status(400).json({ error: 'This invite has reached its maximum number of uses' });
     return;
   }
 
@@ -82,14 +89,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
+  const newCount = currentCount + 1;
+  const exhausted = maxRedemptions != null && newCount >= maxRedemptions;
+
   await supabaseAdmin
     .from('organization_invites')
     .update({
-      status: 'used',
+      redemption_count: newCount,
       used_at: new Date().toISOString(),
       used_by: user.id,
+      ...(exhausted ? { status: 'used' as const } : {}),
     })
     .eq('id', invite.id);
 
-  res.status(200).json({ ok: true, organization_id: orgId });
+  res.status(200).json({ ok: true, organization_id: orgId, redemption_count: newCount });
 }

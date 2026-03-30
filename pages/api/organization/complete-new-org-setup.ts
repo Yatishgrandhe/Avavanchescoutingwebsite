@@ -151,6 +151,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         status: 'used',
         used_at: new Date().toISOString(),
         used_by: user.id,
+        redemption_count: 1,
       })
       .eq('id', invite.id);
 

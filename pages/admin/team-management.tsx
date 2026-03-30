@@ -37,7 +37,22 @@ import {
   Label,
   Badge,
 } from '@/components/ui';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import {
+  DEFAULT_STUDENT_JOIN_EXPIRY_DAYS,
+  INVITE_EXPIRY_DAY_OPTIONS,
+  expiryIsoFromDays,
+  formatInviteExpiryLabel,
+  formatRedemptionSummary,
+  isInvitePastExpiry,
+} from '@/lib/invite-config';
 import { toast } from 'sonner';
 
 export default function TeamManagementPage() {
@@ -77,6 +92,7 @@ export default function TeamManagementPage() {
   const [invites, setInvites] = useState<any[]>([]);
   const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [joinInviteExpiryDays, setJoinInviteExpiryDays] = useState<number>(DEFAULT_STUDENT_JOIN_EXPIRY_DAYS);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,7 +148,7 @@ export default function TeamManagementPage() {
       .eq('target_organization_id', user.organization_id)
       .eq('invite_type', 'join_org')
       .order('created_at', { ascending: false })
-      .limit(5);
+      .limit(25);
     
     if (!error && data) {
       setInvites(data);
@@ -154,7 +170,9 @@ export default function TeamManagementPage() {
           invite_type: 'join_org',
           target_organization_id: user.organization_id,
           created_by: user?.id,
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          expires_at: expiryIsoFromDays(joinInviteExpiryDays),
+          max_redemptions: null,
+          redemption_count: 0,
         })
         .select()
         .single();
@@ -967,10 +985,28 @@ export default function TeamManagementPage() {
                     Join invites
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Share a link so new members can join this organization in Discord.
+                    Share one link with as many students as you need until it expires. Each person signs in with Discord once; the link stays valid for the whole class period you choose.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 pt-5">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Link valid for</Label>
+                    <Select
+                      value={String(joinInviteExpiryDays)}
+                      onValueChange={(v) => setJoinInviteExpiryDays(Number(v))}
+                    >
+                      <SelectTrigger className="w-full min-h-10">
+                        <SelectValue placeholder="Duration" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INVITE_EXPIRY_DAY_OPTIONS.map((d) => (
+                          <SelectItem key={d} value={String(d)}>
+                            {d} days
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Button
                     type="button"
                     onClick={generateJoinInvite}
@@ -987,7 +1023,11 @@ export default function TeamManagementPage() {
                   </Button>
 
                   <div className="space-y-2">
-                    {invites.map((invite) => (
+                    {invites.map((invite) => {
+                      const expired =
+                        invite.status === 'pending' && isInvitePastExpiry(invite.expires_at);
+                      const canCopy = invite.status === 'pending' && !expired;
+                      return (
                       <div
                         key={invite.id}
                         className="rounded-lg border border-border/60 bg-muted/10 p-3 space-y-2"
@@ -1000,15 +1040,30 @@ export default function TeamManagementPage() {
                             variant="outline"
                             className={cn(
                               'shrink-0 text-[10px] capitalize border-0',
-                              invite.status === 'pending'
+                              expired
+                                ? 'bg-red-500/15 text-red-200'
+                                : invite.status === 'pending'
                                 ? 'bg-amber-500/15 text-amber-200'
                                 : 'bg-emerald-500/15 text-emerald-200'
                             )}
                           >
-                            {invite.status}
+                            {expired ? 'expired' : invite.status}
                           </Badge>
                         </div>
-                        {invite.status === 'pending' && (
+                        <div className="text-[10px] text-muted-foreground space-y-0.5">
+                          <p className="flex items-center gap-1">
+                            <Clock className="h-3 w-3 shrink-0" aria-hidden />
+                            Until {formatInviteExpiryLabel(invite.expires_at)}
+                          </p>
+                          <p className="text-foreground/90">
+                            {formatRedemptionSummary(
+                              invite.redemption_count,
+                              invite.max_redemptions,
+                              invite.invite_type
+                            )}
+                          </p>
+                        </div>
+                        {canCopy && (
                           <Button
                             type="button"
                             variant="outline"
@@ -1024,8 +1079,12 @@ export default function TeamManagementPage() {
                             {copiedToken === invite.token ? 'Copied' : 'Copy invite link'}
                           </Button>
                         )}
+                        {expired && (
+                          <p className="text-[10px] text-red-400/90">Generate a new link to invite more students.</p>
+                        )}
                       </div>
-                    ))}
+                    );
+                    })}
                     {invites.length === 0 && (
                       <p className="text-center text-xs text-muted-foreground py-4">No invites yet.</p>
                     )}

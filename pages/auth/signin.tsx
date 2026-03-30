@@ -23,6 +23,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { pickAuthReturnPath, storeAuthReturnPath } from '@/lib/auth-return';
 import { useSupabase } from '@/pages/_app';
+import { formatInviteExpiryLabel } from '@/lib/invite-config';
 
 // Avalanche animation background
 const AvalancheBackground = () => {
@@ -87,7 +88,34 @@ export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [inviteBanner, setInviteBanner] = useState<{
+    valid?: boolean;
+    reason?: string;
+    invite_type?: string;
+    expires_at?: string;
+    organization_name?: string | null;
+    unlimited_uses?: boolean;
+  } | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const t = typeof router.query.token === 'string' ? router.query.token : null;
+    if (!t) {
+      setInviteBanner(null);
+      return;
+    }
+    void fetch(`/api/invite-preview?token=${encodeURIComponent(t)}`)
+      .then(async (r) => {
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          setInviteBanner({ valid: false, reason: 'not_found' });
+          return;
+        }
+        setInviteBanner(j);
+      })
+      .catch(() => setInviteBanner(null));
+  }, [router.isReady, router.query.token]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -251,6 +279,43 @@ export default function SignIn() {
 
       {/* Main Content */}
       <div className="relative z-10 w-full max-w-md px-6">
+        {inviteBanner?.valid && (
+          <div className="mb-4 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-left">
+            {inviteBanner.invite_type === 'join_org' ? (
+              <>
+                <p className="font-semibold text-foreground">
+                  Join {inviteBanner.organization_name ?? 'your organization'}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {inviteBanner.unlimited_uses
+                    ? 'Shareable link — as many classmates as needed until the date below.'
+                    : 'Limited-use invite.'}{' '}
+                  Active until {formatInviteExpiryLabel(inviteBanner.expires_at)}.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-semibold text-foreground">New organization setup</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Single-use link for one team lead. Expires {formatInviteExpiryLabel(inviteBanner.expires_at)}.
+                </p>
+              </>
+            )}
+          </div>
+        )}
+        {inviteBanner && inviteBanner.valid === false && (
+          <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            This invite cannot be used (
+            {inviteBanner.reason === 'expired'
+              ? 'expired'
+              : inviteBanner.reason === 'already_used'
+                ? 'already used'
+                : inviteBanner.reason === 'not_found'
+                  ? 'not found'
+                  : 'inactive'}
+            ). Ask your coach for a new link.
+          </div>
+        )}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}

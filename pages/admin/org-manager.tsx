@@ -28,8 +28,24 @@ import {
   CardContent, 
   Button, 
   Input, 
-  Badge 
+  Badge,
+  Label,
 } from '@/components/ui';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  DEFAULT_NEW_ORG_INVITE_EXPIRY_DAYS,
+  INVITE_EXPIRY_DAY_OPTIONS,
+  expiryIsoFromDays,
+  formatInviteExpiryLabel,
+  formatRedemptionSummary,
+  isInvitePastExpiry,
+} from '@/lib/invite-config';
 import { useToast } from '@/hooks/use-toast';
 import Head from 'next/head';
 
@@ -45,8 +61,11 @@ interface Invite {
   status: 'pending' | 'used' | 'expired';
   created_at: string;
   used_at?: string;
+  expires_at?: string | null;
   invite_type?: string;
   target_organization_id?: string | null;
+  redemption_count?: number | null;
+  max_redemptions?: number | null;
 }
 
 export default function OrgManager() {
@@ -59,6 +78,7 @@ export default function OrgManager() {
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
   const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [newOrgInviteExpiryDays, setNewOrgInviteExpiryDays] = useState<number>(DEFAULT_NEW_ORG_INVITE_EXPIRY_DAYS);
 
   useEffect(() => {
     if (user) {
@@ -71,7 +91,7 @@ export default function OrgManager() {
     try {
       const [orgsRes, invitesRes] = await Promise.all([
         supabase.from('organizations').select('*').order('created_at', { ascending: false }),
-        supabase.from('organization_invites').select('*').order('created_at', { ascending: false }).limit(10)
+        supabase.from('organization_invites').select('*').order('created_at', { ascending: false }).limit(25)
       ]);
 
       if (orgsRes.error) throw orgsRes.error;
@@ -132,7 +152,9 @@ export default function OrgManager() {
           token,
           invite_type: 'new_org',
           created_by: user?.id,
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+          expires_at: expiryIsoFromDays(newOrgInviteExpiryDays),
+          max_redemptions: 1,
+          redemption_count: 0,
         })
         .select()
         .single();
@@ -252,12 +274,30 @@ export default function OrgManager() {
                     <LinkIcon className="w-5 h-5 text-primary" />
                     Invite Team
                   </CardTitle>
-                  <CardDescription>Generate a login bypass link for other orgs</CardDescription>
+                  <CardDescription>New organization setup link (single use, then expires)</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Generating a link allows a team lead to bypass the Avalanche Discord filter and set up their own organization.
+                    One team lead uses the link to create their org and bypass the Discord guild check. The link stops working after that setup or when the expiry date passes—whichever comes first.
                   </p>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Link stays valid for</Label>
+                    <Select
+                      value={String(newOrgInviteExpiryDays)}
+                      onValueChange={(v) => setNewOrgInviteExpiryDays(Number(v))}
+                    >
+                      <SelectTrigger className="glass-input border-white/10 w-full">
+                        <SelectValue placeholder="Expiry" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INVITE_EXPIRY_DAY_OPTIONS.map((d) => (
+                          <SelectItem key={d} value={String(d)}>
+                            {d} days
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                     <Button 
                       onClick={generateInvite} 
                       className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 brightness-110 active:scale-95 transition-all" 
@@ -282,7 +322,7 @@ export default function OrgManager() {
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <div>
                     <CardTitle className="text-lg">Recent Invite Links</CardTitle>
-                    <CardDescription>Bypass links generated in the last 7 days</CardDescription>
+                    <CardDescription>Expiry, uses, and status for each link</CardDescription>
                   </div>
                   <Button variant="ghost" size="sm" onClick={loadData} className="h-8">
                     Refresh
@@ -295,7 +335,11 @@ export default function OrgManager() {
                         No active invites found.
                       </div>
                     ) : (
-                      invites.map((invite) => (
+                      invites.map((invite) => {
+                        const expired =
+                          invite.status === 'pending' && isInvitePastExpiry(invite.expires_at);
+                        const canCopy = invite.status === 'pending' && !expired;
+                        return (
                         <div 
                           key={invite.id} 
                           className="flex items-center justify-between p-3 rounded-xl border border-white/5 bg-white/[0.03] group hover:bg-white/[0.05] transition-colors"
@@ -309,12 +353,13 @@ export default function OrgManager() {
                                 variant="outline" 
                                 className={cn(
                                   "text-[10px] uppercase h-4 px-1.5",
+                                  expired ? "text-red-400 border-red-500/20" :
                                   invite.status === 'pending' ? "text-yellow-400 border-yellow-500/20" : 
                                   invite.status === 'used' ? "text-green-400 border-green-500/20" : 
                                   "text-red-400 border-red-500/20"
                                 )}
                               >
-                                {invite.status}
+                                {expired ? 'expired' : invite.status}
                               </Badge>
                               {invite.invite_type && (
                                 <Badge variant="secondary" className="text-[9px] h-4 px-1">
@@ -326,10 +371,23 @@ export default function OrgManager() {
                               <Clock className="w-3 h-3" />
                               Created {new Date(invite.created_at).toLocaleDateString()}
                             </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              Expires {formatInviteExpiryLabel(invite.expires_at)}
+                              {invite.status === 'pending' && isInvitePastExpiry(invite.expires_at) ? (
+                                <span className="text-red-400 ml-1">(past date—deactivate or create a new link)</span>
+                              ) : null}
+                            </span>
+                            <span className="text-[10px] text-amber-200/80">
+                              {formatRedemptionSummary(
+                                invite.redemption_count,
+                                invite.max_redemptions,
+                                invite.invite_type
+                              )}
+                            </span>
                           </div>
                           
                           <div className="flex items-center gap-2">
-                            {invite.status === 'pending' && (
+                            {canCopy && (
                               <Button 
                                 size="sm" 
                                 variant="outline" 
@@ -351,7 +409,8 @@ export default function OrgManager() {
                             )}
                           </div>
                         </div>
-                      ))
+                      );
+                      })
                     )}
                   </div>
                 </CardContent>

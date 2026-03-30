@@ -22,6 +22,7 @@ import Logo from '../../components/ui/Logo';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { pickAuthReturnPath, storeAuthReturnPath } from '@/lib/auth-return';
+import { useSupabase } from '@/pages/_app';
 
 // Avalanche animation background
 const AvalancheBackground = () => {
@@ -82,6 +83,7 @@ const AvalancheBackground = () => {
 
 export default function SignIn() {
   const router = useRouter();
+  const { session, user: appUser, loading: authLoading } = useSupabase();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -109,36 +111,16 @@ export default function SignIn() {
     }
   }, []);
 
-  /** Already signed in with an org: do not force Discord again (unless completing an invite). */
+  /** Already signed in with an org: leave sign-in (uses same session state as the rest of the app). */
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (typeof window === 'undefined') return;
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('token')) return;
-
-      const { getSupabaseClient } = await import('@/lib/supabase');
-      const supabase = getSupabaseClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.user || cancelled) return;
-      if (localStorage.getItem('org_invite_token')) return;
-
-      const { data: prof } = await supabase
-        .from('users')
-        .select('organization_id')
-        .eq('id', session.user.id)
-        .maybeSingle();
-      if (!cancelled && prof?.organization_id) {
-        const target = pickAuthReturnPath(router.query.next, '/');
-        router.replace(target);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
+    if (!router.isReady || authLoading) return;
+    if (router.query.token) return;
+    if (typeof window !== 'undefined' && localStorage.getItem('org_invite_token')) return;
+    if (session?.user && appUser?.organization_id) {
+      const target = pickAuthReturnPath(router.query.next, '/');
+      router.replace(target);
+    }
+  }, [authLoading, router.isReady, session, appUser?.organization_id, router]);
 
   const notifyDiscordError = async (errorMessage: string, userInfo?: any) => {
     try {
@@ -229,6 +211,14 @@ export default function SignIn() {
       setIsLoading(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative overflow-hidden flex flex-col justify-center items-center">

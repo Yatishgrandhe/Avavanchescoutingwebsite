@@ -34,6 +34,8 @@ export default function App({ Component, pageProps }: AppProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchProfile = async (u: User | null) => {
       if (!u) {
         setUser(null);
@@ -69,7 +71,6 @@ export default function App({ Component, pageProps }: AppProps) {
         }
       }
 
-      // Re-read profile after ensure-profile so RLS-visible row wins (matches server truth).
       if (effective && u.id) {
         const { data: again } = await supabase
           .from('users')
@@ -104,35 +105,44 @@ export default function App({ Component, pageProps }: AppProps) {
       }
     };
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
+    /** Session + profile must finish before loading=false, or protected routes flash sign-in on refresh. */
+    const syncAuth = async (session: Session | null) => {
       setSession(session);
       const u = session?.user ?? null;
       setAuthUser(u);
-      fetchProfile(u).then(() => setLoading(false));
+      await fetchProfile(u);
+      if (!cancelled) {
+        setLoading(false);
+      }
+    };
+
+    void supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
+      if (!cancelled) {
+        void syncAuth(session);
+      }
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event: any, session: Session | null) => {
-      setSession(session);
-      const u = session?.user ?? null;
-      setAuthUser(u);
-      fetchProfile(u);
-      setLoading(false);
+    } = supabase.auth.onAuthStateChange((event: string, session: Session | null) => {
+      if (event === 'INITIAL_SESSION') {
+        return;
+      }
+      if (!cancelled) {
+        void syncAuth(session);
+      }
     });
 
-    // Handle refresh and resize
     const cleanup = handleRefreshResize();
 
     return () => {
+      cancelled = true;
       subscription.unsubscribe();
       if (cleanup) {
         cleanup();
       }
     };
-  }, [supabase.auth]);
+  }, [supabase]);
 
   return (
     <>

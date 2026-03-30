@@ -13,8 +13,9 @@ export const getSupabaseClient = () => {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
+        // Default browser storage is localStorage; survives refresh until sign-out or expiry.
         detectSessionInUrl: false, // we handle ?code= ourselves in /auth/callback to avoid race with exchangeCodeForSession
-        flowType: 'pkce'
+        flowType: 'pkce',
       },
       global: {
         headers: {

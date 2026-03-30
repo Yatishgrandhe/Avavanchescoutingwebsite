@@ -25,7 +25,11 @@ function stripForPastInsert<T extends Record<string, unknown>>(
   row: T,
   extra: Record<string, unknown>
 ): Record<string, unknown> {
-  const { id: _id, matches: _m, ...rest } = row as T & { id?: unknown; matches?: unknown };
+  const { id: _id, matches: _m, roster: _r, ...rest } = row as T & {
+    id?: unknown;
+    matches?: unknown;
+    roster?: unknown;
+  };
   return { ...rest, ...extra };
 }
 
@@ -164,11 +168,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await supabase.from('scouting_data').delete().in('id', scoutIds).eq('organization_id', orgId);
     }
 
-    // 4. Move Pit Scouting Data (org only — tied to this archive snapshot)
+    // 4. Move Pit Scouting Data — only rows linked to this event via event_team_roster (same scope as analysis pages)
     const { data: pitRecords } = await supabase
       .from('pit_scouting_data')
-      .select('*')
-      .eq('organization_id', orgId);
+      .select('*, roster:event_team_roster!inner(event_key)')
+      .eq('organization_id', orgId)
+      .eq('roster.event_key', effectiveEventKey);
 
     if (pitRecords && pitRecords.length > 0) {
       const pastPit = pitRecords.map((r) =>
@@ -213,11 +218,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await supabase.from('matches').delete().in('match_id', matchIds).eq('organization_id', orgId);
     }
 
-    // 6. Move Teams (snapshot for the competition)
-    const { data: teamRecords } = await supabase
-      .from('teams')
-      .select('*')
-      .eq('organization_id', orgId);
+    // 6. Move Teams — snapshot only teams registered for this event (roster), else derive from this event's matches
+    const { data: rosterRows } = await supabase
+      .from('event_team_roster')
+      .select('team_number')
+      .eq('organization_id', orgId)
+      .eq('event_key', effectiveEventKey);
+
+    let teamNumbersForEvent = (rosterRows || []).map((r) => r.team_number);
+
+    if (teamNumbersForEvent.length === 0 && matchRecords && matchRecords.length > 0) {
+      const fromMatches = new Set<number>();
+      for (const m of matchRecords) {
+        const row = m as { red_teams?: number[]; blue_teams?: number[] };
+        (row.red_teams || []).forEach((t) => fromMatches.add(t));
+        (row.blue_teams || []).forEach((t) => fromMatches.add(t));
+      }
+      teamNumbersForEvent = Array.from(fromMatches);
+    }
+
+    let teamQuery = supabase.from('teams').select('*').eq('organization_id', orgId);
+    if (teamNumbersForEvent.length > 0) {
+      teamQuery = teamQuery.in('team_number', teamNumbersForEvent);
+    } else {
+      // No roster/match-derived teams for this event — do not snapshot every team on the org
+      teamQuery = teamQuery.eq('team_number', -1);
+    }
+
+    const { data: teamRecords } = await teamQuery;
 
     if (teamRecords && teamRecords.length > 0) {
       const pastTeams = teamRecords.map((r) => ({
@@ -272,6 +300,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await supabase.from('matches').delete().eq('organization_id', orgId);
 
     await supabase.from('scout_names').delete().eq('organization_id', orgId);
+
+    await supabase.from('event_team_roster').delete().eq('organization_id', orgId);
 
     // 9. Clear all app_config for this org so nothing points at a stale competition
     await supabase.from('app_config').delete().eq('organization_id', orgId);

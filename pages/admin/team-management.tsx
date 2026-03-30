@@ -736,9 +736,10 @@ export default function TeamManagementPage() {
                         Archive competition
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        Uses the event key and name saved for your organization (or the dominant event from your match
-                        rows). Moves matches, match scouting, pit, pick lists, and a team snapshot into past records;
-                        clears saved event settings.
+                        Archives only this competition for your organization: the resolved event key (from Team
+                        Management or your loaded matches), match scouting and matches for that event, pit forms tied to
+                        that event, pick lists for that event, and a team snapshot from that event&apos;s roster. Clears
+                        live data and saved event settings.
                       </p>
                       <Button
                         type="button"

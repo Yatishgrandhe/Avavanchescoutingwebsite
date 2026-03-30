@@ -1113,7 +1113,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                       <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4 space-y-2">
                         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-500">
                           <Shield className="w-4 h-4" />
-                          Superadmin — Gemini comment summary
+                          Superadmin — Gemma 3 4B comment summary
                         </div>
                         <p className="text-[11px] text-muted-foreground">
                           Auto-runs for team #{selectedTeam} when comments exist. Filter the team dropdown above, then open Individual Forms.

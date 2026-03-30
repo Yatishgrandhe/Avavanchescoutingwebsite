@@ -2,8 +2,14 @@ import { NextApiRequest, NextApiResponse } from 'next';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Default order: models that typically still have free-tier quota when 2.0-flash shows limit 0. */
+/**
+ * Default order for scouting comment summaries.
+ * Primary: Gemma 3 4B (`gemma-3-4b-it`) — same Gemini API `generateContent` as other models;
+ * instruction-tuned, good for summarization and long context (128K). Falls back if quota/unavailable.
+ * Override with GEMINI_MODEL / GEMINI_MODEL_FALLBACKS.
+ */
 const DEFAULT_MODEL_CHAIN = [
+  'gemma-3-4b-it',
   'gemini-2.5-flash-lite',
   'gemini-2.5-flash',
   'gemini-2.0-flash',
@@ -190,7 +196,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const retryAfterMs = parseRetryDelayMs(combined);
   const payload = {
     message:
-      'Gemini could not summarize (quota, rate limit, or no working model). ' +
+      'The summarizer could not complete (quota, rate limit, or no working model). ' +
       'Try again shortly, enable billing on your Google AI project, or set GEMINI_MODEL / GEMINI_MODEL_FALLBACKS to a model your plan supports. ' +
       `Details: ${combined.slice(0, 1200)}`,
     code: 'GEMINI_UNAVAILABLE' as const,

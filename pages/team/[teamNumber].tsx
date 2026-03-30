@@ -117,8 +117,14 @@ const TeamDetail: React.FC = () => {
   const [activeTeamTab, setActiveTeamTab] = useState<string>('overview');
   
   const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [summaryModelUsed, setSummaryModelUsed] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [summarizeError, setSummarizeError] = useState<string | null>(null);
+
+  const summaryModelBadgeLabel = (model: string | null) => {
+    if (!model || model === 'gemma-3-4b-it' || model.startsWith('gemma-3-4b')) return 'Gemma 3 4B summary';
+    return 'AI summary (fallback)';
+  };
 
   useEffect(() => {
     if (!fullScreenImageUrl) return;
@@ -497,17 +503,17 @@ const TeamDetail: React.FC = () => {
         body: JSON.stringify({ comments })
       });
 
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        let msg = error.message || 'Failed to generate intelligence';
-        if (error.retryAfterSeconds) {
-          msg += ` Try again in ~${error.retryAfterSeconds}s.`;
+        let msg = data.message || 'Failed to generate intelligence';
+        if (data.retryAfterSeconds) {
+          msg += ` Try again in ~${data.retryAfterSeconds}s.`;
         }
         throw new Error(msg);
       }
 
-      const { summary } = await response.json();
-      setAiSummary(summary);
+      setAiSummary(typeof data.summary === 'string' ? data.summary : null);
+      setSummaryModelUsed(typeof data.modelUsed === 'string' ? data.modelUsed : null);
     } catch (err: any) {
       console.error('AI Summarization failed:', err);
       setSummarizeError(err.message || 'The intelligence engine is currently offline.');
@@ -521,6 +527,9 @@ const TeamDetail: React.FC = () => {
 
   useEffect(() => {
     superAdminAutoSummarizeRef.current = false;
+    setAiSummary(null);
+    setSummaryModelUsed(null);
+    setSummarizeError(null);
   }, [
     team?.team_number,
     router.query.competition_id,
@@ -738,7 +747,7 @@ const TeamDetail: React.FC = () => {
                             )}
                             <div className="mt-auto pt-3 flex items-center justify-between border-t border-amber-500/10">
                               <span className="text-[8px] text-amber-500 font-bold uppercase tracking-widest">
-                                {aiSummary ? 'Gemini AI summary' : 'Aggregated Natural Intelligence'}
+                                {aiSummary ? summaryModelBadgeLabel(summaryModelUsed) : 'Aggregated Natural Intelligence'}
                               </span>
                               <Badge variant="outline" className={cn(
                                 "text-[8px] font-black tracking-tighter",

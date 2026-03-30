@@ -16,10 +16,12 @@ import { Play, Square, Clock, Plus, List } from 'lucide-react';
 interface StopwatchBallTrackingProps {
   phaseLabel: string;
   phaseDescription: string;
-  initialData?: Partial<BallTrackingPhase> | null;
-  onComplete: (data: BallTrackingPhase) => void;
+  initialData?: RunRecord[] | null;
+  onComplete?: (runs: RunRecord[]) => void;
+  onRunsChange?: (runs: RunRecord[]) => void;
   onBack?: () => void;
   isDarkMode?: boolean;
+  hideNextButton?: boolean;
 }
 
 export default function StopwatchBallTracking({
@@ -27,10 +29,12 @@ export default function StopwatchBallTracking({
   phaseDescription,
   initialData,
   onComplete,
+  onRunsChange,
   onBack,
   isDarkMode = true,
+  hideNextButton = false,
 }: StopwatchBallTrackingProps) {
-  const [runs, setRuns] = useState<RunRecord[]>(() => initialData?.runs?.length ? [...initialData.runs] : []);
+  const [runs, setRuns] = useState<RunRecord[]>(() => initialData?.length ? [...initialData] : []);
   const [running, setRunning] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
@@ -64,12 +68,17 @@ export default function StopwatchBallTracking({
     if (selectedChoice == null || selectedChoice < 0 || selectedChoice >= BALL_CHOICE_OPTIONS.length) return;
     // New form saves 8 + option index so getBallChoiceLabel/Value use BALL_CHOICE_OPTIONS (not legacy).
     const ball_choice = LEGACY_BALL_CHOICE_OPTIONS.length + selectedChoice;
-    setRuns(prev => [...prev, { duration_sec: Math.round(pendingDurationSec * 1000) / 1000, ball_choice }]);
+    const newRun = { duration_sec: Math.round(pendingDurationSec * 1000) / 1000, ball_choice };
+    setRuns(prev => {
+      const next = [...prev, newRun];
+      onRunsChange?.(next);
+      return next;
+    });
     setElapsedMs(0);
     setPendingDurationSec(0);
     setSelectedChoice(null);
     setShowBallChoicePopup(false);
-  }, [pendingDurationSec, selectedChoice]);
+  }, [pendingDurationSec, selectedChoice, onRunsChange]);
 
   const handleClosePopup = useCallback(() => {
     setShowBallChoicePopup(false);
@@ -79,12 +88,21 @@ export default function StopwatchBallTracking({
   }, []);
 
   const handleRemoveRun = useCallback((index: number) => {
-    setRuns(prev => prev.filter((_, i) => i !== index));
-  }, []);
+    setRuns(prev => {
+      const next = prev.filter((_, i) => i !== index);
+      onRunsChange?.(next);
+      return next;
+    });
+  }, [onRunsChange]);
 
   const handleNext = useCallback(() => {
-    onComplete({ runs });
+    onComplete?.(runs);
   }, [runs, onComplete]);
+
+  const updateRunsInternal = useCallback((newRuns: RunRecord[]) => {
+    setRuns(newRuns);
+    onRunsChange?.(newRuns);
+  }, [onRunsChange]);
 
   const durationSec = running ? elapsedMs / 1000 : 0;
 
@@ -184,20 +202,22 @@ export default function StopwatchBallTracking({
         )}
 
         {/* Actions */}
-        <div className="flex justify-between pt-4">
-          {onBack && (
-            <Button type="button" variant="outline" onClick={onBack}>
-              Back
+        {!hideNextButton && (
+          <div className="flex justify-between pt-4">
+            {onBack && (
+              <Button type="button" variant="outline" onClick={onBack}>
+                Back
+              </Button>
+            )}
+            <Button
+              type="button"
+              onClick={handleNext}
+              className={onBack ? '' : 'ml-auto'}
+            >
+              Next
             </Button>
-          )}
-          <Button
-            type="button"
-            onClick={handleNext}
-            className={onBack ? '' : 'ml-auto'}
-          >
-            Next
-          </Button>
-        </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

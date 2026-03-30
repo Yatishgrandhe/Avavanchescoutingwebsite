@@ -15,7 +15,7 @@ interface ScoutingRunsBreakdownProps {
 }
 
 export function ScoutingRunsBreakdown({ notes, shuttleRow, className, compact }: ScoutingRunsBreakdownProps) {
-  const { auto, teleop, autoClimbPts, teleopClimbPts, estimatedTotal } = getRunsForDisplay(notes);
+  const { auto, teleop, shuttle, autoClimbPts, teleopClimbPts, estimatedTotal } = getRunsForDisplay(notes);
   const teleopMeta = parseNotes(notes, shuttleRow).teleop;
 
   return (
@@ -78,6 +78,34 @@ export function ScoutingRunsBreakdown({ notes, shuttleRow, className, compact }:
           </ul>
         ) : (
           <p className="text-xs text-muted-foreground">No teleop runs recorded</p>
+        )}
+      </div>
+
+      {/* Shuttle runs */}
+      <div>
+        <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2 mb-2">
+          <Zap className="w-3.5 h-3.5" /> Shuttling runs
+        </h4>
+        {shuttle && shuttle.length > 0 ? (
+          <ul className={compact ? 'space-y-1' : 'space-y-2'}>
+            {shuttle.map((run, i) => (
+              <li
+                key={i}
+                className={cn(
+                  'flex items-center justify-between text-sm',
+                  compact ? 'py-1 px-2 rounded bg-white/5' : 'py-2 px-3 rounded-lg bg-white/5 border border-white/5'
+                )}
+              >
+                <span className="font-mono text-muted-foreground">
+                  Run {i + 1}: {formatDurationSec(run.duration_sec)}
+                </span>
+                <span className="text-foreground font-medium">{run.ballLabel} balls</span>
+                <span className="text-amber-400 font-bold italic">SHUTTLE</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-muted-foreground">No shuttle runs recorded</p>
         )}
         {teleopClimbPts > 0 && (
           <p className={cn('text-xs text-green-400 mt-1', compact ? 'mt-1' : 'mt-2')}>

@@ -43,6 +43,7 @@ export interface ParsedNotes {
     teleop_cleansing?: number;
     shuttle?: boolean;
     shuttle_consistency?: 'consistent' | 'inconsistent';
+    shuttle_runs?: RunRecord[];
   };
 }
 
@@ -70,6 +71,7 @@ export function parseNotes(notes: any, row?: ScoutingRowShuttleMeta): ParsedNote
 
   const autoRuns = Array.isArray(auto.runs) ? auto.runs : [];
   const teleopRuns = Array.isArray(teleop.runs) ? teleop.runs : [];
+  const shuttleRuns = Array.isArray(teleop.shuttle_runs) ? teleop.shuttle_runs : [];
   const autoFuelFromRuns = fuelFromRuns(autoRuns);
   const teleopFuelFromRuns = fuelFromRuns(teleopRuns);
 
@@ -88,7 +90,7 @@ export function parseNotes(notes: any, row?: ScoutingRowShuttleMeta): ParsedNote
   const autoFuel = autoFuelFromRuns > 0 ? autoFuelFromRuns : (autoFuelFromBalls > 0 ? autoFuelFromBalls : (Number(auto.auto_fuel_active_hub) || 0));
   const teleopFuel = teleopFuelFromRuns > 0 ? teleopFuelFromRuns : (teleopFuelFromBalls > 0 ? teleopFuelFromBalls : (Number(teleop.teleop_fuel_active_hub) || 0));
 
-  let shuttle = Boolean(teleop.shuttle);
+  let shuttle = Boolean(teleop.shuttle) || shuttleRuns.length > 0;
   let shuttle_consistency = normalizeShuttleConsistency(teleop.shuttle_consistency);
   if (row && (row.shuttling === true || row.shuttling === false)) {
     shuttle = row.shuttling;
@@ -132,6 +134,7 @@ export function parseNotes(notes: any, row?: ScoutingRowShuttleMeta): ParsedNote
       teleop_cleansing: Number(teleop.teleop_cleansing) || 0,
       shuttle,
       shuttle_consistency,
+      shuttle_runs: shuttleRuns.length ? shuttleRuns : undefined,
     },
   };
 }
@@ -249,6 +252,7 @@ export interface RunForDisplay {
 export interface RunsForDisplay {
   auto: RunForDisplay[];
   teleop: RunForDisplay[];
+  shuttle: RunForDisplay[];
   autoClimbPts: number;
   teleopClimbPts: number;
   estimatedTotal: number;
@@ -270,7 +274,18 @@ export function getRunsForDisplay(notes: any): RunsForDisplay {
   const autoClimbPts = getAutoClimbPoints(notes);
   const teleopClimbPts = getTeleopClimbPoints(notes);
   const estimatedTotal = getEstimatedScoreFromNotes(notes);
-  return { auto: autoRuns, teleop: teleopRuns, autoClimbPts, teleopClimbPts, estimatedTotal };
+  return {
+    auto: autoRuns,
+    teleop: teleopRuns,
+    shuttle: (p.teleop.shuttle_runs || []).map((r: RunRecord) => {
+      const value = getBallChoiceScoreFromRange(r.ball_choice);
+      const label = getBallChoiceLabel(r.ball_choice);
+      return { duration_sec: r.duration_sec, ballLabel: label, ballValue: value, estPts: value * 1 };
+    }),
+    autoClimbPts,
+    teleopClimbPts,
+    estimatedTotal,
+  };
 }
 
 /** Uptime % from average_downtime (seconds). Match = 165s. */

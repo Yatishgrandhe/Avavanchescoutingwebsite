@@ -302,7 +302,7 @@ export default function ViewDataPage() {
   };
 
   const loadData = async () => {
-    if (!event_key && !id) return;
+    if (!event_key && !id && !competition_key) return;
     setLoading(true);
     setError(null);
     try {

@@ -4,6 +4,13 @@ import Layout from '@/components/layout/Layout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useSupabase } from '@/pages/_app';
 import { useAdmin } from '@/hooks/use-admin';
 import { roundToTenth } from '@/lib/utils';
@@ -38,6 +45,7 @@ interface PastCompetition {
   created_at: string;
   organization_id?: string;
   organization_name?: string | null;
+  contributing_organization_names?: string[];
   is_multi_org?: boolean;
 }
 
@@ -48,7 +56,20 @@ interface LiveEvent {
   total_matches: number;
   scouting_count: number;
   organization_name?: string | null;
+  contributing_organization_names?: string[];
   is_multi_org?: boolean;
+}
+
+const YEAR_ALL = '__all__';
+
+function OrgSubtitle({ names }: { names: string[] }) {
+  if (names.length <= 1) return null;
+  const text = names.join(', ');
+  return (
+    <p className="text-xs text-muted-foreground line-clamp-2 mt-1" title={text}>
+      {text}
+    </p>
+  );
 }
 
 export default function PastCompetitionsPage() {
@@ -155,15 +176,18 @@ export default function PastCompetitionsPage() {
                             </span>
                             {ev.is_multi_org ? (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/20 text-amber-500 border border-amber-500/30">
-                                Multiple
+                                Multiple teams
                               </span>
-                            ) : ev.organization_name && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">
-                                {ev.organization_name}
-                              </span>
+                            ) : (
+                              ev.organization_name && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                                  {ev.organization_name}
+                                </span>
+                              )
                             )}
                           </div>
                           <h3 className="text-lg font-semibold text-foreground">{ev.competition_name}</h3>
+                          <OrgSubtitle names={ev.contributing_organization_names || []} />
                           <p className="text-xs text-muted-foreground font-mono mt-1">{ev.event_key}</p>
                         </div>
                         <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -214,16 +238,22 @@ export default function PastCompetitionsPage() {
                   </div>
                 </div>
                 <div className="sm:w-48">
-                  <select
-                    value={yearFilter}
-                    onChange={(e) => setYearFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+                  <Select
+                    value={yearFilter || YEAR_ALL}
+                    onValueChange={(v) => setYearFilter(v === YEAR_ALL ? '' : v)}
                   >
-                    <option value="">All Years</option>
-                    {uniqueYears.map(year => (
-                      <option key={year} value={year.toString()}>{year}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full border-border bg-background text-foreground">
+                      <SelectValue placeholder="Year" />
+                    </SelectTrigger>
+                    <SelectContent position="popper" className="z-[100] border-border bg-popover text-popover-foreground">
+                      <SelectItem value={YEAR_ALL}>All Years</SelectItem>
+                      {uniqueYears.map((year) => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </Card>
@@ -247,7 +277,7 @@ export default function PastCompetitionsPage() {
               ) : (
                 filteredCompetitions.map((competition) => (
                   <Card 
-                    key={competition.id} 
+                    key={`${competition.competition_key}-${competition.competition_year}-${competition.id}`} 
                     className="p-4 sm:p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow duration-200 cursor-pointer"
                     onClick={() => {
                       if (competition.is_multi_org) {
@@ -262,17 +292,20 @@ export default function PastCompetitionsPage() {
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           {competition.is_multi_org ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/20 text-amber-500 border border-amber-500/30">
-                              Multiple
+                              Multiple teams
                             </span>
-                          ) : competition.organization_name && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">
-                              {competition.organization_name}
-                            </span>
+                          ) : (
+                            competition.organization_name && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                                {competition.organization_name}
+                              </span>
+                            )
                           )}
                         </div>
                         <h3 className="text-lg font-semibold text-foreground mb-1">
                           {competition.competition_name}
                         </h3>
+                        <OrgSubtitle names={competition.contributing_organization_names || []} />
                         <p className="text-sm text-muted-foreground mb-2">
                           {competition.competition_key}
                         </p>

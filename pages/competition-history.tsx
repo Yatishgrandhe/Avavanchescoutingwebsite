@@ -10,6 +10,13 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Calendar,
   Trophy,
   Users,
@@ -39,6 +46,9 @@ interface PastCompetition {
   total_matches: number;
   migrated_at: string;
   created_at: string;
+  organization_name?: string | null;
+  contributing_organization_names?: string[];
+  is_multi_org?: boolean;
 }
 
 interface CompetitionDetails {
@@ -56,6 +66,21 @@ interface LiveEvent {
   total_teams: number;
   total_matches: number;
   scouting_count: number;
+  organization_name?: string | null;
+  contributing_organization_names?: string[];
+  is_multi_org?: boolean;
+}
+
+const YEAR_ALL = '__all__';
+
+function OrgSubtitle({ names }: { names: string[] }) {
+  if (names.length <= 1) return null;
+  const text = names.join(', ');
+  return (
+    <p className="text-xs text-muted-foreground line-clamp-2 mt-1" title={text}>
+      {text}
+    </p>
+  );
 }
 
 export default function PublicCompetitionHistoryPage() {
@@ -99,9 +124,10 @@ export default function PublicCompetitionHistoryPage() {
     }
   };
 
-  const loadLiveEventDetails = async (eventKey: string) => {
+  const loadLiveEventDetails = async (eventKey: string, seeAllOrgs = false) => {
     try {
-      const response = await fetch(`/api/past-competitions?event_key=${encodeURIComponent(eventKey)}`);
+      const q = seeAllOrgs ? '&see_all_orgs=1' : '';
+      const response = await fetch(`/api/past-competitions?event_key=${encodeURIComponent(eventKey)}${q}`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       setSelectedCompetition(data);
@@ -172,14 +198,32 @@ export default function PublicCompetitionHistoryPage() {
                 <Card
                   key={ev.event_key}
                   className="p-4 sm:p-6 rounded-lg shadow-sm border border-emerald-500/30 bg-emerald-500/5 hover:shadow-md transition-shadow duration-200 cursor-pointer"
-                  onClick={() => router.push(`/view-data?event_key=${encodeURIComponent(ev.event_key)}`)}
+                  onClick={() =>
+                    router.push(
+                      `/view-data?event_key=${encodeURIComponent(ev.event_key)}${ev.is_multi_org ? '&see_all_orgs=1' : ''}`
+                    )
+                  }
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mb-2 block">
-                        Live
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          Live
+                        </span>
+                        {ev.is_multi_org ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                            Multiple teams
+                          </span>
+                        ) : (
+                          ev.organization_name && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                              {ev.organization_name}
+                            </span>
+                          )
+                        )}
+                      </div>
                       <h3 className="text-lg font-semibold text-foreground">{ev.competition_name}</h3>
+                      <OrgSubtitle names={ev.contributing_organization_names || []} />
                       <p className="text-xs text-muted-foreground font-mono mt-1">{ev.event_key}</p>
                     </div>
                     <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -229,16 +273,22 @@ export default function PublicCompetitionHistoryPage() {
               </div>
             </div>
             <div className="sm:w-48">
-              <select
-                value={yearFilter}
-                onChange={(e) => setYearFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+              <Select
+                value={yearFilter || YEAR_ALL}
+                onValueChange={(v) => setYearFilter(v === YEAR_ALL ? '' : v)}
               >
-                <option value="">All Years</option>
-                {uniqueYears.map(year => (
-                  <option key={year} value={year.toString()}>{year}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full border-border bg-background text-foreground">
+                  <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent position="popper" className="z-[100] border-border bg-popover text-popover-foreground">
+                  <SelectItem value={YEAR_ALL}>All Years</SelectItem>
+                  {uniqueYears.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </Card>
@@ -257,13 +307,35 @@ export default function PublicCompetitionHistoryPage() {
           ) : (
             filteredCompetitions.map((competition) => (
               <Card
-                key={competition.id}
+                key={`${competition.competition_key}-${competition.competition_year}-${competition.id}`}
                 className="p-4 sm:p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow duration-200 cursor-pointer"
-                onClick={() => router.push(`/view-data?id=${encodeURIComponent(competition.id)}`)}
+                onClick={() => {
+                  if (competition.is_multi_org) {
+                    router.push(
+                      `/view-data?competition_key=${encodeURIComponent(competition.competition_key)}&year=${competition.competition_year}&see_all_orgs=1`
+                    );
+                  } else {
+                    router.push(`/view-data?id=${encodeURIComponent(competition.id)}`);
+                  }
+                }}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      {competition.is_multi_org ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                          Multiple teams
+                        </span>
+                      ) : (
+                        competition.organization_name && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                            {competition.organization_name}
+                          </span>
+                        )
+                      )}
+                    </div>
                     <h3 className="text-lg font-semibold text-foreground mb-1">{competition.competition_name}</h3>
+                    <OrgSubtitle names={competition.contributing_organization_names || []} />
                     <p className="text-sm text-muted-foreground mb-2">{competition.competition_key}</p>
                     {competition.competition_location && (
                       <div className="flex items-center text-xs text-muted-foreground mb-2">

@@ -49,12 +49,10 @@ interface FormData {
   miscellaneous: {
     defense_rating: number;
     comments: string;
-    shuttling?: boolean;
-    shuttling_consistency?: string;
     average_downtime?: number | null;
     broke?: boolean | null;
   };
-}
+};
 
 interface MobileScoutFormProps {
   onSubmit: (data: FormData) => void;
@@ -79,8 +77,6 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
     miscellaneous: {
       defense_rating: 0,
       comments: '',
-      shuttling: false,
-      shuttling_consistency: 'N/A',
       average_downtime: null,
       broke: null,
     },
@@ -358,9 +354,9 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
                               </span>
                             </div>
                           )}
-                          {((formData.autonomous?.runs?.length ?? 0) > 0 || (formData.teleop?.runs?.length ?? 0) > 0) && (
+                          {((formData.autonomous?.runs?.length ?? 0) > 0 || (formData.teleop?.runs?.length ?? 0) > 0 || (formData.teleop?.shuttle_runs?.length ?? 0) > 0) && (
                             <p className="text-xs text-muted-foreground pt-1">
-                              Runs — Auto: {((formData.autonomous?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'} · Teleop: {((formData.teleop?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'}
+                              Runs — Auto: {((formData.autonomous?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'} · Teleop: {((formData.teleop?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'} · Shuttle: {((formData.teleop?.shuttle_runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'}
                             </p>
                           )}
                         </div>

@@ -31,7 +31,6 @@ import { useAdmin } from '@/hooks/use-admin';
 import { useScoutingLocks } from '@/hooks/use-scouting-locks';
 import { ScoringNotes, getBallChoiceLabel } from '@/lib/types';
 import { calculateScore, cn, formatDurationSec } from '@/lib/utils';
-import { mergeShuttleFromMiscIntoTeleop } from '@/lib/scouting-notes-merge';
 
 type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'miscellaneous' | 'review';
 
@@ -62,8 +61,6 @@ interface FormData {
     comments: string;
     average_downtime: number | null;
     broke: boolean | null;
-    shuttling: boolean;
-    shuttling_consistency: string;
   };
 }
 
@@ -93,8 +90,6 @@ export default function Scout() {
       comments: '',
       average_downtime: null,
       broke: null,
-      shuttling: false,
-      shuttling_consistency: 'N/A',
     },
   });
 
@@ -154,8 +149,6 @@ export default function Scout() {
         comments: formData.miscellaneous.comments,
         average_downtime: formData.miscellaneous.average_downtime ?? undefined,
         broke: formData.miscellaneous.broke ?? undefined,
-        shuttling: formData.miscellaneous.shuttling,
-        shuttling_consistency: formData.miscellaneous.shuttling_consistency,
         organization_id: user?.organization_id, // include org ID from user profile
         scout_id: user?.id,
         submitted_by_email: user?.email,
@@ -163,7 +156,7 @@ export default function Scout() {
         submitted_at: new Date().toISOString(),
         notes: {
           autonomous: formData.autonomous,
-          teleop: mergeShuttleFromMiscIntoTeleop(formData.teleop, formData.miscellaneous),
+          teleop: formData.teleop,
         },
       };
 
@@ -200,8 +193,6 @@ export default function Scout() {
             comments: '',
             average_downtime: null,
             broke: null,
-            shuttling: false,
-            shuttling_consistency: 'N/A',
           },
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -466,11 +457,19 @@ export default function Scout() {
                   >
                     <MiscellaneousForm
                       onNext={(data) => {
-                        setFormData(prev => ({ ...prev, miscellaneous: data }));
+                        setFormData((prev) => ({
+                          ...prev,
+                          miscellaneous: { ...prev.miscellaneous, ...data },
+                        }));
                         handleStepNext('review');
                       }}
                       onBack={() => setCurrentStep('teleop')}
-                      onDataChange={(data) => setFormData(prev => ({ ...prev, miscellaneous: data }))}
+                      onDataChange={(data) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          miscellaneous: { ...prev.miscellaneous, ...data },
+                        }))
+                      }
                       currentStep={currentStepIndex}
                       totalSteps={steps.length}
                       initialData={formData.miscellaneous}
@@ -594,14 +593,14 @@ export default function Scout() {
                                   </div>
                                 )}
                               </div>
-                              {((formData.autonomous?.runs?.length ?? 0) > 0 || (formData.teleop?.runs?.length ?? 0) > 0) && (
+                              {((formData.autonomous?.runs?.length ?? 0) > 0 || (formData.teleop?.runs?.length ?? 0) > 0 || (formData.teleop?.shuttle_runs?.length ?? 0) > 0) && (
                                 <div className="text-[10px] text-muted-foreground pt-1">
-                                  Runs: Auto {formData.autonomous?.runs?.length ?? 0} ({((formData.autonomous?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'}) · Teleop {formData.teleop?.runs?.length ?? 0} ({((formData.teleop?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'})
+                                  Runs: Auto {formData.autonomous?.runs?.length ?? 0} ({((formData.autonomous?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'}) · Teleop {formData.teleop?.runs?.length ?? 0} ({((formData.teleop?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'}) · Shuttle {formData.teleop?.shuttle_runs?.length ?? 0} ({((formData.teleop?.shuttle_runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'})
                                 </div>
                               )}
                             </div>
 
-                            <div className="grid grid-cols-4 gap-2 pt-2">
+                            <div className="grid grid-cols-3 gap-2 pt-2">
                               <div className="text-center">
                                 <span className="text-[9px] font-bold text-muted-foreground uppercase block">Defense</span>
                                 <span className="text-sm font-black">{formData.miscellaneous.defense_rating}/10</span>
@@ -617,15 +616,6 @@ export default function Scout() {
                                   formData.miscellaneous.broke ? "text-red-500" : "text-green-500"
                                 )}>
                                   {formData.miscellaneous.broke ? 'YES' : 'NO'}
-                                </span>
-                              </div>
-                              <div className="text-center">
-                                <span className="text-[9px] font-bold text-muted-foreground uppercase block">Shuttle</span>
-                                <span className={cn(
-                                  "text-[10px] font-black leading-none mt-1 block",
-                                  formData.miscellaneous.shuttling ? "text-primary" : "text-muted-foreground/50"
-                                )}>
-                                  {formData.miscellaneous.shuttling ? (formData.miscellaneous.shuttling_consistency === 'Consistent' ? 'CON' : 'INC') : 'NO'}
                                 </span>
                               </div>
                             </div>

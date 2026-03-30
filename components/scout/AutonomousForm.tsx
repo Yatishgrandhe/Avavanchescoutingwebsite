@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from '../ui/dialog';
 import { Button } from '../ui/Button';
-import { BallTrackingPhase, getBallChoiceScoreFromRange } from '@/lib/types';
+import { BallTrackingPhase, getBallChoiceScoreFromRange, RunRecord } from '@/lib/types';
 import { Award, Play, Square, Clock } from 'lucide-react';
 import { formatDurationSec } from '@/lib/utils';
 import StopwatchBallTracking from './StopwatchBallTracking';
@@ -79,13 +79,13 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
 
   const progressPercentage = (currentStep / totalSteps) * 100;
 
-  const handleComplete = (data: BallTrackingPhase) => {
-    const totalFuel = (data.runs ?? []).reduce(
+  const handleComplete = (runs: RunRecord[]) => {
+    const totalFuel = (runs || []).reduce(
       (sum, r) => sum + getBallChoiceScoreFromRange(r.ball_choice),
       0
     );
     onNext({
-      ...data,
+      runs,
       auto_fuel_active_hub: Math.round(totalFuel * 10) / 10,
       auto_tower_level1: autoTowerLevel1,
       auto_climb_sec: autoClimbSec !== '' && !Number.isNaN(Number(autoClimbSec)) ? Math.round(Number(autoClimbSec) * 1000) / 1000 : undefined,
@@ -168,7 +168,7 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
             <StopwatchBallTracking
               phaseLabel="Auto Fuel"
               phaseDescription="Track scoring runs during autonomous"
-              initialData={initialData}
+              initialData={initialData?.runs}
               onComplete={handleComplete}
               onBack={onBack}
               isDarkMode={isDarkMode}

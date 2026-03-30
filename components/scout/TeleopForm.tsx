@@ -9,7 +9,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '../ui/dialog';
-import { BallTrackingPhase, getBallChoiceScoreFromRange, SCORING_VALUES, type ScoringNotes } from '@/lib/types';
+import { BallTrackingPhase, getBallChoiceScoreFromRange, SCORING_VALUES, type ScoringNotes, RunRecord } from '@/lib/types';
 import { formatDurationSec } from '@/lib/utils';
 import { TrendingUp, Award, Play, Square, Clock, Trash2 } from 'lucide-react';
 import StopwatchBallTracking from './StopwatchBallTracking';
@@ -39,6 +39,10 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   const [climbElapsedMs, setClimbElapsedMs] = useState(0);
   const [showClimbTimePopup, setShowClimbTimePopup] = useState(false);
   const [pendingClimbSec, setPendingClimbSec] = useState(0);
+
+  // Ball & Shuttle tracking runs
+  const [fuelRuns, setFuelRuns] = useState<RunRecord[]>(() => initialData?.runs || []);
+  const [shuttleRuns, setShuttleRuns] = useState<RunRecord[]>(() => initialData?.shuttle_runs || []);
 
   useEffect(() => {
     if (!climbTimerRunning) return;
@@ -80,15 +84,16 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
 
   const progressPercentage = (currentStep / totalSteps) * 100;
 
-  const handleComplete = (data: BallTrackingPhase) => {
-    const totalFuel = (data.runs ?? []).reduce(
+  const handleComplete = () => {
+    const totalFuel = (fuelRuns || []).reduce(
       (sum, r) => sum + getBallChoiceScoreFromRange(r.ball_choice),
       0
     );
     onNext({
-      ...data,
+      runs: fuelRuns,
+      shuttle_runs: shuttleRuns,
       teleop_fuel_active_hub: Math.round(totalFuel * 10) / 10,
-      teleop_fuel_shifts: (data.runs ?? []).map(r => getBallChoiceScoreFromRange(r.ball_choice)),
+      teleop_fuel_shifts: (fuelRuns || []).map(r => getBallChoiceScoreFromRange(r.ball_choice)),
       teleop_tower_level1: towerLevel1,
       teleop_tower_level2: towerLevel2,
       teleop_tower_level3: towerLevel3,
@@ -217,15 +222,33 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
             </Dialog>
           </div>
 
-          <div className="pt-2">
+          <div className="pt-2 space-y-6">
             <StopwatchBallTracking
               phaseLabel="Teleop Fuel"
-              phaseDescription="Track scoring runs during teleoperated period"
-              initialData={initialData}
-              onComplete={handleComplete}
-              onBack={onBack}
+              phaseDescription="Track scoring runs — when balls scored, pick range"
+              initialData={fuelRuns}
+              onRunsChange={setFuelRuns}
+              hideNextButton={true}
               isDarkMode={isDarkMode}
             />
+
+            <StopwatchBallTracking
+              phaseLabel="Shuttling"
+              phaseDescription="Track shuttling runs — when balls moved, pick range"
+              initialData={shuttleRuns}
+              onRunsChange={setShuttleRuns}
+              hideNextButton={true}
+              isDarkMode={isDarkMode}
+            />
+            
+            <div className="flex justify-between pt-4">
+              <Button type="button" variant="outline" onClick={onBack}>
+                Previous
+              </Button>
+              <Button type="button" onClick={handleComplete}>
+                Next Step
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -48,6 +48,7 @@ export interface ScoutingData {
 export interface ScoringNotes {
   // Multiple runs per phase: each run = stopwatch duration + one multiple-choice (ball count)
   runs?: RunRecord[];
+  shuttle_runs?: RunRecord[];
   // Shuttling quesitons (Teleop)
   shuttle?: boolean;
   shuttle_consistency?: 'consistent' | 'inconsistent';

@@ -24,7 +24,6 @@ import TeleopForm from '@/components/scout/TeleopForm';
 import MiscellaneousForm from '@/components/scout/MiscellaneousForm';
 import { ScoringNotes, getBallChoiceLabel } from '@/lib/types';
 import { calculateScore, formatDurationSec } from '@/lib/utils';
-import { mergeShuttleFromMiscIntoTeleop } from '@/lib/scouting-notes-merge';
 import { useRouter } from 'next/router';
 import { addToOfflineQueue } from '@/lib/offline-queue';
 
@@ -57,8 +56,6 @@ interface FormData {
     comments: string;
     average_downtime: number | null;
     broke: boolean | null;
-    shuttling: boolean;
-    shuttling_consistency: string;
   };
 }
 
@@ -86,8 +83,6 @@ export default function MobileScout() {
       comments: '',
       average_downtime: null,
       broke: null,
-      shuttling: false,
-      shuttling_consistency: 'N/A',
     },
   });
 
@@ -135,8 +130,6 @@ export default function MobileScout() {
         comments: misc.comments,
         average_downtime: misc.average_downtime ?? undefined,
         broke: misc.broke ?? undefined,
-        shuttling: misc.shuttling,
-        shuttling_consistency: misc.shuttling ? misc.shuttling_consistency : undefined,
         organization_id: user?.organization_id,
         scout_id: user?.id,
         submitted_by_email: user?.email,
@@ -145,15 +138,13 @@ export default function MobileScout() {
         submitted_at: new Date().toISOString(),
         notes: {
           autonomous: formData.autonomous,
-          teleop: mergeShuttleFromMiscIntoTeleop(formData.teleop, misc),
+          teleop: formData.teleop,
         },
         miscellaneous: {
           defense_rating: misc.defense_rating,
           comments: misc.comments,
           average_downtime: misc.average_downtime,
           broke: misc.broke,
-          shuttling: misc.shuttling,
-          shuttling_consistency: misc.shuttling_consistency,
         },
       };
 
@@ -191,8 +182,6 @@ export default function MobileScout() {
             comments: '',
             average_downtime: null,
             broke: null,
-            shuttling: false,
-            shuttling_consistency: 'N/A',
           },
         });
         router.push('/');
@@ -350,11 +339,22 @@ export default function MobileScout() {
                 {currentStep === 'miscellaneous' && (
                   <MiscellaneousForm
                     onNext={(data) => {
-                      setFormData(prev => ({ ...prev, miscellaneous: data }));
+                      setFormData((prev) => ({
+                        ...prev,
+                        miscellaneous: {
+                          ...prev.miscellaneous,
+                          ...data,
+                        },
+                      }));
                       setCurrentStep('review');
                     }}
                     onBack={() => setCurrentStep('teleop')}
-                    onDataChange={(data) => setFormData(prev => ({ ...prev, miscellaneous: data }))}
+                    onDataChange={(data) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        miscellaneous: { ...prev.miscellaneous, ...data },
+                      }))
+                    }
                     currentStep={currentStepIndex}
                     totalSteps={steps.length}
                     initialData={formData.miscellaneous}
@@ -456,23 +456,15 @@ export default function MobileScout() {
                               </span>
                             </div>
                           )}
-                          {((formData.autonomous?.runs?.length ?? 0) > 0 || (formData.teleop?.runs?.length ?? 0) > 0) && (
+                          {((formData.autonomous?.runs?.length ?? 0) > 0 || (formData.teleop?.runs?.length ?? 0) > 0 || (formData.teleop?.shuttle_runs?.length ?? 0) > 0) && (
                             <p className="text-xs text-muted-foreground pt-1">
-                              Runs — Auto: {((formData.autonomous?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'} · Teleop: {((formData.teleop?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'}
+                              Runs — Auto: {((formData.autonomous?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'} · Teleop: {((formData.teleop?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'} · Shuttle: {((formData.teleop?.shuttle_runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'}
                             </p>
                           )}
                         </div>
-                        <div className="flex justify-between border-t pt-2 mt-2">
+                        <div className="flex justify-between border-t border-muted pt-2 mt-2">
                           <span className="text-muted-foreground">Defense Rating:</span>
                           <span className="font-medium">{formData.miscellaneous.defense_rating}/10</span>
-                        </div>
-                        <div className="flex justify-between pt-1">
-                          <span className="text-muted-foreground">Shuttle:</span>
-                          <span className="font-medium">
-                            {formData.miscellaneous.shuttling
-                              ? (formData.miscellaneous.shuttling_consistency || 'Yes')
-                              : 'No'}
-                          </span>
                         </div>
                       </CardContent>
                     </Card>

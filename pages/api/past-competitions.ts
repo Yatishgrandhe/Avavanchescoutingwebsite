@@ -626,20 +626,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const competitionsForResponse = groupedCompetitions.map((c) => {
-        const orgNames = Array.from(new Set(c.contributing_org_ids.map((oid: string) => orgNameMap.get(oid)).filter(Boolean)));
-        
+        const orgNames = Array.from(
+          new Set(
+            (c.contributing_org_ids as string[])
+              .map((oid: string) => orgNameMap.get(oid))
+              .filter((n): n is string => Boolean(n))
+          )
+        );
+
         // Aggregate unique teams and matches across all contributing competitions in this group
         const groupTeamSet = new Set<number>();
         const groupMatchSet = new Set<number>();
         c.contributing_comp_ids.forEach((cid: string) => {
-          (teamCountsByCompId.get(cid) || []).forEach(tn => groupTeamSet.add(tn));
-          (matchCountsByCompId.get(cid) || []).forEach(mn => groupMatchSet.add(mn));
+          const teamSet = teamCountsByCompId.get(cid);
+          if (teamSet) teamSet.forEach((tn) => groupTeamSet.add(tn));
+          const matchSet = matchCountsByCompId.get(cid);
+          if (matchSet) matchSet.forEach((mn) => groupMatchSet.add(mn));
         });
+
+        const isMulti = orgNames.length > 1;
 
         return {
           ...c,
-          organization_name: orgNames.length > 1 ? 'Multiple' : (orgNames[0] ?? null),
-          is_multi_org: orgNames.length > 1,
+          organization_name: isMulti ? 'Multiple teams' : (orgNames[0] ?? null),
+          contributing_organization_names: orgNames,
+          is_multi_org: isMulti,
           total_teams: groupTeamSet.size,
           total_matches: groupMatchSet.size,
         };
@@ -708,7 +719,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .in('organization_id', orgIds)
           .in('match_id', matchIds);
 
-        const orgNames = Array.from(new Set(orgIds.map(oid => orgNameMap.get(oid)).filter(Boolean)));
+        const orgNames = Array.from(
+          new Set(orgIds.map((oid) => orgNameMap.get(oid)).filter((n): n is string => Boolean(n)))
+        );
+        const isMultiLive = orgNames.length > 1;
 
         liveFull.push({
           event_key: evtKey,
@@ -716,8 +730,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           total_teams: teamSet.size,
           total_matches: new Set(eventMatches.map(m => m.match_id)).size,
           scouting_count: scoutingCount ?? 0,
-          organization_name: orgNames.length > 1 ? 'Multiple' : (orgNames[0] ?? null),
-          is_multi_org: orgNames.length > 1,
+          organization_name: isMultiLive ? 'Multiple teams' : (orgNames[0] ?? null),
+          contributing_organization_names: orgNames,
+          is_multi_org: isMultiLive,
         });
       }
 

@@ -288,6 +288,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     await supabase.from('pick_lists').delete().eq('organization_id', orgId);
+    await supabase.from('pit_scouting_data').delete().eq('organization_id', orgId);
 
     // 8. Clear live roster & schedules for this org (snapshot already in past_*)
     await supabase.from('users').update({ team_number: null }).eq('organization_id', orgId);
@@ -298,8 +299,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq('organization_id', orgId);
 
     await supabase.from('matches').delete().eq('organization_id', orgId);
-
-    await supabase.from('scout_names').delete().eq('organization_id', orgId);
 
     await supabase.from('event_team_roster').delete().eq('organization_id', orgId);
 

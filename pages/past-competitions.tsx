@@ -103,6 +103,12 @@ export default function PastCompetitionsPage() {
   });
 
   const uniqueYears = Array.from(new Set(competitions.map(comp => comp.competition_year))).sort((a, b) => b - a);
+  const competitionKeyCounts = filteredCompetitions.reduce<Record<string, number>>((acc, comp) => {
+    const key = (comp.competition_key || '').trim();
+    if (!key) return acc;
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
 
   if (isLoading) {
     return (
@@ -261,6 +267,11 @@ export default function PastCompetitionsPage() {
                         {competition.organization_name && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20 mb-2 block w-fit">
                             {competition.organization_name}
+                          </span>
+                        )}
+                        {(competitionKeyCounts[competition.competition_key] || 0) > 1 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500/10 text-amber-600 border border-amber-500/20 mb-2 block w-fit">
+                            Multiple teams
                           </span>
                         )}
                         <h3 className="text-lg font-semibold text-foreground mb-1">

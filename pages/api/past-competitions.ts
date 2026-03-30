@@ -2,7 +2,6 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getAutoFuelCount, getTeleopFuelCount, getClimbPoints } from '@/lib/analytics';
 import { AVALANCHE_ORG_ID } from '@/lib/constants';
-import { getOrgCurrentEvent } from '@/lib/org-app-config';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -97,6 +96,50 @@ function effectiveFilterOrgId(
     return queryOrgId;
   }
   return base;
+}
+
+function pickRandomRow<T>(rows: T[]): T | null {
+  if (!rows.length) return null;
+  const idx = Math.floor(Math.random() * rows.length);
+  return rows[idx] ?? null;
+}
+
+function mapPitRowsToTeams(
+  pitRows: Record<string, unknown>[],
+  teamNumbers: number[]
+): Record<string, unknown>[] {
+  if (teamNumbers.length === 0 || pitRows.length === 0) return [];
+
+  const rowsByTeam = new Map<number, Record<string, unknown>[]>();
+  for (const row of pitRows) {
+    const teamNum = Number((row as { team_number?: unknown }).team_number);
+    if (!Number.isFinite(teamNum)) continue;
+    if (!rowsByTeam.has(teamNum)) rowsByTeam.set(teamNum, []);
+    rowsByTeam.get(teamNum)!.push(row);
+  }
+
+  return teamNumbers
+    .map((teamNumber) => {
+      const directRows = rowsByTeam.get(teamNumber) || [];
+      if (directRows.length > 0) {
+        return {
+          ...directRows[0],
+          team_number: teamNumber,
+          is_team_specific: true,
+          is_fallback: false,
+        };
+      }
+
+      const fallback = pickRandomRow(pitRows);
+      if (!fallback) return null;
+      return {
+        ...fallback,
+        team_number: teamNumber,
+        is_team_specific: false,
+        is_fallback: true,
+      };
+    })
+    .filter(Boolean) as Record<string, unknown>[];
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
@@ -273,7 +316,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         };
 
         const teamNumArr = Array.from(teamNumbers);
-        let pitScoutingData: unknown[] = [];
+        let pitScoutingData: Record<string, unknown>[] = [];
         if (teamNumArr.length > 0) {
           if (pitAllOrgs) {
             const { data: pitRows } = await supabaseAdmin
@@ -281,7 +324,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               .select('*')
               .in('team_number', teamNumArr)
               .order('created_at', { ascending: false });
-            pitScoutingData = pitRows || [];
+            pitScoutingData = (pitRows || []) as Record<string, unknown>[];
           } else {
             const pitOrgResolved = await resolvePitSourceOrgId(
               supabaseAdmin,
@@ -296,10 +339,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .eq('organization_id', pitOrgResolved)
                 .in('team_number', teamNumArr)
                 .order('created_at', { ascending: false });
-              pitScoutingData = pitRows || [];
+              pitScoutingData = (pitRows || []) as Record<string, unknown>[];
             }
           }
         }
+        const normalizedPitScoutingData = mapPitRowsToTeams(pitScoutingData, teamNumArr);
 
         return res.status(200).json({
           competition,
@@ -311,7 +355,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             blue_teams: m.blue_teams || [],
           })),
           scoutingData: scoutingData || [],
-          pitScoutingData: pitScoutingData || [],
+          pitScoutingData: normalizedPitScoutingData,
           pickLists: [],
         });
       }
@@ -409,11 +453,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           console.error('past_scouting_data:', scoutingError);
         }
 
-        const { data: pitScoutingData = [] } = await supabaseAdmin
+        const { data: pitScoutingDataRaw = [] } = await supabaseAdmin
           .from('past_pit_scouting_data')
           .select('*')
           .eq('competition_id', id as string)
           .eq('organization_id', orgId);
+        const pitScoutingData = mapPitRowsToTeams(
+          (pitScoutingDataRaw || []) as Record<string, unknown>[],
+          teamNumArr
+        );
 
         let pickLists: any[] = [];
         if (!viewer.isGuest) {
@@ -447,11 +495,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .select('*')
         .order('competition_year', { ascending: false })
         .order('competition_name', { ascending: true });
-
-      // Guests: restrict to reference org only
-      if (viewer.isGuest && scopeOrgId) {
-        query = (query as any).eq('organization_id', scopeOrgId);
-      }
 
       if (competition_key) {
         query = query.eq('competition_key', competition_key as string);
@@ -525,59 +568,78 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         organization_name: string | null;
       }> = [];
 
-      if (scopeOrgId) {
-        const { eventKey: currentEventKey, eventName: currentEventName } = await getOrgCurrentEvent(
-          supabaseAdmin,
-          scopeOrgId
-        );
-        if (currentEventKey) {
-          const { data: eventMatchesRaw, error: matchesErr } = await supabaseAdmin
-            .from('matches')
-            .select('match_id, event_key, red_teams, blue_teams, organization_id')
-            .eq('organization_id', scopeOrgId)
-            .eq('event_key', currentEventKey);
+      const { data: currentEventRows } = await supabaseAdmin
+        .from('app_config')
+        .select('organization_id, key, value')
+        .in('key', ['current_event_key', 'current_event_name']);
 
-          if (!matchesErr && eventMatchesRaw && eventMatchesRaw.length > 0) {
-            const eventMatches = eventMatchesRaw as {
-              match_id: string;
-              event_key: string;
-              red_teams: number[];
-              blue_teams: number[];
-              organization_id: string;
-            }[];
-            const matchIds = eventMatches.map((m) => m.match_id);
-            const teamSet = new Set<number>();
-            eventMatches.forEach((m) => {
-              (m.red_teams || []).forEach((t: number) => teamSet.add(t));
-              (m.blue_teams || []).forEach((t: number) => teamSet.add(t));
-            });
+      const currentByOrg = new Map<string, { eventKey: string; eventName: string }>();
+      for (const row of currentEventRows || []) {
+        const r = row as { organization_id: string; key: string; value: string };
+        if (!r.organization_id) continue;
+        const current = currentByOrg.get(r.organization_id) || { eventKey: '', eventName: '' };
+        if (r.key === 'current_event_key') current.eventKey = (r.value || '').trim();
+        if (r.key === 'current_event_name') current.eventName = (r.value || '').trim();
+        currentByOrg.set(r.organization_id, current);
+      }
 
-            const { count: scoutingCount } = await supabaseAdmin
-              .from('scouting_data')
-              .select('*', { count: 'exact', head: true })
-              .eq('organization_id', scopeOrgId)
-              .in('match_id', matchIds);
+      const liveCandidates = Array.from(currentByOrg.entries())
+        .filter(([, cfg]) => cfg.eventKey)
+        .map(([organization_id, cfg]) => ({
+          organization_id,
+          eventKey: cfg.eventKey,
+          eventName: cfg.eventName,
+        }));
 
-            let orgLabel = orgNameMap.get(scopeOrgId) ?? null;
-            if (!orgLabel) {
-              const { data: orow } = await supabaseAdmin
-                .from('organizations')
-                .select('name')
-                .eq('id', scopeOrgId)
-                .maybeSingle();
-              orgLabel = (orow as { name?: string } | null)?.name ?? null;
-            }
+      for (const candidate of liveCandidates) {
+        const { data: eventMatchesRaw, error: matchesErr } = await supabaseAdmin
+          .from('matches')
+          .select('match_id, event_key, red_teams, blue_teams, organization_id')
+          .eq('organization_id', candidate.organization_id)
+          .eq('event_key', candidate.eventKey);
 
-            live.push({
-              event_key: currentEventKey,
-              competition_name: currentEventName || currentEventKey,
-              total_teams: teamSet.size,
-              total_matches: eventMatches.length,
-              scouting_count: scoutingCount ?? 0,
-              organization_name: orgLabel,
-            });
-          }
+        if (matchesErr || !eventMatchesRaw || eventMatchesRaw.length === 0) {
+          continue;
         }
+
+        const eventMatches = eventMatchesRaw as {
+          match_id: string;
+          event_key: string;
+          red_teams: number[];
+          blue_teams: number[];
+          organization_id: string;
+        }[];
+        const matchIds = eventMatches.map((m) => m.match_id);
+        const teamSet = new Set<number>();
+        eventMatches.forEach((m) => {
+          (m.red_teams || []).forEach((t: number) => teamSet.add(t));
+          (m.blue_teams || []).forEach((t: number) => teamSet.add(t));
+        });
+
+        const { count: scoutingCount } = await supabaseAdmin
+          .from('scouting_data')
+          .select('*', { count: 'exact', head: true })
+          .eq('organization_id', candidate.organization_id)
+          .in('match_id', matchIds);
+
+        let orgLabel = orgNameMap.get(candidate.organization_id) ?? null;
+        if (!orgLabel) {
+          const { data: orow } = await supabaseAdmin
+            .from('organizations')
+            .select('name')
+            .eq('id', candidate.organization_id)
+            .maybeSingle();
+          orgLabel = (orow as { name?: string } | null)?.name ?? null;
+        }
+
+        live.push({
+          event_key: candidate.eventKey,
+          competition_name: candidate.eventName || candidate.eventKey,
+          total_teams: teamSet.size,
+          total_matches: eventMatches.length,
+          scouting_count: scoutingCount ?? 0,
+          organization_name: orgLabel,
+        });
       }
 
       const liveForResponse = live;

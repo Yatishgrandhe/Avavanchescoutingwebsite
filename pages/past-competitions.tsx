@@ -153,12 +153,11 @@ export default function PastCompetitionsPage() {
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                               Live
                             </span>
-                            {ev.is_multi_org && (
+                            {ev.is_multi_org ? (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/20 text-amber-500 border border-amber-500/30">
-                                Global View
+                                Multiple
                               </span>
-                            )}
-                            {ev.organization_name && (
+                            ) : ev.organization_name && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">
                                 {ev.organization_name}
                               </span>
@@ -261,12 +260,11 @@ export default function PastCompetitionsPage() {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
-                          {competition.is_multi_org && (
+                          {competition.is_multi_org ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/20 text-amber-500 border border-amber-500/30">
-                              Global View
+                              Multiple
                             </span>
-                          )}
-                          {competition.organization_name && (
+                          ) : competition.organization_name && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">
                               {competition.organization_name}
                             </span>

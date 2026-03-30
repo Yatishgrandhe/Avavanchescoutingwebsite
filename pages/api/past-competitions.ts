@@ -638,7 +638,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         return {
           ...c,
-          organization_name: orgNames.length > 1 ? `Shared by ${orgNames.join(', ')}` : (orgNames[0] ?? null),
+          organization_name: orgNames.length > 1 ? 'Multiple' : (orgNames[0] ?? null),
           is_multi_org: orgNames.length > 1,
           total_teams: groupTeamSet.size,
           total_matches: groupMatchSet.size,
@@ -716,7 +716,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           total_teams: teamSet.size,
           total_matches: new Set(eventMatches.map(m => m.match_id)).size,
           scouting_count: scoutingCount ?? 0,
-          organization_name: orgNames.length > 1 ? `Shared by ${orgNames.join(', ')}` : (orgNames[0] ?? null),
+          organization_name: orgNames.length > 1 ? 'Multiple' : (orgNames[0] ?? null),
           is_multi_org: orgNames.length > 1,
         });
       }

@@ -19,6 +19,7 @@ import { useRefreshHandler } from '@/lib/refresh-handler';
 import { fetchRecentMatchScoutingForActivity } from '@/lib/dashboard-activity';
 import { getOrgCurrentEvent } from '@/lib/org-app-config';
 import { getDashboardStatsForActiveEvent } from '@/lib/dashboard-event-stats';
+import { getCachedValue, setCachedValue } from '@/lib/local-client-cache';
 import Layout from '../components/layout/Layout';
 
 // Types for dashboard data (all real from DB)
@@ -87,8 +88,16 @@ export default function MobileDashboard() {
         return;
       }
 
+      const cacheKey = `mobile-dashboard:stats:${orgId}:${eventKey}`;
+      const cachedStats = getCachedValue<DashboardStats>(cacheKey);
+      if (cachedStats) {
+        setDashboardStats(cachedStats);
+        return;
+      }
+
       const stats = await getDashboardStatsForActiveEvent(supabase, orgId, eventKey);
       setDashboardStats(stats);
+      setCachedValue(cacheKey, stats, 45 * 1000);
     } catch (error) {
       console.error('Error loading dashboard stats:', error);
     } finally {
@@ -99,6 +108,14 @@ export default function MobileDashboard() {
   const loadRecentActivity = async () => {
     setLoadingActivity(true);
     try {
+      const orgId = user?.organization_id || 'none';
+      const activityCacheKey = `mobile-dashboard:recent-activity:${orgId}`;
+      const cachedActivity = getCachedValue<RecentActivity[]>(activityCacheKey);
+      if (cachedActivity) {
+        setRecentActivity(cachedActivity);
+        return;
+      }
+
       const [enrichedScouting, pitRes] = await Promise.all([
         fetchRecentMatchScoutingForActivity(supabase, { orgId: user?.organization_id, limit: 5 }),
         supabase
@@ -136,7 +153,9 @@ export default function MobileDashboard() {
       }
 
       activities.sort((a, b) => (b._sort ?? 0) - (a._sort ?? 0));
-      setRecentActivity(activities.slice(0, 5).map(({ _sort, ...rest }) => rest));
+      const recent = activities.slice(0, 5).map(({ _sort, ...rest }) => rest);
+      setRecentActivity(recent);
+      setCachedValue(activityCacheKey, recent, 20 * 1000);
     } catch (error) {
       console.error('Error loading recent activity:', error);
       setRecentActivity([]);

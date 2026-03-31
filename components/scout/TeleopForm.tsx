@@ -40,9 +40,8 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   const [showClimbTimePopup, setShowClimbTimePopup] = useState(false);
   const [pendingClimbSec, setPendingClimbSec] = useState(0);
 
-  // Ball & Shuttle tracking runs
+  // Ball tracking runs
   const [fuelRuns, setFuelRuns] = useState<RunRecord[]>(() => initialData?.runs || []);
-  const [shuttleRuns, setShuttleRuns] = useState<RunRecord[]>(() => initialData?.shuttle_runs || []);
 
   useEffect(() => {
     if (!climbTimerRunning) return;
@@ -91,7 +90,6 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
     );
     onNext({
       runs: fuelRuns,
-      shuttle_runs: shuttleRuns,
       teleop_fuel_active_hub: Math.round(totalFuel * 10) / 10,
       teleop_fuel_shifts: (fuelRuns || []).map(r => getBallChoiceScoreFromRange(r.ball_choice)),
       teleop_tower_level1: towerLevel1,
@@ -228,15 +226,6 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
               phaseDescription="Track scoring runs — when balls scored, pick range"
               initialData={fuelRuns}
               onRunsChange={setFuelRuns}
-              hideNextButton={true}
-              isDarkMode={isDarkMode}
-            />
-
-            <StopwatchBallTracking
-              phaseLabel="Shuttling"
-              phaseDescription="Track shuttling runs — when balls moved, pick range"
-              initialData={shuttleRuns}
-              onRunsChange={setShuttleRuns}
               hideNextButton={true}
               isDarkMode={isDarkMode}
             />

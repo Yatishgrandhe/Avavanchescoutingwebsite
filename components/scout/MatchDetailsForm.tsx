@@ -4,6 +4,7 @@ import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Card
 import { ChevronDown, Loader2, AlertCircle, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSupabase } from '@/pages/_app';
+import { getCachedValue, setCachedValue } from '@/lib/local-client-cache';
 
 interface Match {
   match_id: string;
@@ -118,6 +119,15 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
     setApiMessage('');
 
     try {
+      const cacheKey = 'match-details:matches';
+      const cached = getCachedValue<{ matches: Match[]; message?: string }>(cacheKey);
+      if (cached) {
+        setMatches(cached.matches || []);
+        setApiMessage(cached.message || '');
+        setLoading(false);
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         throw new Error('No active session');
@@ -137,6 +147,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
       if (data.message) {
         setApiMessage(data.message);
       }
+      setCachedValue(cacheKey, { matches: data.matches || [], message: data.message || '' }, 60 * 1000);
     } catch (err) {
       console.error('Error fetching matches:', err);
       setError('Failed to load matches. Please try again.');

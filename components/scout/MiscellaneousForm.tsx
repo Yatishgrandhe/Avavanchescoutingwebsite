@@ -3,15 +3,12 @@ import { motion } from 'framer-motion';
 import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Counter } from '../ui';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
-import { normalizeShuttleConsistency } from '@/lib/scouting-notes-merge';
 
 type MiscData = { 
   defense_rating: number; 
   comments: string; 
   average_downtime: number | null; 
   broke: boolean | null;
-  shuttling: boolean;
-  shuttling_consistency: string;
 };
 
 interface MiscellaneousFormProps {
@@ -24,8 +21,6 @@ interface MiscellaneousFormProps {
     comments: string; 
     average_downtime?: number | null; 
     broke?: boolean | null;
-    shuttling?: boolean;
-    shuttling_consistency?: string;
   };
   /** Called whenever any field changes so parent can persist data when user navigates back */
   onDataChange?: (data: MiscData) => void;
@@ -44,8 +39,6 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
     comments: initialData?.comments || '',
     average_downtime: initialData?.average_downtime ?? null as number | null,
     broke: initialData?.broke ?? null as boolean | null,
-    shuttling: initialData?.shuttling ?? false as boolean,
-    shuttling_consistency: initialData?.shuttling_consistency || 'N/A' as string,
   });
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -57,8 +50,6 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
         comments: initialData.comments || '',
         average_downtime: initialData.average_downtime ?? null,
         broke: initialData.broke ?? null,
-        shuttling: initialData.shuttling ?? false,
-        shuttling_consistency: initialData.shuttling_consistency || 'N/A',
       });
     }
   }, [initialData]);
@@ -100,63 +91,6 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
               {validationError}
             </div>
           )}
-
-          {/* Shuttling — full width so it is always visible on step 4 (not buried in a column). */}
-          <div className="space-y-4 p-4 rounded-xl border border-primary/20 bg-primary/5">
-            <div className="space-y-2">
-              <h3 className="text-xs font-black uppercase tracking-widest text-primary">Did they shuttle?</h3>
-              <p className="text-xs text-muted-foreground">Transporting game pieces without scoring (e.g. feeding alliance).</p>
-              <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 h-[44px] max-w-md">
-                <button
-                  type="button"
-                  onClick={() => handleInputChange('shuttling', true)}
-                  className={cn(
-                    "flex-1 rounded-lg text-xs font-bold transition-all",
-                    formData.shuttling === true ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:bg-white/5"
-                  )}
-                >
-                  YES
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleInputChange('shuttling', false)}
-                  className={cn(
-                    "flex-1 rounded-lg text-xs font-bold transition-all",
-                    formData.shuttling === false ? "bg-white/15 text-white" : "text-muted-foreground hover:bg-white/5"
-                  )}
-                >
-                  NO
-                </button>
-              </div>
-            </div>
-
-            {formData.shuttling && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-2"
-              >
-                <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Was shuttling consistent?</h3>
-                <div className="flex flex-wrap gap-2 max-w-md">
-                  {['Consistent', 'Inconsistent'].map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => handleInputChange('shuttling_consistency', option)}
-                      className={cn(
-                        "flex-1 min-w-[120px] py-3 rounded-lg text-xs font-bold border transition-all",
-                        formData.shuttling_consistency === option
-                          ? "bg-primary/20 border-primary text-primary shadow-sm"
-                          : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
-                      )}
-                    >
-                      {option.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-6">
@@ -273,18 +207,11 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
                 return;
               }
 
-              if (formData.shuttling && !normalizeShuttleConsistency(formData.shuttling_consistency)) {
-                setValidationError('If the robot shuttled, choose Consistent or Inconsistent.');
-                return;
-              }
-
               onNext({
                 defense_rating: defenseRating,
                 comments: comments,
                 average_downtime: formData.average_downtime,
                 broke: formData.broke,
-                shuttling: formData.shuttling,
-                shuttling_consistency: formData.shuttling_consistency,
               });
             }}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"

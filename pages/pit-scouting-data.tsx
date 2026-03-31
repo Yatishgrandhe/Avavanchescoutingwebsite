@@ -44,6 +44,7 @@ import {
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAdmin } from '@/hooks/use-admin';
+import { getLocalPendingPitRows } from '@/lib/local-pending-data';
 
 export interface PitScoutingData {
   id: string;
@@ -88,6 +89,7 @@ export interface PitScoutingData {
   submitted_at: string;
   created_at: string;
   auto_fuel_count?: number;
+  is_local_only?: boolean;
 }
 
 function getPitImageUrl(item: PitScoutingData): string | null {
@@ -204,8 +206,10 @@ export default function PitScoutingData() {
           auto_fuel_count: item.auto_fuel_count ?? 0
         }));
 
-        setPitData(transformedData);
-        setFilteredData(transformedData);
+        const localPending = await getLocalPendingPitRows(user.organization_id);
+        const merged = [...(localPending as unknown as PitScoutingData[]), ...transformedData];
+        setPitData(merged);
+        setFilteredData(merged);
       } catch (error) {
         console.error('Error loading pit scouting data:', error);
         setPitData([]);
@@ -352,8 +356,10 @@ export default function PitScoutingData() {
         auto_fuel_count: item.auto_fuel_count ?? 0
       }));
 
-      setPitData(transformedData);
-      setFilteredData(transformedData);
+      const localPending = await getLocalPendingPitRows(user.organization_id);
+      const merged = [...(localPending as unknown as PitScoutingData[]), ...transformedData];
+      setPitData(merged);
+      setFilteredData(merged);
     } catch (error) {
       console.error('Error refreshing pit scouting data:', error);
     } finally {
@@ -496,6 +502,9 @@ export default function PitScoutingData() {
                             <TableCell className="font-medium">
                               <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80">Team number</span>
                               <span className="block font-semibold">Team {item.team_number}</span>
+                              {item.is_local_only && (
+                                <Badge className="mt-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px]">LOCAL PENDING</Badge>
+                              )}
                               <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 mt-1 block">Team name</span>
                               <span className="block text-muted-foreground text-sm font-normal">{item.team_name || '—'}</span>
                             </TableCell>
@@ -525,7 +534,7 @@ export default function PitScoutingData() {
                                   <Eye className="h-4 w-4 mr-1" />
                                   View
                                 </Button>
-                                {isAdmin && (
+                                {isAdmin && !item.is_local_only && (
                                   <>
                                     <Button
                                       variant="outline"
@@ -615,7 +624,7 @@ export default function PitScoutingData() {
                           )}
                         </CardContent>
                       </Link>
-                      {isAdmin && item.id && (
+                      {isAdmin && item.id && !item.is_local_only && (
                         <div className="flex items-center gap-2 p-2 border-t border-white/10 bg-black/20" onClick={(e) => e.stopPropagation()}>
                           <Link href={`/pit-scouting?id=${encodeURIComponent(item.id)}&edit=true`} className="flex-1">
                             <Button size="sm" variant="outline" className="w-full h-8 text-xs bg-gray-800 border-gray-600 text-white hover:bg-gray-700">

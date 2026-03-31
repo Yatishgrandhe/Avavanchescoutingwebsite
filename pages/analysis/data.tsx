@@ -43,6 +43,7 @@ import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
 import { TeamComparisonPanel } from '@/components/data/TeamComparisonPanel';
 import { getOrgCurrentEvent } from '@/lib/org-app-config';
+import { getLocalPendingMatchRows } from '@/lib/local-pending-data';
 
 interface TeamStat extends RebuiltTeamMetrics {
   team_number: number;
@@ -248,6 +249,17 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         const bTime = b.submitted_at || b.created_at;
         return new Date(bTime).getTime() - new Date(aTime).getTime();
       });
+      const localPendingRows = await getLocalPendingMatchRows(user?.organization_id);
+      const localPendingForEvent = localPendingRows.filter((row) =>
+        row.competition_key
+          ? row.competition_key === targetEventKey
+          : row.match_id.includes(targetEventKey)
+      ) as unknown as ScoutingData[];
+      const allScoutingRows = [...localPendingForEvent, ...sortedScoutingData].sort((a: ScoutingData, b: ScoutingData) => {
+        const aTime = a.submitted_at || a.created_at;
+        const bTime = b.submitted_at || b.created_at;
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      });
 
       // Load ALL teams (including Avalanche) for team name lookups and Team Stats calculation
       // Team Stats needs all teams that have scouting data, regardless of team list filter
@@ -267,7 +279,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
       if (teamsError) throw teamsError;
 
-      setScoutingData(sortedScoutingData);
+      setScoutingData(allScoutingRows);
       setTeams(teamsResult || []);
       setAllTeams(allTeamsResult || []);
 
@@ -307,7 +319,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       }
 
       // Calculate team statistics: use ALL form scores for averages; matches = distinct match_id from DB
-      const stats = calculateTeamStats(sortedScoutingData, allTeamsResult || [], matchCountsFromDb, epaMap);
+      const stats = calculateTeamStats(allScoutingRows, allTeamsResult || [], matchCountsFromDb, epaMap);
       setTeamStats(stats);
 
       // Load pit scouting data so we can show robot name / drive type per team
@@ -535,12 +547,18 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   };
 
   const handleDelete = (item: ScoutingData) => {
+    if ((item as any).is_local_only) return;
     setDeletingItem(item);
     setShowDeleteConfirm(true);
   };
 
   const confirmDelete = async () => {
     if (!deletingItem) return;
+    if ((deletingItem as any).is_local_only) {
+      setShowDeleteConfirm(false);
+      setDeletingItem(null);
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -1176,6 +1194,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                   {data.alliance_color}
                                 </Badge>
                                 <span className="text-[10px] text-muted-foreground font-mono">Match {data.match_id}</span>
+                                {(data as any).is_local_only && (
+                                  <Badge className="ml-2 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px]">LOCAL PENDING</Badge>
+                                )}
                               </div>
                             </div>
                             <div className="text-right flex-shrink-0">
@@ -1420,7 +1441,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                     <Badge variant="outline" className="font-mono text-[10px]">#{data.team_number}</Badge>
                                   </div>
                                 </td>
-                                <td className="p-4 font-mono font-bold text-primary">{data.match_id}</td>
+                                <td className="p-4 font-mono font-bold text-primary">
+                                  {data.match_id}
+                                  {(data as any).is_local_only && (
+                                    <Badge className="ml-2 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px]">LOCAL</Badge>
+                                  )}
+                                </td>
                                 <td className="p-4">
                                   <Badge
                                     variant={data.alliance_color === 'red' ? 'destructive' : 'default'}
@@ -1486,6 +1512,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                         size="icon"
                                         variant="ghost"
                                         className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-white/10"
+                                        disabled={(data as any).is_local_only}
                                         onClick={() => handleDelete(data)}
                                       >
                                         <Trash2 className="w-4 h-4" />

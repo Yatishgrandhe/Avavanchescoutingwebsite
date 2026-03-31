@@ -162,6 +162,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     }
     return scoutingData;
   }, [scoutingData, selectedTeam]);
+  const canUseCommentSummary = isAdmin || isSuperAdmin;
 
   const runDataPageAiSummarize = useCallback(async (rows: ScoutingData[]) => {
     const comments = rows.map(d => d.comments).filter((c): c is string => Boolean(c?.trim()));
@@ -200,12 +201,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   }, [selectedTeam, activeEventKey]);
 
   useEffect(() => {
-    if (!isSuperAdmin || adminLoading || loading) return;
+    if (!canUseCommentSummary || adminLoading || loading) return;
     if (dataPageSummarizeOnceRef.current) return;
     if (!rowsForDataPageAi.some(d => d.comments?.trim())) return;
     dataPageSummarizeOnceRef.current = true;
     void runDataPageAiSummarize(rowsForDataPageAi);
-  }, [isSuperAdmin, adminLoading, loading, rowsForDataPageAi, runDataPageAiSummarize]);
+  }, [canUseCommentSummary, adminLoading, loading, rowsForDataPageAi, runDataPageAiSummarize]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -907,6 +908,40 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                   </div>
                 ) : (
                   <>
+                    {canUseCommentSummary && (
+                      <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4 space-y-2 mb-4">
+                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-500">
+                          <Shield className="w-4 h-4" />
+                          Admin comments summary
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          Auto-runs on page open when comments exist. If a team is selected, this focuses on that team; otherwise it summarizes all loaded forms.
+                        </p>
+                        {dataPageAiSummary ? (
+                          <p className="text-sm text-foreground/90 italic leading-relaxed">&ldquo;{dataPageAiSummary}&rdquo;</p>
+                        ) : dataPageAiLoading ? (
+                          <div className="flex items-center gap-2 text-amber-500 text-sm">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Summarizing…
+                          </div>
+                        ) : dataPageAiError ? (
+                          <div className="space-y-2">
+                            <p className="text-sm text-red-400">{dataPageAiError}</p>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => void runDataPageAiSummarize(rowsForDataPageAi)}
+                              disabled={!rowsForDataPageAi.some(d => d.comments?.trim())}
+                            >
+                              Retry
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">No comments found in the current loaded data.</p>
+                        )}
+                      </div>
+                    )}
                     {viewMode === 'teams' ? (
                   // Team Statistics View
                   <div className="space-y-4">
@@ -1159,40 +1194,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                 ) : (
                   // Individual Forms View
                   <div className="space-y-4">
-                    {isSuperAdmin && (
-                      <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4 space-y-2">
-                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-500">
-                          <Shield className="w-4 h-4" />
-                          Superadmin — Gemma 3 4B comment summary
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">
-                          Auto-runs on page open when comments exist. If a team is selected, this focuses on that team; otherwise it summarizes all loaded forms.
-                        </p>
-                        {dataPageAiSummary ? (
-                          <p className="text-sm text-foreground/90 italic leading-relaxed">&ldquo;{dataPageAiSummary}&rdquo;</p>
-                        ) : dataPageAiLoading ? (
-                          <div className="flex items-center gap-2 text-amber-500 text-sm">
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Summarizing…
-                          </div>
-                        ) : dataPageAiError ? (
-                          <div className="space-y-2">
-                            <p className="text-sm text-red-400">{dataPageAiError}</p>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => void runDataPageAiSummarize(rowsForDataPageAi)}
-                              disabled={!rowsForDataPageAi.some(d => d.comments?.trim())}
-                            >
-                              Retry
-                            </Button>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-muted-foreground">No comments found in the current loaded data.</p>
-                        )}
-                      </div>
-                    )}
                     {/* Mobile Card View for Individual Forms */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:hidden gap-4">
                       {sortedData.map((data, index) => (

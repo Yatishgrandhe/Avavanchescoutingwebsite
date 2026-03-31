@@ -100,7 +100,7 @@ interface AnalysisFilters {
 
 export default function AdvancedAnalysis() {
   const { user, loading: authLoading } = useSupabase();
-  const { isSuperAdmin, loading: adminLoading } = useAdmin();
+  const { isAdmin, isSuperAdmin, loading: adminLoading } = useAdmin();
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
   const [teamStats, setTeamStats] = useState<TeamStats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -117,6 +117,7 @@ export default function AdvancedAnalysis() {
   const [summarizeError, setSummarizeError] = useState<string | null>(null);
   const summarizeInFlightRef = useRef(false);
   const superAdminAutoSummarizeRef = useRef(false);
+  const canUseCommentSummary = isAdmin || isSuperAdmin;
 
   // Load available teams from Supabase
   useEffect(() => {
@@ -349,13 +350,13 @@ export default function AdvancedAnalysis() {
   }, [selectedTeam]);
 
   useEffect(() => {
-    if (!isSuperAdmin || adminLoading || authLoading || !teamStats || loading) return;
+    if (!canUseCommentSummary || adminLoading || authLoading || !teamStats || loading) return;
     if (superAdminAutoSummarizeRef.current) return;
     if (!scoutingRowsForAi.some(r => r.comments?.trim())) return;
     superAdminAutoSummarizeRef.current = true;
     void handleAiSummarize(scoutingRowsForAi);
   }, [
-    isSuperAdmin,
+    canUseCommentSummary,
     adminLoading,
     authLoading,
     teamStats,
@@ -589,12 +590,12 @@ export default function AdvancedAnalysis() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="space-y-6"
             >
-              {isSuperAdmin && (
+              {canUseCommentSummary && (
                 <Card className="bg-amber-500/[0.06] border-amber-500/25">
                   <CardHeader className="pb-2">
                     <CardTitle className={`flex items-center gap-2 text-sm ${isDarkMode ? 'text-amber-400' : 'text-amber-700'}`}>
                       <Shield className="w-5 h-5 shrink-0" />
-                      Superadmin — comment intelligence (Gemma 3 4B)
+                      Admin comments intelligence (Gemma 3 4B)
                     </CardTitle>
                     <CardDescription className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
                       Runs automatically after you analyze a team with scouting comments. Same engine as Team Details.

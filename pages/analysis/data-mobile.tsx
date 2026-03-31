@@ -23,11 +23,13 @@ import { ScoutingData, Team } from '@/lib/types';
 import { useRouter } from 'next/router';
 import { getAutoFuelCount, getTeleopFuelCount, getClimbPoints } from '@/lib/analytics';
 import { formatDurationSec } from '@/lib/utils';
+import { getOrgCurrentEvent } from '@/lib/org-app-config';
+import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
 
 interface DataAnalysisProps { }
 
 const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
-  const { supabase, user } = useSupabase();
+  const { supabase, user, loading: authLoading } = useSupabase();
   const router = useRouter();
   const [scoutingData, setScoutingData] = useState<ScoutingData[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -39,20 +41,36 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const loadRequestIdRef = React.useRef(0);
 
   useEffect(() => {
+    if (authLoading) return;
     loadData();
-  }, []);
+  }, [authLoading, user?.organization_id]);
 
   const loadData = async () => {
+    const requestId = ++loadRequestIdRef.current;
     try {
       setLoading(true);
 
-      // Load scouting data - includes submitted_by_name for uploader display
-      // Fetch all data, then sort client-side by submitted_at (or created_at as fallback)
-      const { data: scoutingDataResult, error: scoutingError } = await supabase
+      // Resolve active event when organization is known; fall back to current season pattern.
+      let currentEventKey = '';
+      if (user?.organization_id) {
+        const { eventKey } = await getOrgCurrentEvent(supabase, user.organization_id);
+        currentEventKey = eventKey;
+      }
+
+      let scoutingQuery = supabase
         .from('scouting_data')
-        .select('*');
+        .select('*, matches!inner(event_key)');
+
+      if (currentEventKey) {
+        scoutingQuery = scoutingQuery.eq('matches.event_key', currentEventKey);
+      } else {
+        scoutingQuery = scoutingQuery.like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN);
+      }
+
+      const { data: scoutingDataResult, error: scoutingError } = await scoutingQuery;
 
       if (scoutingError) throw scoutingError;
 
@@ -71,12 +89,13 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
 
       if (teamsError) throw teamsError;
 
+      if (requestId !== loadRequestIdRef.current) return;
       setScoutingData(sortedScoutingData);
       setTeams(teamsResult || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestIdRef.current) setLoading(false);
     }
   };
 

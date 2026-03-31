@@ -118,7 +118,7 @@ interface DataAnalysisProps { }
 
 
 const DataAnalysis: React.FC<DataAnalysisProps> = () => {
-  const { supabase, user } = useSupabase();
+  const { supabase, user, loading: authLoading } = useSupabase();
   const { isAdmin, isSuperAdmin, canAccessStats, loading: adminLoading } = useAdmin();
   const [scoutingData, setScoutingData] = useState<ScoutingData[]>([]);
   const [teams, setTeams] = useState<Team[]>([]); // For filter dropdown (excludes Avalanche)
@@ -208,8 +208,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   }, [isSuperAdmin, adminLoading, loading, rowsForDataPageAi, runDataPageAiSummarize]);
 
   useEffect(() => {
+    if (authLoading) return;
     loadData();
-  }, [teamDataOnly]); // Reload when toggle changes
+  }, [authLoading, user?.organization_id, teamDataOnly]); // Reload when auth/org/toggle changes
 
   const loadData = async () => {
     const requestId = ++loadRequestIdRef.current;

@@ -100,6 +100,22 @@ function getPitImageUrl(item: PitScoutingData): string | null {
   return first ? first.trim() : null;
 }
 
+function getPitTimestampMs(row: Pick<PitScoutingData, 'submitted_at' | 'created_at'>): number {
+  const value = row.submitted_at || row.created_at;
+  if (!value) return 0;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function mergePitRows(localRows: PitScoutingData[], serverRows: PitScoutingData[]): PitScoutingData[] {
+  const deduped = new Map<string, PitScoutingData>();
+  [...localRows, ...serverRows].forEach((row) => {
+    if (!row?.id) return;
+    deduped.set(row.id, row);
+  });
+  return Array.from(deduped.values()).sort((a, b) => getPitTimestampMs(b) - getPitTimestampMs(a));
+}
+
 export default function PitScoutingData() {
   const { user, loading, supabase } = useSupabase();
   const { isAdmin } = useAdmin();
@@ -207,7 +223,7 @@ export default function PitScoutingData() {
         }));
 
         const localPending = await getLocalPendingPitRows(user.organization_id);
-        const merged = [...(localPending as unknown as PitScoutingData[]), ...transformedData];
+        const merged = mergePitRows(localPending as unknown as PitScoutingData[], transformedData);
         setPitData(merged);
         setFilteredData(merged);
       } catch (error) {
@@ -357,7 +373,7 @@ export default function PitScoutingData() {
       }));
 
       const localPending = await getLocalPendingPitRows(user.organization_id);
-      const merged = [...(localPending as unknown as PitScoutingData[]), ...transformedData];
+      const merged = mergePitRows(localPending as unknown as PitScoutingData[], transformedData);
       setPitData(merged);
       setFilteredData(merged);
     } catch (error) {

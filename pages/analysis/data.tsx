@@ -90,6 +90,30 @@ const calculateTeamStats = (
   }).filter(stat => stat.total_matches > 0);
 };
 
+const getRowTimestampMs = (row: Pick<ScoutingData, 'submitted_at' | 'created_at'>): number => {
+  const value = row.submitted_at || row.created_at;
+  if (!value) return 0;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const computeDistinctMatchCounts = (rows: ScoutingData[]): Record<number, number> => {
+  const byTeam = new Map<number, Set<string>>();
+  rows.forEach((row) => {
+    const teamNumber = Number(row.team_number);
+    const matchId = String(row.match_id || '').trim();
+    if (!Number.isFinite(teamNumber) || teamNumber <= 0 || !matchId) return;
+    if (!byTeam.has(teamNumber)) byTeam.set(teamNumber, new Set());
+    byTeam.get(teamNumber)?.add(matchId);
+  });
+
+  const counts: Record<number, number> = {};
+  byTeam.forEach((matches, teamNumber) => {
+    counts[teamNumber] = matches.size;
+  });
+  return counts;
+};
+
 interface DataAnalysisProps { }
 
 
@@ -128,6 +152,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [dataPageAiSummary, setDataPageAiSummary] = useState<string | null>(null);
   const [dataPageAiLoading, setDataPageAiLoading] = useState(false);
   const [dataPageAiError, setDataPageAiError] = useState<string | null>(null);
+  const loadRequestIdRef = useRef(0);
   const dataPageSummarizeOnceRef = useRef(false);
   const dataPageSummarizeInFlightRef = useRef(false);
 
@@ -187,6 +212,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   }, [teamDataOnly]); // Reload when toggle changes
 
   const loadData = async () => {
+    const requestId = ++loadRequestIdRef.current;
     try {
       setLoading(true);
 
@@ -213,6 +239,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
       // If still no event key, we can't show specific data
       if (!targetEventKey) {
+        if (requestId !== loadRequestIdRef.current) return;
         setScoutingData([]);
         setTeamStats([]);
         setLoading(false);
@@ -238,22 +265,16 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       }
 
       // Sort by submitted_at first, then created_at as fallback (most recent first)
-      const sortedScoutingData = (scoutingDataResult || []).sort((a: ScoutingData, b: ScoutingData) => {
-        const aTime = a.submitted_at || a.created_at;
-        const bTime = b.submitted_at || b.created_at;
-        return new Date(bTime).getTime() - new Date(aTime).getTime();
-      });
+      const sortedScoutingData = (scoutingDataResult || []).sort((a: ScoutingData, b: ScoutingData) => getRowTimestampMs(b) - getRowTimestampMs(a));
       const localPendingRows = await getLocalPendingMatchRows(user?.organization_id);
       const localPendingForEvent = localPendingRows.filter((row) =>
         row.competition_key
           ? row.competition_key === targetEventKey
           : row.match_id.includes(targetEventKey)
       ) as unknown as ScoutingData[];
-      const allScoutingRows = [...localPendingForEvent, ...sortedScoutingData].sort((a: ScoutingData, b: ScoutingData) => {
-        const aTime = a.submitted_at || a.created_at;
-        const bTime = b.submitted_at || b.created_at;
-        return new Date(bTime).getTime() - new Date(aTime).getTime();
-      });
+      const allScoutingRows = [...localPendingForEvent, ...sortedScoutingData]
+        .filter((row) => Number.isFinite(Number(row.team_number)) && Number(row.team_number) > 0)
+        .sort((a: ScoutingData, b: ScoutingData) => getRowTimestampMs(b) - getRowTimestampMs(a));
 
       // Load ALL teams (including Avalanche) for team name lookups and Team Stats calculation
       // Team Stats needs all teams that have scouting data, regardless of team list filter
@@ -273,6 +294,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
       if (teamsError) throw teamsError;
 
+      if (requestId !== loadRequestIdRef.current) return;
       setScoutingData(allScoutingRows);
       setTeams(teamsResult || []);
       setAllTeams(allTeamsResult || []);
@@ -300,20 +322,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       }
       setStarterEpaMap(epaMap);
 
-      // Matches scouted per team from database (distinct match_id count, not form count)
-      let matchCountsFromDb: Record<number, number> = {};
-      try {
-        const countsRes = await fetch('/api/analysis/team-match-counts');
-        if (countsRes.ok) {
-          const { counts } = await countsRes.json();
-          if (counts && typeof counts === 'object') matchCountsFromDb = counts;
-        }
-      } catch (_) {
-        // Fall back to computing from loaded data
-      }
+      // Keep match counts aligned with exactly what is loaded on this page.
+      const matchCountsFromLoadedRows = computeDistinctMatchCounts(allScoutingRows);
 
-      // Calculate team statistics: use ALL form scores for averages; matches = distinct match_id from DB
-      const stats = calculateTeamStats(allScoutingRows, allTeamsResult || [], matchCountsFromDb, epaMap);
+      // Calculate team statistics using loaded rows for both averages and match counts.
+      const stats = calculateTeamStats(allScoutingRows, allTeamsResult || [], matchCountsFromLoadedRows, epaMap);
+      if (requestId !== loadRequestIdRef.current) return;
       setTeamStats(stats);
 
       // Load pit scouting data so we can show robot name / drive type per team
@@ -340,11 +354,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
           };
         }
       });
+      if (requestId !== loadRequestIdRef.current) return;
       setPitByTeam(pitMap);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestIdRef.current) setLoading(false);
     }
   };
   // Helper functions - defined before use to avoid temporal dead zone errors

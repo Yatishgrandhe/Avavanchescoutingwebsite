@@ -498,11 +498,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
         const matchesList = Array.from(uniqueMatchesMap.values()).sort((a, b) => a.match_number - b.match_number);
 
+        // Scope by competition_id only: each archived row belongs to one org; filtering again by
+        // organization_id dropped rows when that column was null or inconsistent across imports.
         const { data: scoutingData, error: scoutingError } = await supabaseAdmin
           .from('past_scouting_data')
           .select('*')
-          .in('competition_id', compIds)
-          .in('organization_id', orgIds);
+          .in('competition_id', compIds);
 
         if (scoutingError) {
           console.error('past_scouting_data:', scoutingError);
@@ -511,8 +512,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data: pitScoutingDataRaw = [] } = await supabaseAdmin
           .from('past_pit_scouting_data')
           .select('*')
-          .in('competition_id', compIds)
-          .in('organization_id', orgIds);
+          .in('competition_id', compIds);
         
         const pitScoutingData = mapPitRowsToTeams(
           (pitScoutingDataRaw || []) as Record<string, unknown>[],
@@ -524,8 +524,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const { data: pickData } = await supabaseAdmin
             .from('past_pick_lists')
             .select('*')
-            .in('competition_id', compIds)
-            .in('organization_id', orgIds);
+            .in('competition_id', compIds);
           pickLists = pickData || [];
         }
 
@@ -583,14 +582,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       const groupedCompetitions = Array.from(groupedCompMap.values());
 
-      // Fetch org names for all grouped competitions in batch
-      const allDistinctOrgIds = Array.from(new Set((allCompetitions || []).map((c) => c.organization_id).filter(Boolean)));
+      // Current-event orgs (live cards): needed so org names resolve for teams that have never archived.
+      const { data: currentEventRows } = await supabaseAdmin
+        .from('app_config')
+        .select('organization_id, key, value')
+        .in('key', ['current_event_key', 'current_event_name']);
+
+      const currentByOrg = new Map<string, { eventKey: string; eventName: string }>();
+      for (const row of currentEventRows || []) {
+        const r = row as { organization_id: string; key: string; value: string };
+        if (!r.organization_id) continue;
+        const current = currentByOrg.get(r.organization_id) || { eventKey: '', eventName: '' };
+        if (r.key === 'current_event_key') current.eventKey = (r.value || '').trim();
+        if (r.key === 'current_event_name') current.eventName = (r.value || '').trim();
+        currentByOrg.set(r.organization_id, current);
+      }
+
+      const liveCandidates = Array.from(currentByOrg.entries())
+        .filter(([, cfg]) => cfg.eventKey)
+        .map(([organization_id, cfg]) => ({
+          organization_id,
+          eventKey: cfg.eventKey,
+          eventName: cfg.eventName,
+        }));
+
+      // Fetch org names for past competitions AND any org with a current event (so live badges list every team).
+      const pastOrgIds = Array.from(new Set((allCompetitions || []).map((c) => c.organization_id).filter(Boolean)));
+      const liveOrgIds = Array.from(new Set(liveCandidates.map((c) => c.organization_id).filter(Boolean)));
+      const orgIdsForNameLookup = Array.from(new Set([...pastOrgIds, ...liveOrgIds]));
+
       const orgNameMap = new Map<string, string>();
-      if (allDistinctOrgIds.length > 0) {
+      if (orgIdsForNameLookup.length > 0) {
         const { data: orgRows } = await supabaseAdmin
           .from('organizations')
           .select('id, name')
-          .in('id', allDistinctOrgIds);
+          .in('id', orgIdsForNameLookup);
         for (const o of orgRows || []) {
           orgNameMap.set((o as { id: string; name: string }).id, (o as { id: string; name: string }).name);
         }
@@ -626,13 +652,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const competitionsForResponse = groupedCompetitions.map((c) => {
-        const orgNames = Array.from(
-          new Set(
-            (c.contributing_org_ids as string[])
-              .map((oid: string) => orgNameMap.get(oid))
-              .filter((n): n is string => Boolean(n))
-          )
+        const uniqueOrgIds = Array.from(
+          new Set((c.contributing_org_ids as string[]).filter((oid): oid is string => Boolean(oid)))
         );
+        const orgNames = uniqueOrgIds.map((oid) => orgNameMap.get(oid)).filter((n): n is string => Boolean(n));
 
         // Aggregate unique teams and matches across all contributing competitions in this group
         const groupTeamSet = new Set<number>();
@@ -644,7 +667,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if (matchSet) matchSet.forEach((mn) => groupMatchSet.add(mn));
         });
 
-        const isMulti = orgNames.length > 1;
+        const isMulti = uniqueOrgIds.length > 1;
 
         return {
           ...c,
@@ -657,29 +680,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
       // --- Group Live Events by event_key ---
-      const { data: currentEventRows } = await supabaseAdmin
-        .from('app_config')
-        .select('organization_id, key, value')
-        .in('key', ['current_event_key', 'current_event_name']);
-
-      const currentByOrg = new Map<string, { eventKey: string; eventName: string }>();
-      for (const row of currentEventRows || []) {
-        const r = row as { organization_id: string; key: string; value: string };
-        if (!r.organization_id) continue;
-        const current = currentByOrg.get(r.organization_id) || { eventKey: '', eventName: '' };
-        if (r.key === 'current_event_key') current.eventKey = (r.value || '').trim();
-        if (r.key === 'current_event_name') current.eventName = (r.value || '').trim();
-        currentByOrg.set(r.organization_id, current);
-      }
-
-      const liveCandidates = Array.from(currentByOrg.entries())
-        .filter(([, cfg]) => cfg.eventKey)
-        .map(([organization_id, cfg]) => ({
-          organization_id,
-          eventKey: cfg.eventKey,
-          eventName: cfg.eventName,
-        }));
-
       // Group live candidates by eventKey
       const groupedLiveMap = new Map<string, any>();
       for (const cand of liveCandidates) {
@@ -722,7 +722,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const orgNames = Array.from(
           new Set(orgIds.map((oid) => orgNameMap.get(oid)).filter((n): n is string => Boolean(n)))
         );
-        const isMultiLive = orgNames.length > 1;
+        const isMultiLive = orgIds.length > 1;
 
         liveFull.push({
           event_key: evtKey,

@@ -112,9 +112,20 @@ export default function ViewDataPage() {
   }, [router.isReady, router.query.see_all_orgs, router.query.pit_all_orgs]);
 
   useEffect(() => {
+    if (!router.isReady) return;
     if (!event_key && !id && !competition_key) return;
     loadData();
-  }, [event_key, id, competition_key, year, seeAllOrgsData, pitAllOrgs]);
+  }, [
+    router.isReady,
+    event_key,
+    id,
+    competition_key,
+    year,
+    seeAllOrgsData,
+    pitAllOrgs,
+    router.query.see_all_orgs,
+    router.query.pit_all_orgs,
+  ]);
 
   useEffect(() => {
     if (!event_key && !id && !competition_key && router.isReady) {
@@ -312,10 +323,14 @@ export default function ViewDataPage() {
       if (competition_key) params.set('competition_key', competition_key as string);
       if (year) params.set('year', year as string);
       
-      if (seeAllOrgsData && (event_key || competition_key)) {
+      const effectiveSeeAll =
+        router.query.see_all_orgs === '1' || seeAllOrgsData;
+      const effectivePitAll =
+        router.query.pit_all_orgs === '1' || pitAllOrgs;
+      if (effectiveSeeAll && (event_key || competition_key)) {
         params.set('see_all_orgs', '1');
       }
-      if (pitAllOrgs && (event_key || competition_key)) {
+      if (effectivePitAll && (event_key || competition_key)) {
         params.set('pit_all_orgs', '1');
       }
 

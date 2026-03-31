@@ -466,6 +466,24 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     return 'Unknown';
   };
 
+  const canViewUploaderIdentity = (data: ScoutingData) => {
+    if (!(isAdmin || isSuperAdmin)) return false;
+    if (!user?.organization_id) return false;
+    if (!data?.organization_id) return false;
+    return data.organization_id === user.organization_id;
+  };
+
+  const getVisibleUploaderName = (data: ScoutingData) =>
+    canViewUploaderIdentity(data) ? getUploaderName(data) : 'Private (other org)';
+
+  const getRecordedDate = (data: ScoutingData) => {
+    const raw = data.submitted_at || data.created_at;
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return '—';
+    return parsed.toLocaleDateString();
+  };
+  const shouldShowUploaderColumn = showUploaderInfo && (isAdmin || isSuperAdmin);
+
   // Filter and sort data - using useMemo to prevent recalculation on every render
   const filteredData = useMemo(() => {
     return scoutingData.filter(data => {
@@ -827,7 +845,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                       <RefreshCw className="w-4 h-4 mr-2" />
                       Refresh
                     </Button>
-                    {viewMode === 'individual' && (
+                    {viewMode === 'individual' && (isAdmin || isSuperAdmin) && (
                       <Button
                         onClick={() => setShowUploaderInfo(!showUploaderInfo)}
                         variant="outline"
@@ -1244,14 +1262,16 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                           )}
 
                           <div className="flex items-center justify-between pt-3 border-t border-white/5 text-[10px] text-muted-foreground">
-                            <div className="flex items-center gap-3">
-                              <span className="flex items-center gap-1">
-                                <User className="w-2.5 h-2.5" />
-                                {getUploaderName(data)}
-                              </span>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              {shouldShowUploaderColumn && (
+                                <span className="flex items-center gap-1">
+                                  <User className="w-2.5 h-2.5" />
+                                  {getVisibleUploaderName(data)}
+                                </span>
+                              )}
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-2.5 h-2.5" />
-                                {new Date(data.created_at).toLocaleDateString()}
+                                {getRecordedDate(data)}
                               </span>
                             </div>
                             <div className="h-6 px-2 text-[10px] bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center gap-1 font-bold uppercase tracking-wider">
@@ -1327,15 +1347,15 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                             </div>
                                           )}
                                           <div className="bg-white/5 p-2 rounded-xl border border-white/5 flex justify-between items-center">
-                                            <span className="text-[8px] text-muted-foreground uppercase">T1</span>
+                                            <span className={cn("text-[8px] uppercase", formNotes.teleop.teleop_tower_level1 ? "text-foreground font-semibold" : "text-muted-foreground")}>T1</span>
                                             {formNotes.teleop.teleop_tower_level1 ? <CheckCircle className="w-3 h-3 text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground/20" />}
                                           </div>
                                           <div className="bg-white/5 p-2 rounded-xl border border-white/5 flex justify-between items-center">
-                                            <span className="text-[8px] text-muted-foreground uppercase">T2</span>
+                                            <span className={cn("text-[8px] uppercase", formNotes.teleop.teleop_tower_level2 ? "text-foreground font-semibold" : "text-muted-foreground")}>T2</span>
                                             {formNotes.teleop.teleop_tower_level2 ? <CheckCircle className="w-3 h-3 text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground/20" />}
                                           </div>
                                           <div className="bg-white/5 p-2 rounded-xl border border-white/5 flex justify-between items-center">
-                                            <span className="text-[8px] text-muted-foreground uppercase font-bold text-white">T3</span>
+                                            <span className={cn("text-[8px] uppercase", formNotes.teleop.teleop_tower_level3 ? "text-foreground font-semibold" : "text-muted-foreground")}>T3</span>
                                             {formNotes.teleop.teleop_tower_level3 ? <Award className="w-4 h-4 text-yellow-400" /> : <XCircle className="w-3 h-3 text-muted-foreground/20" />}
                                           </div>
                                         </div>
@@ -1412,14 +1432,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             </th>
                             <th className="text-left p-4">Downtime</th>
                             <th className="text-left p-4">Broke</th>
-                            {showUploaderInfo && (
-                              <>
-                                <th className="text-left p-4">Uploaded By</th>
-                                <th className="text-left p-4 cursor-pointer hover:text-foreground transition-all" onClick={() => handleSort('created_at')}>
-                                  Date {sortField === 'created_at' && (sortDirection === 'asc' ? '↑' : '↓')}
-                                </th>
-                              </>
-                            )}
+                            {shouldShowUploaderColumn && <th className="text-left p-4">Uploaded By</th>}
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground transition-all" onClick={() => handleSort('created_at')}>
+                              Date {sortField === 'created_at' && (sortDirection === 'asc' ? '↑' : '↓')}
+                            </th>
                             <th className="text-left p-4">Comments</th>
                             <th className="text-left p-4">Details</th>
                             {isAdmin && (
@@ -1484,20 +1500,22 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 </td>
                                 <td className="p-4 text-muted-foreground text-sm">{data.average_downtime != null ? formatDurationSec(Number(data.average_downtime)) : '—'}</td>
                                 <td className="p-4 text-muted-foreground text-sm">{data.broke === true ? 'Yes' : data.broke === false ? 'No' : '—'}</td>
-                                {showUploaderInfo && (
+                                {shouldShowUploaderColumn && (
                                   <td className="p-4">
                                     <div className="flex flex-col gap-1">
                                       <div className="flex items-center gap-2">
                                         <User className="w-3 h-3 text-primary" />
-                                        <span className="text-xs font-medium text-muted-foreground truncate max-w-[80px]">{getUploaderName(data)}</span>
-                                      </div>
-                                      <div className="flex items-center gap-2 opacity-60">
-                                        <Calendar className="w-3 h-3 text-muted-foreground" />
-                                        <span className="text-[10px] font-medium text-muted-foreground">{new Date(data.created_at).toLocaleDateString()}</span>
+                                        <span className="text-xs font-medium text-muted-foreground truncate max-w-[120px]">{getVisibleUploaderName(data)}</span>
                                       </div>
                                     </div>
                                   </td>
                                 )}
+                                <td className="p-4">
+                                  <div className="flex items-center gap-2 opacity-80">
+                                    <Calendar className="w-3 h-3 text-muted-foreground" />
+                                    <span className="text-[10px] font-medium text-muted-foreground">{getRecordedDate(data)}</span>
+                                  </div>
+                                </td>
                                 <td className="p-4">
                                   <div className="max-w-[150px] truncate italic text-xs text-muted-foreground" title={data.comments}>
                                     {data.comments || '-'}
@@ -1536,7 +1554,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                     exit={{ opacity: 0, height: 0 }}
                                     className="bg-white/[0.02] border-b border-white/5 overflow-hidden"
                                   >
-                                    <td colSpan={isAdmin ? 12 : 11} className="p-6">
+                                    <td colSpan={(shouldShowUploaderColumn ? 1 : 0) + (isAdmin ? 13 : 12)} className="p-6">
                                       {(() => {
                                         const formNotes = parseNotes(data.notes, data);
                                         const autoRuns = formNotes.autonomous.runs || [];
@@ -1594,15 +1612,15 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                                     <span className="text-sm font-bold text-orange-400">{formNotes.teleop.teleop_fuel_active_hub ?? 0}</span>
                                                   </div>
                                                   <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                                    <span className="text-xs text-muted-foreground">Tower Level 1</span>
+                                                    <span className={cn("text-xs", formNotes.teleop.teleop_tower_level1 ? "text-foreground font-semibold" : "text-muted-foreground")}>Tower Level 1</span>
                                                     {formNotes.teleop.teleop_tower_level1 ? <CheckCircle className="w-4 h-4 text-green-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/20" />}
                                                   </div>
                                                   <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                                    <span className="text-xs text-muted-foreground">Tower Level 2</span>
+                                                    <span className={cn("text-xs", formNotes.teleop.teleop_tower_level2 ? "text-foreground font-semibold" : "text-muted-foreground")}>Tower Level 2</span>
                                                     {formNotes.teleop.teleop_tower_level2 ? <CheckCircle className="w-4 h-4 text-green-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/20" />}
                                                   </div>
                                                   <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
-                                                    <span className="text-xs text-muted-foreground font-bold text-white">Tower Level 3</span>
+                                                    <span className={cn("text-xs", formNotes.teleop.teleop_tower_level3 ? "text-foreground font-semibold" : "text-muted-foreground")}>Tower Level 3</span>
                                                     {formNotes.teleop.teleop_tower_level3 ? <Award className="w-5 h-5 text-yellow-400" /> : <XCircle className="w-4 h-4 text-muted-foreground/20" />}
                                                   </div>
                                                 </div>

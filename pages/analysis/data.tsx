@@ -115,7 +115,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [clearingData, setClearingData] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   // Team stats sort: default greatest to least average score
-  type TeamStatSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'endgame_epa' | 'epa' | 'consistency_score' | 'team_number' | 'team_name' | 'shuttle_rate' | 'shuttle_consistency_score' | 'avg_shuttle_balls' | 'starter_epa';
+  type TeamStatSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'endgame_epa' | 'epa' | 'consistency_score' | 'team_number' | 'team_name' | 'shuttle_rate' | 'avg_shuttle_balls' | 'starter_epa';
   const [teamStatsSortField, setTeamStatsSortField] = useState<TeamStatSortKey>('avg_total_score');
   const [teamStatsSortDirection, setTeamStatsSortDirection] = useState<'asc' | 'desc'>('desc');
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
@@ -132,8 +132,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const dataPageSummarizeInFlightRef = useRef(false);
 
   const rowsForDataPageAi = useMemo(() => {
-    if (selectedTeam == null) return [];
-    return scoutingData.filter(d => d.team_number === selectedTeam);
+    if (selectedTeam != null) {
+      return scoutingData.filter(d => d.team_number === selectedTeam);
+    }
+    return scoutingData;
   }, [scoutingData, selectedTeam]);
 
   const runDataPageAiSummarize = useCallback(async (rows: ScoutingData[]) => {
@@ -173,20 +175,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   }, [selectedTeam, activeEventKey]);
 
   useEffect(() => {
-    if (!isSuperAdmin || adminLoading || loading || viewMode !== 'individual' || selectedTeam == null) return;
+    if (!isSuperAdmin || adminLoading || loading) return;
     if (dataPageSummarizeOnceRef.current) return;
     if (!rowsForDataPageAi.some(d => d.comments?.trim())) return;
     dataPageSummarizeOnceRef.current = true;
     void runDataPageAiSummarize(rowsForDataPageAi);
-  }, [
-    isSuperAdmin,
-    adminLoading,
-    loading,
-    viewMode,
-    selectedTeam,
-    rowsForDataPageAi,
-    runDataPageAiSummarize,
-  ]);
+  }, [isSuperAdmin, adminLoading, loading, rowsForDataPageAi, runDataPageAiSummarize]);
 
   useEffect(() => {
     loadData();
@@ -941,12 +935,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <span className="text-sm font-semibold">{team.shuttle_rate}%</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Shuttle Cons.</span>
-                                <span className="text-sm font-semibold">{team.shuttle_consistency_score != null ? `${team.shuttle_consistency_score}%` : '—'}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Avg Shuttle / Return</span>
+                                <span className="text-sm font-semibold text-amber-300">{team.avg_shuttle_balls != null ? roundToTenth(team.avg_shuttle_balls) : '—'}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Avg Shuttle Balls</span>
-                                <span className="text-sm font-semibold text-amber-300">{team.avg_shuttle_balls != null ? roundToTenth(team.avg_shuttle_balls) : '—'}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Shuttle Rate</span>
+                                <span className="text-sm font-semibold">{team.shuttle_rate}%</span>
                               </div>
                             </div>
 
@@ -1023,11 +1017,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('shuttle_rate')}>
                               <span className="inline-flex items-center gap-1">Shuttle {teamStatsSortField === 'shuttle_rate' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}</span>
                             </th>
-                            <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('shuttle_consistency_score')}>
-                              <span className="inline-flex items-center gap-1">Shuttle Cons. {teamStatsSortField === 'shuttle_consistency_score' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}</span>
-                            </th>
                             <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('avg_shuttle_balls')}>
-                              <span className="inline-flex items-center gap-1">Avg Shuttle {teamStatsSortField === 'avg_shuttle_balls' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}</span>
+                              <span className="inline-flex items-center gap-1">Avg Shuttle/Return {teamStatsSortField === 'avg_shuttle_balls' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}</span>
                             </th>
                             <th className="text-left p-4 text-[11px]">Pit</th>
                             <th className="text-right p-4 text-[11px]">Actions</th>
@@ -1076,7 +1067,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                   </span>
                                 </td>
                                 <td className="p-4 text-sm font-semibold">{team.shuttle_rate}%</td>
-                                <td className="p-4 text-sm font-semibold">{team.shuttle_consistency_score != null ? `${team.shuttle_consistency_score}%` : '—'}</td>
                                 <td className="p-4 text-sm font-semibold text-amber-300">{team.avg_shuttle_balls != null ? roundToTenth(team.avg_shuttle_balls) : '—'}</td>
                                 <td className="p-4">
                                   {pit ? (
@@ -1135,14 +1125,14 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                 ) : (
                   // Individual Forms View
                   <div className="space-y-4">
-                    {isSuperAdmin && selectedTeam != null && (
+                    {isSuperAdmin && (
                       <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4 space-y-2">
                         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-500">
                           <Shield className="w-4 h-4" />
                           Superadmin — Gemma 3 4B comment summary
                         </div>
                         <p className="text-[11px] text-muted-foreground">
-                          Auto-runs for team #{selectedTeam} when comments exist. Filter the team dropdown above, then open Individual Forms.
+                          Auto-runs on page open when comments exist. If a team is selected, this focuses on that team; otherwise it summarizes all loaded forms.
                         </p>
                         {dataPageAiSummary ? (
                           <p className="text-sm text-foreground/90 italic leading-relaxed">&ldquo;{dataPageAiSummary}&rdquo;</p>
@@ -1165,7 +1155,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             </Button>
                           </div>
                         ) : (
-                          <p className="text-xs text-muted-foreground">No comments for this team in the current event data.</p>
+                          <p className="text-xs text-muted-foreground">No comments found in the current loaded data.</p>
                         )}
                       </div>
                     )}

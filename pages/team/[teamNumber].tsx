@@ -373,7 +373,7 @@ const TeamDetail: React.FC = () => {
       teleop_fuel_max: rebuilt.teleop_fuel_max,
       avg_shooting_time_sec: rebuilt.avg_shooting_time_sec ?? null,
       shuttle_rate: rebuilt.shuttle_rate,
-      shuttle_consistency_score: rebuilt.shuttle_consistency_score,
+      avg_shuttle_balls: rebuilt.avg_shuttle_balls,
       endgame_epa: rebuilt.endgame_epa ?? rebuilt.avg_climb_pts ?? 0, // Endgame EPA = climbing points
       epa: Math.round(rebuilt.epa ?? avgTotal), // Expected points per match (actual when available, else estimated)
 
@@ -818,7 +818,7 @@ const TeamDetail: React.FC = () => {
                   <StatCard label="Endgame EPA" value={teamStats.endgame_epa ?? teamStats.avg_climb_pts ?? 0} color="green" icon={Award} subLabel="climb pts" />
                   <StatCard label="Consistency" value={`${teamStats.consistencyScore}%`} color="purple" icon={Activity} />
                   <StatCard label="Shuttle Rate" value={`${teamStats.shuttle_rate}%`} color="indigo" icon={Route} />
-                  <StatCard label="Shuttle Cons." value={teamStats.shuttle_consistency_score != null ? `${teamStats.shuttle_consistency_score}%` : '—'} color="indigo" icon={CheckCircle} />
+                  <StatCard label="Avg Shuttle/Return" value={teamStats.avg_shuttle_balls != null ? teamStats.avg_shuttle_balls : '—'} color="indigo" icon={Route} />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

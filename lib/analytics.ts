@@ -348,8 +348,6 @@ export interface RebuiltTeamMetrics {
   avg_shooting_time_sec: number | null;
   /** Percentage of matches where the robot shuttle (0-100). */
   shuttle_rate: number;
-  /** Percentage of 'consistent' shuttles vs total shuttle matches (0-100). Null if never shuttled. */
-  shuttle_consistency_score: number | null;
   /** Average shuttle balls per shuttle run using range midpoints (e.g., 1-5 -> 3). */
   avg_shuttle_balls: number | null;
 }
@@ -430,7 +428,6 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[], starterEp
       endgame_epa: 0,
       avg_shooting_time_sec: null,
       shuttle_rate: 0,
-      shuttle_consistency_score: null,
       avg_shuttle_balls: null,
     };
   }
@@ -458,7 +455,6 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[], starterEp
   let totalMatchScores = 0;
   let totalDefenseRating = 0;
   let shuttleMatches = 0;
-  let consistentShuttles = 0;
   let shuttleBallTotal = 0;
   let shuttleRunCount = 0;
   const matchScores: number[] = [];
@@ -512,9 +508,6 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[], starterEp
     
     if (p.teleop.shuttle) {
       shuttleMatches += 1;
-      if (p.teleop.shuttle_consistency === 'consistent') {
-        consistentShuttles += 1;
-      }
     }
     const shuttleRuns = p.teleop.shuttle_runs || [];
     shuttleRuns.forEach((run: RunRecord) => {
@@ -658,7 +651,6 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[], starterEp
     endgame_epa: Math.round(totalClimbPts / n), // climbing points = endgame EPA
     avg_shooting_time_sec: avgShootingTimeSec,
     shuttle_rate: Math.round((shuttleMatches / n) * 100),
-    shuttle_consistency_score: shuttleMatches > 0 ? Math.round((consistentShuttles / shuttleMatches) * 100) : null,
     avg_shuttle_balls: shuttleRunCount > 0 ? roundToTenth(shuttleBallTotal / shuttleRunCount) : null,
   };
 }

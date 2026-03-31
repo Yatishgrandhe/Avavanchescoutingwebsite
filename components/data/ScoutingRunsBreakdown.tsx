@@ -38,7 +38,7 @@ export function ScoutingRunsBreakdown({ notes, shuttleRow, className, compact }:
                 <span className="font-mono text-muted-foreground">
                   Run {i + 1}: {formatDurationSec(run.duration_sec)}
                 </span>
-                <span className="text-foreground font-medium">{run.ballLabel} balls</span>
+                <span className="text-foreground font-medium">{run.ballLabel} balls (mid {run.ballValue})</span>
                 <span className="text-blue-400 font-bold">→ {run.estPts} pts</span>
               </li>
             ))}
@@ -71,7 +71,7 @@ export function ScoutingRunsBreakdown({ notes, shuttleRow, className, compact }:
                 <span className="font-mono text-muted-foreground">
                   Run {i + 1}: {formatDurationSec(run.duration_sec)}
                 </span>
-                <span className="text-foreground font-medium">{run.ballLabel} balls</span>
+                <span className="text-foreground font-medium">{run.ballLabel} balls (mid {run.ballValue})</span>
                 <span className="text-orange-400 font-bold">→ {run.estPts} pts</span>
               </li>
             ))}
@@ -99,8 +99,8 @@ export function ScoutingRunsBreakdown({ notes, shuttleRow, className, compact }:
                 <span className="font-mono text-muted-foreground">
                   Run {i + 1}: {formatDurationSec(run.duration_sec)}
                 </span>
-                <span className="text-foreground font-medium">{run.ballLabel} balls</span>
-                <span className="text-amber-400 font-bold italic">SHUTTLE</span>
+                <span className="text-foreground font-medium">{run.ballLabel} balls (mid {run.ballValue})</span>
+                <span className="text-amber-400 font-bold italic">SHUTTLE ~{run.ballValue}</span>
               </li>
             ))}
           </ul>

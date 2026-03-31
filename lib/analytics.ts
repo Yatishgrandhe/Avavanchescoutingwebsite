@@ -350,6 +350,8 @@ export interface RebuiltTeamMetrics {
   shuttle_rate: number;
   /** Percentage of 'consistent' shuttles vs total shuttle matches (0-100). Null if never shuttled. */
   shuttle_consistency_score: number | null;
+  /** Average shuttle balls per shuttle run using range midpoints (e.g., 1-5 -> 3). */
+  avg_shuttle_balls: number | null;
 }
 
 export interface ScoutingRowForAnalytics {
@@ -429,6 +431,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[], starterEp
       avg_shooting_time_sec: null,
       shuttle_rate: 0,
       shuttle_consistency_score: null,
+      avg_shuttle_balls: null,
     };
   }
 
@@ -456,6 +459,8 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[], starterEp
   let totalDefenseRating = 0;
   let shuttleMatches = 0;
   let consistentShuttles = 0;
+  let shuttleBallTotal = 0;
+  let shuttleRunCount = 0;
   const matchScores: number[] = [];
   const scores: number[] = [];
   const autoPtsList: number[] = [];
@@ -511,6 +516,11 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[], starterEp
         consistentShuttles += 1;
       }
     }
+    const shuttleRuns = p.teleop.shuttle_runs || [];
+    shuttleRuns.forEach((run: RunRecord) => {
+      shuttleBallTotal += getBallChoiceScoreFromRange(run.ball_choice);
+      shuttleRunCount += 1;
+    });
 
     const score = row.final_score ?? 0;
     scores.push(score);
@@ -649,6 +659,7 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[], starterEp
     avg_shooting_time_sec: avgShootingTimeSec,
     shuttle_rate: Math.round((shuttleMatches / n) * 100),
     shuttle_consistency_score: shuttleMatches > 0 ? Math.round((consistentShuttles / shuttleMatches) * 100) : null,
+    avg_shuttle_balls: shuttleRunCount > 0 ? roundToTenth(shuttleBallTotal / shuttleRunCount) : null,
   };
 }
 

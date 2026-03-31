@@ -114,7 +114,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [clearingData, setClearingData] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   // Team stats sort: default greatest to least average score
-  type TeamStatSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'endgame_epa' | 'epa' | 'consistency_score' | 'team_number' | 'team_name' | 'shuttle_rate' | 'shuttle_consistency_score' | 'starter_epa';
+  type TeamStatSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'endgame_epa' | 'epa' | 'consistency_score' | 'team_number' | 'team_name' | 'shuttle_rate' | 'shuttle_consistency_score' | 'avg_shuttle_balls' | 'starter_epa';
   const [teamStatsSortField, setTeamStatsSortField] = useState<TeamStatSortKey>('avg_total_score');
   const [teamStatsSortDirection, setTeamStatsSortDirection] = useState<'asc' | 'desc'>('desc');
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
@@ -926,6 +926,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <span className="text-[10px] text-muted-foreground uppercase block mb-1">Shuttle Cons.</span>
                                 <span className="text-sm font-semibold">{team.shuttle_consistency_score != null ? `${team.shuttle_consistency_score}%` : '—'}</span>
                               </div>
+                              <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Avg Shuttle Balls</span>
+                                <span className="text-sm font-semibold text-amber-300">{team.avg_shuttle_balls != null ? roundToTenth(team.avg_shuttle_balls) : '—'}</span>
+                              </div>
                             </div>
 
                             {pitByTeam[team.team_number] && (
@@ -1004,6 +1008,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('shuttle_consistency_score')}>
                               <span className="inline-flex items-center gap-1">Shuttle Cons. {teamStatsSortField === 'shuttle_consistency_score' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}</span>
                             </th>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('avg_shuttle_balls')}>
+                              <span className="inline-flex items-center gap-1">Avg Shuttle {teamStatsSortField === 'avg_shuttle_balls' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}</span>
+                            </th>
                             <th className="text-left p-4 text-[11px]">Pit</th>
                             <th className="text-right p-4 text-[11px]">Actions</th>
                           </tr>
@@ -1052,6 +1059,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 </td>
                                 <td className="p-4 text-sm font-semibold">{team.shuttle_rate}%</td>
                                 <td className="p-4 text-sm font-semibold">{team.shuttle_consistency_score != null ? `${team.shuttle_consistency_score}%` : '—'}</td>
+                                <td className="p-4 text-sm font-semibold text-amber-300">{team.avg_shuttle_balls != null ? roundToTenth(team.avg_shuttle_balls) : '—'}</td>
                                 <td className="p-4">
                                   {pit ? (
                                     <a
@@ -1328,6 +1336,14 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                             <span className="text-xs font-bold">{parseNotes(data.notes, data).teleop.shuttle_consistency}</span>
                                           </div>
                                         )}
+                                        {parseNotes(data.notes, data).teleop.shuttle && (parseNotes(data.notes, data).teleop.shuttle_runs?.length || 0) > 0 && (
+                                          <div className="bg-white/5 p-2 rounded-lg border border-white/5 text-center">
+                                            <span className="text-[8px] text-muted-foreground uppercase block">Avg Shuttle</span>
+                                            <span className="text-xs font-bold text-amber-300">
+                                              {roundToTenth((parseNotes(data.notes, data).teleop.shuttle_runs || []).reduce((sum, run) => sum + getBallChoiceScoreFromRange(run.ball_choice), 0) / ((parseNotes(data.notes, data).teleop.shuttle_runs || []).length || 1))}
+                                            </span>
+                                          </div>
+                                        )}
                                       </div>
 
                                       {autoRuns.length === 0 && teleopRuns.length === 0 && (
@@ -1594,6 +1610,14 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                                     <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
                                                       <span className="text-xs text-muted-foreground">Shuttle Cons.</span>
                                                       <span className="text-sm font-medium">{formNotes.teleop.shuttle_consistency}</span>
+                                                    </div>
+                                                  )}
+                                                  {formNotes.teleop.shuttle && (formNotes.teleop.shuttle_runs?.length || 0) > 0 && (
+                                                    <div className="flex justify-between items-center p-2 px-3 rounded-lg bg-white/5 border border-white/5">
+                                                      <span className="text-xs text-muted-foreground">Avg Shuttle</span>
+                                                      <span className="text-sm font-medium text-amber-300">
+                                                        {roundToTenth((formNotes.teleop.shuttle_runs || []).reduce((sum, run) => sum + getBallChoiceScoreFromRange(run.ball_choice), 0) / ((formNotes.teleop.shuttle_runs || []).length || 1))}
+                                                      </span>
                                                     </div>
                                                   )}
                                                 </div>

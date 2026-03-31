@@ -55,31 +55,33 @@ export default function AnalysisIndex() {
           setActiveEventName(eventName);
         }
 
-        let matchQuery = supabase.from('scouting_data').select('team_number, matches!inner(event_key)');
         let matchCountQuery = supabase.from('scouting_data').select('id, matches!inner(event_key)', { count: 'exact', head: true });
         let pitCountQuery = supabase.from('pit_scouting_data').select('id, roster:event_team_roster!inner(event_key)', { count: 'exact', head: true });
 
         // ALWAYS filter by active event if available to prevent data leakage from other competitions
         if (currentEventKey) {
-          matchQuery = matchQuery.eq('matches.event_key', currentEventKey);
           matchCountQuery = matchCountQuery.eq('matches.event_key', currentEventKey);
           pitCountQuery = pitCountQuery.eq('roster.event_key', currentEventKey);
         }
 
         if (teamDataOnly && user?.organization_id) {
-          matchQuery = matchQuery.eq('organization_id', user.organization_id);
           matchCountQuery = matchCountQuery.eq('organization_id', user.organization_id);
           pitCountQuery = pitCountQuery.eq('organization_id', user.organization_id);
         }
 
-        const [teamsRes, matchRes, pitRes] = await Promise.all([
-          matchQuery,
+        const [rosterRes, matchRes, pitRes] = await Promise.all([
+          currentEventKey && user?.organization_id
+            ? supabase
+                .from('event_team_roster')
+                .select('*', { count: 'exact', head: true })
+                .eq('organization_id', user.organization_id)
+                .eq('event_key', currentEventKey)
+            : Promise.resolve({ count: 0 }),
           matchCountQuery,
           pitCountQuery,
         ]);
-        const teamNumbers = new Set((teamsRes.data || []).map((r: { team_number: number }) => r.team_number));
         setStats({
-          teams: teamNumbers.size,
+          teams: rosterRes.count ?? 0,
           matchForms: matchRes.count ?? 0,
           pitForms: pitRes.count ?? 0,
         });
@@ -196,7 +198,7 @@ export default function AnalysisIndex() {
                   <p className="text-2xl font-bold text-foreground tabular-nums">
                     {stats ? stats.teams : '—'}
                   </p>
-                  <p className="text-sm text-muted-foreground font-medium">Teams</p>
+                  <p className="text-sm text-muted-foreground font-medium">Teams at event (TBA)</p>
                 </div>
               </div>
             </Card>

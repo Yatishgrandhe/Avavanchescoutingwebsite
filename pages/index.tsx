@@ -33,6 +33,8 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useSupabase } from '@/pages/_app';
 import { useRefreshHandler } from '@/lib/refresh-handler';
 import { fetchRecentMatchScoutingForActivity } from '@/lib/dashboard-activity';
+import { getOrgCurrentEvent } from '@/lib/org-app-config';
+import { getDashboardStatsForActiveEvent } from '@/lib/dashboard-event-stats';
 // Enhanced Avalanche Animation
 const AvalancheAnimation = () => {
   return (
@@ -258,24 +260,30 @@ export default function Home() {
   const loadDashboardStats = async () => {
     setLoadingStats(true);
     try {
-      const [
-        { count: matchesCount },
-        { count: teamsCount },
-        { count: scoutingDataCount },
-        { count: pitCount },
-      ] = await Promise.all([
-        supabase.from('matches').select('*', { count: 'exact', head: true }),
-        supabase.from('teams').select('*', { count: 'exact', head: true }),
-        supabase.from('scouting_data').select('*', { count: 'exact', head: true }),
-        supabase.from('pit_scouting_data').select('*', { count: 'exact', head: true }),
-      ]);
+      const orgId = user?.organization_id;
+      if (!orgId) {
+        setDashboardStats({
+          totalMatches: 0,
+          teamsCount: 0,
+          dataPoints: 0,
+          pitProfiles: 0,
+        });
+        return;
+      }
 
-      setDashboardStats({
-        totalMatches: matchesCount || 0,
-        teamsCount: teamsCount || 0,
-        dataPoints: scoutingDataCount || 0,
-        pitProfiles: pitCount || 0,
-      });
+      const { eventKey } = await getOrgCurrentEvent(supabase, orgId);
+      if (!eventKey) {
+        setDashboardStats({
+          totalMatches: 0,
+          teamsCount: 0,
+          dataPoints: 0,
+          pitProfiles: 0,
+        });
+        return;
+      }
+
+      const stats = await getDashboardStatsForActiveEvent(supabase, orgId, eventKey);
+      setDashboardStats(stats);
     } catch (error) {
       console.error('Error loading dashboard stats:', error);
     } finally {
@@ -410,25 +418,29 @@ export default function Home() {
                   label: "Matches in schedule",
                   value: dashboardStats.totalMatches,
                   icon: Target,
-                  description: "Loaded from event",
+                  description: dashboardEventLabel
+                    ? "TBA schedule for active event"
+                    : "Set active event in Team Management",
                 },
                 {
                   label: "Teams",
                   value: dashboardStats.teamsCount,
                   icon: Users,
-                  description: "Event roster (North Carolina)",
+                  description: dashboardEventLabel
+                    ? "On event roster (TBA sync)"
+                    : "Set active event in Team Management",
                 },
                 {
                   label: "Match scouting forms",
                   value: dashboardStats.dataPoints,
                   icon: Database,
-                  description: "Submitted",
+                  description: "This event, your org",
                 },
                 {
                   label: "Pit profiles",
                   value: dashboardStats.pitProfiles,
                   icon: Activity,
-                  description: "Robot profiles",
+                  description: "This event (linked to roster)",
                 },
               ].map((stat, i) => (
                 <Card key={i} className="relative overflow-hidden">
@@ -570,7 +582,7 @@ export default function Home() {
                               <TableCell className="text-right">{loadingStats ? '...' : dashboardStats.teamsCount}</TableCell>
                               <TableCell className="text-right">
                                 <Badge variant="outline" className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
-                                  In DB
+                                  TBA roster
                                 </Badge>
                               </TableCell>
                             </TableRow>

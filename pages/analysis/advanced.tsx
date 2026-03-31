@@ -100,7 +100,7 @@ interface AnalysisFilters {
 
 export default function AdvancedAnalysis() {
   const { user, loading: authLoading } = useSupabase();
-  const { isAdmin, isSuperAdmin, loading: adminLoading } = useAdmin();
+  const { isSuperAdmin, loading: adminLoading } = useAdmin();
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
   const [teamStats, setTeamStats] = useState<TeamStats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -117,7 +117,7 @@ export default function AdvancedAnalysis() {
   const [summarizeError, setSummarizeError] = useState<string | null>(null);
   const summarizeInFlightRef = useRef(false);
   const superAdminAutoSummarizeRef = useRef(false);
-  const canUseCommentSummary = isAdmin || isSuperAdmin;
+  const canUseCommentSummary = isSuperAdmin;
 
   // Load available teams from Supabase
   useEffect(() => {
@@ -158,9 +158,18 @@ export default function AdvancedAnalysis() {
     setSummarizeError(null);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        throw new Error('Authentication required for summary generation.');
+      }
+
       const response = await fetch('/api/summarize-comments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({ comments }),
       });
       if (!response.ok) {
@@ -595,7 +604,7 @@ export default function AdvancedAnalysis() {
                   <CardHeader className="pb-2">
                     <CardTitle className={`flex items-center gap-2 text-sm ${isDarkMode ? 'text-amber-400' : 'text-amber-700'}`}>
                       <Shield className="w-5 h-5 shrink-0" />
-                      Admin comments intelligence (Gemma 3 4B)
+                          Superadmin comments intelligence (Gemma 3 4B)
                     </CardTitle>
                     <CardDescription className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
                       Runs automatically after you analyze a team with scouting comments. Same engine as Team Details.

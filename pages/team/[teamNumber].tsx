@@ -496,10 +496,18 @@ const TeamDetail: React.FC = () => {
 
     try {
       const comments = scoutingData.map(d => d.comments).filter(c => c && c.trim()) as string[];
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        throw new Error('Authentication required for summary generation.');
+      }
 
       const response = await fetch('/api/summarize-comments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({ comments })
       });
 
@@ -704,7 +712,7 @@ const TeamDetail: React.FC = () => {
                     </div>
 
                     <div className="space-y-4 relative z-10">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 gap-6">
                         <div className="space-y-3">
                           <h4 className="text-[10px] font-bold text-muted-foreground uppercase opacity-60 tracking-widest">Strategic Intelligence Summary</h4>
                           <div className="glass-card p-4 rounded-xl border-amber-500/10 bg-amber-500/5 transition-all group-hover:bg-amber-500/10 min-h-[160px] flex flex-col justify-center border border-white/5 relative overflow-hidden">
@@ -772,38 +780,6 @@ const TeamDetail: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="space-y-3 border-l border-white/5 pl-6">
-                          <h4 className="text-[10px] font-bold text-muted-foreground uppercase opacity-60 tracking-widest">Tactical Vulnerabilities</h4>
-                          <div className="space-y-2">
-                            {teamStats.broke_count > 0 && (
-                              <div className="flex items-center gap-2 text-sm text-red-400 font-medium">
-                                <AlertCircle className="w-4 h-4" />
-                                <span>Failed to function in {teamStats.broke_count} matches ({(teamStats.broke_rate ?? 0).toFixed(0)}%)</span>
-                              </div>
-                            )}
-                            {(teamStats.avg_uptime_pct ?? 0) < 80 && teamStats.totalMatches > 0 && (
-                              <div className="flex items-center gap-2 text-sm text-amber-400 font-medium">
-                                <Activity className="w-4 h-4" />
-                                <span>Warning: Low uptime ({(teamStats.avg_uptime_pct ?? 0).toFixed(0)}%)</span>
-                              </div>
-                            )}
-                            {scoutingData.filter(d => (d.defense_rating ?? 0) > 7).length > 0 && (
-                              <div className="flex items-center gap-2 text-sm text-blue-400 font-medium">
-                                <Shield className="w-4 h-4" />
-                                <span>High Defensive Threat ({scoutingData.filter(d => (d.defense_rating ?? 0) > 7).length} shutdown games)</span>
-                              </div>
-                            )}
-                            {(teamStats.shuttle_rate ?? 0) > 30 && (
-                              <div className="flex items-center gap-2 text-sm text-green-400 font-medium">
-                                <Route className="w-4 h-4" />
-                                <span>Elite Shuttling Capability ({(teamStats.shuttle_rate ?? 0).toFixed(0)}%)</span>
-                              </div>
-                            )}
-                            <div className="pt-2 text-[10px] text-muted-foreground italic leading-tight">
-                              This intelligence is compiled from all match scout reports globally. Use for final alliance selection and defensive assignments.
-                            </div>
-                          </div>
-                        </div>
                       </div>
                     </div>
                   </motion.div>

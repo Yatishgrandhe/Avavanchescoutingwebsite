@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { createClient } from '@supabase/supabase-js';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -122,6 +123,33 @@ function extractSummary(data: unknown): string | null {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return res.status(500).json({ message: 'Supabase server configuration missing' });
+  }
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const { data: authData, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !authData.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  const { data: viewer, error: viewerError } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', authData.user.id)
+    .maybeSingle();
+  if (viewerError || viewer?.role !== 'superadmin') {
+    return res.status(403).json({ message: 'Superadmin access required' });
   }
 
   const { comments } = req.body;

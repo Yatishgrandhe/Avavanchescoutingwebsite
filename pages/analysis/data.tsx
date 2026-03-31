@@ -162,7 +162,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     }
     return scoutingData;
   }, [scoutingData, selectedTeam]);
-  const canUseCommentSummary = isAdmin || isSuperAdmin;
+  const canUseCommentSummary = isSuperAdmin;
 
   const runDataPageAiSummarize = useCallback(async (rows: ScoutingData[]) => {
     const comments = rows.map(d => d.comments).filter((c): c is string => Boolean(c?.trim()));
@@ -171,9 +171,18 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     setDataPageAiLoading(true);
     setDataPageAiError(null);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        throw new Error('Authentication required for summary generation.');
+      }
+
       const response = await fetch('/api/summarize-comments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({ comments }),
       });
       if (!response.ok) {
@@ -912,7 +921,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                       <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4 space-y-2 mb-4">
                         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-500">
                           <Shield className="w-4 h-4" />
-                          Admin comments summary
+                          Superadmin comments summary
                         </div>
                         <p className="text-[11px] text-muted-foreground">
                           Auto-runs on page open when comments exist. If a team is selected, this focuses on that team; otherwise it summarizes all loaded forms.

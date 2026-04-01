@@ -38,6 +38,8 @@ import CompetitionDataLayout from '@/components/layout/CompetitionDataLayout';
 import type { CompetitionViewTab } from '@/components/layout/CompetitionDataSidebar';
 import { useSupabase } from '@/pages/_app';
 import { useAdmin } from '@/hooks/use-admin';
+import { loadViewDataFilters, saveViewDataFilters } from '@/lib/view-data-filter-storage';
+import { SuperadminScoutingChat } from '@/components/superadmin/SuperadminScoutingChat';
 import { parseNotes, computeRebuiltMetrics } from '@/lib/analytics';
 import { formatDurationSec, roundToTenth } from '@/lib/utils';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
@@ -77,10 +79,22 @@ interface ViewDataRow {
 
 type PitRow = { id?: string; team_number: number; robot_name?: string | null; photos?: string[] | null; auto_fuel_count?: number; [key: string]: unknown };
 
+type TeamStatSortKey =
+  | 'avg_total_score'
+  | 'total_matches'
+  | 'avg_autonomous_points'
+  | 'avg_teleop_points'
+  | 'endgame_epa'
+  | 'epa'
+  | 'consistency_score'
+  | 'team_number'
+  | 'team_name'
+  | 'starter_epa';
+
 export default function ViewDataPage() {
   const router = useRouter();
-  const { user, supabase } = useSupabase();
-  const { isAdmin } = useAdmin();
+  const { user, supabase, session } = useSupabase();
+  const { isAdmin, isSuperAdmin } = useAdmin();
   const { event_key, id, competition_key, year } = router.query;
 
   const [competition, setCompetition] = useState<CompetitionInfo | null>(null);
@@ -95,28 +109,74 @@ export default function ViewDataPage() {
   const [activeTab, setActiveTab] = useState<CompetitionViewTab>('overview');
   const [expandedRowKey, setExpandedRowKey] = useState<string | null>(null);
   const [dataViewMode, setDataViewMode] = useState<'teams' | 'individual'>('teams');
-  type TeamStatSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'endgame_epa' | 'epa' | 'consistency_score' | 'team_number' | 'team_name' | 'starter_epa';
   const [teamStatsSortField, setTeamStatsSortField] = useState<TeamStatSortKey>('avg_total_score');
   const [teamStatsSortDirection, setTeamStatsSortDirection] = useState<'asc' | 'desc'>('desc');
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
   const [minAvgScoreFilter, setMinAvgScoreFilter] = useState<number | ''>('');
-  /** Live event: default = this org only; ON = merge match schedule + scouting from all orgs. */
+  /** Live + archived: OFF = org-scoped data; ON = merge all organizations for this event/archive group. */
   const [seeAllOrgsData, setSeeAllOrgsData] = useState(false);
   /** Live event only: show pit from every org that scouted these teams. */
   const [pitAllOrgs, setPitAllOrgs] = useState(false);
+  const [filtersHydrated, setFiltersHydrated] = useState(false);
 
   useEffect(() => {
     if (!router.isReady) return;
-    if (router.query.see_all_orgs === '1') setSeeAllOrgsData(true);
-    if (router.query.pit_all_orgs === '1') setPitAllOrgs(true);
+    const f = loadViewDataFilters();
+    if (router.query.see_all_orgs === '1') {
+      setSeeAllOrgsData(true);
+    } else if (router.query.see_all_orgs === '0') {
+      setSeeAllOrgsData(false);
+    } else {
+      setSeeAllOrgsData(f.seeAllOrgs);
+    }
+    if (router.query.pit_all_orgs === '1') {
+      setPitAllOrgs(true);
+    } else {
+      setPitAllOrgs(f.pitAllOrgs);
+    }
+    setMinMatchesFilter(f.minMatchesFilter);
+    setMinAvgScoreFilter(f.minAvgScoreFilter);
+    setDataViewMode(f.dataViewMode);
+    setSortField(f.sortField);
+    setSortDirection(f.sortDirection);
+    setTeamStatsSortField(f.teamStatsSortField as TeamStatSortKey);
+    setTeamStatsSortDirection(f.teamStatsSortDirection);
+    setFiltersHydrated(true);
   }, [router.isReady, router.query.see_all_orgs, router.query.pit_all_orgs]);
 
   useEffect(() => {
-    if (!router.isReady) return;
+    if (!filtersHydrated) return;
+    saveViewDataFilters({
+      seeAllOrgs: seeAllOrgsData,
+      pitAllOrgs,
+      minMatchesFilter,
+      minAvgScoreFilter,
+      dataViewMode,
+      sortField,
+      sortDirection,
+      teamStatsSortField,
+      teamStatsSortDirection,
+    });
+  }, [
+    filtersHydrated,
+    seeAllOrgsData,
+    pitAllOrgs,
+    minMatchesFilter,
+    minAvgScoreFilter,
+    dataViewMode,
+    sortField,
+    sortDirection,
+    teamStatsSortField,
+    teamStatsSortDirection,
+  ]);
+
+  useEffect(() => {
+    if (!router.isReady || !filtersHydrated) return;
     if (!event_key && !id && !competition_key) return;
     loadData();
   }, [
     router.isReady,
+    filtersHydrated,
     event_key,
     id,
     competition_key,
@@ -322,19 +382,22 @@ export default function ViewDataPage() {
       if (id) params.set('id', id as string);
       if (competition_key) params.set('competition_key', competition_key as string);
       if (year) params.set('year', year as string);
-      
-      const effectiveSeeAll =
-        router.query.see_all_orgs === '1' || seeAllOrgsData;
-      const effectivePitAll =
-        router.query.pit_all_orgs === '1' || pitAllOrgs;
-      if (effectiveSeeAll && (event_key || competition_key)) {
+
+      const effectiveSeeAll = router.query.see_all_orgs === '1' || seeAllOrgsData;
+      const effectivePitAll = router.query.pit_all_orgs === '1' || pitAllOrgs;
+      if (effectiveSeeAll && (event_key || competition_key || id)) {
         params.set('see_all_orgs', '1');
       }
-      if (effectivePitAll && (event_key || competition_key)) {
+      if (effectivePitAll && event_key) {
         params.set('pit_all_orgs', '1');
       }
 
-      const res = await fetch(`/api/past-competitions?${params.toString()}`);
+      const headers: HeadersInit = {};
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
+
+      const res = await fetch(`/api/past-competitions?${params.toString()}`, { headers });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || `Failed to load (${res.status})`);
@@ -399,14 +462,46 @@ export default function ViewDataPage() {
   });
 
   const guestBackLink = { href: '/competition-history', label: 'Back to Competition History' };
-  const queryString = competition_key 
-    ? `competition_key=${encodeURIComponent(competition_key as string)}&year=${year}&see_all_orgs=1`
-    : id 
-      ? `id=${encodeURIComponent(id as string)}` 
-      : event_key 
-        ? `event_key=${encodeURIComponent(event_key as string)}${router.query.see_all_orgs === '1' ? '&see_all_orgs=1' : ''}` 
-        : '';
-  const queryPrefix = queryString ? '?' + queryString : '';
+  const competitionQueryString = React.useMemo(() => {
+    const p = new URLSearchParams();
+    if (competition_key && year) {
+      p.set('competition_key', String(competition_key));
+      p.set('year', String(year));
+    } else if (id) {
+      p.set('id', String(id));
+    } else if (event_key) {
+      p.set('event_key', String(event_key));
+    } else {
+      return '';
+    }
+    if (seeAllOrgsData) p.set('see_all_orgs', '1');
+    if (event_key && pitAllOrgs) p.set('pit_all_orgs', '1');
+    return p.toString();
+  }, [competition_key, year, id, event_key, seeAllOrgsData, pitAllOrgs]);
+
+  const queryString = competitionQueryString;
+  const queryPrefix = queryString ? `?${queryString}` : '';
+
+  const getTeamPageUrl = React.useCallback(
+    (teamNumber: number, tab?: string) => {
+      const p = new URLSearchParams();
+      if (competition_key && year) {
+        p.set('competition_key', String(competition_key));
+        p.set('year', String(year));
+      } else if (id) {
+        p.set('competition_id', String(id));
+      }
+      if (event_key) {
+        p.set('event_key', String(event_key));
+      }
+      if (seeAllOrgsData) p.set('see_all_orgs', '1');
+      if (event_key && pitAllOrgs) p.set('pit_all_orgs', '1');
+      if (tab) p.set('tab', tab);
+      const qs = p.toString();
+      return qs ? `/team/${teamNumber}?${qs}` : `/team/${teamNumber}`;
+    },
+    [competition_key, year, id, event_key, seeAllOrgsData, pitAllOrgs]
+  );
 
   if (loading) {
     return (
@@ -437,11 +532,7 @@ export default function ViewDataPage() {
   }
 
   const personName = typeof router.query.name === 'string' ? router.query.name.trim() : undefined;
-  const backToStatsHref = id
-    ? `/view-data?id=${encodeURIComponent(id as string)}`
-    : event_key
-      ? `/view-data?event_key=${encodeURIComponent(event_key as string)}`
-      : '/view-data';
+  const backToStatsHref = competitionQueryString ? `/view-data?${competitionQueryString}` : '/view-data';
 
   if (personName) {
     if (!user) {
@@ -505,11 +596,7 @@ export default function ViewDataPage() {
               </thead>
               <tbody>
                 {sortedPersonForms.map((data, index) => {
-                  const teamUrl = id
-                    ? `/team/${data.team_number}?competition_id=${encodeURIComponent(id as string)}`
-                    : event_key
-                      ? `/team/${data.team_number}?event_key=${encodeURIComponent(event_key as string)}`
-                      : `/team/${data.team_number}`;
+                  const teamUrl = getTeamPageUrl(data.team_number);
                   return (
                     <tr key={data.id || `${data.match_id}-${data.team_number}-${index}`} className="border-b border-white/5 hover:bg-white/5">
                       <td className="py-3 px-4">
@@ -546,12 +633,6 @@ export default function ViewDataPage() {
       </CompetitionDataLayout>
     );
   }
-
-  const getTeamPageUrl = (teamNumber: number) => {
-    if (id) return `/team/${teamNumber}?competition_id=${encodeURIComponent(id as string)}`;
-    if (event_key) return `/team/${teamNumber}?event_key=${encodeURIComponent(event_key as string)}`;
-    return `/team/${teamNumber}`;
-  };
 
   const mainContent = (
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -621,14 +702,14 @@ export default function ViewDataPage() {
                 </div>
               )}
 
-              {/* Live: default org-scoped matches/scouting; ON = all orgs. Pit: optional merge all orgs. */}
+              {/* Live + archived: OFF = org-scoped; ON = all orgs for this event / archive group. Pit merge: live only. */}
               <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:ml-4">
-                {event_key && (
+                {(event_key || competition_key || id) && (
                   <div className="flex items-center gap-3 p-2 rounded-lg border border-white/5 bg-white/[0.02]">
                     <div className="flex flex-col max-w-[220px]">
                       <span className="text-xs font-medium">See all orgs</span>
                       <span className="text-[10px] text-muted-foreground leading-tight">
-                        Off: your org&apos;s schedule and scouting only (guests: reference org).
+                        Off: your org only. On: every org&apos;s data for this competition (guests: reference org).
                       </span>
                     </div>
                     <Button
@@ -916,11 +997,7 @@ export default function ViewDataPage() {
                 {sortedData.map((data, index) => {
                   const rowKey = data.id || `${data.match_id ?? ''}-${data.team_number}-${index}`;
                   const isExpanded = expandedRowKey === rowKey;
-                  const teamUrl = id
-                    ? `/team/${data.team_number}?competition_id=${encodeURIComponent(id as string)}`
-                    : event_key
-                      ? `/team/${data.team_number}?event_key=${encodeURIComponent(event_key as string)}`
-                      : `/team/${data.team_number}`;
+                  const teamUrl = getTeamPageUrl(data.team_number);
                   const matchDisplay = data.match_id ?? data.match_number ?? '—';
                   return (
                     <React.Fragment key={rowKey}>
@@ -1127,11 +1204,7 @@ export default function ViewDataPage() {
         {pitDisplayList.map((row, idx) => {
           const teamName = getTeamName(row.team_number);
           const imgUrl = getPitImageUrl(row);
-          const teamUrl = id
-            ? `/team/${row.team_number}?competition_id=${encodeURIComponent(id as string)}&tab=pit`
-            : event_key
-              ? `/team/${row.team_number}?event_key=${encodeURIComponent(event_key as string)}&tab=pit`
-              : `/team/${row.team_number}?tab=pit`;
+          const teamUrl = getTeamPageUrl(row.team_number, 'pit');
           const rowId = (row as PitRow).id;
           const isLive = !!event_key;
           return (
@@ -1246,11 +1319,9 @@ export default function ViewDataPage() {
               </tr>
             ) : (
               statsByPerson.map(({ name, count }) => {
-                const formsHref = id
-                  ? `/view-data?id=${encodeURIComponent(id as string)}&name=${encodeURIComponent(name)}`
-                  : event_key
-                    ? `/view-data?event_key=${encodeURIComponent(event_key as string)}&name=${encodeURIComponent(name)}`
-                    : '#';
+                const formsP = new URLSearchParams(competitionQueryString || undefined);
+                formsP.set('name', name);
+                const formsHref = competitionQueryString ? `/view-data?${formsP.toString()}` : '#';
                 return (
                   <tr key={name} className="border-b border-white/5 hover:bg-white/5">
                     <td className="p-4">
@@ -1292,6 +1363,22 @@ export default function ViewDataPage() {
       >
         {tabContent}
       </CompetitionDataLayout>
+      {isSuperAdmin && session && (
+        <SuperadminScoutingChat
+          session={session}
+          context={{
+            competitionName: competition?.competition_name,
+            competitionKey: typeof competition_key === 'string' ? competition_key : undefined,
+            year: typeof year === 'string' ? year : undefined,
+            eventKey: typeof event_key === 'string' ? event_key : undefined,
+            pastId: typeof id === 'string' ? id : undefined,
+            seeAllOrgs: seeAllOrgsData,
+            organizationId: user?.organization_id ?? null,
+          }}
+          teams={teams}
+          scoutingRows={scoutingData}
+        />
+      )}
       {deletingPitRow && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <Card className="max-w-md w-full p-6">

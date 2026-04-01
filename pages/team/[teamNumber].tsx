@@ -105,7 +105,7 @@ const BreakdownItem = ({ label, value, points, isCleansing }: any) => (
 const TeamDetail: React.FC = () => {
   const router = useRouter();
   const { teamNumber } = router.query;
-  const { supabase, user } = useSupabase();
+  const { supabase, user, session } = useSupabase();
   const { isSuperAdmin, isAdmin, loading: adminLoading } = useAdmin();
 
   const [team, setTeam] = useState<Team | null>(null);
@@ -178,7 +178,17 @@ const TeamDetail: React.FC = () => {
   useEffect(() => {
     if (!router.isReady || !teamNumber) return;
     loadTeamData();
-  }, [router.isReady, teamNumber, user, router.query.competition_id, router.query.event_key]);
+  }, [
+    router.isReady,
+    teamNumber,
+    user,
+    router.query.competition_id,
+    router.query.event_key,
+    router.query.competition_key,
+    router.query.year,
+    router.query.see_all_orgs,
+    router.query.pit_all_orgs,
+  ]);
 
   const loadTeamData = async () => {
     try {
@@ -188,13 +198,31 @@ const TeamDetail: React.FC = () => {
 
       const competitionId = router.query.competition_id as string | undefined;
       const eventKey = router.query.event_key as string | undefined;
+      const competitionKey = router.query.competition_key as string | undefined;
+      const yearQ = router.query.year as string | undefined;
+      const seeAllOrgs = router.query.see_all_orgs === '1';
+      const pitAllOrgs = router.query.pit_all_orgs === '1';
 
       // When coming from view-data (past or live event), always load that competition's data and filter by team
-      if (competitionId || eventKey) {
-        const params = eventKey
-          ? `event_key=${encodeURIComponent(eventKey)}`
-          : `id=${encodeURIComponent(competitionId!)}`;
-        const res = await fetch(`/api/past-competitions?${params}`);
+      if (competitionId || eventKey || (competitionKey && yearQ)) {
+        const params = new URLSearchParams();
+        if (eventKey) {
+          params.set('event_key', eventKey);
+          if (seeAllOrgs) params.set('see_all_orgs', '1');
+          if (pitAllOrgs) params.set('pit_all_orgs', '1');
+        } else if (competitionKey && yearQ) {
+          params.set('competition_key', competitionKey);
+          params.set('year', yearQ);
+          if (seeAllOrgs) params.set('see_all_orgs', '1');
+        } else if (competitionId) {
+          params.set('id', competitionId);
+          if (seeAllOrgs) params.set('see_all_orgs', '1');
+        }
+        const headers: HeadersInit = {};
+        if (session?.access_token) {
+          headers.Authorization = `Bearer ${session.access_token}`;
+        }
+        const res = await fetch(`/api/past-competitions?${params.toString()}`, { headers });
         if (!res.ok) {
           setTeam({ team_number: teamNum, team_name: `Team ${teamNum}`, team_color: '', organization_id: '', created_at: '' });
           setScoutingData([]);

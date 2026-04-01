@@ -10,6 +10,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useSupabase } from '@/pages/_app';
 import { cn } from '@/lib/utils';
 import { getOrgCurrentEvent } from '@/lib/org-app-config';
+import { loadAnalysisTeamDataOnly, saveAnalysisTeamDataOnly } from '@/lib/view-data-filter-storage';
 import { Activity } from 'lucide-react';
 
 const quickAccess = [
@@ -39,6 +40,9 @@ export default function AnalysisIndex() {
   const { canAccessStats, loading: adminLoading } = useAdmin();
   const loading = userLoading || adminLoading;
   const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF
+  useEffect(() => {
+    setTeamDataOnly(loadAnalysisTeamDataOnly(false));
+  }, []);
   const [stats, setStats] = useState<{ teams: number; matchForms: number; pitForms: number } | null>(null);
   const [activeEventKey, setActiveEventKey] = useState<string>('');
   const [activeEventName, setActiveEventName] = useState<string>('');
@@ -138,7 +142,11 @@ export default function AnalysisIndex() {
                 </div>
                 <Switch
                   checked={teamDataOnly}
-                  onClick={() => setTeamDataOnly(!teamDataOnly)}
+                  onClick={() => {
+                    const v = !teamDataOnly;
+                    setTeamDataOnly(v);
+                    saveAnalysisTeamDataOnly(v);
+                  }}
                 />
               </div>
             </div>

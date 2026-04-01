@@ -280,11 +280,9 @@ export default function PastCompetitionsPage() {
                     key={`${competition.competition_key}-${competition.competition_year}-${competition.id}`} 
                     className="p-4 sm:p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow duration-200 cursor-pointer"
                     onClick={() => {
-                      if (competition.is_multi_org) {
-                        router.push(`/view-data?competition_key=${encodeURIComponent(competition.competition_key)}&year=${competition.competition_year}&see_all_orgs=1`);
-                      } else {
-                        router.push(`/view-data?id=${encodeURIComponent(competition.id)}`);
-                      }
+                      router.push(
+                        `/view-data?competition_key=${encodeURIComponent(competition.competition_key)}&year=${competition.competition_year}`
+                      );
                     }}
                   >
                     <div className="flex items-start justify-between mb-3">

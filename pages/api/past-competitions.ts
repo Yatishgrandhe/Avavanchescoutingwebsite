@@ -98,6 +98,54 @@ function effectiveFilterOrgId(
   return base;
 }
 
+type PastCompetitionRow = {
+  id: string;
+  organization_id: string;
+  competition_key: string;
+  competition_year: number;
+  competition_name?: string;
+  [key: string]: unknown;
+};
+
+function seeAllOrgsPastFromQuery(q: NextApiRequest['query']): boolean {
+  return q.see_all_orgs === '1' || q.data_scope === 'all';
+}
+
+/** When see_all_orgs is off, limit archived rows to the viewer org (or guest reference org); fallback to the opened row by id. */
+function scopePastArchiveRows(opts: {
+  groupRows: PastCompetitionRow[];
+  seeAllOrgsPast: boolean;
+  viewer: ViewerContext;
+  singleIdHint?: string;
+}): PastCompetitionRow[] {
+  const { groupRows, seeAllOrgsPast, viewer, singleIdHint } = opts;
+  if (seeAllOrgsPast || groupRows.length === 0) return groupRows;
+
+  if (!viewer.isGuest && viewer.organizationId) {
+    const filtered = groupRows.filter((r) => r.organization_id === viewer.organizationId);
+    if (filtered.length > 0) return filtered;
+    if (singleIdHint) {
+      const one = groupRows.filter((r) => r.id === singleIdHint);
+      if (one.length > 0) return one;
+    }
+    return groupRows;
+  }
+
+  if (viewer.isGuest) {
+    const gid = dataScopeOrgId(viewer);
+    if (!gid) return groupRows;
+    const filtered = groupRows.filter((r) => r.organization_id === gid);
+    if (filtered.length > 0) return filtered;
+    if (singleIdHint) {
+      const one = groupRows.filter((r) => r.id === singleIdHint);
+      if (one.length > 0) return one;
+    }
+    return groupRows;
+  }
+
+  return groupRows;
+}
+
 function pickRandomRow<T>(rows: T[]): T | null {
   if (!rows.length) return null;
   const idx = Math.floor(Math.random() * rows.length);
@@ -364,10 +412,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // --- Detail view by id OR competition_key ---
       if (id || competition_key) {
-        let competition: any = null;
-        let compError: any = null;
-        let orgIds: string[] = [];
-        let compIds: string[] = [];
+        const seeAllOrgsPast = seeAllOrgsPastFromQuery(req.query);
+        let anchor: PastCompetitionRow | null = null;
+        let compError: unknown = null;
 
         if (id) {
           const { data, error } = await supabaseAdmin
@@ -375,40 +422,53 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .select('*')
             .eq('id', id as string)
             .single();
-          competition = data;
+          anchor = (data as PastCompetitionRow | null) ?? null;
           compError = error;
-          if (data) {
-            orgIds = [data.organization_id];
-            compIds = [data.id];
-          }
         } else if (competition_key) {
-          let query = supabaseAdmin
+          let q = supabaseAdmin
             .from('past_competitions')
             .select('*')
             .eq('competition_key', competition_key as string);
-          
           if (year) {
-            query = query.eq('competition_year', parseInt(year as string, 10));
+            q = q.eq('competition_year', parseInt(year as string, 10));
           }
-          
-          const { data, error } = await query;
+          const { data, error } = await q;
           compError = error;
           if (data && data.length > 0) {
-            // Use the first one as basic info, but collect all orgs/ids
-            competition = data[0];
-            orgIds = Array.from(new Set(data.map(d => d.organization_id)));
-            compIds = data.map(d => d.id);
-            
-            // If multiple orgs, clear the specific org name and set a flag
-            if (orgIds.length > 1) {
-              competition.is_global = true;
-            }
+            anchor = data[0] as PastCompetitionRow;
           }
         }
 
-        if (compError || !competition) {
+        if (compError || !anchor) {
           console.error('Error fetching competition:', compError);
           return res.status(404).json({ error: 'Competition not found' });
+        }
+
+        const { data: groupData, error: groupErr } = await supabaseAdmin
+          .from('past_competitions')
+          .select('*')
+          .eq('competition_key', anchor.competition_key)
+          .eq('competition_year', anchor.competition_year);
+
+        if (groupErr) {
+          console.error('past_competitions group:', groupErr);
+          return res.status(500).json({ error: 'Failed to load competition group' });
+        }
+
+        const groupRows = (groupData || []) as PastCompetitionRow[];
+        const singleIdHint = typeof id === 'string' ? id : undefined;
+        const scopedRows = scopePastArchiveRows({
+          groupRows,
+          seeAllOrgsPast,
+          viewer,
+          singleIdHint,
+        });
+
+        let competition: Record<string, unknown> = { ...scopedRows[0] };
+        const orgIds = Array.from(new Set(scopedRows.map((r) => r.organization_id).filter(Boolean)));
+        const compIds = scopedRows.map((r) => r.id);
+        if (orgIds.length > 1) {
+          competition = { ...competition, is_global: true };
         }
 
         // Guests must have a valid scope if it's not global; logged-in users can view any org's competition.

@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
 import { google } from 'googleapis';
+import sharp from 'sharp';
 import { CURRENT_EVENT_NAME } from '@/lib/constants';
 
 // Disable Next.js body parsing for file uploads
@@ -216,6 +217,59 @@ async function parseForm(req: NextApiRequest): Promise<{ fields: Fields; files: 
     });
 }
 
+type OptimizedImage = {
+    filePath: string;
+    mimeType: string;
+    extension: string;
+    wasOptimized: boolean;
+};
+
+async function optimizeImageForUpload(filePath: string, originalMimeType: string | null): Promise<OptimizedImage> {
+    const optimizedPath = `/tmp/optimized_${Date.now()}_${Math.random().toString(36).slice(2, 10)}.jpg`;
+    try {
+        const pipeline = sharp(filePath, { failOn: 'none' });
+        const metadata = await pipeline.metadata();
+        const maxDimensionPx = 1600;
+        const width = metadata.width ?? null;
+        const height = metadata.height ?? null;
+        const shouldResize = (width != null && width > maxDimensionPx) || (height != null && height > maxDimensionPx);
+
+        let transform = pipeline.rotate();
+        if (shouldResize) {
+            transform = transform.resize(maxDimensionPx, maxDimensionPx, {
+                fit: 'inside',
+                withoutEnlargement: true,
+            });
+        }
+
+        await transform
+            .jpeg({
+                quality: 72,
+                mozjpeg: true,
+            })
+            .toFile(optimizedPath);
+
+        return {
+            filePath: optimizedPath,
+            mimeType: 'image/jpeg',
+            extension: '.jpg',
+            wasOptimized: true,
+        };
+    } catch (error) {
+        console.warn('[API/upload-robot-image] Image optimization skipped; using original file', {
+            reason: error instanceof Error ? error.message : 'unknown error',
+            originalMimeType,
+        });
+        const fallbackExtension = path.extname(filePath) || '.jpg';
+        return {
+            filePath,
+            mimeType: originalMimeType || 'image/jpeg',
+            extension: fallbackExtension,
+            wasOptimized: false,
+        };
+    }
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     // Health check endpoint for debugging (allows GET)
     if (req.method === 'GET' && (req.query.health === 'check' || req.query.health === 'drive')) {
@@ -333,14 +387,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const timestamp = Date.now();
         const date = new Date().toISOString().split('T')[0];
         const sanitizedTeamName = teamName.replace(/[^a-z0-9]/gi, '_');
-        const extension = path.extname(imageFile.originalFilename || '.jpg');
+        const originalExtension = path.extname(imageFile.originalFilename || '.jpg');
+        const optimizedImage = await optimizeImageForUpload(filePath, imageFile.mimetype || null);
+        const extension = optimizedImage.extension || originalExtension || '.jpg';
         const fileName = `team_${teamNumber}_${sanitizedTeamName}_${date}_${timestamp}${extension}`;
-        const mimeType = imageFile.mimetype || (extension.toLowerCase() === '.heic' ? 'image/heic' : 'image/jpeg');
+        const mimeType = optimizedImage.mimeType;
+        const uploadFilePath = optimizedImage.filePath;
 
         const driveFileName = `${CURRENT_EVENT_NAME} - Team ${teamNumber} - ${teamName}${extension}`;
         const driveDescription = `Pit scouting - ${CURRENT_EVENT_NAME} - Team ${teamNumber} - ${teamName}`;
 
-        console.log(`[API/upload-robot-image] Starting upload for team ${teamNumber} (${teamName}), file: ${fileName}, mimeType: ${mimeType}, size: ${imageFile.size} bytes`);
+        const originalSizeBytes = fs.statSync(filePath).size;
+        const optimizedSizeBytes = fs.statSync(uploadFilePath).size;
+        const savedBytes = Math.max(0, originalSizeBytes - optimizedSizeBytes);
+        const savedPct = originalSizeBytes > 0 ? ((savedBytes / originalSizeBytes) * 100).toFixed(1) : '0.0';
+
+        console.log(`[API/upload-robot-image] Starting upload for team ${teamNumber} (${teamName}), file: ${fileName}, mimeType: ${mimeType}, size: ${optimizedSizeBytes} bytes`);
+        console.log('[API/upload-robot-image] Optimization result:', {
+            wasOptimized: optimizedImage.wasOptimized,
+            originalSizeBytes,
+            optimizedSizeBytes,
+            savedBytes,
+            savedPct,
+        });
 
         // Storage attempts: Google Drive primary, Supabase as backup
         let imageUrl: string | null = null;
@@ -359,7 +428,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (hasGoogleDrive) {
             try {
                 console.log('[API/upload-robot-image] Attempting Google Drive upload (primary)...');
-                imageUrl = await uploadToGoogleDrive(filePath, fileName, mimeType, {
+                imageUrl = await uploadToGoogleDrive(uploadFilePath, fileName, mimeType, {
                     driveFileName,
                     driveDescription,
                 });
@@ -375,7 +444,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!imageUrl) {
             try {
                 console.log('[API/upload-robot-image] Attempting Supabase Storage upload (backup)...');
-                imageUrl = await uploadToSupabaseStorage(filePath, fileName, mimeType);
+                imageUrl = await uploadToSupabaseStorage(uploadFilePath, fileName, mimeType);
                 storageMethodUsed = 'Supabase Storage';
                 console.log(`[API/upload-robot-image] Supabase upload successful: ${imageUrl}`);
             } catch (supabaseError) {
@@ -402,6 +471,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 console.log('[API/upload-robot-image] Temporary file cleaned up successfully');
             }
         });
+        if (uploadFilePath !== filePath) {
+            fs.unlink(uploadFilePath, (unlinkErr) => {
+                if (unlinkErr) {
+                    console.warn('[API/upload-robot-image] Failed to clean up optimized temp file:', unlinkErr);
+                } else {
+                    console.log('[API/upload-robot-image] Optimized temporary file cleaned up successfully');
+                }
+            });
+        }
 
         // Return success with the image URL
         return res.status(200).json({

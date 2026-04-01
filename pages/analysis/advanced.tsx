@@ -30,6 +30,7 @@ import { supabase } from '@/lib/supabase';
 import { computeRebuiltMetrics, formatScoreRange } from '@/lib/analytics';
 import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
 import { getOrgCurrentEvent } from '@/lib/org-app-config';
+import { loadAnalysisTeamDataOnly, saveAnalysisTeamDataOnly } from '@/lib/view-data-filter-storage';
 import {
   RadarChart,
   PolarGrid,
@@ -111,6 +112,9 @@ export default function AdvancedAnalysis() {
   const [availableTeams, setAvailableTeams] = useState<Array<{ team_number: number, team_name: string }>>([]);
   const [teamsLoading, setTeamsLoading] = useState(true);
   const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF (Show all data for active competition)
+  useEffect(() => {
+    setTeamDataOnly(loadAnalysisTeamDataOnly(false));
+  }, []);
   const [scoutingRowsForAi, setScoutingRowsForAi] = useState<Array<{ comments?: string | null }>>([]);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
@@ -450,7 +454,11 @@ export default function AdvancedAnalysis() {
                   <Button
                     size="sm"
                     variant={teamDataOnly ? 'default' : 'outline'}
-                    onClick={() => setTeamDataOnly(!teamDataOnly)}
+                    onClick={() => {
+                      const v = !teamDataOnly;
+                      setTeamDataOnly(v);
+                      saveAnalysisTeamDataOnly(v);
+                    }}
                     className={cn(
                       "h-7 px-2.5 rounded-full transition-all text-[10px] font-bold",
                       teamDataOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground"

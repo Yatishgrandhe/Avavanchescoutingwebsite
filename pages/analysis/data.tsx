@@ -44,6 +44,7 @@ import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
 import { TeamComparisonPanel } from '@/components/data/TeamComparisonPanel';
 import { getOrgCurrentEvent } from '@/lib/org-app-config';
 import { getLocalPendingMatchRows } from '@/lib/local-pending-data';
+import { loadAnalysisTeamDataOnly, saveAnalysisTeamDataOnly } from '@/lib/view-data-filter-storage';
 
 interface TeamStat extends RebuiltTeamMetrics {
   team_number: number;
@@ -149,6 +150,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [activeEventKey, setActiveEventKey] = useState<string>('');
   const [activeEventName, setActiveEventName] = useState<string>('');
   const [teamDataOnly, setTeamDataOnly] = useState(false); // Default to OFF (show all data for active competition)
+  useEffect(() => {
+    setTeamDataOnly(loadAnalysisTeamDataOnly(false));
+  }, []);
   const [dataPageAiSummary, setDataPageAiSummary] = useState<string | null>(null);
   const [dataPageAiLoading, setDataPageAiLoading] = useState(false);
   const [dataPageAiError, setDataPageAiError] = useState<string | null>(null);
@@ -829,7 +833,11 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                         </div>
                         <Switch
                           checked={teamDataOnly}
-                          onClick={() => setTeamDataOnly(!teamDataOnly)}
+                          onClick={() => {
+                            const v = !teamDataOnly;
+                            setTeamDataOnly(v);
+                            saveAnalysisTeamDataOnly(v);
+                          }}
                         />
                       </div>
 

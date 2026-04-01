@@ -737,27 +737,6 @@ export default function ViewDataPage() {
                     </Button>
                   </div>
                 )}
-                {event_key && (
-                  <div className="flex items-center gap-3 p-2 rounded-lg border border-white/5 bg-white/[0.02]">
-                    <div className="flex flex-col max-w-[200px]">
-                      <span className="text-xs font-medium">All orgs pit</span>
-                      <span className="text-[10px] text-muted-foreground leading-tight">
-                        Off: pit from an org that has data (prefers yours when signed in).
-                      </span>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant={pitAllOrgs ? 'default' : 'outline'}
-                      onClick={() => setPitAllOrgs(!pitAllOrgs)}
-                      className={cn(
-                        'h-7 px-2.5 rounded-full transition-all text-[10px]',
-                        pitAllOrgs ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
-                      )}
-                    >
-                      {pitAllOrgs ? 'ON' : 'OFF'}
-                    </Button>
-                  </div>
-                )}
               </div>
 
               <Button onClick={loadData} variant="outline" size="sm" className="sm:ml-auto">
@@ -1212,6 +1191,37 @@ export default function ViewDataPage() {
           Teams with pit scouting data for {competition?.competition_name ?? 'this competition'}. Click a team to view details and robot images.
         </p>
       </div>
+      {event_key && (
+        <Card className="rounded-xl border border-white/10 bg-card/50 overflow-hidden mb-6">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-3 p-2 rounded-lg border border-white/5 bg-white/[0.02]">
+                <div className="flex flex-col max-w-[200px]">
+                  <span className="text-xs font-medium">All orgs pit</span>
+                  <span className="text-[10px] text-muted-foreground leading-tight">
+                    Off: pit from an org that has data (prefers yours when signed in).
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  variant={pitAllOrgs ? 'default' : 'outline'}
+                  onClick={() => setPitAllOrgs(!pitAllOrgs)}
+                  className={cn(
+                    'h-7 px-2.5 rounded-full transition-all text-[10px]',
+                    pitAllOrgs ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
+                  )}
+                >
+                  {pitAllOrgs ? 'ON' : 'OFF'}
+                </Button>
+              </div>
+              <Button onClick={loadData} variant="outline" size="sm" className="sm:ml-auto">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {pitDisplayList.map((row, idx) => {
           const teamName = getTeamName(row.team_number);

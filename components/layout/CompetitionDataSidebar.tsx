@@ -55,7 +55,7 @@ export default function CompetitionDataSidebar({
   onTabChange,
   backHref,
   queryString = '',
-  showPitTab = true,
+  showPitTab = false,
   showStatsTab = true,
   isLoggedIn = false,
 }: CompetitionDataSidebarProps) {

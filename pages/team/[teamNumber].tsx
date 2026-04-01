@@ -60,6 +60,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { PitScoutingData } from '@/pages/pit-scouting-data';
+import { hasCompetitionPitSidebarRows } from '@/lib/pit-scouting-visibility';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
 
 // Helper component for stat cards
@@ -111,6 +112,8 @@ const TeamDetail: React.FC = () => {
   const [team, setTeam] = useState<Team | null>(null);
   const [scoutingData, setScoutingData] = useState<ScoutingData[]>([]);
   const [pitData, setPitData] = useState<PitScoutingData | null>(null);
+  /** Matches view-data: show Pit sidebar only when competition has non-fallback pit rows. */
+  const [competitionPitTabVisible, setCompetitionPitTabVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [fullScreenImageUrl, setFullScreenImageUrl] = useState<string | null>(null);
@@ -227,6 +230,7 @@ const TeamDetail: React.FC = () => {
           setTeam({ team_number: teamNum, team_name: `Team ${teamNum}`, team_color: '', organization_id: '', created_at: '' });
           setScoutingData([]);
           setPitData(null);
+          setCompetitionPitTabVisible(false);
           setLoading(false);
           return;
         }
@@ -236,6 +240,7 @@ const TeamDetail: React.FC = () => {
         const teamScouting = allScouting.filter((r: any) => r.team_number === teamNum);
         const teamInfo = teamsList.find((t: any) => t.team_number === teamNum);
         const pitList = data.pitScoutingData || [];
+        setCompetitionPitTabVisible(hasCompetitionPitSidebarRows(pitList));
         const teamPits = pitList.filter((p: any) => p.team_number === teamNum);
         const teamPit = teamPits.length > 0
           ? teamPits.find((p: any) => (Array.isArray(p.photos) && p.photos.length > 0) || (p.robot_image_url && String(p.robot_image_url).trim())) || teamPits[teamPits.length - 1]
@@ -256,6 +261,7 @@ const TeamDetail: React.FC = () => {
             setScoutingData([]);
             setPitData(null);
           }
+          setCompetitionPitTabVisible(false);
           setLoading(false);
           return;
         }
@@ -263,6 +269,7 @@ const TeamDetail: React.FC = () => {
         setTeam(data.team);
         setScoutingData(data.scoutingData || []);
         setPitData(data.pitData || null);
+        setCompetitionPitTabVisible(false);
         setLoading(false);
         return;
       }
@@ -326,6 +333,7 @@ const TeamDetail: React.FC = () => {
       setTeam(teamData);
       setScoutingData(scoutingDataResult || []);
       setPitData(pitDataResult);
+      setCompetitionPitTabVisible(false);
     } catch (error) {
       console.error('Error loading team data:', error);
     } finally {
@@ -484,30 +492,47 @@ const TeamDetail: React.FC = () => {
 
   const teamStats = calculateTeamStats();
 
+  const qCompetitionKey = router.query.competition_key as string | undefined;
+  const qYear = router.query.year as string | undefined;
   const backUrl = router.query.competition_id
     ? `/view-data?id=${router.query.competition_id}`
     : router.query.event_key
       ? `/view-data?event_key=${encodeURIComponent(router.query.event_key as string)}`
-      : null;
+      : qCompetitionKey && qYear
+        ? `/view-data?competition_key=${encodeURIComponent(qCompetitionKey)}&year=${encodeURIComponent(qYear)}`
+        : null;
   const guestBackLink = backUrl
     ? { href: backUrl, label: 'Back to Data' }
     : { href: '/competition-history', label: 'Back to Competition History' };
 
   const competitionId = router.query.competition_id as string | undefined;
   const eventKey = router.query.event_key as string | undefined;
-  const inCompetitionContext = Boolean(competitionId || eventKey);
-  const competitionQueryString = competitionId
-    ? `id=${encodeURIComponent(competitionId)}`
-    : eventKey
-      ? `event_key=${encodeURIComponent(eventKey)}`
-      : '';
+  const seeAllOrgsQs = router.query.see_all_orgs === '1';
+  const pitAllOrgsQs = router.query.pit_all_orgs === '1';
+  const inCompetitionContext = Boolean(competitionId || eventKey || (qCompetitionKey && qYear));
+  const competitionQueryString = (() => {
+    const p = new URLSearchParams();
+    if (qCompetitionKey && qYear) {
+      p.set('competition_key', qCompetitionKey);
+      p.set('year', qYear);
+    } else if (competitionId) {
+      p.set('id', competitionId);
+    } else if (eventKey) {
+      p.set('event_key', eventKey);
+    } else {
+      return '';
+    }
+    if (seeAllOrgsQs) p.set('see_all_orgs', '1');
+    if (eventKey && pitAllOrgsQs) p.set('pit_all_orgs', '1');
+    return p.toString();
+  })();
 
   const wrapWithCompetitionLayout = (content: React.ReactNode) => (
     <CompetitionDataLayout
       activeTab="teams"
       backHref="/competition-history"
       queryString={competitionQueryString}
-      showPitTab={true}
+      showPitTab={competitionPitTabVisible}
     >
       <div className="max-w-7xl mx-auto px-4 py-6">{content}</div>
     </CompetitionDataLayout>

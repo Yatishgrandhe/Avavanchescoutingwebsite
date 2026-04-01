@@ -39,6 +39,7 @@ import type { CompetitionViewTab } from '@/components/layout/CompetitionDataSide
 import { useSupabase } from '@/pages/_app';
 import { useAdmin } from '@/hooks/use-admin';
 import { loadViewDataFilters, saveViewDataFilters } from '@/lib/view-data-filter-storage';
+import { hasCompetitionPitSidebarRows } from '@/lib/pit-scouting-visibility';
 import { SuperadminScoutingChat } from '@/components/superadmin/SuperadminScoutingChat';
 import { parseNotes, computeRebuiltMetrics } from '@/lib/analytics';
 import { formatDurationSec, roundToTenth } from '@/lib/utils';
@@ -198,6 +199,17 @@ export default function ViewDataPage() {
       setActiveTab('overview');
     }
   }, [user, activeTab]);
+
+  const showPitTab = React.useMemo(
+    () => hasCompetitionPitSidebarRows(pitScoutingData),
+    [pitScoutingData],
+  );
+
+  useEffect(() => {
+    if (!showPitTab && activeTab === 'pit') {
+      setActiveTab('overview');
+    }
+  }, [showPitTab, activeTab]);
 
   const statsByPerson = React.useMemo(() => {
     const map = new Map<string, number>();
@@ -1358,7 +1370,7 @@ export default function ViewDataPage() {
         onTabChange={setActiveTab}
         backHref="/competition-history"
         queryString={queryPrefix}
-        showPitTab={pitScoutingData.length > 0}
+        showPitTab={showPitTab}
         showStatsTab={!!user}
       >
         {tabContent}

@@ -9,15 +9,10 @@ import {
   Link as LinkIcon, 
   Copy, 
   Check, 
-  Users, 
-  Settings,
   Shield,
   Trash2,
-  ExternalLink,
   PlusCircle,
   Clock,
-  CheckCircle2,
-  XCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { 
@@ -30,6 +25,12 @@ import {
   Input, 
   Badge,
   Label,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from '@/components/ui';
 import {
   Select,
@@ -46,6 +47,18 @@ import {
   formatRedemptionSummary,
   isInvitePastExpiry,
 } from '@/lib/invite-config';
+
+function filterActiveNewOrgInvites<T extends Invite>(rows: T[]): T[] {
+  return rows.filter((inv) => {
+    if (inv.invite_type !== 'new_org') return false;
+    if (inv.status !== 'pending') return false;
+    if (isInvitePastExpiry(inv.expires_at)) return false;
+    const max = inv.max_redemptions;
+    const c = inv.redemption_count ?? 0;
+    if (max != null && c >= max) return false;
+    return true;
+  });
+}
 import { useToast } from '@/hooks/use-toast';
 import Head from 'next/head';
 
@@ -79,6 +92,11 @@ export default function OrgManager() {
   const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [newOrgInviteExpiryDays, setNewOrgInviteExpiryDays] = useState<number>(DEFAULT_NEW_ORG_INVITE_EXPIRY_DAYS);
+  /** single = one new org then link stops; unlimited = many orgs until expiry */
+  const [newOrgInviteScope, setNewOrgInviteScope] = useState<'single' | 'unlimited'>('single');
+  const [purgeTarget, setPurgeTarget] = useState<Organization | null>(null);
+  const [purgeConfirmName, setPurgeConfirmName] = useState('');
+  const [isPurging, setIsPurging] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -91,14 +109,18 @@ export default function OrgManager() {
     try {
       const [orgsRes, invitesRes] = await Promise.all([
         supabase.from('organizations').select('*').order('created_at', { ascending: false }),
-        supabase.from('organization_invites').select('*').order('created_at', { ascending: false }).limit(25)
+        supabase
+          .from('organization_invites')
+          .select('*')
+          .eq('invite_type', 'new_org')
+          .order('created_at', { ascending: false }),
       ]);
 
       if (orgsRes.error) throw orgsRes.error;
       if (invitesRes.error) throw invitesRes.error;
 
       setOrgs(orgsRes.data || []);
-      setInvites(invitesRes.data || []);
+      setInvites(filterActiveNewOrgInvites(invitesRes.data || []));
     } catch (error: any) {
       toast({
         title: "Error loading data",
@@ -146,6 +168,8 @@ export default function OrgManager() {
     try {
       const token = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
       
+      const maxRedemptions = newOrgInviteScope === 'single' ? 1 : null;
+
       const { data, error } = await supabase
         .from('organization_invites')
         .insert({ 
@@ -153,7 +177,7 @@ export default function OrgManager() {
           invite_type: 'new_org',
           created_by: user?.id,
           expires_at: expiryIsoFromDays(newOrgInviteExpiryDays),
-          max_redemptions: 1,
+          max_redemptions: maxRedemptions,
           redemption_count: 0,
         })
         .select()
@@ -161,7 +185,7 @@ export default function OrgManager() {
 
       if (error) throw error;
 
-      setInvites([data, ...invites]);
+      setInvites(filterActiveNewOrgInvites([data, ...invites]));
       toast({
         title: "Invite token generated",
         description: "You can now share this token with a team lead.",
@@ -174,6 +198,46 @@ export default function OrgManager() {
       });
     } finally {
       setIsGeneratingInvite(false);
+    }
+  };
+
+  const handlePurgeOrganization = async () => {
+    if (!purgeTarget || !purgeConfirmName.trim()) return;
+    setIsPurging(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Not signed in');
+      }
+      const res = await fetch('/api/admin/purge-organization', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          organizationId: purgeTarget.id,
+          confirmationName: purgeConfirmName.trim(),
+        }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail =
+          Array.isArray(j.details) ? j.details.join('; ') : typeof j.details === 'string' ? j.details : '';
+        throw new Error(detail || j.error || 'Purge failed');
+      }
+      toast({
+        title: 'Organization deleted',
+        description: `${purgeTarget.name} and its data were removed.`,
+      });
+      setPurgeTarget(null);
+      setPurgeConfirmName('');
+      await loadData();
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Purge failed';
+      toast({ title: 'Purge failed', description: msg, variant: 'destructive' });
+    } finally {
+      setIsPurging(false);
     }
   };
 
@@ -274,12 +338,27 @@ export default function OrgManager() {
                     <LinkIcon className="w-5 h-5 text-primary" />
                     Invite Team
                   </CardTitle>
-                  <CardDescription>New organization setup link (single use, then expires)</CardDescription>
+                  <CardDescription>New organization setup links (Discord bypass)</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    One team lead uses the link to create their org and bypass the Discord guild check. The link stops working after that setup or when the expiry date passes—whichever comes first.
+                    Team leads use the link to create an org and bypass the Discord guild check. Choose whether the link creates one organization only, or unlimited new organizations until the expiry date.
                   </p>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Organizations per link</Label>
+                    <Select
+                      value={newOrgInviteScope}
+                      onValueChange={(v) => setNewOrgInviteScope(v as 'single' | 'unlimited')}
+                    >
+                      <SelectTrigger className="glass-input border-white/10 w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="single">One organization (link stops after first setup)</SelectItem>
+                        <SelectItem value="unlimited">Unlimited organizations (until expiry)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground">Link stays valid for</Label>
                     <Select
@@ -317,55 +396,52 @@ export default function OrgManager() {
 
             {/* Right Column: List and Management */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Recent Invites */}
+              {/* Active new-org invites only (used / expired links are hidden) */}
               <Card className="glass border-white/5 bg-white/[0.02]">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <div>
-                    <CardTitle className="text-lg">Recent Invite Links</CardTitle>
-                    <CardDescription>Expiry, uses, and status for each link</CardDescription>
+                    <CardTitle className="text-lg">Active new-organization invites</CardTitle>
+                    <CardDescription>
+                      Only links that still accept signups. Single-use links disappear after use; multi-org links show how many orgs were created.
+                    </CardDescription>
                   </div>
                   <Button variant="ghost" size="sm" onClick={loadData} className="h-8">
                     Refresh
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
+                  <div className="max-h-[22rem] overflow-y-auto pr-1 rounded-lg border border-white/5 bg-black/20">
+                    <div className="space-y-3 p-2">
                     {invites.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground text-sm">
-                        No active invites found.
+                        No active invites. Create one on the left, or used/expired links are hidden automatically.
                       </div>
                     ) : (
                       invites.map((invite) => {
-                        const expired =
-                          invite.status === 'pending' && isInvitePastExpiry(invite.expires_at);
-                        const canCopy = invite.status === 'pending' && !expired;
+                        const canCopy = invite.status === 'pending' && !isInvitePastExpiry(invite.expires_at);
                         return (
                         <div 
                           key={invite.id} 
-                          className="flex items-center justify-between p-3 rounded-xl border border-white/5 bg-white/[0.03] group hover:bg-white/[0.05] transition-colors"
+                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.03] group hover:bg-white/[0.05] transition-colors"
                         >
                           <div className="flex flex-col gap-1 min-w-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               <code className="text-xs font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
                                 {invite.token.substring(0, 8)}...
                               </code>
                               <Badge 
                                 variant="outline" 
-                                className={cn(
-                                  "text-[10px] uppercase h-4 px-1.5",
-                                  expired ? "text-red-400 border-red-500/20" :
-                                  invite.status === 'pending' ? "text-yellow-400 border-yellow-500/20" : 
-                                  invite.status === 'used' ? "text-green-400 border-green-500/20" : 
-                                  "text-red-400 border-red-500/20"
-                                )}
+                                className="text-[10px] uppercase h-4 px-1.5 text-yellow-400 border-yellow-500/20"
                               >
-                                {expired ? 'expired' : invite.status}
+                                active
                               </Badge>
-                              {invite.invite_type && (
-                                <Badge variant="secondary" className="text-[9px] h-4 px-1">
-                                  {invite.invite_type === 'join_org' ? 'join' : 'new org'}
-                                </Badge>
-                              )}
+                              <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                                {invite.max_redemptions == null
+                                  ? 'unlimited orgs'
+                                  : invite.max_redemptions === 1
+                                    ? 'one org only'
+                                    : `up to ${invite.max_redemptions} orgs`}
+                              </Badge>
                             </div>
                             <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                               <Clock className="w-3 h-3" />
@@ -373,9 +449,6 @@ export default function OrgManager() {
                             </span>
                             <span className="text-[10px] text-muted-foreground">
                               Expires {formatInviteExpiryLabel(invite.expires_at)}
-                              {invite.status === 'pending' && isInvitePastExpiry(invite.expires_at) ? (
-                                <span className="text-red-400 ml-1">(past date—deactivate or create a new link)</span>
-                              ) : null}
                             </span>
                             <span className="text-[10px] text-amber-200/80">
                               {formatRedemptionSummary(
@@ -386,7 +459,7 @@ export default function OrgManager() {
                             </span>
                           </div>
                           
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 shrink-0">
                             {canCopy && (
                               <Button 
                                 size="sm" 
@@ -402,16 +475,12 @@ export default function OrgManager() {
                                 Copy Link
                               </Button>
                             )}
-                            {invite.status === 'used' && (
-                              <div className="text-[10px] text-muted-foreground text-right italic mr-2">
-                                Used on {new Date(invite.used_at!).toLocaleDateString()}
-                              </div>
-                            )}
                           </div>
                         </div>
                       );
                       })
                     )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -420,20 +489,34 @@ export default function OrgManager() {
               <Card className="glass border-white/5 bg-white/[0.02]">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg">Registered Organizations</CardTitle>
-                  <CardDescription>Teams currently using the platform</CardDescription>
+                  <CardDescription>Teams on the platform. Deleting an org removes its data and deletes member accounts (except superadmins, who are unlinked).</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
                     {orgs.map((org) => (
                       <div 
                         key={org.id} 
-                        className="p-4 rounded-xl border border-white/5 bg-white/[0.03] flex items-center justify-between group hover:border-primary/20 transition-all"
+                        className="p-4 rounded-xl border border-white/5 bg-white/[0.03] flex items-center justify-between gap-3 group hover:border-primary/20 transition-all"
                       >
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <h4 className="font-bold text-foreground truncate">{org.name}</h4>
                           <span className="text-[10px] text-muted-foreground font-mono opacity-50 uppercase tracking-tighter">ID: {org.id.substring(0, 8)}</span>
                         </div>
-                        <Building2 className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors opacity-20" />
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-destructive border-destructive/30 hover:bg-destructive/10"
+                            onClick={() => {
+                              setPurgeTarget(org);
+                              setPurgeConfirmName('');
+                            }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                          <Building2 className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors opacity-20 hidden sm:block" />
+                        </div>
                       </div>
                     ))}
                     {orgs.length === 0 && (
@@ -447,6 +530,44 @@ export default function OrgManager() {
             </div>
           </div>
         </div>
+
+        <Dialog open={!!purgeTarget} onOpenChange={(open) => !open && !isPurging && setPurgeTarget(null)}>
+          <DialogContent className="glass border-white/10 sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-destructive flex items-center gap-2">
+                <Trash2 className="w-5 h-5" />
+                Delete organization permanently
+              </DialogTitle>
+              <DialogDescription className="text-left space-y-2 pt-2">
+                <span className="block text-foreground/90">
+                  This removes <strong>{purgeTarget?.name}</strong>, all of its scouting data, archives, and{' '}
+                  <strong>non–superadmin member accounts</strong> (Auth + profiles). Superadmins in this org are only
+                  unlinked. This cannot be undone.
+                </span>
+                <span className="block text-sm">Type the organization name exactly to confirm:</span>
+              </DialogDescription>
+            </DialogHeader>
+            <Input
+              value={purgeConfirmName}
+              onChange={(e) => setPurgeConfirmName(e.target.value)}
+              placeholder={purgeTarget?.name ?? 'Organization name'}
+              className="glass-input border-white/10"
+              disabled={isPurging}
+            />
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setPurgeTarget(null)} disabled={isPurging}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={isPurging || !purgeTarget || purgeConfirmName !== purgeTarget.name}
+                onClick={() => void handlePurgeOrganization()}
+              >
+                {isPurging ? 'Deleting…' : 'Delete forever'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </Layout>
     </ProtectedRoute>
   );

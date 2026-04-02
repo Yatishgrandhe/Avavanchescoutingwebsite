@@ -43,6 +43,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
+  const redemptionCount = (invite.redemption_count as number) ?? 0;
+  const maxRedemptions = invite.max_redemptions as number | null;
+  if (
+    invite.invite_type === 'new_org' &&
+    maxRedemptions != null &&
+    redemptionCount >= maxRedemptions
+  ) {
+    res.status(200).json({
+      valid: false,
+      reason: 'already_used',
+      invite_type: invite.invite_type,
+    });
+    return;
+  }
+
   const expired =
     invite.expires_at && new Date(invite.expires_at as string) < new Date();
 
@@ -66,8 +81,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     organizationName = org?.name ?? null;
   }
 
-  const maxRedemptions = invite.max_redemptions as number | null;
-  const redemptionCount = (invite.redemption_count as number) ?? 0;
   const unlimited = maxRedemptions == null;
   const usesRemaining =
     unlimited ? null : Math.max(0, (maxRedemptions as number) - redemptionCount);

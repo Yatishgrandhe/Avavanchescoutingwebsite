@@ -67,6 +67,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
+  const maxRedemptions = invite.max_redemptions as number | null | undefined;
+  const prevCount = (invite.redemption_count as number) ?? 0;
+  if (maxRedemptions != null && prevCount >= maxRedemptions) {
+    res.status(400).json({ error: 'This invite has reached its maximum number of uses' });
+    return;
+  }
+
   const { data: newOrg, error: orgInsErr } = await admin
     .from('organizations')
     .insert({
@@ -145,14 +152,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       throw new Error(upsertErr.message || 'profile upsert failed');
     }
 
+    const nextCount = prevCount + 1;
+    const exhausted = maxRedemptions != null && nextCount >= maxRedemptions;
+    const inviteUpdate: Record<string, unknown> = {
+      redemption_count: nextCount,
+      used_by: user.id,
+    };
+    if (exhausted) {
+      inviteUpdate.status = 'used';
+      inviteUpdate.used_at = new Date().toISOString();
+    } else {
+      inviteUpdate.status = 'pending';
+    }
+
     const { error: inviteUpdErr } = await admin
       .from('organization_invites')
-      .update({
-        status: 'used',
-        used_at: new Date().toISOString(),
-        used_by: user.id,
-        redemption_count: 1,
-      })
+      .update(inviteUpdate)
       .eq('id', invite.id);
 
     if (inviteUpdErr) {

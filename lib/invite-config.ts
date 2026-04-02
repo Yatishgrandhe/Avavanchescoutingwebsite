@@ -28,7 +28,7 @@ export function isInvitePastExpiry(expiresAt: string | null | undefined): boolea
   return !Number.isNaN(d.getTime()) && d < new Date();
 }
 
-/** How many people have joined via this link (join_org multi-use). */
+/** How many people have joined / orgs created via this link. */
 export function formatRedemptionSummary(
   redemptionCount: number | null | undefined,
   maxRedemptions: number | null | undefined,
@@ -36,7 +36,15 @@ export function formatRedemptionSummary(
 ): string {
   const count = redemptionCount ?? 0;
   if (inviteType === 'new_org') {
-    return count >= 1 ? 'Used once (new organization created)' : 'Not used yet';
+    if (maxRedemptions == null) {
+      return count === 0
+        ? 'Not used yet — unlimited new organizations until expiry'
+        : `${count} organization${count === 1 ? '' : 's'} created (link still active until expiry)`;
+    }
+    if (count === 0) {
+      return `Not used yet — single new organization (${maxRedemptions} max)`;
+    }
+    return `${count} / ${maxRedemptions} organization${maxRedemptions === 1 ? '' : 's'} created`;
   }
   if (maxRedemptions == null) {
     return `${count} joined (unlimited until expiry)`;

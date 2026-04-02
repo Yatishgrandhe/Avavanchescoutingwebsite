@@ -95,6 +95,9 @@ export default function SignIn() {
     expires_at?: string;
     organization_name?: string | null;
     unlimited_uses?: boolean;
+    max_redemptions?: number | null;
+    redemption_count?: number;
+    uses_remaining?: number | null;
   } | null>(null);
   const { toast } = useToast();
 
@@ -297,7 +300,22 @@ export default function SignIn() {
               <>
                 <p className="font-semibold text-foreground">New organization setup</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Single-use link for one team lead. Expires {formatInviteExpiryLabel(inviteBanner.expires_at)}.
+                  {inviteBanner.unlimited_uses ? (
+                    <>
+                      Each completed setup creates a new organization until this link expires (
+                      {formatInviteExpiryLabel(inviteBanner.expires_at)}).
+                      {typeof inviteBanner.redemption_count === 'number' && inviteBanner.redemption_count > 0
+                        ? ` ${inviteBanner.redemption_count} already created.`
+                        : null}
+                    </>
+                  ) : (
+                    <>
+                      Limited to {(inviteBanner.max_redemptions ?? 1) - (inviteBanner.redemption_count ?? 0)} more
+                      organization
+                      {(inviteBanner.max_redemptions ?? 1) - (inviteBanner.redemption_count ?? 0) === 1 ? '' : 's'}. Expires{' '}
+                      {formatInviteExpiryLabel(inviteBanner.expires_at)}.
+                    </>
+                  )}
                 </p>
               </>
             )}

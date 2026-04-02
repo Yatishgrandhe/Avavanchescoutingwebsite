@@ -12,7 +12,6 @@ import {
   Target,
   CheckCircle,
   AlertCircle,
-  XCircle,
   FileText,
   ArrowLeft,
   Home,
@@ -157,6 +156,12 @@ export default function PitScoutingDetails() {
   }, [user, id]);
 
   const handleBack = () => {
+    const raw = router.query.returnTo;
+    const returnTo = typeof raw === 'string' ? raw : '';
+    if (returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+      void router.push(returnTo);
+      return;
+    }
     router.back();
   };
 
@@ -430,28 +435,6 @@ export default function PitScoutingDetails() {
                     </p>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-                    <div>
-                      <h4 className="text-xs font-black text-green-500 uppercase tracking-widest mb-4">Core Strengths</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {pitData.strengths?.map((s, i) => (
-                          <Badge key={i} className="bg-green-500/10 text-green-400 border-green-500/20 py-1.5 px-3">
-                            <CheckCircle className="w-3 h-3 mr-2" /> {s}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black text-red-500 uppercase tracking-widest mb-4">Identified Weaknesses</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {pitData.weaknesses?.map((w, i) => (
-                          <Badge key={i} className="bg-red-500/10 text-red-400 border-red-500/20 py-1.5 px-3">
-                            <XCircle className="w-3 h-3 mr-2" /> {w}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
                 </Card>
 
                 {/* Submitter Info Footer */}

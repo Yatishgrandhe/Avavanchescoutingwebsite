@@ -197,8 +197,15 @@ export default function ViewDataPage() {
   useEffect(() => {
     if (!user && activeTab === 'stats') {
       setActiveTab('overview');
+      if (router.isReady) {
+        void router.replace(
+          { pathname: router.pathname, query: { ...router.query, view_tab: 'overview' } },
+          undefined,
+          { shallow: true },
+        );
+      }
     }
-  }, [user, activeTab]);
+  }, [user, activeTab, router]);
 
   const showPitTab = React.useMemo(
     () => hasCompetitionPitSidebarRows(pitScoutingData),
@@ -208,8 +215,38 @@ export default function ViewDataPage() {
   useEffect(() => {
     if (!showPitTab && activeTab === 'pit') {
       setActiveTab('overview');
+      if (router.isReady) {
+        void router.replace(
+          { pathname: router.pathname, query: { ...router.query, view_tab: 'overview' } },
+          undefined,
+          { shallow: true },
+        );
+      }
     }
-  }, [showPitTab, activeTab]);
+  }, [showPitTab, activeTab, router]);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const vt = router.query.view_tab;
+    if (typeof vt !== 'string' || !vt) return;
+    const allowed: CompetitionViewTab[] = ['overview', 'comparison', 'teams', 'pit', 'stats'];
+    if (!allowed.includes(vt as CompetitionViewTab)) return;
+    if (vt === 'stats' && !user) return;
+    setActiveTab(vt as CompetitionViewTab);
+  }, [router.isReady, router.query.view_tab, user]);
+
+  const handleCompetitionTabChange = React.useCallback(
+    (tab: CompetitionViewTab) => {
+      setActiveTab(tab);
+      if (!router.isReady) return;
+      void router.replace(
+        { pathname: router.pathname, query: { ...router.query, view_tab: tab } },
+        undefined,
+        { shallow: true },
+      );
+    },
+    [router],
+  );
 
   const statsByPerson = React.useMemo(() => {
     const map = new Map<string, number>();
@@ -1377,7 +1414,7 @@ export default function ViewDataPage() {
     <>
       <CompetitionDataLayout
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleCompetitionTabChange}
         backHref="/competition-history"
         queryString={queryPrefix}
         showPitTab={showPitTab}

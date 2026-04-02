@@ -143,6 +143,19 @@ const TeamDetail: React.FC = () => {
     }
   }, [router.query.tab]);
 
+  const handleTeamTabChange = useCallback(
+    (value: string) => {
+      setActiveTeamTab(value);
+      if (!router.isReady) return;
+      void router.replace(
+        { pathname: router.pathname, query: { ...router.query, tab: value } },
+        undefined,
+        { shallow: true },
+      );
+    },
+    [router],
+  );
+
   /** Primary robot image: robot_image_url (live) or first valid URL in photos (past/live). */
   const getRobotImageUrl = (pit: PitScoutingData | null): string | null => {
     if (!pit) return null;
@@ -711,7 +724,7 @@ const TeamDetail: React.FC = () => {
       </div>
 
       {(
-        <Tabs value={activeTeamTab} onValueChange={setActiveTeamTab} className="w-full">
+        <Tabs value={activeTeamTab} onValueChange={handleTeamTabChange} className="w-full">
           <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-px overflow-x-auto">
             <TabsList className="bg-transparent h-12 p-0 gap-8 justify-start">
               <TabsTrigger
@@ -1176,28 +1189,6 @@ const TeamDetail: React.FC = () => {
                       </Card>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <h4 className="text-sm font-bold text-green-400 uppercase">Strengths</h4>
-                        <ul className="space-y-2">
-                          {pitData.strengths?.map((s: string, i: number) => (
-                            <li key={i} className="flex items-center gap-2 text-sm">
-                              <CheckCircle className="w-4 h-4 text-green-500" /> {s}
-                            </li>
-                          )) || <span className="text-muted-foreground text-sm">Nothing noted</span>}
-                        </ul>
-                      </div>
-                      <div className="space-y-4">
-                        <h4 className="text-sm font-bold text-red-400 uppercase">Weaknesses</h4>
-                        <ul className="space-y-2">
-                          {pitData.weaknesses?.map((w: string, i: number) => (
-                            <li key={i} className="flex items-center gap-2 text-sm">
-                              <XCircle className="w-4 h-4 text-red-500" /> {w}
-                            </li>
-                          )) || <span className="text-muted-foreground text-sm">Nothing noted</span>}
-                        </ul>
-                      </div>
-                    </div>
                   </div>
                 </div>
               ) : (

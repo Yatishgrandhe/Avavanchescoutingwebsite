@@ -56,8 +56,6 @@ interface PitScoutingData {
   programmingLanguage: string;
   notes: string;
   photos: PhotoItem[];
-  strengths: string[];
-  weaknesses: string[];
   overallRating: number;
   autoFuelCount: number;
 }
@@ -92,8 +90,6 @@ export default function PitScoutingMobile() {
     programmingLanguage: '',
     notes: '',
     photos: [],
-    strengths: [],
-    weaknesses: [],
     overallRating: 1,
     autoFuelCount: 0,
   });
@@ -148,8 +144,6 @@ export default function PitScoutingMobile() {
         programmingLanguage: fd.programmingLanguage ?? prev.programmingLanguage,
         notes: fd.notes ?? prev.notes,
         photos,
-        strengths: Array.isArray(fd.strengths) ? fd.strengths : prev.strengths,
-        weaknesses: Array.isArray(fd.weaknesses) ? fd.weaknesses : prev.weaknesses,
         overallRating: fd.overallRating ?? prev.overallRating,
         autoFuelCount: fd.autoFuelCount ?? prev.autoFuelCount,
       }));
@@ -326,8 +320,8 @@ export default function PitScoutingMobile() {
         notes: formData.notes,
         photos: photoUrls,
         robot_image_url: photoUrls[0] || null,
-        strengths: formData.strengths,
-        weaknesses: formData.weaknesses,
+        strengths: [],
+        weaknesses: [],
         overall_rating: formData.overallRating || 0,
         submitted_by: user.id,
         submitted_by_email: user.email,
@@ -399,8 +393,6 @@ export default function PitScoutingMobile() {
           programmingLanguage: '',
           notes: '',
           photos: [],
-          strengths: [],
-          weaknesses: [],
           overallRating: 1,
           autoFuelCount: 0,
         });
@@ -945,7 +937,7 @@ export default function PitScoutingMobile() {
                     <span>Analysis & Notes</span>
                   </CardTitle>
                   <CardDescription>
-                    Document strengths, weaknesses, and observations
+                    Document navigation, strategy, rating, and observations
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -1037,34 +1029,6 @@ export default function PitScoutingMobile() {
                         </label>
                       ))}
                     </div>
-                  </div>
-
-                  {/* Strengths */}
-                  <div className="bg-muted p-4 rounded-lg border">
-                    <h3 className="text-lg font-semibold mb-4 text-foreground">Strengths</h3>
-                    <textarea
-                      className="w-full h-32 px-3 py-2 border border-input rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                      placeholder="List the robot's key strengths and advantages..."
-                      value={formData.strengths.join(', ')}
-                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                        ...prev, 
-                        strengths: e.target.value.split(',').map(s => s.trim()).filter(s => s)
-                      }))}
-                    />
-                  </div>
-
-                  {/* Weaknesses */}
-                  <div className="bg-muted p-4 rounded-lg border">
-                    <h3 className="text-lg font-semibold mb-4 text-foreground">Weaknesses</h3>
-                    <textarea
-                      className="w-full h-32 px-3 py-2 border border-input rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                      placeholder="List the robot's weaknesses and areas for improvement..."
-                      value={formData.weaknesses.join(', ')}
-                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ 
-                        ...prev, 
-                        weaknesses: e.target.value.split(',').map(s => s.trim()).filter(s => s)
-                      }))}
-                    />
                   </div>
 
                   {/* Overall Rating */}

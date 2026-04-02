@@ -29,11 +29,9 @@ import {
   Trash2,
   Shield,
   XCircle,
-  AlertCircle,
   Zap,
   Award,
   Activity,
-  BarChart3,
   Clock,
   ArrowLeft,
   Route,
@@ -969,46 +967,6 @@ export default function PitScoutingData() {
                               </div>
                             </div>
 
-                            {/* Strengths & Weaknesses */}
-                            <div className="space-y-4">
-                              <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                                <BarChart3 className="w-4 h-4 text-blue-400" /> Strengths
-                              </h4>
-                              <div className="bg-green-500/5 p-5 rounded-2xl border border-green-500/10 shadow-sm">
-                                <ul className="space-y-2">
-                                  {selectedDetailItem.strengths?.length > 0 ? (
-                                    selectedDetailItem.strengths.map((str: string, i: number) => (
-                                      <li key={i} className="flex items-start gap-2 text-sm text-green-200/80">
-                                        <CheckCircle className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
-                                        <span>{str}</span>
-                                      </li>
-                                    ))
-                                  ) : (
-                                    <li className="text-gray-500 text-sm italic">No strengths listed</li>
-                                  )}
-                                </ul>
-                              </div>
-                            </div>
-
-                            <div className="space-y-4">
-                              <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                                <AlertCircle className="w-4 h-4 text-red-400" /> Weaknesses
-                              </h4>
-                              <div className="bg-red-500/5 p-5 rounded-2xl border border-red-500/10 shadow-sm">
-                                <ul className="space-y-2">
-                                  {selectedDetailItem.weaknesses?.length > 0 ? (
-                                    selectedDetailItem.weaknesses.map((weak: string, i: number) => (
-                                      <li key={i} className="flex items-start gap-2 text-sm text-red-200/80">
-                                        <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                                        <span>{weak}</span>
-                                      </li>
-                                    ))
-                                  ) : (
-                                    <li className="text-gray-500 text-sm italic">No weaknesses listed</li>
-                                  )}
-                                </ul>
-                              </div>
-                            </div>
                           </div>
 
                           {/* Notes Section */}

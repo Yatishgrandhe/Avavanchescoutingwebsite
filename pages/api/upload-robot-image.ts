@@ -23,6 +23,22 @@ const STORAGE_BUCKET = 'robot-images';
 
 const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
+function devLog(...args: unknown[]) {
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(...args);
+    }
+}
+
+function unlinkQuiet(p: string) {
+    try {
+        if (p && fs.existsSync(p)) {
+            fs.unlinkSync(p);
+        }
+    } catch {
+        /* ignore */
+    }
+}
+
 // Initialize Supabase Storage client ONCE (reuse across requests)
 // This prevents memory leaks and connection exhaustion in serverless environments
 let supabaseClient: ReturnType<typeof createClient> | null = null;
@@ -34,7 +50,7 @@ function getSupabaseStorageClient() {
 
     // Reuse existing client if available
     if (!supabaseClient) {
-        console.log('[API/upload-robot-image] Initializing Supabase client with Service Role Key');
+        devLog('[API/upload-robot-image] Initializing Supabase client with Service Role Key');
         supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     }
 
@@ -190,7 +206,7 @@ async function parseForm(req: NextApiRequest): Promise<{ fields: Fields; files: 
                 const byExt = /\.(jpe?g|png|gif|webp|bmp|heic)$/.test(ext);
                 const fromMobile = !mimetype && !originalFilename;
                 const isImage = byMime || (!mimetype && byExt) || fromMobile;
-                console.log('[API/upload-robot-image] File filter check:', { mimetype, originalFilename, isImage, fromMobile });
+                devLog('[API/upload-robot-image] File filter check:', { mimetype, originalFilename, isImage, fromMobile });
                 return isImage;
             },
         });
@@ -205,7 +221,7 @@ async function parseForm(req: NextApiRequest): Promise<{ fields: Fields; files: 
                 reject(err);
                 return;
             }
-            console.log('[API/upload-robot-image] Form parsed successfully:', {
+            devLog('[API/upload-robot-image] Form parsed successfully:', {
                 fieldsCount: Object.keys(fields).length,
                 filesCount: Object.keys(files).length,
                 fieldNames: Object.keys(fields),
@@ -305,8 +321,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    const pathsToCleanup = new Set<string>();
+
     try {
-        console.log('[API/upload-robot-image] Received upload request');
+        devLog('[API/upload-robot-image] Received upload request');
 
         // Check if Supabase Storage is configured
         if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -316,7 +334,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 details: 'Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.'
             });
         }
-        console.log('[API/upload-robot-image] Supabase configuration verified');
+        devLog('[API/upload-robot-image] Supabase configuration verified');
 
         // Parse the uploaded file
         let fields: Fields;
@@ -333,7 +351,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        console.log('[API/upload-robot-image] Parsed form data:', {
+        devLog('[API/upload-robot-image] Parsed form data:', {
             fieldsKeys: Object.keys(fields),
             filesKeys: Object.keys(files),
             teamNumberField: fields.teamNumber,
@@ -364,7 +382,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Formidable v3 uses 'filepath' property (v2 uses 'path')
         // Verify file path exists and is accessible
         const filePath = imageFile.filepath || (imageFile as any).path;
-        console.log('[API/upload-robot-image] File details:', {
+        devLog('[API/upload-robot-image] File details:', {
             originalFilename: imageFile.originalFilename,
             mimetype: imageFile.mimetype,
             size: imageFile.size,
@@ -380,6 +398,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
+        pathsToCleanup.add(filePath);
+
         const teamNameField = Array.isArray(fields.teamName) ? fields.teamName[0] : fields.teamName;
         const teamName = teamNameField || 'Unknown';
 
@@ -393,6 +413,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const fileName = `team_${teamNumber}_${sanitizedTeamName}_${date}_${timestamp}${extension}`;
         const mimeType = optimizedImage.mimeType;
         const uploadFilePath = optimizedImage.filePath;
+        if (uploadFilePath !== filePath) {
+            pathsToCleanup.add(uploadFilePath);
+        }
 
         const driveFileName = `${CURRENT_EVENT_NAME} - Team ${teamNumber} - ${teamName}${extension}`;
         const driveDescription = `Pit scouting - ${CURRENT_EVENT_NAME} - Team ${teamNumber} - ${teamName}`;
@@ -402,8 +425,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const savedBytes = Math.max(0, originalSizeBytes - optimizedSizeBytes);
         const savedPct = originalSizeBytes > 0 ? ((savedBytes / originalSizeBytes) * 100).toFixed(1) : '0.0';
 
-        console.log(`[API/upload-robot-image] Starting upload for team ${teamNumber} (${teamName}), file: ${fileName}, mimeType: ${mimeType}, size: ${optimizedSizeBytes} bytes`);
-        console.log('[API/upload-robot-image] Optimization result:', {
+        devLog(`[API/upload-robot-image] Starting upload for team ${teamNumber} (${teamName}), file: ${fileName}, mimeType: ${mimeType}, size: ${optimizedSizeBytes} bytes`);
+        devLog('[API/upload-robot-image] Optimization result:', {
             wasOptimized: optimizedImage.wasOptimized,
             originalSizeBytes,
             optimizedSizeBytes,
@@ -427,13 +450,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Attempt 1: Google Drive (primary) — display name includes event, team number, robot name
         if (hasGoogleDrive) {
             try {
-                console.log('[API/upload-robot-image] Attempting Google Drive upload (primary)...');
+                devLog('[API/upload-robot-image] Attempting Google Drive upload (primary)...');
                 imageUrl = await uploadToGoogleDrive(uploadFilePath, fileName, mimeType, {
                     driveFileName,
                     driveDescription,
                 });
                 storageMethodUsed = 'Google Drive';
-                console.log(`[API/upload-robot-image] Google Drive upload successful: ${imageUrl}`);
+                devLog(`[API/upload-robot-image] Google Drive upload successful: ${imageUrl}`);
             } catch (driveError) {
                 driveErrorMsg = driveError instanceof Error ? driveError.message : 'Unknown Google Drive error';
                 console.warn('[API/upload-robot-image] Google Drive upload failed:', driveErrorMsg);
@@ -443,10 +466,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Attempt 2: Supabase Storage (backup)
         if (!imageUrl) {
             try {
-                console.log('[API/upload-robot-image] Attempting Supabase Storage upload (backup)...');
+                devLog('[API/upload-robot-image] Attempting Supabase Storage upload (backup)...');
                 imageUrl = await uploadToSupabaseStorage(uploadFilePath, fileName, mimeType);
                 storageMethodUsed = 'Supabase Storage';
-                console.log(`[API/upload-robot-image] Supabase upload successful: ${imageUrl}`);
+                devLog(`[API/upload-robot-image] Supabase upload successful: ${imageUrl}`);
             } catch (supabaseError) {
                 supabaseErrorMsg = supabaseError instanceof Error ? supabaseError.message : 'Unknown Supabase error';
                 console.warn('[API/upload-robot-image] Supabase upload failed:', supabaseErrorMsg);
@@ -460,24 +483,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 details,
                 driveError: driveErrorMsg ?? undefined,
                 supabaseError: supabaseErrorMsg ?? undefined
-            });
-        }
-
-        // Clean up the temporary file
-        fs.unlink(filePath, (unlinkErr) => {
-            if (unlinkErr) {
-                console.warn('[API/upload-robot-image] Failed to clean up temp file:', unlinkErr);
-            } else {
-                console.log('[API/upload-robot-image] Temporary file cleaned up successfully');
-            }
-        });
-        if (uploadFilePath !== filePath) {
-            fs.unlink(uploadFilePath, (unlinkErr) => {
-                if (unlinkErr) {
-                    console.warn('[API/upload-robot-image] Failed to clean up optimized temp file:', unlinkErr);
-                } else {
-                    console.log('[API/upload-robot-image] Optimized temporary file cleaned up successfully');
-                }
             });
         }
 
@@ -499,5 +504,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             error: 'Failed to upload image',
             details: errorMessage,
         });
+    } finally {
+        pathsToCleanup.forEach((p) => unlinkQuiet(p));
     }
 }

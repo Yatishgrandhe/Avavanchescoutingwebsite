@@ -42,7 +42,9 @@ export function formatRedemptionSummary(
         : `${count} organization${count === 1 ? '' : 's'} created (link still active until expiry)`;
     }
     if (count === 0) {
-      return `Not used yet — single new organization (${maxRedemptions} max)`;
+      return maxRedemptions === 1
+        ? 'Not used yet — one organization only'
+        : `Not used yet — up to ${maxRedemptions} organizations`;
     }
     return `${count} / ${maxRedemptions} organization${maxRedemptions === 1 ? '' : 's'} created`;
   }

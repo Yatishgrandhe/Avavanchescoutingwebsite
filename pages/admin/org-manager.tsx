@@ -1,28 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useSupabase } from '@/pages/_app';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Building2, 
-  Plus, 
-  Link as LinkIcon, 
-  Copy, 
-  Check, 
+import {
+  Building2,
+  Plus,
+  Link as LinkIcon,
+  Copy,
+  Check,
   Shield,
   Trash2,
   PlusCircle,
   Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { 
-  Card, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription, 
-  CardContent, 
-  Button, 
-  Input, 
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  Button,
+  Input,
   Badge,
   Label,
   Dialog,
@@ -39,28 +38,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DEFAULT_NEW_ORG_INVITE_EXPIRY_DAYS,
   INVITE_EXPIRY_DAY_OPTIONS,
-  expiryIsoFromDays,
   formatInviteExpiryLabel,
   formatRedemptionSummary,
   isInvitePastExpiry,
 } from '@/lib/invite-config';
-
-function filterActiveNewOrgInvites<T extends Invite>(rows: T[]): T[] {
-  return rows.filter((inv) => {
-    if (inv.invite_type !== 'new_org') return false;
-    if (inv.status !== 'pending') return false;
-    if (isInvitePastExpiry(inv.expires_at)) return false;
-    const max = inv.max_redemptions;
-    const c = inv.redemption_count ?? 0;
-    if (max != null && c >= max) return false;
-    return true;
-  });
-}
+import {
+  partitionNewOrgInvites,
+  getPastNewOrgInviteReason,
+  pastInviteReasonLabel,
+} from '@/lib/org-invite-filters';
 import { useToast } from '@/hooks/use-toast';
 import Head from 'next/head';
+
+const LIMITED_ORG_MIN = 2;
+const LIMITED_ORG_MAX = 500;
 
 interface Organization {
   id: string;
@@ -86,14 +81,15 @@ export default function OrgManager() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [orgs, setOrgs] = useState<Organization[]>([]);
-  const [invites, setInvites] = useState<Invite[]>([]);
+  /** All new_org rows from DB (up to limit); Active/Past are derived */
+  const [allInvites, setAllInvites] = useState<Invite[]>([]);
   const [newOrgName, setNewOrgName] = useState('');
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
   const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [newOrgInviteExpiryDays, setNewOrgInviteExpiryDays] = useState<number>(DEFAULT_NEW_ORG_INVITE_EXPIRY_DAYS);
-  /** single = one new org then link stops; unlimited = many orgs until expiry */
-  const [newOrgInviteScope, setNewOrgInviteScope] = useState<'single' | 'unlimited'>('single');
+  const [newOrgInviteScope, setNewOrgInviteScope] = useState<'single' | 'unlimited' | 'limited'>('single');
+  const [limitedOrgCapInput, setLimitedOrgCapInput] = useState('10');
   const [purgeTarget, setPurgeTarget] = useState<Organization | null>(null);
   const [purgeConfirmName, setPurgeConfirmName] = useState('');
   const [isPurging, setIsPurging] = useState(false);
@@ -104,6 +100,20 @@ export default function OrgManager() {
     }
   }, [user]);
 
+  const { active: activeInvites, past: pastInvites } = useMemo(
+    () => partitionNewOrgInvites(allInvites),
+    [allInvites],
+  );
+
+  const limitedOrgCapParsed = useMemo(() => {
+    const n = parseInt(limitedOrgCapInput.trim(), 10);
+    if (!Number.isFinite(n) || n < LIMITED_ORG_MIN || n > LIMITED_ORG_MAX) return null;
+    return n;
+  }, [limitedOrgCapInput]);
+
+  const canSubmitLimitedInvite =
+    newOrgInviteScope !== 'limited' || limitedOrgCapParsed != null;
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -113,14 +123,15 @@ export default function OrgManager() {
           .from('organization_invites')
           .select('*')
           .eq('invite_type', 'new_org')
-          .order('created_at', { ascending: false }),
+          .order('created_at', { ascending: false })
+          .limit(500),
       ]);
 
       if (orgsRes.error) throw orgsRes.error;
       if (invitesRes.error) throw invitesRes.error;
 
       setOrgs(orgsRes.data || []);
-      setInvites(filterActiveNewOrgInvites(invitesRes.data || []));
+      setAllInvites(invitesRes.data || []);
     } catch (error: any) {
       toast({
         title: "Error loading data",
@@ -164,37 +175,49 @@ export default function OrgManager() {
   };
 
   const generateInvite = async () => {
+    if (!canSubmitLimitedInvite) {
+      toast({
+        title: 'Invalid cap',
+        description: `Enter a whole number from ${LIMITED_ORG_MIN} to ${LIMITED_ORG_MAX}.`,
+        variant: 'destructive',
+      });
+      return;
+    }
     setIsGeneratingInvite(true);
     try {
-      const token = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
-      
-      const maxRedemptions = newOrgInviteScope === 'single' ? 1 : null;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Not signed in');
 
-      const { data, error } = await supabase
-        .from('organization_invites')
-        .insert({ 
-          token,
-          invite_type: 'new_org',
-          created_by: user?.id,
-          expires_at: expiryIsoFromDays(newOrgInviteExpiryDays),
-          max_redemptions: maxRedemptions,
-          redemption_count: 0,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setInvites(filterActiveNewOrgInvites([data, ...invites]));
-      toast({
-        title: "Invite token generated",
-        description: "You can now share this token with a team lead.",
+      const res = await fetch('/api/admin/create-new-org-invite', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mode: newOrgInviteScope,
+          expiryDays: newOrgInviteExpiryDays,
+          maxRedemptions: newOrgInviteScope === 'limited' ? limitedOrgCapParsed : undefined,
+        }),
       });
-    } catch (error: any) {
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(j.error || (Array.isArray(j.details) ? j.details.join('; ') : '') || 'Failed to create invite');
+      }
+      const row = j.invite as Invite | undefined;
+      if (row) {
+        setAllInvites((prev) => [row, ...prev.filter((r) => r.id !== row.id)]);
+      }
       toast({
-        title: "Error generating invite",
-        description: error.message,
-        variant: "destructive",
+        title: 'Invite created',
+        description: 'You can copy the link from the Active tab.',
+      });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Error generating invite';
+      toast({
+        title: 'Error generating invite',
+        description: msg,
+        variant: 'destructive',
       });
     } finally {
       setIsGeneratingInvite(false);
@@ -342,23 +365,43 @@ export default function OrgManager() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Team leads use the link to create an org and bypass the Discord guild check. Choose whether the link creates one organization only, or unlimited new organizations until the expiry date.
+                    Team leads use the link to create an org and bypass the Discord guild check. Choose one org, a fixed number of orgs, or unlimited until the link expires.
                   </p>
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground">Organizations per link</Label>
                     <Select
                       value={newOrgInviteScope}
-                      onValueChange={(v) => setNewOrgInviteScope(v as 'single' | 'unlimited')}
+                      onValueChange={(v) => setNewOrgInviteScope(v as 'single' | 'unlimited' | 'limited')}
                     >
                       <SelectTrigger className="glass-input border-white/10 w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="single">One organization (link stops after first setup)</SelectItem>
-                        <SelectItem value="unlimited">Unlimited organizations (until expiry)</SelectItem>
+                        <SelectItem value="single">One organization</SelectItem>
+                        <SelectItem value="limited">Up to N organizations</SelectItem>
+                        <SelectItem value="unlimited">Unlimited (until expiry)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
+                  {newOrgInviteScope === 'limited' && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">
+                        Max organizations ({LIMITED_ORG_MIN}–{LIMITED_ORG_MAX})
+                      </Label>
+                      <Input
+                        type="number"
+                        min={LIMITED_ORG_MIN}
+                        max={LIMITED_ORG_MAX}
+                        inputMode="numeric"
+                        value={limitedOrgCapInput}
+                        onChange={(e) => setLimitedOrgCapInput(e.target.value)}
+                        className="glass-input border-white/10"
+                      />
+                      {limitedOrgCapParsed == null && limitedOrgCapInput.trim() !== '' && (
+                        <p className="text-[10px] text-destructive">Enter a valid integer in range.</p>
+                      )}
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground">Link stays valid for</Label>
                     <Select
@@ -378,10 +421,10 @@ export default function OrgManager() {
                     </Select>
                   </div>
                     <Button 
-                      onClick={generateInvite} 
+                      onClick={() => void generateInvite()} 
                       className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 brightness-110 active:scale-95 transition-all" 
                       variant="default"
-                      disabled={isGeneratingInvite}
+                      disabled={isGeneratingInvite || !canSubmitLimitedInvite}
                     >
                       {isGeneratingInvite ? (
                         <PlusCircle className="w-4 h-4 animate-spin mr-2" />
@@ -396,13 +439,12 @@ export default function OrgManager() {
 
             {/* Right Column: List and Management */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Active new-org invites only (used / expired links are hidden) */}
               <Card className="glass border-white/5 bg-white/[0.02]">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <div>
-                    <CardTitle className="text-lg">Active new-organization invites</CardTitle>
+                    <CardTitle className="text-lg">New-organization invite links</CardTitle>
                     <CardDescription>
-                      Only links that still accept signups. Single-use links disappear after use; multi-org links show how many orgs were created.
+                      Active links accept signups. Past links are history (used, expired, or fully redeemed).
                     </CardDescription>
                   </div>
                   <Button variant="ghost" size="sm" onClick={loadData} className="h-8">
@@ -410,78 +452,146 @@ export default function OrgManager() {
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="max-h-[22rem] overflow-y-auto pr-1 rounded-lg border border-white/5 bg-black/20">
-                    <div className="space-y-3 p-2">
-                    {invites.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground text-sm">
-                        No active invites. Create one on the left, or used/expired links are hidden automatically.
-                      </div>
-                    ) : (
-                      invites.map((invite) => {
-                        const canCopy = invite.status === 'pending' && !isInvitePastExpiry(invite.expires_at);
-                        return (
-                        <div 
-                          key={invite.id} 
-                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.03] group hover:bg-white/[0.05] transition-colors"
-                        >
-                          <div className="flex flex-col gap-1 min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <code className="text-xs font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
-                                {invite.token.substring(0, 8)}...
-                              </code>
-                              <Badge 
-                                variant="outline" 
-                                className="text-[10px] uppercase h-4 px-1.5 text-yellow-400 border-yellow-500/20"
-                              >
-                                active
-                              </Badge>
-                              <Badge variant="secondary" className="text-[9px] h-4 px-1">
-                                {invite.max_redemptions == null
-                                  ? 'unlimited orgs'
-                                  : invite.max_redemptions === 1
-                                    ? 'one org only'
-                                    : `up to ${invite.max_redemptions} orgs`}
-                              </Badge>
+                  <Tabs defaultValue="active" className="w-full">
+                    <TabsList className="grid w-full max-w-md grid-cols-2 mb-3">
+                      <TabsTrigger value="active">
+                        Active ({activeInvites.length})
+                      </TabsTrigger>
+                      <TabsTrigger value="past">
+                        Past ({pastInvites.length})
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="active" className="mt-0">
+                      <div className="max-h-[22rem] overflow-y-auto pr-1 rounded-lg border border-white/5 bg-black/20">
+                        <div className="space-y-3 p-2">
+                          {activeInvites.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground text-sm">
+                              No active invites. Create one on the left.
                             </div>
-                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              Created {new Date(invite.created_at).toLocaleDateString()}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              Expires {formatInviteExpiryLabel(invite.expires_at)}
-                            </span>
-                            <span className="text-[10px] text-amber-200/80">
-                              {formatRedemptionSummary(
-                                invite.redemption_count,
-                                invite.max_redemptions,
-                                invite.invite_type
-                              )}
-                            </span>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 shrink-0">
-                            {canCopy && (
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="h-8 gap-2 text-xs border-white/10"
-                                onClick={() => copyInviteLink(invite.token)}
-                              >
-                                {copiedToken === invite.token ? (
-                                  <Check className="w-3.5 h-3.5 text-green-500" />
-                                ) : (
-                                  <Copy className="w-3.5 h-3.5" />
-                                )}
-                                Copy Link
-                              </Button>
-                            )}
-                          </div>
+                          ) : (
+                            activeInvites.map((invite) => {
+                              const canCopy =
+                                invite.status === 'pending' && !isInvitePastExpiry(invite.expires_at);
+                              return (
+                                <div
+                                  key={invite.id}
+                                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.03] group hover:bg-white/[0.05] transition-colors"
+                                >
+                                  <div className="flex flex-col gap-1 min-w-0">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <code className="text-xs font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                                        {invite.token.substring(0, 8)}...
+                                      </code>
+                                      <Badge
+                                        variant="outline"
+                                        className="text-[10px] uppercase h-4 px-1.5 text-yellow-400 border-yellow-500/20"
+                                      >
+                                        active
+                                      </Badge>
+                                      <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                                        {invite.max_redemptions == null
+                                          ? 'unlimited orgs'
+                                          : invite.max_redemptions === 1
+                                            ? 'one org only'
+                                            : `up to ${invite.max_redemptions} orgs`}
+                                      </Badge>
+                                    </div>
+                                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      Created {new Date(invite.created_at).toLocaleDateString()}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground">
+                                      Expires {formatInviteExpiryLabel(invite.expires_at)}
+                                    </span>
+                                    <span className="text-[10px] text-amber-200/80">
+                                      {formatRedemptionSummary(
+                                        invite.redemption_count,
+                                        invite.max_redemptions,
+                                        invite.invite_type,
+                                      )}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {canCopy && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 gap-2 text-xs border-white/10"
+                                        onClick={() => copyInviteLink(invite.token)}
+                                      >
+                                        {copiedToken === invite.token ? (
+                                          <Check className="w-3.5 h-3.5 text-green-500" />
+                                        ) : (
+                                          <Copy className="w-3.5 h-3.5" />
+                                        )}
+                                        Copy Link
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
                         </div>
-                      );
-                      })
-                    )}
-                    </div>
-                  </div>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="past" className="mt-0">
+                      <div className="max-h-[22rem] overflow-y-auto pr-1 rounded-lg border border-white/5 bg-black/20">
+                        <div className="space-y-3 p-2">
+                          {pastInvites.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground text-sm">
+                              No past invites yet. Used or expired links appear here.
+                            </div>
+                          ) : (
+                            pastInvites.map((invite) => {
+                              const reason = getPastNewOrgInviteReason(invite);
+                              return (
+                                <div
+                                  key={invite.id}
+                                  className="flex flex-col gap-2 p-3 rounded-xl border border-white/5 bg-white/[0.03]"
+                                >
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <code className="text-xs font-mono text-muted-foreground bg-white/5 px-1.5 py-0.5 rounded">
+                                      {invite.token.substring(0, 8)}...
+                                    </code>
+                                    <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground">
+                                      {invite.status}
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                                      {pastInviteReasonLabel(reason)}
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                                      {invite.max_redemptions == null
+                                        ? 'was unlimited'
+                                        : invite.max_redemptions === 1
+                                          ? 'was single'
+                                          : `cap ${invite.max_redemptions}`}
+                                    </Badge>
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    Created {new Date(invite.created_at).toLocaleString()} · Expires{' '}
+                                    {formatInviteExpiryLabel(invite.expires_at)}
+                                  </span>
+                                  <span className="text-[10px] text-amber-200/80">
+                                    {formatRedemptionSummary(
+                                      invite.redemption_count,
+                                      invite.max_redemptions,
+                                      invite.invite_type,
+                                    )}
+                                  </span>
+                                  {invite.used_at && (
+                                    <span className="text-[10px] text-muted-foreground">
+                                      Last activity {new Date(invite.used_at).toLocaleString()}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </CardContent>
               </Card>
 

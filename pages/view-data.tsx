@@ -546,10 +546,12 @@ export default function ViewDataPage() {
       if (seeAllOrgsData) p.set('see_all_orgs', '1');
       if (event_key && pitAllOrgs) p.set('pit_all_orgs', '1');
       if (tab) p.set('tab', tab);
+      /** So team page “Back to Data” and browser back restore this competition sidebar tab (overview / teams / pit / …). */
+      p.set('vd_tab', activeTab);
       const qs = p.toString();
       return qs ? `/team/${teamNumber}?${qs}` : `/team/${teamNumber}`;
     },
-    [competition_key, year, id, event_key, seeAllOrgsData, pitAllOrgs]
+    [competition_key, year, id, event_key, seeAllOrgsData, pitAllOrgs, activeTab]
   );
 
   if (loading) {

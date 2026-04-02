@@ -29,6 +29,7 @@ import {
 import Layout from '@/components/layout/Layout';
 import GuestLayout from '@/components/layout/GuestLayout';
 import CompetitionDataLayout from '@/components/layout/CompetitionDataLayout';
+import type { CompetitionViewTab } from '@/components/layout/CompetitionDataSidebar';
 import { useAdmin } from '@/hooks/use-admin';
 import { ScoutingData, Team } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -116,6 +117,7 @@ const TeamDetail: React.FC = () => {
   const [competitionPitTabVisible, setCompetitionPitTabVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
+  const matchDetailPushedRef = useRef(false);
   const [fullScreenImageUrl, setFullScreenImageUrl] = useState<string | null>(null);
   const [activeTeamTab, setActiveTeamTab] = useState<string>('overview');
   
@@ -146,6 +148,9 @@ const TeamDetail: React.FC = () => {
   const handleTeamTabChange = useCallback(
     (value: string) => {
       setActiveTeamTab(value);
+      if (value !== 'matches') {
+        setSelectedMatch(null);
+      }
       if (!router.isReady) return;
       void router.replace(
         { pathname: router.pathname, query: { ...router.query, tab: value } },
@@ -155,6 +160,36 @@ const TeamDetail: React.FC = () => {
     },
     [router],
   );
+
+  /** Browser back from expanded match detail closes the panel before leaving the team page (History API). */
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    if (!selectedMatch) {
+      matchDetailPushedRef.current = false;
+      return;
+    }
+
+    const onPopState = () => {
+      setSelectedMatch(null);
+    };
+
+    window.addEventListener('popstate', onPopState);
+
+    if (!matchDetailPushedRef.current) {
+      const st = typeof window !== 'undefined' ? window.history.state : null;
+      if (!(st && typeof st === 'object' && (st as { teamMatchDetail?: boolean }).teamMatchDetail)) {
+        window.history.pushState({ teamMatchDetail: true }, '', window.location.href);
+      }
+      matchDetailPushedRef.current = true;
+    } else {
+      window.history.replaceState({ teamMatchDetail: true, id: selectedMatch }, '', window.location.href);
+    }
+
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+    };
+  }, [selectedMatch, router.isReady]);
 
   /** Primary robot image: robot_image_url (live) or first valid URL in photos (past/live). */
   const getRobotImageUrl = (pit: PitScoutingData | null): string | null => {
@@ -507,13 +542,30 @@ const TeamDetail: React.FC = () => {
 
   const qCompetitionKey = router.query.competition_key as string | undefined;
   const qYear = router.query.year as string | undefined;
-  const backUrl = router.query.competition_id
-    ? `/view-data?id=${router.query.competition_id}`
-    : router.query.event_key
-      ? `/view-data?event_key=${encodeURIComponent(router.query.event_key as string)}`
-      : qCompetitionKey && qYear
-        ? `/view-data?competition_key=${encodeURIComponent(qCompetitionKey)}&year=${encodeURIComponent(qYear)}`
-        : null;
+  const vdTabFromQuery = router.query.vd_tab as string | undefined;
+  const competitionSidebarActiveTab: CompetitionViewTab =
+    vdTabFromQuery && ['overview', 'comparison', 'teams', 'pit', 'stats'].includes(vdTabFromQuery)
+      ? (vdTabFromQuery as CompetitionViewTab)
+      : 'teams';
+
+  const backUrl = React.useMemo(() => {
+    const base = router.query.competition_id
+      ? `/view-data?id=${router.query.competition_id}`
+      : router.query.event_key
+        ? `/view-data?event_key=${encodeURIComponent(router.query.event_key as string)}`
+        : qCompetitionKey && qYear
+          ? `/view-data?competition_key=${encodeURIComponent(qCompetitionKey)}&year=${encodeURIComponent(qYear)}`
+          : null;
+    if (!base) return null;
+    if (
+      typeof vdTabFromQuery === 'string' &&
+      ['overview', 'comparison', 'teams', 'pit', 'stats'].includes(vdTabFromQuery)
+    ) {
+      return `${base}&view_tab=${encodeURIComponent(vdTabFromQuery)}`;
+    }
+    return base;
+  }, [router.query.competition_id, router.query.event_key, qCompetitionKey, qYear, vdTabFromQuery]);
+
   const guestBackLink = backUrl
     ? { href: backUrl, label: 'Back to Data' }
     : { href: '/competition-history', label: 'Back to Competition History' };
@@ -542,7 +594,7 @@ const TeamDetail: React.FC = () => {
 
   const wrapWithCompetitionLayout = (content: React.ReactNode) => (
     <CompetitionDataLayout
-      activeTab="teams"
+      activeTab={competitionSidebarActiveTab}
       backHref="/competition-history"
       queryString={competitionQueryString}
       showPitTab={competitionPitTabVisible}
@@ -1220,7 +1272,17 @@ const TeamDetail: React.FC = () => {
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.04 }}
-                      onClick={() => setSelectedMatch(selectedMatch === data.id ? null : data.id)}
+                      onClick={() => {
+                        if (selectedMatch === data.id) {
+                          if (matchDetailPushedRef.current) {
+                            window.history.back();
+                          } else {
+                            setSelectedMatch(null);
+                          }
+                        } else {
+                          setSelectedMatch(data.id);
+                        }
+                      }}
                       className={cn(
                         "group glass rounded-2xl overflow-hidden cursor-pointer transition-all duration-300",
                         selectedMatch === data.id

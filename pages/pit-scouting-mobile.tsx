@@ -46,8 +46,7 @@ interface PitScoutingData {
   ballHoldAmount?: number;
   downtimeStrategy: string[];
   robotDimensions: {
-    length?: number;
-    width?: number;
+    framePerimeter?: number;
     height?: number;
   };
   weight?: number;
@@ -301,12 +300,9 @@ export default function PitScoutingMobile() {
         teleop_capabilities: formData.teleopCapabilities,
         can_autoalign: formData.canAutoalign,
         robot_dimensions: (() => {
-          const dims: { length?: number; width?: number; height?: number } = {};
-          if (formData.robotDimensions.length !== undefined && formData.robotDimensions.length !== null) {
-            dims.length = formData.robotDimensions.length;
-          }
-          if (formData.robotDimensions.width !== undefined && formData.robotDimensions.width !== null) {
-            dims.width = formData.robotDimensions.width;
+          const dims: { framePerimeter?: number; height?: number } = {};
+          if (formData.robotDimensions.framePerimeter !== undefined && formData.robotDimensions.framePerimeter !== null) {
+            dims.framePerimeter = formData.robotDimensions.framePerimeter;
           }
           if (formData.robotDimensions.height !== undefined && formData.robotDimensions.height !== null) {
             dims.height = formData.robotDimensions.height;
@@ -632,51 +628,40 @@ export default function PitScoutingMobile() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Length (in) <span className="text-muted-foreground text-xs">(Optional)</span>
+                      <label className="block text-sm font-medium mb-1">
+                        Frame Perimeter (in) <span className="text-muted-foreground text-xs">(Optional)</span>
                       </label>
+                      <p className="text-xs text-muted-foreground mb-2">≤ 120 in</p>
                       <Input
                         type="number"
                         placeholder="Optional"
-                        value={formData.robotDimensions.length?.toString() || ''}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
-                          ...prev, 
-                          robotDimensions: { ...prev.robotDimensions, length: e.target.value ? parseFloat(e.target.value) : undefined }
+                        value={formData.robotDimensions.framePerimeter?.toString() || ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({
+                          ...prev,
+                          robotDimensions: { ...prev.robotDimensions, framePerimeter: e.target.value ? parseFloat(e.target.value) : undefined }
                         }))}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Width (in) <span className="text-muted-foreground text-xs">(Optional)</span>
-                      </label>
-                      <Input
-                        type="number"
-                        placeholder="Optional"
-                        value={formData.robotDimensions.width?.toString() || ''}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
-                          ...prev, 
-                          robotDimensions: { ...prev.robotDimensions, width: e.target.value ? parseFloat(e.target.value) : undefined }
-                        }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
+                      <label className="block text-sm font-medium mb-1">
                         Height (in) <span className="text-muted-foreground text-xs">(Optional)</span>
                       </label>
+                      <p className="text-xs text-muted-foreground mb-2">≤ 42 in (3 ft 6 in)</p>
                       <Input
                         type="number"
                         placeholder="Optional"
                         value={formData.robotDimensions.height?.toString() || ''}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ 
-                          ...prev, 
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({
+                          ...prev,
                           robotDimensions: { ...prev.robotDimensions, height: e.target.value ? parseFloat(e.target.value) : undefined }
                         }))}
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium mb-1">
                         Weight (lbs) <span className="text-muted-foreground text-xs">(Optional)</span>
                       </label>
+                      <p className="text-xs text-muted-foreground mb-2">≤ 115 lbs — without bumpers or battery</p>
                       <Input
                         type="number"
                         placeholder="Optional"
@@ -1167,7 +1152,7 @@ export default function PitScoutingMobile() {
                     <div className="bg-muted rounded-lg p-4 border">
                       <h3 className="font-semibold mb-3">Robot Specs</h3>
                       <p className="text-sm text-muted-foreground">
-                        Dimensions: {formData.robotDimensions.length ? `${formData.robotDimensions.length}"` : 'N/A'} × {formData.robotDimensions.width ? `${formData.robotDimensions.width}"` : 'N/A'} × {formData.robotDimensions.height}"
+                        Frame Perimeter: {formData.robotDimensions.framePerimeter ? `${formData.robotDimensions.framePerimeter}"` : 'N/A'} | Height: {formData.robotDimensions.height ? `${formData.robotDimensions.height}"` : 'N/A'}
                       </p>
                       <p className="text-sm text-muted-foreground">Weight: {formData.weight} lbs</p>
                       <p className="text-sm text-muted-foreground">Language: {formData.programmingLanguage || 'N/A'}</p>

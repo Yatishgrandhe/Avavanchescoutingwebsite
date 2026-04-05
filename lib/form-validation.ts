@@ -195,15 +195,12 @@ export const pitScoutingRules = {
   robotDimensions: {
     custom: (value: any) => {
       if (value) {
-        const { length, width, height } = value;
-        if (length !== undefined && (length < 0 || length > 100)) {
-          return 'Length must be between 0 and 100 inches';
+        const { framePerimeter, height } = value;
+        if (framePerimeter !== undefined && (framePerimeter < 0 || framePerimeter > 120)) {
+          return 'Frame perimeter must be between 0 and 120 inches (2026 FRC limit)';
         }
-        if (width !== undefined && (width < 0 || width > 100)) {
-          return 'Width must be between 0 and 100 inches';
-        }
-        if (height !== undefined && (height < 0 || height > 100)) {
-          return 'Height must be between 0 and 100 inches';
+        if (height !== undefined && (height < 0 || height > 42)) {
+          return 'Height must be between 0 and 42 inches (3 ft 6 in — 2026 FRC limit)';
         }
       }
       return null;
@@ -211,8 +208,8 @@ export const pitScoutingRules = {
   },
   weight: {
     custom: (value: number) => {
-      if (value !== undefined && value !== null && (value < 0 || value > 200)) {
-        return 'Weight must be between 0 and 200 pounds';
+      if (value !== undefined && value !== null && (value < 0 || value > 115)) {
+        return 'Weight must be between 0 and 115 lbs without bumpers or battery (2026 FRC limit)';
       }
       return null;
     }
@@ -234,7 +231,9 @@ export function validatePitScoutingStep(step: number, formData: any): Validation
             }
             return null;
           }
-        }
+        },
+        robotDimensions: pitScoutingRules.robotDimensions,
+        weight: pitScoutingRules.weight
       });
 
     case 2:

@@ -62,8 +62,7 @@ interface PitScoutingData {
   ballHoldAmount?: number;
   downtimeStrategy: string[];
   robotDimensions: {
-    length?: number;
-    width?: number;
+    framePerimeter?: number;
     height?: number;
   };
   weight?: number;
@@ -446,9 +445,8 @@ export default function PitScouting() {
         can_autoalign: formData.canAutoalign,
         climb_location: formData.climbLocation || null,
         robot_dimensions: (() => {
-          const dims: { length?: number; width?: number; height?: number } = {};
-          if (formData.robotDimensions.length !== undefined && formData.robotDimensions.length !== null) dims.length = formData.robotDimensions.length;
-          if (formData.robotDimensions.width !== undefined && formData.robotDimensions.width !== null) dims.width = formData.robotDimensions.width;
+          const dims: { framePerimeter?: number; height?: number } = {};
+          if (formData.robotDimensions.framePerimeter !== undefined && formData.robotDimensions.framePerimeter !== null) dims.framePerimeter = formData.robotDimensions.framePerimeter;
           if (formData.robotDimensions.height !== undefined && formData.robotDimensions.height !== null) dims.height = formData.robotDimensions.height;
           return dims;
         })(),
@@ -816,40 +814,51 @@ export default function PitScouting() {
 
                       <div className="space-y-2">
                         <label className="text-sm font-medium flex items-center gap-2">
-                          <Ruler size={14} /> Dimensions (in) & Weight (lbs)
+                          <Ruler size={14} /> Dimensions (in) &amp; Weight (lbs)
                         </label>
-                        <div className="grid grid-cols-4 gap-2">
-                          {['Length', 'Width', 'Height', 'Weight'].map((metric) => (
-                            <div key={metric} className="space-y-1">
-                              <span className="text-[10px] text-muted-foreground uppercase pl-1">{metric}</span>
-                              <Input
-                                type="number"
-                                placeholder="0"
-                                className="glass-input text-center h-9 border-white/10 px-1"
-                                value={
-                                  metric === 'Weight'
-                                    ? formData.weight || ''
-                                    : formData.robotDimensions[metric.toLowerCase() as keyof typeof formData.robotDimensions] || ''
-                                }
-                                onChange={(e) => {
-                                  const inputValue = e.target.value;
-                                  if (metric === 'Weight') {
-                                    const val = inputValue === '' ? undefined : parseFloat(inputValue);
-                                    setFormData(prev => ({ ...prev, weight: isNaN(val as number) ? undefined : val }));
-                                  } else {
-                                    const val = inputValue === '' ? undefined : parseFloat(inputValue);
-                                    setFormData(prev => ({
-                                      ...prev,
-                                      robotDimensions: {
-                                        ...prev.robotDimensions,
-                                        [metric.toLowerCase()]: isNaN(val as number) ? undefined : val
-                                      }
-                                    }));
-                                  }
-                                }}
-                              />
-                            </div>
-                          ))}
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="space-y-1">
+                            <span className="text-[10px] text-muted-foreground uppercase pl-1">Frame Perimeter</span>
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              className="glass-input text-center h-9 border-white/10 px-1"
+                              value={formData.robotDimensions.framePerimeter || ''}
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
+                                setFormData(prev => ({ ...prev, robotDimensions: { ...prev.robotDimensions, framePerimeter: isNaN(val as number) ? undefined : val } }));
+                              }}
+                            />
+                            <span className="text-[9px] text-muted-foreground pl-1">≤ 120 in</span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[10px] text-muted-foreground uppercase pl-1">Height</span>
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              className="glass-input text-center h-9 border-white/10 px-1"
+                              value={formData.robotDimensions.height || ''}
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
+                                setFormData(prev => ({ ...prev, robotDimensions: { ...prev.robotDimensions, height: isNaN(val as number) ? undefined : val } }));
+                              }}
+                            />
+                            <span className="text-[9px] text-muted-foreground pl-1">≤ 42 in</span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[10px] text-muted-foreground uppercase pl-1">Weight (no bumpers)</span>
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              className="glass-input text-center h-9 border-white/10 px-1"
+                              value={formData.weight || ''}
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
+                                setFormData(prev => ({ ...prev, weight: isNaN(val as number) ? undefined : val }));
+                              }}
+                            />
+                            <span className="text-[9px] text-muted-foreground pl-1">≤ 115 lbs (w/o bumpers &amp; battery)</span>
+                          </div>
                         </div>
                       </div>
 

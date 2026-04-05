@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { Camera, X, Image as ImageIcon } from 'lucide-react';
+import { Camera, X, ImageIcon, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const MAX_PHOTOS = 6;
@@ -29,8 +29,17 @@ export function PitPhotosUpload({
     return arr.slice(0, MAX_PHOTOS);
   }, [photos]);
 
-  const filledCount = paddedPhotos().filter(Boolean).length;
+  const filledSlots = paddedPhotos().filter(Boolean);
+  const filledCount = filledSlots.length;
   const canAdd = filledCount < MAX_PHOTOS;
+
+  // How many slots to show: always at least 1, grow as photos are added (max shows all 6)
+  const [visibleSlots, setVisibleSlots] = useState(1);
+
+  // If photos already loaded (edit mode), show enough slots to display them all
+  useEffect(() => {
+    if (filledCount > visibleSlots) setVisibleSlots(filledCount);
+  }, [filledCount]);
 
   const objectUrls = useMemo(() => {
     const prev = urlCacheRef.current;
@@ -95,14 +104,25 @@ export function PitPhotosUpload({
     onPhotosChange(next);
   };
 
-  const list = paddedPhotos();
+  const handleShowMore = () => {
+    setVisibleSlots((v) => Math.min(v + 1, MAX_PHOTOS));
+    // Trigger file picker for the new slot immediately
+    setTimeout(() => fileInputRef.current?.click(), 50);
+  };
+
+  const list = paddedPhotos().slice(0, visibleSlots);
+  const showAddMore = canAdd && visibleSlots < MAX_PHOTOS;
 
   return (
     <div className={cn('space-y-3', className)}>
       <label className="text-sm font-medium flex items-center gap-2">
         <Camera size={14} />
-        Pit Photos (up to {MAX_PHOTOS})
+        Pit Photos
+        <span className="text-xs text-muted-foreground font-normal">
+          {filledCount > 0 ? `${filledCount} / ${MAX_PHOTOS}` : `up to ${MAX_PHOTOS}`}
+        </span>
       </label>
+
       <input
         id={fileInputId}
         ref={fileInputRef}
@@ -112,55 +132,83 @@ export function PitPhotosUpload({
         className="hidden"
         aria-label="Upload pit photo"
       />
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+
+      <div className="space-y-2">
         {list.map((item, index) => {
           const previewUrl = getPreviewUrl(item, index);
           return (
-          <div
-            key={index}
-            className={cn(
-              'relative aspect-square rounded-xl border border-white/10 overflow-hidden bg-white/5',
-              !item && 'border-dashed'
-            )}
-          >
-            {previewUrl ? (
-              <>
-                <img
-                  src={previewUrl}
-                  alt={`Pit photo ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
+            <div
+              key={index}
+              className={cn(
+                'relative rounded-xl border overflow-hidden transition-all',
+                previewUrl
+                  ? 'border-white/15 bg-black/20'
+                  : 'border-dashed border-white/15 bg-white/3'
+              )}
+            >
+              {previewUrl ? (
+                <div className="relative group">
+                  <img
+                    src={previewUrl}
+                    alt={`Pit photo ${index + 1}`}
+                    className="w-full max-h-56 object-contain bg-black/40"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(index)}
+                    className="absolute top-2 right-2 p-1.5 bg-black/70 hover:bg-red-500/80 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                    aria-label="Remove photo"
+                  >
+                    <X size={14} />
+                  </button>
+                  <span className="absolute bottom-2 left-2 text-[10px] text-white/60 bg-black/50 rounded px-1.5 py-0.5">
+                    Photo {index + 1}
+                  </span>
+                </div>
+              ) : (
                 <button
                   type="button"
-                  onClick={() => handleRemove(index)}
-                  className="absolute top-1 right-1 p-1.5 bg-black/60 hover:bg-red-500/80 rounded-full transition-colors"
+                  onClick={handleAddClick}
+                  disabled={!canAdd}
+                  className={cn(
+                    'w-full flex items-center justify-center gap-3 py-8 text-muted-foreground hover:text-foreground hover:bg-white/5 active:bg-white/10 transition-colors cursor-pointer touch-manipulation',
+                    !canAdd && 'pointer-events-none opacity-40'
+                  )}
+                  aria-label="Add pit photo"
                 >
-                  <X size={14} />
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div className="p-2 rounded-full bg-white/8 border border-white/10">
+                      <ImageIcon size={20} />
+                    </div>
+                    <span className="text-xs">
+                      {index === 0 ? 'Tap to add robot photo' : 'Tap to add photo'}
+                    </span>
+                  </div>
                 </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={handleAddClick}
-                disabled={!canAdd}
-                className={cn(
-                  'w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground hover:bg-white/10 hover:text-foreground active:bg-white/15 transition-colors cursor-pointer min-h-[80px] touch-manipulation',
-                  !canAdd && 'pointer-events-none opacity-50'
-                )}
-                aria-label="Add pit photo"
-              >
-                <ImageIcon size={24} />
-                <span className="text-xs">Add photo</span>
-              </button>
-            )}
-          </div>
-        );})}
+              )}
+            </div>
+          );
+        })}
       </div>
+
+      {showAddMore && (
+        <button
+          type="button"
+          onClick={handleShowMore}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed border-white/15 text-xs text-muted-foreground hover:text-foreground hover:bg-white/5 hover:border-white/25 transition-all"
+        >
+          <Plus size={14} />
+          Add another photo
+          <span className="text-muted-foreground/50">({filledCount}/{MAX_PHOTOS})</span>
+        </button>
+      )}
+
       {uploadError && (
         <p className="text-sm text-red-400 flex items-center gap-2">{uploadError}</p>
       )}
-      <p className="text-[10px] text-muted-foreground/60">
-        JPEG, PNG, WebP up to 10MB each. Photos are uploaded when you submit the form.
+      <p className="text-[10px] text-muted-foreground/50">
+        JPEG, PNG, WebP · up to 10 MB each · uploaded on submit
       </p>
     </div>
   );

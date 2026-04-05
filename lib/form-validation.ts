@@ -285,11 +285,19 @@ export function validatePitScoutingForm(formData: any): ValidationResult {
 
 // Helper function to get step-specific error message
 export function getStepErrorMessage(step: number, errors: ValidationErrors): string {
+  if (step === 1) {
+    const parts: string[] = [];
+    if (errors.teamNumber || errors.robotName || errors.driveType || errors.driveTrainOther) {
+      parts.push('Please select a team, enter robot name, and choose drive type.');
+    }
+    if (errors.robotDimensions) parts.push(errors.robotDimensions);
+    if (errors.weight) parts.push(errors.weight);
+    if (parts.length > 0) return parts.join(' ');
+    return 'Please complete all required fields before proceeding.';
+  }
   const errorMessages = {
-    1: 'Please select a team, enter robot name, and choose drive type.',
     2: 'Please select at least one Auto and one Teleop capability.',
     3: 'Please provide navigation and strategy details.',
   };
-
   return errorMessages[step as keyof typeof errorMessages] || 'Please complete all required fields before proceeding.';
 }

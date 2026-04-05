@@ -659,9 +659,9 @@ export default function PitScoutingMobile() {
                     </div>
                     <div className="col-span-2">
                       <label className="block text-sm font-medium mb-1">
-                        Weight (lbs) <span className="text-muted-foreground text-xs">(Optional)</span>
+                        What is the robot&apos;s weight in lbs WITHOUT bumpers? <span className="text-muted-foreground text-xs">(Optional)</span>
                       </label>
-                      <p className="text-xs text-muted-foreground mb-2">≤ 115 lbs — without bumpers or battery</p>
+                      <p className="text-xs text-muted-foreground mb-2">≤ 115 lbs — does NOT include bumpers or battery</p>
                       <Input
                         type="number"
                         placeholder="Optional"

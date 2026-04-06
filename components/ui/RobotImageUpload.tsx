@@ -204,7 +204,23 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
         },
     }), [handleUpload, selectedFile, isNewFileSelected, preview, currentImageUrl]);
 
+    const deleteUploadedImage = useCallback(async (url: string) => {
+        try {
+            await fetch('/api/delete-robot-image', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imageUrl: url }),
+            });
+        } catch {
+            // Fire-and-forget — don't block the UI if the delete fails
+        }
+    }, []);
+
     const handleRemove = () => {
+        // If this is an already-uploaded URL (not a local data: preview), delete from storage
+        if (currentImageUrl && !selectedFile) {
+            deleteUploadedImage(currentImageUrl);
+        }
         setPreview(null);
         setSelectedFile(null);
         setIsNewFileSelected(false);

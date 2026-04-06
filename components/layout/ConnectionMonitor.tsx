@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/router';
 import { Wifi, WifiOff, Activity, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -9,55 +10,54 @@ import {
 } from '@/components/ui/tooltip';
 
 export const ConnectionMonitor = () => {
+  const router = useRouter();
   const [latency, setLatency] = useState<number | null>(null);
   const [status, setStatus] = useState<'excellent' | 'good' | 'fair' | 'poor' | 'offline'>('excellent');
-  const [isMeasuring, setIsMeasuring] = useState(false);
+  const isMeasuringRef = useRef(false);
+
+  const measureConnection = useCallback(async () => {
+    if (isMeasuringRef.current) return;
+    isMeasuringRef.current = true;
+
+    const startTime = performance.now();
+    try {
+      await fetch('/api/health-check', { method: 'HEAD', cache: 'no-store' });
+      const duration = Math.round(performance.now() - startTime);
+      setLatency(duration);
+      if (duration < 150) setStatus('excellent');
+      else if (duration < 300) setStatus('good');
+      else if (duration < 600) setStatus('fair');
+      else setStatus('poor');
+    } catch {
+      setStatus('offline');
+      setLatency(null);
+    } finally {
+      isMeasuringRef.current = false;
+    }
+  }, []);
 
   useEffect(() => {
-    const measureConnection = async () => {
-      if (isMeasuring) return;
-      setIsMeasuring(true);
-      
-      const startTime = performance.now();
-      try {
-        // Ping a small resource or use a HEAD request to measure latency
-        const response = await fetch('/api/health-check', { method: 'HEAD', cache: 'no-store' });
-        const endTime = performance.now();
-        const duration = Math.round(endTime - startTime);
-        
-        setLatency(duration);
-        
-        if (duration < 150) setStatus('excellent');
-        else if (duration < 300) setStatus('good');
-        else if (duration < 600) setStatus('fair');
-        else setStatus('poor');
-      } catch (error) {
-        setStatus('offline');
-        setLatency(null);
-      } finally {
-        setIsMeasuring(false);
-      }
-    };
-
-    // Initial measure
+    // Initial measure immediately
     measureConnection();
-    
-    // Periodic measure every 30 seconds
-    const interval = setInterval(measureConnection, 30000);
-    
-    // Listen for online/offline events
-    const handleOnline = () => measureConnection();
-    const handleOffline = () => setStatus('offline');
-    
-    window.addEventListener('online', handleOnline);
+
+    // Ping every 5 seconds
+    const interval = setInterval(measureConnection, 5000);
+
+    // Re-ping whenever a page navigation completes
+    router.events.on('routeChangeComplete', measureConnection);
+
+    // Browser online/offline events
+    const handleOffline = () => { setStatus('offline'); setLatency(null); };
+    window.addEventListener('online', measureConnection);
     window.addEventListener('offline', handleOffline);
-    
+
     return () => {
       clearInterval(interval);
-      window.removeEventListener('online', handleOnline);
+      router.events.off('routeChangeComplete', measureConnection);
+      window.removeEventListener('online', measureConnection);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [measureConnection, router.events]);
 
   const getStatusColor = () => {
     switch (status) {

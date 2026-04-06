@@ -107,8 +107,8 @@ export default function PitScouting() {
     navigationLocations: [],
     ballHoldAmount: 0,
     downtimeStrategy: [],
-    robotDimensions: { height: 0 },
-    weight: 0,
+    robotDimensions: {},
+    weight: undefined,
     cameraCount: 0,
     shootingLocations: [],
     programmingLanguage: '',
@@ -318,7 +318,14 @@ export default function PitScouting() {
             navigationLocations: toArray(existingData.drive_train_details?.navigation_locations),
             ballHoldAmount: existingData.drive_train_details?.ball_hold_amount ?? 0,
             downtimeStrategy: toArray(existingData.drive_train_details?.downtime_strategy),
-            robotDimensions: existingData.robot_dimensions || { height: 0 },
+            robotDimensions: (() => {
+              const d = existingData.robot_dimensions || {};
+              // Recalculate perimeter from L+W if it wasn't stored (legacy records)
+              if (d.length !== undefined && d.width !== undefined && d.framePerimeter === undefined) {
+                d.framePerimeter = 2 * (d.length + d.width);
+              }
+              return d;
+            })(),
             weight: existingData.weight ?? 0,
             cameraCount: existingData.camera_count ?? 0,
             shootingLocations: toArray(existingData.shooting_locations),
@@ -827,13 +834,15 @@ export default function PitScouting() {
                               type="number"
                               placeholder="0"
                               className={cn("glass-input text-center h-9 px-1", validationErrors.robotDimensions ? "border-red-500/60" : "border-white/10")}
-                              value={formData.robotDimensions.length || ''}
+                              value={formData.robotDimensions.length ?? ''}
                               onChange={(e) => {
-                                const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
-                                const newLen = isNaN(val as number) ? undefined : val;
-                                const newWidth = formData.robotDimensions.width;
-                                const perim = (newLen !== undefined && newWidth !== undefined) ? 2 * (newLen + newWidth) : undefined;
-                                setFormData(prev => ({ ...prev, robotDimensions: { ...prev.robotDimensions, length: newLen, framePerimeter: perim } }));
+                                const raw = e.target.value;
+                                const newLen = raw === '' ? undefined : parseFloat(raw);
+                                setFormData(prev => {
+                                  const newWidth = prev.robotDimensions.width;
+                                  const perim = (newLen !== undefined && !isNaN(newLen) && newWidth !== undefined) ? 2 * (newLen + newWidth) : undefined;
+                                  return { ...prev, robotDimensions: { ...prev.robotDimensions, length: (newLen !== undefined && !isNaN(newLen)) ? newLen : undefined, framePerimeter: perim } };
+                                });
                               }}
                             />
                           </div>
@@ -843,13 +852,15 @@ export default function PitScouting() {
                               type="number"
                               placeholder="0"
                               className={cn("glass-input text-center h-9 px-1", validationErrors.robotDimensions ? "border-red-500/60" : "border-white/10")}
-                              value={formData.robotDimensions.width || ''}
+                              value={formData.robotDimensions.width ?? ''}
                               onChange={(e) => {
-                                const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
-                                const newWidth = isNaN(val as number) ? undefined : val;
-                                const newLen = formData.robotDimensions.length;
-                                const perim = (newLen !== undefined && newWidth !== undefined) ? 2 * (newLen + newWidth) : undefined;
-                                setFormData(prev => ({ ...prev, robotDimensions: { ...prev.robotDimensions, width: newWidth, framePerimeter: perim } }));
+                                const raw = e.target.value;
+                                const newWidth = raw === '' ? undefined : parseFloat(raw);
+                                setFormData(prev => {
+                                  const newLen = prev.robotDimensions.length;
+                                  const perim = (newWidth !== undefined && !isNaN(newWidth) && newLen !== undefined) ? 2 * (newLen + newWidth) : undefined;
+                                  return { ...prev, robotDimensions: { ...prev.robotDimensions, width: (newWidth !== undefined && !isNaN(newWidth)) ? newWidth : undefined, framePerimeter: perim } };
+                                });
                               }}
                             />
                           </div>
@@ -859,10 +870,11 @@ export default function PitScouting() {
                               type="number"
                               placeholder="0"
                               className={cn("glass-input text-center h-9 px-1", validationErrors.robotDimensions ? "border-red-500/60" : "border-white/10")}
-                              value={formData.robotDimensions.height || ''}
+                              value={formData.robotDimensions.height ?? ''}
                               onChange={(e) => {
-                                const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
-                                setFormData(prev => ({ ...prev, robotDimensions: { ...prev.robotDimensions, height: isNaN(val as number) ? undefined : val } }));
+                                const raw = e.target.value;
+                                const val = raw === '' ? undefined : parseFloat(raw);
+                                setFormData(prev => ({ ...prev, robotDimensions: { ...prev.robotDimensions, height: (val !== undefined && !isNaN(val)) ? val : undefined } }));
                               }}
                             />
                             <span className="text-[9px] text-muted-foreground pl-1">≤ 30 in</span>
@@ -882,7 +894,7 @@ export default function PitScouting() {
                               : <span className="text-green-400/80 ml-1">— within 120 in limit ✓</span>}
                           </div>
                         )}
-                        {!formData.robotDimensions.framePerimeter && (
+                        {formData.robotDimensions.framePerimeter === undefined && (
                           <span className="text-[9px] text-muted-foreground pl-1">Frame perimeter = 2 × (L + W) — must be ≤ 120 in</span>
                         )}
                         {validationErrors.robotDimensions && (
@@ -898,10 +910,11 @@ export default function PitScouting() {
                           type="number"
                           placeholder="0"
                           className={cn("glass-input text-center h-9", validationErrors.weight ? "border-red-500/60" : "border-white/10")}
-                          value={formData.weight || ''}
+                          value={formData.weight ?? ''}
                           onChange={(e) => {
-                            const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
-                            setFormData(prev => ({ ...prev, weight: isNaN(val as number) ? undefined : val }));
+                            const raw = e.target.value;
+                            const val = raw === '' ? undefined : parseFloat(raw);
+                            setFormData(prev => ({ ...prev, weight: (val !== undefined && !isNaN(val)) ? val : undefined }));
                           }}
                         />
                         <span className="text-[9px] text-muted-foreground pl-1">≤ 115 lbs — does NOT include bumpers or battery</span>

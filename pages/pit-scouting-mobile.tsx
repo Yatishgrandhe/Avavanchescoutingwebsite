@@ -82,10 +82,8 @@ export default function PitScoutingMobile() {
     navigationLocations: [],
     ballHoldAmount: 0,
     downtimeStrategy: [],
-    robotDimensions: {
-      height: 0,
-    },
-    weight: 0,
+    robotDimensions: {},
+    weight: undefined,
     cameraCount: 0,
     shootingLocationsCount: 0,
     programmingLanguage: '',
@@ -382,8 +380,8 @@ export default function PitScoutingMobile() {
           navigationLocations: [],
           ballHoldAmount: 0,
           downtimeStrategy: [],
-          robotDimensions: { height: 0 },
-          weight: 0,
+          robotDimensions: {},
+          weight: undefined,
           cameraCount: 0,
           shootingLocationsCount: 0,
           programmingLanguage: '',
@@ -634,12 +632,15 @@ export default function PitScoutingMobile() {
                       <Input
                         type="number"
                         placeholder="Optional"
-                        value={formData.robotDimensions.length?.toString() || ''}
+                        value={formData.robotDimensions.length ?? ''}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                          const newLen = e.target.value ? parseFloat(e.target.value) : undefined;
-                          const newWidth = formData.robotDimensions.width;
-                          const perim = (newLen !== undefined && newWidth !== undefined) ? 2 * (newLen + newWidth) : undefined;
-                          setFormData(prev => ({ ...prev, robotDimensions: { ...prev.robotDimensions, length: newLen, framePerimeter: perim } }));
+                          const raw = e.target.value;
+                          const newLen = raw === '' ? undefined : parseFloat(raw);
+                          setFormData(prev => {
+                            const newWidth = prev.robotDimensions.width;
+                            const perim = (newLen !== undefined && !isNaN(newLen) && newWidth !== undefined) ? 2 * (newLen + newWidth) : undefined;
+                            return { ...prev, robotDimensions: { ...prev.robotDimensions, length: (newLen !== undefined && !isNaN(newLen)) ? newLen : undefined, framePerimeter: perim } };
+                          });
                         }}
                       />
                     </div>
@@ -650,12 +651,15 @@ export default function PitScoutingMobile() {
                       <Input
                         type="number"
                         placeholder="Optional"
-                        value={formData.robotDimensions.width?.toString() || ''}
+                        value={formData.robotDimensions.width ?? ''}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                          const newWidth = e.target.value ? parseFloat(e.target.value) : undefined;
-                          const newLen = formData.robotDimensions.length;
-                          const perim = (newLen !== undefined && newWidth !== undefined) ? 2 * (newLen + newWidth) : undefined;
-                          setFormData(prev => ({ ...prev, robotDimensions: { ...prev.robotDimensions, width: newWidth, framePerimeter: perim } }));
+                          const raw = e.target.value;
+                          const newWidth = raw === '' ? undefined : parseFloat(raw);
+                          setFormData(prev => {
+                            const newLen = prev.robotDimensions.length;
+                            const perim = (newWidth !== undefined && !isNaN(newWidth) && newLen !== undefined) ? 2 * (newLen + newWidth) : undefined;
+                            return { ...prev, robotDimensions: { ...prev.robotDimensions, width: (newWidth !== undefined && !isNaN(newWidth)) ? newWidth : undefined, framePerimeter: perim } };
+                          });
                         }}
                       />
                     </div>
@@ -667,7 +671,7 @@ export default function PitScoutingMobile() {
                           : <span className="text-green-600 ml-1">— within limit ✓</span>}
                       </div>
                     )}
-                    {!formData.robotDimensions.framePerimeter && (
+                    {formData.robotDimensions.framePerimeter === undefined && (
                       <p className="col-span-2 text-xs text-muted-foreground">Frame perimeter = 2 × (L + W) — must be ≤ 120 in</p>
                     )}
                     <div>
@@ -678,11 +682,12 @@ export default function PitScoutingMobile() {
                       <Input
                         type="number"
                         placeholder="Optional"
-                        value={formData.robotDimensions.height?.toString() || ''}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({
-                          ...prev,
-                          robotDimensions: { ...prev.robotDimensions, height: e.target.value ? parseFloat(e.target.value) : undefined }
-                        }))}
+                        value={formData.robotDimensions.height ?? ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const raw = e.target.value;
+                          const val = raw === '' ? undefined : parseFloat(raw);
+                          setFormData(prev => ({ ...prev, robotDimensions: { ...prev.robotDimensions, height: (val !== undefined && !isNaN(val)) ? val : undefined } }));
+                        }}
                       />
                     </div>
                     <div className="col-span-2">
@@ -693,8 +698,12 @@ export default function PitScoutingMobile() {
                       <Input
                         type="number"
                         placeholder="Optional"
-                        value={formData.weight?.toString() || ''}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, weight: e.target.value ? parseFloat(e.target.value) : undefined }))}
+                        value={formData.weight ?? ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const raw = e.target.value;
+                          const val = raw === '' ? undefined : parseFloat(raw);
+                          setFormData(prev => ({ ...prev, weight: (val !== undefined && !isNaN(val)) ? val : undefined }));
+                        }}
                       />
                     </div>
                     <div>

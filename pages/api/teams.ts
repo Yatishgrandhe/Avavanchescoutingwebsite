@@ -41,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { data: team, error } = await supabase
         .from('teams')
         .select('*')
-        .eq('team_number', parseInt(team_number as string))
+        .eq('team_number', parseInt(team_number as string, 10))
         .eq('organization_id', user.organization_id)
         .single();
 

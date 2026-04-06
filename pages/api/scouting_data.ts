@@ -363,7 +363,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let query = supabase.from('scouting_data').select('*').order('created_at', { ascending: false });
 
         if (match_id) query = query.eq('match_id', match_id as string);
-        if (team_number) query = query.eq('team_number', parseInt(team_number as string));
+        if (team_number) query = query.eq('team_number', parseInt(team_number as string, 10));
         if (alliance_color) query = query.eq('alliance_color', alliance_color as string);
         if (filterOrgId) query = query.eq('organization_id', filterOrgId as string);
 

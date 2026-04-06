@@ -67,9 +67,10 @@ export interface PitScoutingData {
   robot_dimensions: {
     length?: number;
     width?: number;
-    height: number;
+    framePerimeter?: number;
+    height?: number;
   };
-  weight: number;
+  weight?: number;
   camera_count?: number;
   shooting_locations_count?: number;
   shooting_locations: string[];
@@ -525,12 +526,13 @@ export default function PitScoutingData() {
                             <TableCell>{item.robot_name}</TableCell>
                             <TableCell>{item.drive_type}</TableCell>
                             <TableCell>
-                              {item.robot_dimensions.length && item.robot_dimensions.width
-                                ? `${item.robot_dimensions.length}" × ${item.robot_dimensions.width}" × ${item.robot_dimensions.height}"`
-                                : `${item.robot_dimensions.height}" (H only)`
-                              }
+                              {item.robot_dimensions.length != null && item.robot_dimensions.width != null
+                                ? `${item.robot_dimensions.length}" × ${item.robot_dimensions.width}"${item.robot_dimensions.height != null ? ` × ${item.robot_dimensions.height}"` : ''}`
+                                : item.robot_dimensions.height != null
+                                  ? `${item.robot_dimensions.height}" (H only)`
+                                  : '—'}
                             </TableCell>
-                            <TableCell>{item.weight} lbs</TableCell>
+                            <TableCell>{item.weight != null ? `${item.weight} lbs` : '—'}</TableCell>
                             <TableCell className="text-muted-foreground">
                               {item.submitted_by_name}
                             </TableCell>
@@ -632,7 +634,7 @@ export default function PitScoutingData() {
                           {(item.drive_type || (item.weight != null && Number(item.weight) > 0) || (item.overall_rating != null && Number(item.overall_rating) > 0)) && (
                             <div className="flex flex-wrap gap-1.5 pt-1 text-[11px] text-muted-foreground">
                               {item.drive_type ? <Badge variant="outline" className="font-normal text-[10px] px-1.5 py-0 border-white/10">{String(item.drive_type)}</Badge> : null}
-                              {item.weight != null && Number(item.weight) > 0 && <span>{Number(item.weight)} lbs</span>}
+                              {item.weight != null && Number(item.weight) > 0 && <span>{Number(item.weight)} lbs (no bumpers)</span>}
                               {item.overall_rating != null && Number(item.overall_rating) > 0 && <span>★ {Number(item.overall_rating)}/10</span>}
                             </div>
                           )}
@@ -792,9 +794,9 @@ export default function PitScoutingData() {
                                   {selectedDetailItem.drive_type}
                                 </Badge>
                               )}
-                              {selectedDetailItem.weight > 0 && (
+                              {selectedDetailItem.weight != null && selectedDetailItem.weight > 0 && (
                                 <Badge variant="outline" className="border-gray-600 text-gray-300 font-medium">
-                                  {selectedDetailItem.weight} lbs
+                                  {selectedDetailItem.weight} lbs (no bumpers)
                                 </Badge>
                               )}
                               {selectedDetailItem.overall_rating && selectedDetailItem.overall_rating > 0 && (
@@ -863,10 +865,20 @@ export default function PitScoutingData() {
                                   <span className="font-bold text-white">{selectedDetailItem.drive_type}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
-                                  <span className="text-gray-400">Dimensions</span>
+                                  <span className="text-gray-400">Frame Perimeter</span>
+                                  <span className="font-bold text-white">
+                                    {selectedDetailItem.robot_dimensions?.framePerimeter != null
+                                      ? `${selectedDetailItem.robot_dimensions.framePerimeter.toFixed(1)}"`
+                                      : (selectedDetailItem.robot_dimensions?.length != null && selectedDetailItem.robot_dimensions?.width != null
+                                          ? `${(2*(selectedDetailItem.robot_dimensions.length + selectedDetailItem.robot_dimensions.width)).toFixed(1)}" (calc)`
+                                          : '—')}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="text-gray-400">L × W × H</span>
                                   <span className="font-bold text-white">
                                     {selectedDetailItem.robot_dimensions?.length != null || selectedDetailItem.robot_dimensions?.width != null || selectedDetailItem.robot_dimensions?.height != null
-                                      ? (selectedDetailItem.robot_dimensions?.length ?? '?') + '"×' + (selectedDetailItem.robot_dimensions?.width ?? '?') + '"×' + (selectedDetailItem.robot_dimensions?.height ?? '?') + '"'
+                                      ? `${selectedDetailItem.robot_dimensions?.length ?? '?'}" × ${selectedDetailItem.robot_dimensions?.width ?? '?'}" × ${selectedDetailItem.robot_dimensions?.height ?? '?'}"`
                                       : '—'}
                                   </span>
                                 </div>
@@ -875,8 +887,8 @@ export default function PitScoutingData() {
                                   <span className="font-bold text-white">{selectedDetailItem.drive_train_details?.drive_camps ?? (selectedDetailItem.drive_train_details as any)?.motor_count ?? '—'}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
-                                  <span className="text-gray-400">Weight</span>
-                                  <span className="font-bold text-white">{selectedDetailItem.weight} lbs</span>
+                                  <span className="text-gray-400">Weight (no bumpers)</span>
+                                  <span className="font-bold text-white">{selectedDetailItem.weight != null ? `${selectedDetailItem.weight} lbs` : '—'}</span>
                                 </div>
                               </div>
                             </div>

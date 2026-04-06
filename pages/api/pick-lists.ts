@@ -192,12 +192,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'ID is required' });
       }
 
-      const { data: existing } = await supabaseAdmin
+      const { data: existing, error: existingError } = await supabaseAdmin
         .from('pick_lists')
         .select('id, organization_id')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
+      if (existingError) {
+        console.error('Error fetching pick list for update:', existingError);
+        return res.status(500).json({ error: 'Failed to verify pick list' });
+      }
       if (!existing || existing.organization_id !== profile.organization_id) {
         return res.status(404).json({ error: 'Pick list not found' });
       }

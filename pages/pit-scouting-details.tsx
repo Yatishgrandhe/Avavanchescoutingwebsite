@@ -52,9 +52,10 @@ interface PitScoutingData {
   robot_dimensions: {
     length?: number;
     width?: number;
-    height: number;
+    framePerimeter?: number;
+    height?: number;
   };
-  weight: number;
+  weight?: number;
   camera_count?: number;
   shooting_locations_count?: number;
   programming_language: string;
@@ -122,8 +123,8 @@ export default function PitScoutingDetails() {
           autonomous_capabilities: pitScoutingData.autonomous_capabilities || [],
           teleop_capabilities: pitScoutingData.teleop_capabilities || [],
           can_autoalign: !!pitScoutingData.can_autoalign,
-          robot_dimensions: pitScoutingData.robot_dimensions || { height: 0 },
-          weight: pitScoutingData.weight || 0,
+          robot_dimensions: pitScoutingData.robot_dimensions || {},
+          weight: pitScoutingData.weight ?? undefined,
           camera_count: pitScoutingData.camera_count !== undefined && pitScoutingData.camera_count !== null ? pitScoutingData.camera_count : undefined,
           shooting_locations_count: pitScoutingData.shooting_locations_count !== undefined && pitScoutingData.shooting_locations_count !== null ? pitScoutingData.shooting_locations_count : undefined,
           programming_language: pitScoutingData.programming_language || 'Unknown',
@@ -401,9 +402,10 @@ export default function PitScoutingDetails() {
                     accent="blue"
                   >
                     <div className="space-y-3 mt-4">
-                      <DetailRow label="Weight" value={`${pitData.weight} lbs`} />
-                      <DetailRow label="Height" value={`${pitData.robot_dimensions.height}"`} />
-                      <DetailRow label="Width/Length" value={`${pitData.robot_dimensions.width || '?'}" × ${pitData.robot_dimensions.length || '?'}"`} />
+                      <DetailRow label="Weight (no bumpers)" value={pitData.weight != null ? `${pitData.weight} lbs` : 'N/A'} />
+                      <DetailRow label="Frame Perimeter" value={pitData.robot_dimensions.framePerimeter != null ? `${pitData.robot_dimensions.framePerimeter.toFixed(1)}"` : (pitData.robot_dimensions.length != null && pitData.robot_dimensions.width != null ? `${(2*(pitData.robot_dimensions.length + pitData.robot_dimensions.width)).toFixed(1)}" (calc)` : 'N/A')} />
+                      <DetailRow label="Length × Width" value={`${pitData.robot_dimensions.length ?? '?'}" × ${pitData.robot_dimensions.width ?? '?'}"`} />
+                      <DetailRow label="Height" value={pitData.robot_dimensions.height != null ? `${pitData.robot_dimensions.height}"` : 'N/A'} />
                       <DetailRow label="Motor Count" value={pitData.drive_train_details.drive_camps} />
                     </div>
                   </CapabilityCard>

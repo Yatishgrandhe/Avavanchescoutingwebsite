@@ -1,7 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { roundToTenth } from '@/lib/utils';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 async function getRobotImageUrlsByTeam(supabaseClient: SupabaseClient, teamNumbers: number[]): Promise<Map<number, string>> {
   if (teamNumbers.length === 0) return new Map();
@@ -24,6 +26,7 @@ async function getRobotImageUrlsByTeam(supabaseClient: SupabaseClient, teamNumbe
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
     try {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
       const { team_number } = req.query;
 
       if (team_number) {
@@ -31,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data: stats, error } = await supabase
           .from('team_statistics')
           .select('*')
-          .eq('team_number', parseInt(team_number as string))
+          .eq('team_number', parseInt(team_number as string, 10))
           .single();
 
         if (error) {

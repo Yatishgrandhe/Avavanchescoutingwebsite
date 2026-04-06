@@ -199,8 +199,8 @@ export const pitScoutingRules = {
         if (framePerimeter !== undefined && (framePerimeter < 0 || framePerimeter > 120)) {
           return 'Frame perimeter must be between 0 and 120 inches (2026 FRC limit)';
         }
-        if (height !== undefined && (height < 0 || height > 42)) {
-          return 'Height must be between 0 and 42 inches (3 ft 6 in — 2026 FRC limit)';
+        if (height !== undefined && (height < 0 || height > 30)) {
+          return 'Height must be between 0 and 30 inches (2026 FRC limit)';
         }
       }
       return null;

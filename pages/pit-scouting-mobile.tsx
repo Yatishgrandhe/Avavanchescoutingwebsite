@@ -46,7 +46,9 @@ interface PitScoutingData {
   ballHoldAmount?: number;
   downtimeStrategy: string[];
   robotDimensions: {
-    framePerimeter?: number;
+    length?: number;
+    width?: number;
+    framePerimeter?: number; // auto-calculated: 2*(length+width)
     height?: number;
   };
   weight?: number;
@@ -300,13 +302,11 @@ export default function PitScoutingMobile() {
         teleop_capabilities: formData.teleopCapabilities,
         can_autoalign: formData.canAutoalign,
         robot_dimensions: (() => {
-          const dims: { framePerimeter?: number; height?: number } = {};
-          if (formData.robotDimensions.framePerimeter !== undefined && formData.robotDimensions.framePerimeter !== null) {
-            dims.framePerimeter = formData.robotDimensions.framePerimeter;
-          }
-          if (formData.robotDimensions.height !== undefined && formData.robotDimensions.height !== null) {
-            dims.height = formData.robotDimensions.height;
-          }
+          const dims: { length?: number; width?: number; framePerimeter?: number; height?: number } = {};
+          if (formData.robotDimensions.length !== undefined) dims.length = formData.robotDimensions.length;
+          if (formData.robotDimensions.width !== undefined) dims.width = formData.robotDimensions.width;
+          if (formData.robotDimensions.framePerimeter !== undefined) dims.framePerimeter = formData.robotDimensions.framePerimeter;
+          if (formData.robotDimensions.height !== undefined) dims.height = formData.robotDimensions.height;
           return dims;
         })(),
         weight: formData.weight,
@@ -629,24 +629,52 @@ export default function PitScoutingMobile() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        Frame Perimeter (in) <span className="text-muted-foreground text-xs">(Optional)</span>
+                        Length (in) <span className="text-muted-foreground text-xs">(Optional)</span>
                       </label>
-                      <p className="text-xs text-muted-foreground mb-2">≤ 120 in</p>
                       <Input
                         type="number"
                         placeholder="Optional"
-                        value={formData.robotDimensions.framePerimeter?.toString() || ''}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({
-                          ...prev,
-                          robotDimensions: { ...prev.robotDimensions, framePerimeter: e.target.value ? parseFloat(e.target.value) : undefined }
-                        }))}
+                        value={formData.robotDimensions.length?.toString() || ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const newLen = e.target.value ? parseFloat(e.target.value) : undefined;
+                          const newWidth = formData.robotDimensions.width;
+                          const perim = (newLen !== undefined && newWidth !== undefined) ? 2 * (newLen + newWidth) : undefined;
+                          setFormData(prev => ({ ...prev, robotDimensions: { ...prev.robotDimensions, length: newLen, framePerimeter: perim } }));
+                        }}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">
+                        Width (in) <span className="text-muted-foreground text-xs">(Optional)</span>
+                      </label>
+                      <Input
+                        type="number"
+                        placeholder="Optional"
+                        value={formData.robotDimensions.width?.toString() || ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const newWidth = e.target.value ? parseFloat(e.target.value) : undefined;
+                          const newLen = formData.robotDimensions.length;
+                          const perim = (newLen !== undefined && newWidth !== undefined) ? 2 * (newLen + newWidth) : undefined;
+                          setFormData(prev => ({ ...prev, robotDimensions: { ...prev.robotDimensions, width: newWidth, framePerimeter: perim } }));
+                        }}
+                      />
+                    </div>
+                    {formData.robotDimensions.framePerimeter !== undefined && (
+                      <div className={`col-span-2 flex items-center gap-2 px-3 py-2 rounded-lg text-xs border ${formData.robotDimensions.framePerimeter > 120 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-muted border-border text-muted-foreground'}`}>
+                        Frame Perimeter: <span className="font-semibold">{formData.robotDimensions.framePerimeter.toFixed(1)} in</span>
+                        {formData.robotDimensions.framePerimeter > 120
+                          ? <span className="text-red-600 ml-1">— exceeds 120 in limit!</span>
+                          : <span className="text-green-600 ml-1">— within limit ✓</span>}
+                      </div>
+                    )}
+                    {!formData.robotDimensions.framePerimeter && (
+                      <p className="col-span-2 text-xs text-muted-foreground">Frame perimeter = 2 × (L + W) — must be ≤ 120 in</p>
+                    )}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
                         Height (in) <span className="text-muted-foreground text-xs">(Optional)</span>
                       </label>
-                      <p className="text-xs text-muted-foreground mb-2">≤ 42 in (3 ft 6 in)</p>
+                      <p className="text-xs text-muted-foreground mb-2">≤ 30 in</p>
                       <Input
                         type="number"
                         placeholder="Optional"
@@ -1152,7 +1180,7 @@ export default function PitScoutingMobile() {
                     <div className="bg-muted rounded-lg p-4 border">
                       <h3 className="font-semibold mb-3">Robot Specs</h3>
                       <p className="text-sm text-muted-foreground">
-                        Frame Perimeter: {formData.robotDimensions.framePerimeter ? `${formData.robotDimensions.framePerimeter}"` : 'N/A'} | Height: {formData.robotDimensions.height ? `${formData.robotDimensions.height}"` : 'N/A'}
+                        L: {formData.robotDimensions.length ? `${formData.robotDimensions.length}"` : 'N/A'} × W: {formData.robotDimensions.width ? `${formData.robotDimensions.width}"` : 'N/A'} | Perimeter: {formData.robotDimensions.framePerimeter ? `${formData.robotDimensions.framePerimeter}"` : 'N/A'} | H: {formData.robotDimensions.height ? `${formData.robotDimensions.height}"` : 'N/A'}
                       </p>
                       <p className="text-sm text-muted-foreground">Weight: {formData.weight} lbs</p>
                       <p className="text-sm text-muted-foreground">Language: {formData.programmingLanguage || 'N/A'}</p>

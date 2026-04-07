@@ -145,8 +145,9 @@ export default function SignIn() {
   /** Already signed in with an org: leave sign-in (uses same session state as the rest of the app). */
   useEffect(() => {
     if (!router.isReady || authLoading) return;
+    // Only skip redirect when an active invite token is present in the URL query
+    // (not stale localStorage tokens — those must not trap established users on signin).
     if (router.query.token) return;
-    if (typeof window !== 'undefined' && localStorage.getItem('org_invite_token')) return;
     if (session?.user && appUser?.organization_id) {
       const target = pickAuthReturnPath(router.query.next, '/');
       router.replace(target);

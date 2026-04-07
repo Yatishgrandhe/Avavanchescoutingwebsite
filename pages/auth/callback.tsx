@@ -125,17 +125,28 @@ export default function AuthCallback() {
       const shouldSkipGuildForEstablishedUser = async (session: { user?: { id?: string } } | null) => {
         const uid = session?.user?.id;
         if (!uid) return false;
-        const inviteToken =
-          typeof window !== 'undefined' ? localStorage.getItem('org_invite_token') : null;
-        if (inviteToken) return false;
 
+        // Check org membership FIRST — stale invite tokens must not block established users.
         const { data: prof } = await supabase
           .from('users')
           .select('organization_id')
           .eq('id', uid)
           .maybeSingle();
 
-        return Boolean(prof?.organization_id);
+        if (prof?.organization_id) {
+          // User already has an org. Clear any stale new_org invite tokens so they
+          // don't accidentally land on /setup-org on future visits.
+          if (typeof window !== 'undefined') {
+            if (localStorage.getItem('org_invite_type') === 'new_org') {
+              localStorage.removeItem('org_invite_token');
+              localStorage.removeItem('org_invite_type');
+              localStorage.removeItem('org_invite_target_org');
+            }
+          }
+          return true;
+        }
+
+        return false;
       };
 
       const finishWithGuildCheck = async (session: any) => {
@@ -152,9 +163,28 @@ export default function AuthCallback() {
         }
         const result = await runGuildCheck(session);
         if (result !== 'timeout' && result.inGuild) {
-          // If they used an invite token, redirect to setup-org
           if (result.invited) {
-            router.replace('/setup-org');
+            // Belt-and-suspenders: only send to /setup-org if they don't already have an org.
+            const uid = session?.user?.id;
+            let alreadyInOrg = false;
+            if (uid) {
+              const { data: prof } = await supabase
+                .from('users')
+                .select('organization_id')
+                .eq('id', uid)
+                .maybeSingle();
+              alreadyInOrg = Boolean(prof?.organization_id);
+            }
+            if (alreadyInOrg) {
+              if (typeof window !== 'undefined') {
+                localStorage.removeItem('org_invite_token');
+                localStorage.removeItem('org_invite_type');
+                localStorage.removeItem('org_invite_target_org');
+              }
+              router.replace(desiredPath);
+            } else {
+              router.replace('/setup-org');
+            }
           } else {
             router.replace(desiredPath);
           }

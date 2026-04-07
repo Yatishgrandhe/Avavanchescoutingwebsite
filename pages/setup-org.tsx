@@ -80,6 +80,13 @@ export default function SetupOrg() {
   useEffect(() => {
     const runJoinOrg = async () => {
       if (joinAttemptedRef.current || !user || !inviteToken || !inviteRow) return;
+
+      // Guard: an established user must not be shown the new-org creation form.
+      if (inviteRow.invite_type === 'new_org' && (user as any).organization_id) {
+        setError("You already belong to an organization. This invite link is for creating a new organization.");
+        return;
+      }
+
       const isJoin = inviteRow.invite_type === 'join_org';
       if (!isJoin) return;
 

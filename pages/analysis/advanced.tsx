@@ -612,7 +612,7 @@ export default function AdvancedAnalysis() {
                   <CardHeader className="pb-2">
                     <CardTitle className={`flex items-center gap-2 text-sm ${isDarkMode ? 'text-amber-400' : 'text-amber-700'}`}>
                       <Shield className="w-5 h-5 shrink-0" />
-                          Superadmin comments intelligence (Gemma 3 4B)
+                          Superadmin comments intelligence
                     </CardTitle>
                     <CardDescription className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
                       Runs automatically after you analyze a team with scouting comments. Same engine as Team Details.
@@ -648,7 +648,7 @@ export default function AdvancedAnalysis() {
                     )}
                     <div className="flex items-center justify-between pt-2 border-t border-amber-500/20">
                       <span className="text-[10px] uppercase tracking-widest text-amber-600/80">
-                        {aiSummary ? 'Gemma 3 4B summary' : 'Ready'}
+                        {aiSummary ? 'Summary ready' : 'Ready'}
                       </span>
                       <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-600">
                         Superadmin

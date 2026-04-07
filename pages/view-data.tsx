@@ -40,7 +40,6 @@ import { useSupabase } from '@/pages/_app';
 import { useAdmin } from '@/hooks/use-admin';
 import { loadViewDataFilters, saveViewDataFilters } from '@/lib/view-data-filter-storage';
 import { hasCompetitionPitSidebarRows } from '@/lib/pit-scouting-visibility';
-import { SuperadminScoutingChat } from '@/components/superadmin/SuperadminScoutingChat';
 import { parseNotes, computeRebuiltMetrics } from '@/lib/analytics';
 import { formatDurationSec, roundToTenth } from '@/lib/utils';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
@@ -1424,22 +1423,6 @@ export default function ViewDataPage() {
       >
         {tabContent}
       </CompetitionDataLayout>
-      {isSuperAdmin && session && (
-        <SuperadminScoutingChat
-          session={session}
-          context={{
-            competitionName: competition?.competition_name,
-            competitionKey: typeof competition_key === 'string' ? competition_key : undefined,
-            year: typeof year === 'string' ? year : undefined,
-            eventKey: typeof event_key === 'string' ? event_key : undefined,
-            pastId: typeof id === 'string' ? id : undefined,
-            seeAllOrgs: seeAllOrgsData,
-            organizationId: user?.organization_id ?? null,
-          }}
-          teams={teams}
-          scoutingRows={scoutingData}
-        />
-      )}
       {deletingPitRow && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <Card className="max-w-md w-full p-6">

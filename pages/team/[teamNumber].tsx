@@ -122,14 +122,8 @@ const TeamDetail: React.FC = () => {
   const [activeTeamTab, setActiveTeamTab] = useState<string>('overview');
   
   const [aiSummary, setAiSummary] = useState<string | null>(null);
-  const [summaryModelUsed, setSummaryModelUsed] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [summarizeError, setSummarizeError] = useState<string | null>(null);
-
-  const summaryModelBadgeLabel = (model: string | null) => {
-    if (!model || model === 'gemma-3-4b-it' || model.startsWith('gemma-3-4b')) return 'Gemma 3 4B summary';
-    return 'AI summary (fallback)';
-  };
 
   useEffect(() => {
     if (!fullScreenImageUrl) return;
@@ -639,7 +633,6 @@ const TeamDetail: React.FC = () => {
       }
 
       setAiSummary(typeof data.summary === 'string' ? data.summary : null);
-      setSummaryModelUsed(typeof data.modelUsed === 'string' ? data.modelUsed : null);
     } catch (err: any) {
       console.error('AI Summarization failed:', err);
       setSummarizeError(err.message || 'The intelligence engine is currently offline.');
@@ -654,7 +647,6 @@ const TeamDetail: React.FC = () => {
   useEffect(() => {
     superAdminAutoSummarizeRef.current = false;
     setAiSummary(null);
-    setSummaryModelUsed(null);
     setSummarizeError(null);
   }, [
     team?.team_number,
@@ -871,17 +863,7 @@ const TeamDetail: React.FC = () => {
                                 </Button>
                               </div>
                             )}
-                            <div className="mt-auto pt-3 flex items-center justify-between border-t border-amber-500/10">
-                              <span className="text-[8px] text-amber-500 font-bold uppercase tracking-widest">
-                                {aiSummary ? summaryModelBadgeLabel(summaryModelUsed) : 'Aggregated Natural Intelligence'}
-                              </span>
-                              <Badge variant="outline" className={cn(
-                                "text-[8px] font-black tracking-tighter",
-                                aiSummary ? "bg-amber-500 text-black border-none" : "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                              )}>
-                                {aiSummary ? 'AI-QUANTUM' : 'AI-SUMMARIZED'}
-                              </Badge>
-                            </div>
+                            <div className="mt-auto pt-3 border-t border-amber-500/10" />
                           </div>
                           <div className="space-y-2 mt-4">
                             <h4 className="text-[10px] font-bold text-muted-foreground uppercase opacity-60 tracking-widest">Raw Scout Reports</h4>

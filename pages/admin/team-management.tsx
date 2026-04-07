@@ -13,6 +13,7 @@ import {
   Lock,
   Unlock,
   Users,
+  UserMinus,
   FileSpreadsheet,
   Database,
   Loader2,
@@ -67,6 +68,11 @@ export default function TeamManagementPage() {
   } = useScoutingLocks();
   const [orgName, setOrgName] = useState<string | null>(null);
   const [orgLoading, setOrgLoading] = useState(true);
+
+  // Members State
+  const [members, setMembers] = useState<{ id: string; name: string; email: string | null; role: string; image: string | null; banned: boolean }[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
 
   // Student Management State
   const [scouts, setScouts] = useState<{ id: string; name: string }[]>([]);
@@ -131,6 +137,7 @@ export default function TeamManagementPage() {
       }
     }
     loadOrg();
+    fetchMembers();
     fetchScouts();
     fetchCompetitionSettings();
     fetchInvites();
@@ -401,6 +408,54 @@ export default function TeamManagementPage() {
       toast.error('Failed to archive competition');
     } finally {
       setIsArchiving(false);
+    }
+  };
+
+  const fetchMembers = async () => {
+    setMembersLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const res = await fetch('/api/admin/members', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMembers(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch members', err);
+    } finally {
+      setMembersLoading(false);
+    }
+  };
+
+  const removeMember = async (memberId: string, memberName: string) => {
+    if (!confirm(`Remove ${memberName} from the organization?\n\nThey will be signed out immediately and will need a new invite link to rejoin. Their scouting submissions will remain.`)) return;
+    setRemovingMemberId(memberId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const res = await fetch('/api/admin/members', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ userId: memberId }),
+      });
+      if (res.ok) {
+        setMembers((prev) => prev.filter((m) => m.id !== memberId));
+        setScouts((prev) => prev.filter((s) => s.id !== memberId));
+        toast.success(`${memberName} removed from the organization`);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Failed to remove member');
+      }
+    } catch {
+      toast.error('Failed to remove member');
+    } finally {
+      setRemovingMemberId(null);
     }
   };
 
@@ -810,6 +865,107 @@ export default function TeamManagementPage() {
             </div>
 
             <div className="space-y-6">
+              {/* Members card */}
+              <Card className="border-border/60 shadow-md overflow-hidden">
+                <CardHeader className="pb-3 border-b border-border/40">
+                  <CardTitle className="text-base flex items-center gap-2 text-foreground">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                      <Users className="h-4 w-4" aria-hidden />
+                    </span>
+                    Members
+                    <Badge variant="outline" className="ml-1 text-[10px] text-muted-foreground border-border/60 font-normal">
+                      {membersLoading ? '…' : members.length}
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Everyone in your org. Remove a member to revoke their access immediately.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-4">
+                  <div className="max-h-[300px] overflow-y-auto space-y-1 pr-1 custom-scrollbar rounded-lg border border-border/50 bg-muted/10 p-2">
+                    {membersLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : members.length === 0 ? (
+                      <p className="text-center text-xs text-muted-foreground py-8">
+                        No members yet.
+                      </p>
+                    ) : (
+                      members.map((member) => {
+                        const isMe = member.id === user?.id;
+                        return (
+                          <div
+                            key={member.id}
+                            className="flex items-center justify-between gap-2 rounded-md border border-transparent bg-background/40 px-3 py-2 hover:border-border/80 transition-colors"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              {member.image ? (
+                                <img
+                                  src={member.image}
+                                  alt=""
+                                  className="h-6 w-6 rounded-full shrink-0 object-cover"
+                                />
+                              ) : (
+                                <div className="h-6 w-6 rounded-full shrink-0 bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                                  {(member.name || '?')[0].toUpperCase()}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate leading-tight">
+                                  {member.name}
+                                  {isMe && (
+                                    <span className="ml-1.5 text-[9px] text-primary/70 font-normal">(you)</span>
+                                  )}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground truncate leading-tight">
+                                  {member.email || member.role}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  'text-[9px] uppercase tracking-wide border-0 px-1.5 py-0',
+                                  member.role === 'superadmin'
+                                    ? 'bg-purple-500/15 text-purple-300'
+                                    : member.role === 'admin'
+                                    ? 'bg-primary/15 text-primary'
+                                    : 'bg-muted text-muted-foreground'
+                                )}
+                              >
+                                {member.role === 'superadmin' ? 'super' : member.role}
+                              </Badge>
+                              {!isMe && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => removeMember(member.id, member.name)}
+                                  disabled={removingMemberId === member.id}
+                                  aria-label={`Remove ${member.name}`}
+                                >
+                                  {removingMemberId === member.id ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <UserMinus className="h-3.5 w-3.5" />
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/60">
+                    Removing a member signs them out immediately. They need a new invite link to rejoin.
+                  </p>
+                </CardContent>
+              </Card>
+
               <Card className="border-border/60 shadow-md overflow-hidden">
                 <CardHeader className="pb-3 border-b border-border/40">
                   <CardTitle className="text-base flex items-center gap-2 text-foreground">

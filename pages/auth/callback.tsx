@@ -83,6 +83,7 @@ export default function AuthCallback() {
 
       const GUILD_ERR = "You're not in the Avalanche server. You're not allowed to login. Please join the Avalanche Discord server first and try again.";
       const PROVIDER_TOKEN_ERR = "Discord permissions could not be verified. Please sign in again and ensure you grant all requested permissions (including server list).";
+      const BANNED_ERR = "Your access has been removed from the organization. Please contact your admin for a new invite link to rejoin.";
 
       const VERIFY_TIMEOUT_MS = 15000;
       const desiredPath =
@@ -129,9 +130,12 @@ export default function AuthCallback() {
         // Check org membership FIRST — stale invite tokens must not block established users.
         const { data: prof } = await supabase
           .from('users')
-          .select('organization_id')
+          .select('organization_id, banned')
           .eq('id', uid)
           .maybeSingle();
+
+        // Banned users must not bypass guild check — they need a new invite link.
+        if (prof?.banned) return false;
 
         if (prof?.organization_id) {
           // User already has an org. Clear any stale new_org invite tokens so they
@@ -186,6 +190,20 @@ export default function AuthCallback() {
               router.replace('/setup-org');
             }
           } else {
+            // No invite: check if user has been banned (removed from org by admin).
+            const uid = session?.user?.id;
+            if (uid) {
+              const { data: prof } = await supabase
+                .from('users')
+                .select('banned')
+                .eq('id', uid)
+                .maybeSingle();
+              if (prof?.banned) {
+                await supabase.auth.signOut();
+                router.push(`/auth/error?message=${encodeURIComponent(BANNED_ERR)}&error=removed`);
+                return;
+              }
+            }
             router.replace(desiredPath);
           }
           return;

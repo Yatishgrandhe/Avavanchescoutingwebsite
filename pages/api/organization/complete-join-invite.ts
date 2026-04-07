@@ -75,6 +75,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       image: (user.user_metadata?.avatar_url as string) || null,
       organization_id: orgId,
       role: 'user',
+      banned: false, // Clear ban — user has been re-invited
       can_edit_forms: false,
       can_view_pick_list: false,
       can_view_stats: true,

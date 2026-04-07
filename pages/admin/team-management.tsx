@@ -70,7 +70,6 @@ export default function TeamManagementPage() {
 
   // Student Management State
   const [scouts, setScouts] = useState<{ id: string; name: string }[]>([]);
-  const [newScoutName, setNewScoutName] = useState('');
   const [scoutsLoading, setScoutsLoading] = useState(false);
 
   // Competition Settings State
@@ -421,37 +420,6 @@ export default function TeamManagementPage() {
       }
     } catch (err) {
       console.error('Failed to fetch scouts', err);
-    }
-  };
-
-  const addScout = async () => {
-    if (!newScoutName.trim()) return;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) return;
-
-    setScoutsLoading(true);
-    try {
-      const res = await fetch('/api/admin/scouts', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ name: newScoutName }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setScouts([...scouts, data]);
-        setNewScoutName('');
-        toast.success('Scout added');
-      } else {
-        const err = await res.json();
-        toast.error(err.error || 'Failed to add scout');
-      }
-    } catch (err) {
-      toast.error('Failed to add scout');
-    } finally {
-      setScoutsLoading(false);
     }
   };
 
@@ -925,55 +893,57 @@ export default function TeamManagementPage() {
                       <Users className="h-4 w-4" aria-hidden />
                     </span>
                     Scouts
+                    <Badge variant="outline" className="ml-1 text-[10px] text-emerald-400 border-emerald-500/30 bg-emerald-500/10 font-normal">
+                      Auto-managed
+                    </Badge>
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Names shown in scouting form dropdowns.
+                    Names shown in scouting form dropdowns — populated automatically from your organization members.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4 pt-5">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Student name"
-                      className="h-10 flex-1 min-w-0 bg-background/50"
-                      value={newScoutName}
-                      onChange={(e) => setNewScoutName(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && addScout()}
-                      aria-label="New scout name"
-                    />
-                    <Button
-                      type="button"
-                      size="icon"
-                      className="h-10 w-10 shrink-0"
-                      onClick={addScout}
-                      disabled={scoutsLoading || !newScoutName.trim()}
-                      aria-label="Add scout"
-                    >
-                      {scoutsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                    </Button>
+                <CardContent className="space-y-3 pt-4">
+                  <div className="flex items-start gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5 text-xs text-emerald-300/80">
+                    <Check className="h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-400" />
+                    <span>
+                      Members are added automatically when they join your org via a Discord invite link. Their Discord username appears in the scout dropdown immediately — no manual entry needed.
+                    </span>
                   </div>
-                  <div className="max-h-[220px] overflow-y-auto space-y-1.5 pr-1 custom-scrollbar rounded-lg border border-border/50 bg-muted/10 p-2">
-                    {scouts.map((scout) => (
-                      <div
-                        key={scout.id}
-                        className="flex items-center justify-between gap-2 rounded-md border border-transparent bg-background/40 px-3 py-2.5 text-sm hover:border-border/80 transition-colors"
-                      >
-                        <span className="font-medium text-foreground truncate">{scout.name}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => deleteScout(scout.id)}
-                          aria-label={`Remove ${scout.name}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                  <div className="max-h-[260px] overflow-y-auto space-y-1 pr-1 custom-scrollbar rounded-lg border border-border/50 bg-muted/10 p-2">
+                    {scoutsLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                       </div>
-                    ))}
-                    {scouts.length === 0 && (
-                      <p className="text-center text-xs text-muted-foreground py-8">No scouts yet. Add a name above.</p>
+                    ) : scouts.length === 0 ? (
+                      <p className="text-center text-xs text-muted-foreground py-8">
+                        No members yet. Share a join invite link to add scouts.
+                      </p>
+                    ) : (
+                      scouts.map((scout) => (
+                        <div
+                          key={scout.id}
+                          className="flex items-center justify-between gap-2 rounded-md border border-transparent bg-background/40 px-3 py-2 text-sm hover:border-border/80 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[10px] font-mono text-primary/60 shrink-0">@</span>
+                            <span className="font-medium text-foreground truncate">{scout.name}</span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => deleteScout(scout.id)}
+                            aria-label={`Remove ${scout.name} from scout list`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))
                     )}
                   </div>
+                  <p className="text-[10px] text-muted-foreground/60">
+                    {scouts.length} scout{scouts.length !== 1 ? 's' : ''} · Trash icon removes only from the scouting dropdown; the member stays in your org.
+                  </p>
                 </CardContent>
               </Card>
 

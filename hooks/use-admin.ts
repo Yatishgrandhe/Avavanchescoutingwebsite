@@ -42,7 +42,8 @@ export function useAdmin() {
   // Allow pick list if admin/superadmin OR if they have specific permission, AND not blocked
   const canAccessPickList = (isAdmin || user?.role === 'superadmin' || !!user?.can_view_pick_list) && !isBlockedFromPickList;
   const canAccessStats = isAdmin || user?.role === 'superadmin' || !!user?.can_view_stats;
-  const canEditForms = isAdmin || user?.role === 'superadmin' || !!user?.can_edit_forms;
+  // All authenticated users can access scouting forms by default
+  const canEditForms = !!user;
 
   return {
     isAdmin: isAdmin || user?.role === 'superadmin' || user?.role === 'admin',

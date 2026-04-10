@@ -409,10 +409,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const scopeOrgId = effectiveFilterOrgId(viewer, queryOrgId);
+      const seeAllOrgs = seeAllOrgsPastFromQuery(req.query);
 
       // --- Detail view by id OR competition_key ---
       if (id || competition_key) {
-        const seeAllOrgsPast = seeAllOrgsPastFromQuery(req.query);
         let anchor: PastCompetitionRow | null = null;
         let compError: unknown = null;
 
@@ -459,7 +459,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const singleIdHint = typeof id === 'string' ? id : undefined;
         const scopedRows = scopePastArchiveRows({
           groupRows,
-          seeAllOrgsPast,
+          seeAllOrgsPast: seeAllOrgs,
           viewer,
           singleIdHint,
         });
@@ -609,6 +609,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .order('competition_year', { ascending: false })
         .order('competition_name', { ascending: true });
 
+      if (scopeOrgId && !seeAllOrgs) {
+        query = query.eq('organization_id', scopeOrgId);
+      }
+
       if (competition_key) {
         query = query.eq('competition_key', competition_key as string);
       }
@@ -659,7 +663,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const liveCandidates = Array.from(currentByOrg.entries())
-        .filter(([, cfg]) => cfg.eventKey)
+        .filter(([organization_id, cfg]) => {
+          if (!cfg.eventKey) return false;
+          if (scopeOrgId && !seeAllOrgs && organization_id !== scopeOrgId) return false;
+          return true;
+        })
         .map(([organization_id, cfg]) => ({
           organization_id,
           eventKey: cfg.eventKey,

@@ -76,7 +76,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       organization_id: orgId,
       role: 'user',
       banned: false, // Clear ban — user has been re-invited
-      can_edit_forms: false,
       can_view_pick_list: false,
       can_view_stats: true,
       updated_at: new Date().toISOString(),

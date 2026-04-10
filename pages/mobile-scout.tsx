@@ -26,6 +26,8 @@ import { ScoringNotes, getBallChoiceLabel } from '@/lib/types';
 import { calculateScore, formatDurationSec } from '@/lib/utils';
 import { useRouter } from 'next/router';
 import { addToOfflineQueue } from '@/lib/offline-queue';
+import { useScoutingLocks } from '@/hooks/use-scouting-locks';
+import { AlertCircle, Lock } from 'lucide-react';
 
 type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'miscellaneous' | 'review';
 
@@ -60,7 +62,9 @@ interface FormData {
 }
 
 export default function MobileScout() {
-  const { user, loading, supabase } = useSupabase();
+  const { user, loading: userLoading, supabase } = useSupabase();
+  const { matchScoutingLocked, loading: locksLoading } = useScoutingLocks();
+  const loading = userLoading;
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -203,10 +207,13 @@ export default function MobileScout() {
     }
   };
 
-  if (loading) {
+  if (loading || (locksLoading && !userLoading)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center min-h-[100vh] bg-background">
+        <div className="flex flex-col items-center gap-4 p-6">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground animate-pulse text-sm font-medium">Initialising mobile session...</p>
+        </div>
       </div>
     );
   }
@@ -214,6 +221,33 @@ export default function MobileScout() {
   if (!user) {
     router.push('/');
     return null;
+  }
+
+  if (!locksLoading && matchScoutingLocked) {
+    return (
+      <div className="min-h-screen bg-background p-4 flex flex-col items-center justify-center">
+        <Card className="w-full max-w-md border-amber-500/50 bg-amber-500/10 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+              <AlertCircle className="h-5 w-5" />
+              Scouting is Locked
+            </CardTitle>
+            <p className="text-sm text-amber-600/80 dark:text-amber-400/80 mt-2">
+              An administrator has locked the match scouting form for this organization. 
+              Submissions are disabled until it is unlocked in <strong>Team Management</strong>.
+            </p>
+            <div className="mt-6 flex flex-col gap-3">
+              <Button variant="secondary" onClick={() => router.push('/')} className="w-full">
+                <Home className="mr-2 h-4 w-4" /> Return Home
+              </Button>
+              <Button variant="outline" onClick={() => router.push('/admin/team-management')} className="w-full">
+                Go to Team Management
+              </Button>
+            </div>
+          </CardHeader>
+        </Card>
+      </div>
+    );
   }
 
   return (

@@ -23,6 +23,7 @@ import { compressImageForUpload } from '@/lib/image-upload';
 import { addToOfflineQueue } from '@/lib/offline-queue';
 import PitPhotosUpload, { PhotoItem } from '@/components/ui/PitPhotosUpload';
 import { toast } from 'sonner';
+import { useScoutingLocks } from '@/hooks/use-scouting-locks';
 interface Team {
   team_number: number;
   team_name: string;
@@ -62,7 +63,9 @@ interface PitScoutingData {
 }
 
 export default function PitScoutingMobile() {
-  const { user, loading, supabase } = useSupabase();
+  const { user, loading: userLoading, supabase } = useSupabase();
+  const { pitScoutingLocked, loading: locksLoading } = useScoutingLocks();
+  const loading = userLoading;
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -401,10 +404,13 @@ export default function PitScoutingMobile() {
     }
   };
 
-  if (loading) {
+  if (loading || (locksLoading && !userLoading)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center min-h-[100vh] bg-background">
+        <div className="flex flex-col items-center gap-4 p-6">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground animate-pulse text-sm font-medium">Initialising pit scouting...</p>
+        </div>
       </div>
     );
   }
@@ -412,6 +418,33 @@ export default function PitScoutingMobile() {
   if (!user) {
     router.push('/');
     return null;
+  }
+
+  if (!locksLoading && pitScoutingLocked) {
+    return (
+      <div className="min-h-screen bg-background p-4 flex flex-col items-center justify-center text-center">
+        <Card className="w-full max-w-md border-amber-500/50 bg-amber-500/10 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400 justify-center">
+              <AlertCircle className="h-5 w-5" />
+              Pit Scouting is Locked
+            </CardTitle>
+            <p className="text-sm text-amber-600/80 dark:text-amber-400/80 mt-2">
+              An administrator has locked the pit scouting form for this organization. 
+              Submissions are disabled until it is unlocked in <strong>Team Management</strong>.
+            </p>
+            <div className="mt-6 flex flex-col gap-3">
+              <Button variant="secondary" onClick={() => router.push('/')} className="w-full">
+                <Home className="mr-2 h-4 w-4" /> Return Home
+              </Button>
+              <Button variant="outline" onClick={() => router.push('/admin/team-management')} className="w-full">
+                Go to Team Management
+              </Button>
+            </div>
+          </CardHeader>
+        </Card>
+      </div>
+    );
   }
 
   return (

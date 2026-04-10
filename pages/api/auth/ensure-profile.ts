@@ -64,7 +64,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     organization_id: AVALANCHE_ORG_ID,
     role: 'user',
     team_number: null,
-    can_edit_forms: false,
     can_view_pick_list: false,
     can_view_stats: true,
     updated_at: new Date().toISOString(),

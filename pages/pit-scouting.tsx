@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import { addToOfflineQueue } from '@/lib/offline-queue';
 import Layout from '@/components/layout/Layout';
@@ -79,7 +80,7 @@ interface PitScoutingData {
 export default function PitScouting() {
   const { user, loading: userLoading, supabase } = useSupabase();
   const { pitScoutingLocked, loading: locksLoading } = useScoutingLocks();
-  const { canEditForms, isAdmin, loading: adminLoading } = useAdmin();
+  const { isAdmin, loading: adminLoading } = useAdmin();
   const loading = userLoading || adminLoading;
   const router = useRouter();
   const { id, edit } = router.query;
@@ -543,44 +544,25 @@ export default function PitScouting() {
     return null;
   }
 
-  if (!canEditForms) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center min-h-[60vh] px-4 text-center">
-          <Card className="max-w-md w-full border-destructive/30 shadow-xl overflow-hidden p-8">
-            <CardContent className="pt-6 pb-6 p-0">
-              <div className="w-16 h-16 bg-destructive/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Lock className="w-8 h-8 text-destructive" />
-              </div>
-              <h2 className="text-2xl font-bold mb-3 tracking-tight">Pit Scouting Locked</h2>
-              <p className="text-muted-foreground leading-relaxed text-sm">
-                Your account does not have permission to edit pit scouting data. Please contact your administrator to unlock this feature.
-              </p>
-              <div className="mt-8">
-                <Button variant="outline" onClick={() => router.push('/')}>
-                  Return to Dashboard
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
-    );
-  }
 
   if (!locksLoading && pitScoutingLocked) {
     return (
       <Layout>
         <div className="max-w-5xl mx-auto space-y-6">
-          <Card className="border-amber-500/50 bg-amber-500/10">
+          <Card className="border-amber-500/50 bg-amber-500/10 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
                 <AlertCircle className="h-5 w-5" />
-                Pit scouting is locked
+                Pit Scouting is Locked
               </CardTitle>
-              <CardDescription>
-                An administrator has locked the pit scouting form for the current competition. Submissions are disabled until it is unlocked from the sidebar (Current competition → Unlock Pit Scouting).
+              <CardDescription className="text-amber-600/80 dark:text-amber-400/80">
+                An administrator has locked the pit scouting form for this organization. Submissions are disabled until it is unlocked in <strong>Team Management</strong>.
               </CardDescription>
+              <div className="mt-4">
+                <Button variant="secondary" size="sm" asChild>
+                  <Link href="/admin/team-management">Go to Team Management</Link>
+                </Button>
+              </div>
             </CardHeader>
           </Card>
         </div>

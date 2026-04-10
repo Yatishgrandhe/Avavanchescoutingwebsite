@@ -139,7 +139,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         organization_id: organizationId,
         role: newRole,
         team_number: teamNumber,
-        can_edit_forms: true,
         can_view_pick_list: true,
         can_view_stats: true,
         updated_at: new Date().toISOString(),

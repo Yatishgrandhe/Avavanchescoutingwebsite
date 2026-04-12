@@ -43,6 +43,7 @@ import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAdmin } from '@/hooks/use-admin';
 import { getLocalPendingPitRows } from '@/lib/local-pending-data';
+import { mergePitDriveTrainDetails, formatPitBallCapacity, type PitDriveTrainDetails } from '@/lib/pit-drive-train';
 
 export interface PitScoutingData {
   id: string;
@@ -53,13 +54,7 @@ export interface PitScoutingData {
   photos?: string[];
   climb_location?: string | null;
   drive_type: string;
-  drive_train_details: {
-    type: string;
-    auto_capabilities: string;
-    teleop_capabilities: string;
-    drive_camps: number;
-    playoff_driver: string;
-  };
+  drive_train_details: PitDriveTrainDetails;
   autonomous_capabilities: string[];
   teleop_capabilities: string[];
   endgame_capabilities?: string[];
@@ -193,13 +188,7 @@ export default function PitScoutingData() {
           photos: Array.isArray(item.photos) ? item.photos : (item.robot_image_url ? [item.robot_image_url] : []),
           climb_location: item.climb_location ?? null,
           drive_type: item.drive_type || 'Unknown',
-          drive_train_details: item.drive_train_details || {
-            type: item.drive_type || 'Unknown',
-            auto_capabilities: '',
-            teleop_capabilities: '',
-            drive_camps: 0,
-            playoff_driver: 'TBD'
-          },
+          drive_train_details: mergePitDriveTrainDetails(item.drive_type || 'Unknown', item.drive_train_details),
           autonomous_capabilities: item.autonomous_capabilities || [],
           teleop_capabilities: item.teleop_capabilities || [],
           can_autoalign: !!item.can_autoalign,
@@ -343,13 +332,7 @@ export default function PitScoutingData() {
         photos: Array.isArray(item.photos) ? item.photos : (item.robot_image_url ? [item.robot_image_url] : []),
         climb_location: item.climb_location ?? null,
         drive_type: item.drive_type || 'Unknown',
-        drive_train_details: item.drive_train_details || {
-          type: item.drive_type || 'Unknown',
-          auto_capabilities: '',
-          teleop_capabilities: '',
-          drive_camps: 0,
-          playoff_driver: 'TBD'
-        },
+        drive_train_details: mergePitDriveTrainDetails(item.drive_type || 'Unknown', item.drive_train_details),
         autonomous_capabilities: item.autonomous_capabilities || [],
         teleop_capabilities: item.teleop_capabilities || [],
         can_autoalign: !!item.can_autoalign,
@@ -884,7 +867,11 @@ export default function PitScoutingData() {
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                   <span className="text-gray-400">Motor Count</span>
-                                  <span className="font-bold text-white">{selectedDetailItem.drive_train_details?.drive_camps ?? (selectedDetailItem.drive_train_details as any)?.motor_count ?? '—'}</span>
+                                  <span className="font-bold text-white">{selectedDetailItem.drive_train_details?.drive_camps ?? selectedDetailItem.drive_train_details?.motor_count ?? '—'}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="text-gray-400">Ball capacity</span>
+                                  <span className="font-bold text-white">{formatPitBallCapacity(selectedDetailItem.drive_train_details)}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                   <span className="text-gray-400">Weight (no bumpers)</span>

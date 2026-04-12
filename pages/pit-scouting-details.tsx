@@ -30,6 +30,11 @@ import {
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import {
+  mergePitDriveTrainDetails,
+  formatPitBallCapacity,
+  type PitDriveTrainDetails,
+} from '@/lib/pit-drive-train';
 
 interface PitScoutingData {
   id: string;
@@ -39,13 +44,7 @@ interface PitScoutingData {
   photos?: string[];
   climb_location?: string | null;
   drive_type: string;
-  drive_train_details: {
-    type: string;
-    auto_capabilities: string;
-    teleop_capabilities: string;
-    drive_camps: number;
-    playoff_driver: string;
-  };
+  drive_train_details: PitDriveTrainDetails;
   autonomous_capabilities: string[];
   teleop_capabilities: string[];
   can_autoalign?: boolean;
@@ -169,13 +168,10 @@ export default function PitScoutingDetails() {
           photos: Array.from(photoSet),
           climb_location: pitScoutingData.climb_location ?? null,
           drive_type: pitScoutingData.drive_type || 'Unknown',
-          drive_train_details: pitScoutingData.drive_train_details || {
-            type: pitScoutingData.drive_type || 'Unknown',
-            auto_capabilities: '',
-            teleop_capabilities: '',
-            drive_camps: 0,
-            playoff_driver: 'TBD'
-          },
+          drive_train_details: mergePitDriveTrainDetails(
+            pitScoutingData.drive_type || 'Unknown',
+            pitScoutingData.drive_train_details
+          ),
           autonomous_capabilities: pitScoutingData.autonomous_capabilities || [],
           teleop_capabilities: pitScoutingData.teleop_capabilities || [],
           can_autoalign: !!pitScoutingData.can_autoalign,
@@ -395,6 +391,10 @@ export default function PitScoutingDetails() {
                     <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">Rating</span>
                     <span className="text-lg font-bold text-amber-400">★ {pitData.overall_rating}/10</span>
                   </div>
+                  <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex-1 min-w-[140px] shadow-lg">
+                    <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">Ball capacity</span>
+                    <span className="text-lg font-bold text-emerald-400">{formatPitBallCapacity(pitData.drive_train_details)}</span>
+                  </div>
                 </div>
 
                 {/* Auto Paths */}
@@ -504,7 +504,8 @@ export default function PitScoutingDetails() {
                       <DetailRow label="Frame Perimeter" value={pitData.robot_dimensions.framePerimeter != null ? `${pitData.robot_dimensions.framePerimeter.toFixed(1)}"` : (pitData.robot_dimensions.length != null && pitData.robot_dimensions.width != null ? `${(2*(pitData.robot_dimensions.length + pitData.robot_dimensions.width)).toFixed(1)}" (calc)` : 'N/A')} />
                       <DetailRow label="Length × Width" value={`${pitData.robot_dimensions.length ?? '?'}" × ${pitData.robot_dimensions.width ?? '?'}"`} />
                       <DetailRow label="Height" value={pitData.robot_dimensions.height != null ? `${pitData.robot_dimensions.height}"` : 'N/A'} />
-                      <DetailRow label="Motor Count" value={pitData.drive_train_details.drive_camps} />
+                      <DetailRow label="Motor Count" value={pitData.drive_train_details.drive_camps ?? '—'} />
+                      <DetailRow label="Ball capacity" value={formatPitBallCapacity(pitData.drive_train_details)} />
                     </div>
                   </CapabilityCard>
                   <CapabilityCard

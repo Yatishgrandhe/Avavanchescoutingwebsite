@@ -41,6 +41,8 @@ import { useAdmin } from '@/hooks/use-admin';
 import { loadViewDataFilters, saveViewDataFilters } from '@/lib/view-data-filter-storage';
 import { hasCompetitionPitSidebarRows } from '@/lib/pit-scouting-visibility';
 import { parseNotes, computeRebuiltMetrics } from '@/lib/analytics';
+import { normalizePitPhotoUrls, mergePitPhotoUrlLists } from '@/lib/pit-images';
+import { PitPhotoImg } from '@/components/pit/PitPhotoImg';
 import { formatDurationSec, roundToTenth } from '@/lib/utils';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
 import { TeamComparisonPanel } from '@/components/data/TeamComparisonPanel';
@@ -78,6 +80,13 @@ interface ViewDataRow {
 }
 
 type PitRow = { id?: string; team_number: number; robot_name?: string | null; photos?: string[] | null; auto_fuel_count?: number; [key: string]: unknown };
+
+function getPitRowTimestampMs(row: PitRow): number {
+  const value = (row.submitted_at as string | undefined) || (row.created_at as string | undefined);
+  if (!value) return 0;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 type TeamStatSortKey =
   | 'avg_total_score'
@@ -262,30 +271,34 @@ export default function ViewDataPage() {
   }, [scoutingData, user?.organization_id]);
 
   const pitDisplayList = React.useMemo(() => {
-    const byTeam = new Map<number, typeof pitScoutingData[0]>();
-    const hasImage = (row: typeof pitScoutingData[0]) => {
-      const url = row.robot_image_url != null && String(row.robot_image_url).trim();
-      if (url) return true;
-      let arr: unknown[] = [];
-      if (Array.isArray(row.photos)) arr = row.photos;
-      else if (typeof row.photos === 'string') {
-        try {
-          const parsed = JSON.parse(row.photos);
-          arr = Array.isArray(parsed) ? parsed : [parsed];
-        } catch {
-          if (String(row.photos).trim()) arr = [row.photos];
-        }
-      }
-      return arr.some((u: unknown) => typeof u === 'string' && (u as string).trim());
-    };
+    const byTeam = new Map<number, PitRow>();
     pitScoutingData.forEach((row) => {
       const teamNum = row.team_number;
       const existing = byTeam.get(teamNum);
       if (!existing) {
-        byTeam.set(teamNum, row);
+        const ph = normalizePitPhotoUrls(row);
+        byTeam.set(teamNum, {
+          ...row,
+          photos: ph,
+          robot_image_url:
+            row.robot_image_url && String(row.robot_image_url).trim()
+              ? String(row.robot_image_url).trim()
+              : ph[0] || null,
+        });
         return;
       }
-      if (hasImage(row) && !hasImage(existing)) byTeam.set(teamNum, row);
+      const mergedUrls = mergePitPhotoUrlLists(normalizePitPhotoUrls(existing), normalizePitPhotoUrls(row));
+      const latest = getPitRowTimestampMs(row) >= getPitRowTimestampMs(existing) ? row : existing;
+      byTeam.set(teamNum, {
+        ...latest,
+        photos: mergedUrls,
+        robot_image_url:
+          (latest.robot_image_url && String(latest.robot_image_url).trim()) ||
+          (row.robot_image_url && String(row.robot_image_url).trim()) ||
+          (existing.robot_image_url && String(existing.robot_image_url).trim()) ||
+          mergedUrls[0] ||
+          null,
+      });
     });
     return Array.from(byTeam.values());
   }, [pitScoutingData]);
@@ -1203,24 +1216,6 @@ export default function ViewDataPage() {
     </main>
   );
 
-  const getPitImageUrl = (row: { photos?: string[] | null; robot_image_url?: string | null; [key: string]: unknown }) => {
-    const robotUrl = row.robot_image_url != null && String(row.robot_image_url).trim();
-    if (robotUrl) return String(row.robot_image_url).trim();
-    let arr: unknown[] = [];
-    if (Array.isArray(row.photos)) arr = row.photos;
-    else if (typeof row.photos === 'string') {
-      const str: string = row.photos;
-      try {
-        const parsed = JSON.parse(str);
-        arr = Array.isArray(parsed) ? parsed : [parsed];
-      } catch {
-        if (String(str).trim()) arr = [str];
-      }
-    }
-    const first = arr.find((u: unknown) => typeof u === 'string' && (u as string).trim());
-    return first ? (first as string).trim() : null;
-  };
-
   const pitContent = (
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="mb-6">
@@ -1263,7 +1258,6 @@ export default function ViewDataPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {pitDisplayList.map((row, idx) => {
           const teamName = getTeamName(row.team_number);
-          const imgUrl = getPitImageUrl(row);
           const teamUrl = getTeamPageUrl(row.team_number, 'pit');
           const rowId = (row as PitRow).id;
           const isLive = !!event_key;
@@ -1271,29 +1265,12 @@ export default function ViewDataPage() {
             <Card key={rowId ?? `pit-${row.team_number}-${idx}`} className="overflow-hidden border border-white/10 bg-card/50 hover:border-primary/30 hover:bg-white/5 transition-all h-full flex flex-col">
               <Link href={teamUrl} className="block flex-1 min-w-0">
                 <div className="aspect-[4/3] bg-muted/20 flex items-center justify-center overflow-hidden relative">
-                  {imgUrl ? (
-                    <>
-                      <img
-                        src={imgUrl}
-                        alt={row.robot_name || teamName}
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                        loading="lazy"
-                        onError={(e) => {
-                          const el = e.target as HTMLImageElement;
-                          el.style.display = 'none';
-                          const wrap = el.parentElement;
-                          const fallback = wrap?.querySelector('.pit-img-fallback');
-                          if (fallback instanceof HTMLElement) fallback.style.display = 'flex';
-                        }}
-                      />
-                      <div className="pit-img-fallback absolute inset-0 flex items-center justify-center bg-muted/20" style={{ display: 'none' }}>
-                        <Wrench className="w-12 h-12 text-muted-foreground/50" />
-                      </div>
-                    </>
-                  ) : (
-                    <Wrench className="w-12 h-12 text-muted-foreground/50" />
-                  )}
+                  <PitPhotoImg
+                    urls={normalizePitPhotoUrls(row)}
+                    alt={row.robot_name || teamName || `Team ${row.team_number}`}
+                    className="w-full h-full object-cover"
+                    placeholder={<Wrench className="w-12 h-12 text-muted-foreground/50" />}
+                  />
                 </div>
                 <CardContent className="p-3 space-y-1.5">
                   <p className="font-bold text-foreground truncate">#{row.team_number} · {teamName}</p>

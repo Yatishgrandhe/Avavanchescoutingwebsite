@@ -1,4 +1,5 @@
 import { getOfflineQueue } from '@/lib/offline-queue';
+import { normalizePitPhotoUrls } from '@/lib/pit-images';
 
 export type LocalPendingMatchRow = {
   id: string;
@@ -75,6 +76,12 @@ export async function getLocalPendingPitRows(organizationId?: string): Promise<L
     .filter((item) => !organizationId || item.metadata.organizationId === organizationId)
     .map((item) => {
       const data = item.data?.submissionData || {};
+      const photosNorm = normalizePitPhotoUrls({
+        robot_image_url: data.robot_image_url,
+        photos: data.photos,
+      });
+      const main =
+        (data.robot_image_url != null && String(data.robot_image_url).trim()) || photosNorm[0] || null;
       return {
         id: `local-${item.id}`,
         created_at: item.metadata.queuedAt,
@@ -87,8 +94,8 @@ export async function getLocalPendingPitRows(organizationId?: string): Promise<L
         submitted_by_name: data.submitted_by_name || 'Local Pending',
         submitted_by_email: data.submitted_by_email || '',
         programming_language: data.programming_language || 'Unknown',
-        robot_image_url: data.robot_image_url || null,
-        photos: Array.isArray(data.photos) ? data.photos : [],
+        robot_image_url: main,
+        photos: photosNorm,
         overall_rating: data.overall_rating != null ? Number(data.overall_rating) : undefined,
         organization_id: data.organization_id || item.metadata.organizationId,
         is_local_only: true as const,

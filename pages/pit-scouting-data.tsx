@@ -49,6 +49,8 @@ import {
   getPitBallHoldAmount,
   type PitDriveTrainDetails,
 } from '@/lib/pit-drive-train';
+import { normalizePitPhotoUrls, mergePitPhotoUrlLists } from '@/lib/pit-images';
+import { PitPhotoImg } from '@/components/pit/PitPhotoImg';
 
 export interface PitScoutingData {
   id: string;
@@ -91,14 +93,6 @@ export interface PitScoutingData {
   is_local_only?: boolean;
 }
 
-function getPitImageUrl(item: PitScoutingData): string | null {
-  const robotUrl = item.robot_image_url != null && String(item.robot_image_url).trim();
-  if (robotUrl) return String(item.robot_image_url).trim();
-  const arr = Array.isArray(item.photos) ? item.photos : item.robot_image_url ? [item.robot_image_url] : [];
-  const first = arr.find((u): u is string => typeof u === 'string' && (u as string).trim().length > 0);
-  return first ? first.trim() : null;
-}
-
 function getPitTimestampMs(row: Pick<PitScoutingData, 'submitted_at' | 'created_at'>): number {
   const value = row.submitted_at || row.created_at;
   if (!value) return 0;
@@ -132,17 +126,40 @@ export default function PitScoutingData() {
   const [selectedDetailItem, setSelectedDetailItem] = useState<PitScoutingData | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
+  const detailModalPhotoUrls = React.useMemo(
+    () => (selectedDetailItem ? normalizePitPhotoUrls(selectedDetailItem) : []),
+    [selectedDetailItem],
+  );
+
   const pitDisplayList = React.useMemo(() => {
     const byTeam = new Map<number, PitScoutingData>();
-    const hasImage = (row: PitScoutingData) => !!getPitImageUrl(row);
     filteredData.forEach((row) => {
       const teamNum = row.team_number;
       const existing = byTeam.get(teamNum);
       if (!existing) {
-        byTeam.set(teamNum, row);
+        const ph = normalizePitPhotoUrls(row);
+        byTeam.set(teamNum, {
+          ...row,
+          photos: ph,
+          robot_image_url:
+            row.robot_image_url && String(row.robot_image_url).trim()
+              ? row.robot_image_url
+              : ph[0] || null,
+        });
         return;
       }
-      if (hasImage(row) && !hasImage(existing)) byTeam.set(teamNum, row);
+      const mergedUrls = mergePitPhotoUrlLists(normalizePitPhotoUrls(existing), normalizePitPhotoUrls(row));
+      const latest = getPitTimestampMs(row) >= getPitTimestampMs(existing) ? row : existing;
+      byTeam.set(teamNum, {
+        ...latest,
+        photos: mergedUrls,
+        robot_image_url:
+          (latest.robot_image_url && String(latest.robot_image_url).trim()) ||
+          (row.robot_image_url && String(row.robot_image_url).trim()) ||
+          (existing.robot_image_url && String(existing.robot_image_url).trim()) ||
+          mergedUrls[0] ||
+          null,
+      });
     });
     return Array.from(byTeam.values());
   }, [filteredData]);
@@ -184,13 +201,21 @@ export default function PitScoutingData() {
 
         const pitScoutingData = pitScoutingResult.data;
 
-        const transformedData: PitScoutingData[] = (pitScoutingData || []).map((item: any) => ({
+        const transformedData: PitScoutingData[] = (pitScoutingData || []).map((item: any) => {
+          const photosNorm = normalizePitPhotoUrls({
+            robot_image_url: item.robot_image_url,
+            photos: item.photos,
+          });
+          return {
           id: item.id,
           team_number: item.team_number,
           team_name: teamNameByNumber.get(item.team_number) || undefined,
           robot_name: item.robot_name || 'Unknown Robot',
-          robot_image_url: item.robot_image_url || null,
-          photos: Array.isArray(item.photos) ? item.photos : (item.robot_image_url ? [item.robot_image_url] : []),
+          robot_image_url:
+            item.robot_image_url && String(item.robot_image_url).trim()
+              ? String(item.robot_image_url).trim()
+              : photosNorm[0] || null,
+          photos: photosNorm,
           climb_location: item.climb_location ?? null,
           drive_type: item.drive_type || 'Unknown',
           drive_train_details: mergePitDriveTrainDetails(item.drive_type || 'Unknown', item.drive_train_details),
@@ -213,7 +238,8 @@ export default function PitScoutingData() {
           submitted_at: item.submitted_at,
           created_at: item.created_at,
           auto_fuel_count: item.auto_fuel_count ?? 0
-        }));
+        };
+        });
 
         const localPending = await getLocalPendingPitRows(user.organization_id);
         const merged = mergePitRows(localPending as unknown as PitScoutingData[], transformedData);
@@ -328,13 +354,21 @@ export default function PitScoutingData() {
         throw new Error(`Failed to load pit scouting data: ${error.message}`);
       }
 
-      const transformedData: PitScoutingData[] = (pitScoutingData || []).map((item: any) => ({
+      const transformedData: PitScoutingData[] = (pitScoutingData || []).map((item: any) => {
+        const photosNorm = normalizePitPhotoUrls({
+          robot_image_url: item.robot_image_url,
+          photos: item.photos,
+        });
+        return {
         id: item.id,
         team_number: item.team_number,
         team_name: teamNameByNumber.get(item.team_number) || undefined,
         robot_name: item.robot_name || 'Unknown Robot',
-        robot_image_url: item.robot_image_url || null,
-        photos: Array.isArray(item.photos) ? item.photos : (item.robot_image_url ? [item.robot_image_url] : []),
+        robot_image_url:
+          item.robot_image_url && String(item.robot_image_url).trim()
+            ? String(item.robot_image_url).trim()
+            : photosNorm[0] || null,
+        photos: photosNorm,
         climb_location: item.climb_location ?? null,
         drive_type: item.drive_type || 'Unknown',
         drive_train_details: mergePitDriveTrainDetails(item.drive_type || 'Unknown', item.drive_train_details),
@@ -357,7 +391,8 @@ export default function PitScoutingData() {
         submitted_at: item.submitted_at,
         created_at: item.created_at,
         auto_fuel_count: item.auto_fuel_count ?? 0
-      }));
+      };
+      });
 
       const localPending = await getLocalPendingPitRows(user.organization_id);
       const merged = mergePitRows(localPending as unknown as PitScoutingData[], transformedData);
@@ -579,35 +614,17 @@ export default function PitScoutingData() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {pitDisplayList.map((item, idx) => {
-                  const imgUrl = getPitImageUrl(item);
                   const teamUrl = `/team/${item.team_number}?tab=pit`;
                   return (
                     <Card key={item.id ?? `pit-${item.team_number}-${idx}`} className="overflow-hidden border border-white/10 bg-card/50 hover:border-primary/30 hover:bg-white/5 transition-all h-full flex flex-col">
                       <Link href={teamUrl} className="block flex-1 min-w-0">
                         <div className="aspect-[4/3] bg-muted/20 flex items-center justify-center overflow-hidden relative">
-                          {imgUrl ? (
-                            <>
-                              <img
-                                src={imgUrl}
-                                alt={item.robot_name || item.team_name || `Team ${item.team_number}`}
-                                className="w-full h-full object-cover"
-                                referrerPolicy="no-referrer"
-                                loading="lazy"
-                                onError={(e) => {
-                                  const el = e.target as HTMLImageElement;
-                                  el.style.display = 'none';
-                                  const wrap = el.parentElement;
-                                  const fallback = wrap?.querySelector('.pit-img-fallback');
-                                  if (fallback instanceof HTMLElement) fallback.style.display = 'flex';
-                                }}
-                              />
-                              <div className="pit-img-fallback absolute inset-0 flex items-center justify-center bg-muted/20" style={{ display: 'none' }}>
-                                <Wrench className="w-12 h-12 text-muted-foreground/50" />
-                              </div>
-                            </>
-                          ) : (
-                            <Wrench className="w-12 h-12 text-muted-foreground/50" />
-                          )}
+                          <PitPhotoImg
+                            urls={normalizePitPhotoUrls(item)}
+                            alt={item.robot_name || item.team_name || `Team ${item.team_number}`}
+                            className="w-full h-full object-cover"
+                            placeholder={<Wrench className="w-12 h-12 text-muted-foreground/50" />}
+                          />
                         </div>
                         <CardContent className="p-3 space-y-1.5">
                           <div>
@@ -780,11 +797,12 @@ export default function PitScoutingData() {
                         <div className="lg:col-span-4 space-y-6">
                           <Card className="bg-gray-800/50 border-gray-700 overflow-hidden p-1 shadow-lg">
                             <div className="aspect-[4/3] rounded-lg overflow-hidden relative group bg-gray-900">
-                              <img
-                                src={getPitImageUrl(selectedDetailItem) || '/placeholder-robot.png'}
+                              <PitPhotoImg
+                                urls={detailModalPhotoUrls}
                                 alt={selectedDetailItem.robot_name || 'Robot'}
                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                referrerPolicy="no-referrer"
+                                fallbackSrc="/placeholder-robot.png"
+                                loading="eager"
                               />
                             </div>
                           </Card>
@@ -1007,17 +1025,18 @@ export default function PitScoutingData() {
                         </div>
                       </div>
 
-                      {/* Photos Gallery (if more than 1) */}
-                      {selectedDetailItem.photos && selectedDetailItem.photos.length > 1 && (
+                      {/* Extra photos (hero uses first URL; gallery shows the rest without duplicating) */}
+                      {detailModalPhotoUrls.length > 1 && (
                         <div className="space-y-4 pt-4 border-t border-gray-800">
                           <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Robot Gallery</h4>
                           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                            {selectedDetailItem.photos.map((url: string, i: number) => (
-                              <div key={i} className="aspect-square rounded-xl overflow-hidden border border-gray-700 bg-gray-900 group relative">
+                            {detailModalPhotoUrls.slice(1).map((url: string, i: number) => (
+                              <div key={url + i} className="aspect-square rounded-xl overflow-hidden border border-gray-700 bg-gray-900 group relative">
                                 <img
                                   src={url}
-                                  alt={`Robot photo ${i + 1}`}
+                                  alt={`Robot photo ${i + 2}`}
                                   className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                  referrerPolicy="no-referrer"
                                 />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                   <Eye className="w-5 h-5 text-white" />

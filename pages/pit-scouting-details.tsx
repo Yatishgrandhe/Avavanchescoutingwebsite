@@ -36,6 +36,8 @@ import {
   getPitBallHoldAmount,
   type PitDriveTrainDetails,
 } from '@/lib/pit-drive-train';
+import { mergePitPhotoUrlLists, normalizePitPhotoUrls } from '@/lib/pit-images';
+import { PitPhotoImg } from '@/components/pit/PitPhotoImg';
 
 interface PitScoutingData {
   id: string;
@@ -146,20 +148,11 @@ export default function PitScoutingDetails() {
           .eq('team_number', pitScoutingData.team_number)
           .eq('organization_id', pitScoutingData.organization_id);
 
-        const photoSet = new Set<string>();
-        if (pitScoutingData.robot_image_url) photoSet.add(pitScoutingData.robot_image_url);
-        if (Array.isArray(pitScoutingData.photos)) {
-          pitScoutingData.photos.forEach((p: string) => p && photoSet.add(p));
-        }
-        
-        // Also add photos from other records for the same team
+        let mergedPhotoUrls = normalizePitPhotoUrls(pitScoutingData);
         if (allTeamPhotos) {
-          allTeamPhotos.forEach((record: { photos?: string[] | null; robot_image_url?: string | null }) => {
-            if (record.robot_image_url) photoSet.add(record.robot_image_url);
-            if (Array.isArray(record.photos)) {
-              record.photos.forEach((p: string) => p && photoSet.add(p));
-            }
-          });
+          for (const record of allTeamPhotos) {
+            mergedPhotoUrls = mergePitPhotoUrlLists(mergedPhotoUrls, normalizePitPhotoUrls(record));
+          }
         }
 
         let mergedDtd = mergePitDriveTrainDetails(
@@ -198,8 +191,11 @@ export default function PitScoutingDetails() {
           id: pitScoutingData.id,
           team_number: pitScoutingData.team_number,
           robot_name: pitScoutingData.robot_name || 'Unknown Robot',
-          robot_image_url: pitScoutingData.robot_image_url || null,
-          photos: Array.from(photoSet),
+          robot_image_url:
+            (pitScoutingData.robot_image_url != null && String(pitScoutingData.robot_image_url).trim()) ||
+            mergedPhotoUrls[0] ||
+            null,
+          photos: mergedPhotoUrls,
           climb_location: pitScoutingData.climb_location ?? null,
           drive_type: pitScoutingData.drive_type || 'Unknown',
           drive_train_details: mergedDtd,
@@ -399,11 +395,12 @@ export default function PitScoutingDetails() {
                 >
                   <Card className="bg-gray-900 border-gray-800 overflow-hidden p-1 shadow-2xl">
                     <div className="aspect-[4/3] rounded-xl overflow-hidden relative group bg-gray-800">
-                      <img
-                        src={pitData.robot_image_url || (pitData.photos && pitData.photos[0]) || '/placeholder-robot.png'}
+                      <PitPhotoImg
+                        urls={normalizePitPhotoUrls(pitData)}
                         alt={pitData.robot_name}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        referrerPolicy="no-referrer"
+                        fallbackSrc="/placeholder-robot.png"
+                        loading="eager"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
                         <p className="text-white font-bold text-lg">{pitData.robot_name}</p>

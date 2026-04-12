@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { useSupabase } from '@/pages/_app';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -63,6 +63,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Ca
 import { PitScoutingData } from '@/pages/pit-scouting-data';
 import { hasCompetitionPitSidebarRows } from '@/lib/pit-scouting-visibility';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
+import { mergePitDriveTrainDetails, formatPitBallCapacity, getPitBallHoldAmount } from '@/lib/pit-drive-train';
 
 // Helper component for stat cards
 const StatCard = ({ label, value, color, icon: Icon, subLabel }: any) => (
@@ -124,6 +125,11 @@ const TeamDetail: React.FC = () => {
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [summarizeError, setSummarizeError] = useState<string | null>(null);
+
+  const pitDriveTrainMerged = useMemo(() => {
+    if (!pitData) return null;
+    return mergePitDriveTrainDetails(pitData.drive_type || 'Unknown', pitData.drive_train_details);
+  }, [pitData]);
 
   useEffect(() => {
     if (!fullScreenImageUrl) return;
@@ -1045,6 +1051,11 @@ const TeamDetail: React.FC = () => {
                         {pitData.drive_type && <Badge className="bg-primary/20 text-primary border-primary/20">{pitData.drive_type}</Badge>}
                         {(pitData.weight != null && pitData.weight > 0) && <Badge variant="outline" className="border-white/10">{pitData.weight} lbs</Badge>}
                         {(pitData.overall_rating != null && pitData.overall_rating > 0) && <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">★ {pitData.overall_rating}/10</Badge>}
+                        {pitDriveTrainMerged && getPitBallHoldAmount(pitDriveTrainMerged) != null && (
+                          <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+                            {formatPitBallCapacity(pitDriveTrainMerged)}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1070,7 +1081,19 @@ const TeamDetail: React.FC = () => {
                           </div>
                           <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Motor Count</span>
-                            <span className="font-bold">{pitData.drive_train_details?.drive_camps ?? (pitData.drive_train_details as any)?.motor_count ?? '—'}</span>
+                            <span className="font-bold">
+                              {pitDriveTrainMerged?.drive_camps ??
+                                pitDriveTrainMerged?.motor_count ??
+                                pitData.drive_train_details?.drive_camps ??
+                                (pitData.drive_train_details as { motor_count?: number })?.motor_count ??
+                                '—'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Ball capacity</span>
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                              {pitDriveTrainMerged ? formatPitBallCapacity(pitDriveTrainMerged) : '—'}
+                            </span>
                           </div>
                         </div>
                       </div>

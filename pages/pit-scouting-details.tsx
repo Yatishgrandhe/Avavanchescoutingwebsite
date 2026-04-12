@@ -33,6 +33,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import {
   mergePitDriveTrainDetails,
   formatPitBallCapacity,
+  getPitBallHoldAmount,
   type PitDriveTrainDetails,
 } from '@/lib/pit-drive-train';
 
@@ -75,7 +76,9 @@ interface PitScoutingData {
 export default function PitScoutingDetails() {
   const { user, loading, supabase } = useSupabase();
   const router = useRouter();
-  const { id } = router.query;
+  const rawId = router.query.id;
+  const pitRecordId =
+    typeof rawId === 'string' ? rawId : Array.isArray(rawId) ? rawId[0] : undefined;
   const [pitData, setPitData] = useState<PitScoutingData | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +119,7 @@ export default function PitScoutingDetails() {
   // Load specific pit scouting data
   useEffect(() => {
     const loadPitData = async () => {
-      if (!id) return;
+      if (!pitRecordId) return;
       
       setLoadingData(true);
       setError(null);
@@ -125,7 +128,7 @@ export default function PitScoutingDetails() {
         const { data: pitScoutingData, error } = await supabase
           .from('pit_scouting_data')
           .select('*')
-          .eq('id', id)
+          .eq('id', pitRecordId)
           .single();
 
         if (error) {
@@ -159,6 +162,37 @@ export default function PitScoutingDetails() {
           });
         }
 
+        let mergedDtd = mergePitDriveTrainDetails(
+          pitScoutingData.drive_type || 'Unknown',
+          pitScoutingData.drive_train_details
+        );
+
+        if (
+          getPitBallHoldAmount(mergedDtd) == null &&
+          pitScoutingData.team_number != null &&
+          pitScoutingData.organization_id
+        ) {
+          const { data: siblings } = await supabase
+            .from('pit_scouting_data')
+            .select('drive_train_details')
+            .eq('team_number', pitScoutingData.team_number)
+            .eq('organization_id', pitScoutingData.organization_id)
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+          for (const row of siblings || []) {
+            const m = mergePitDriveTrainDetails(
+              pitScoutingData.drive_type || 'Unknown',
+              (row as { drive_train_details?: unknown }).drive_train_details
+            );
+            const cap = getPitBallHoldAmount(m);
+            if (cap != null) {
+              mergedDtd = { ...mergedDtd, ball_hold_amount: cap };
+              break;
+            }
+          }
+        }
+
         // Transform the data to match our interface
         const transformedData: PitScoutingData = {
           id: pitScoutingData.id,
@@ -168,10 +202,7 @@ export default function PitScoutingDetails() {
           photos: Array.from(photoSet),
           climb_location: pitScoutingData.climb_location ?? null,
           drive_type: pitScoutingData.drive_type || 'Unknown',
-          drive_train_details: mergePitDriveTrainDetails(
-            pitScoutingData.drive_type || 'Unknown',
-            pitScoutingData.drive_train_details
-          ),
+          drive_train_details: mergedDtd,
           autonomous_capabilities: pitScoutingData.autonomous_capabilities || [],
           teleop_capabilities: pitScoutingData.teleop_capabilities || [],
           can_autoalign: !!pitScoutingData.can_autoalign,
@@ -203,10 +234,10 @@ export default function PitScoutingDetails() {
       }
     };
 
-    if (user && id) {
+    if (user && pitRecordId) {
       loadPitData();
     }
-  }, [user, id]);
+  }, [user, pitRecordId, supabase]);
 
   const handleBack = () => {
     const raw = router.query.returnTo;

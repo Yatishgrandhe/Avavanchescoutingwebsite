@@ -43,7 +43,12 @@ import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAdmin } from '@/hooks/use-admin';
 import { getLocalPendingPitRows } from '@/lib/local-pending-data';
-import { mergePitDriveTrainDetails, formatPitBallCapacity, type PitDriveTrainDetails } from '@/lib/pit-drive-train';
+import {
+  mergePitDriveTrainDetails,
+  formatPitBallCapacity,
+  getPitBallHoldAmount,
+  type PitDriveTrainDetails,
+} from '@/lib/pit-drive-train';
 
 export interface PitScoutingData {
   id: string;
@@ -733,13 +738,28 @@ export default function PitScoutingData() {
                         </h2>
                         <span className="text-[10px] uppercase tracking-wider text-gray-500 mt-1 block">Team name</span>
                         <p className="text-gray-400 font-medium">{selectedDetailItem.team_name || '—'}</p>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <Badge variant="outline" className="bg-blue-500/10 text-blue-300 border-blue-500/20 text-[10px] uppercase tracking-wider h-5">
                             Pit Scouting Details
                           </Badge>
                           <span className="text-gray-500 text-xs font-mono">•</span>
                           <span className="text-gray-400 text-xs font-mono">{selectedDetailItem.robot_name || 'Generic Bot'}</span>
+                          {getPitBallHoldAmount(selectedDetailItem.drive_train_details) != null && (
+                            <>
+                              <span className="text-gray-500 text-xs font-mono">•</span>
+                              <span className="text-emerald-400 text-xs font-semibold">
+                                {formatPitBallCapacity(selectedDetailItem.drive_train_details)}
+                              </span>
+                            </>
+                          )}
                         </div>
+                        <Link
+                          href={`/pit-scouting-details?id=${encodeURIComponent(selectedDetailItem.id)}`}
+                          className="inline-block mt-2 text-xs font-medium text-blue-400 hover:text-blue-300 hover:underline"
+                          onClick={() => setShowDetailModal(false)}
+                        >
+                          Open full pit details page
+                        </Link>
                       </div>
                     </div>
                     <Button
@@ -785,6 +805,11 @@ export default function PitScoutingData() {
                               {selectedDetailItem.overall_rating && selectedDetailItem.overall_rating > 0 && (
                                 <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 font-bold">
                                   ★ {selectedDetailItem.overall_rating}/10
+                                </Badge>
+                              )}
+                              {getPitBallHoldAmount(selectedDetailItem.drive_train_details) != null && (
+                                <Badge variant="outline" className="border-emerald-500/40 text-emerald-300 font-medium">
+                                  {formatPitBallCapacity(selectedDetailItem.drive_train_details)}
                                 </Badge>
                               )}
                             </div>

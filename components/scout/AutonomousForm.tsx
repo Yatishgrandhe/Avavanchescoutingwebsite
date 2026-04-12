@@ -14,23 +14,21 @@ import { BallTrackingPhase, getBallChoiceScoreFromRange, RunRecord } from '@/lib
 import { Award, Play, Square, Clock } from 'lucide-react';
 import { formatDurationSec } from '@/lib/utils';
 import StopwatchBallTracking from './StopwatchBallTracking';
-import { normalizeShuttleConsistency } from '@/lib/scouting-notes-merge';
-import { cn } from '@/lib/utils';
 
 interface AutonomousFormProps {
-  onNext: (autonomousData: BallTrackingPhase & { auto_fuel_active_hub?: number; auto_tower_level1?: boolean; auto_climb_sec?: number; shuttle?: boolean; shuttle_consistency?: 'consistent' | 'inconsistent'; shuttle_runs?: RunRecord[] }) => void;
+  onNext: (autonomousData: BallTrackingPhase & { auto_fuel_active_hub?: number; auto_tower_level1?: boolean; auto_climb_sec?: number }) => void;
   onBack: () => void;
   currentStep: number;
   totalSteps: number;
   isDarkMode?: boolean;
-  initialData?: Partial<BallTrackingPhase> & { auto_fuel_active_hub?: number; auto_tower_level1?: boolean; auto_climb_sec?: number | null; shuttle?: boolean; shuttle_consistency?: 'consistent' | 'inconsistent'; shuttle_runs?: RunRecord[] };
+  initialData?: Partial<BallTrackingPhase> & { auto_fuel_active_hub?: number; auto_tower_level1?: boolean; auto_climb_sec?: number | null };
 }
 
 const AutonomousForm: React.FC<AutonomousFormProps> = ({
   onNext,
   onBack,
-  currentStep,
-  totalSteps,
+  currentStep: _currentStep,
+  totalSteps: _totalSteps,
   isDarkMode = true,
   initialData,
 }) => {
@@ -40,9 +38,6 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
   const [autoClimbElapsedMs, setAutoClimbElapsedMs] = useState(0);
   const [showAutoClimbPopup, setShowAutoClimbPopup] = useState(false);
   const [pendingAutoClimbSec, setPendingAutoClimbSec] = useState(0);
-  const [shuttle, setShuttle] = useState(initialData?.shuttle === true);
-  const [shuttleConsistency, setShuttleConsistency] = useState<'consistent' | 'inconsistent'>(initialData?.shuttle_consistency === 'inconsistent' ? 'inconsistent' : 'consistent');
-  const [shuttleRuns, setShuttleRuns] = useState<RunRecord[]>(() => initialData?.shuttle_runs || []);
 
   useEffect(() => {
     if (!autoClimbTimerRunning) return;
@@ -82,8 +77,6 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
     setAutoClimbSec('');
   }, []);
 
-  const progressPercentage = (currentStep / totalSteps) * 100;
-
   const handleComplete = (runs: RunRecord[]) => {
     const totalFuel = (runs || []).reduce(
       (sum, r) => sum + getBallChoiceScoreFromRange(r.ball_choice),
@@ -94,9 +87,6 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
       auto_fuel_active_hub: Math.round(totalFuel * 10) / 10,
       auto_tower_level1: autoTowerLevel1,
       auto_climb_sec: autoClimbSec !== '' && !Number.isNaN(Number(autoClimbSec)) ? Math.round(Number(autoClimbSec) * 1000) / 1000 : undefined,
-      shuttle,
-      shuttle_consistency: shuttle ? normalizeShuttleConsistency(shuttleConsistency) : undefined,
-      shuttle_runs: shuttle ? shuttleRuns : [],
     });
   };
 
@@ -170,64 +160,6 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
-
-          <div className={`rounded-xl p-3 sm:p-4 border ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-muted/30 border-border'}`}>
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <h3 className="text-xs font-black uppercase tracking-wider text-primary">Shuttling</h3>
-              <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 h-[38px] w-[180px]">
-                <button
-                  type="button"
-                  onClick={() => setShuttle(true)}
-                  className={cn(
-                    "flex-1 rounded-lg text-[11px] font-bold transition-all",
-                    shuttle ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:bg-white/5"
-                  )}
-                >
-                  YES
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShuttle(false)}
-                  className={cn(
-                    "flex-1 rounded-lg text-[11px] font-bold transition-all",
-                    !shuttle ? "bg-white/15 text-white" : "text-muted-foreground hover:bg-white/5"
-                  )}
-                >
-                  NO
-                </button>
-              </div>
-            </div>
-
-            {shuttle && (
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  {(['consistent', 'inconsistent'] as const).map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => setShuttleConsistency(option)}
-                      className={cn(
-                        "px-3 py-2 rounded-lg text-[11px] font-bold border transition-all uppercase tracking-wider",
-                        shuttleConsistency === option
-                          ? "bg-primary/20 border-primary text-primary"
-                          : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
-                      )}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-                <StopwatchBallTracking
-                  phaseLabel="Shuttling"
-                  phaseDescription="Track shuttling runs — when balls moved, pick range"
-                  initialData={shuttleRuns}
-                  onRunsChange={setShuttleRuns}
-                  hideNextButton={true}
-                  isDarkMode={isDarkMode}
-                />
-              </div>
-            )}
           </div>
 
           <div className="pt-2">

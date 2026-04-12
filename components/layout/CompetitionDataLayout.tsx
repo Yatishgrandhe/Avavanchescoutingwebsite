@@ -11,6 +11,7 @@ import { ArrowLeft, Home, User, LogOut, Settings } from 'lucide-react';
 import Logo from '../ui/Logo';
 import { useSupabase } from '@/pages/_app';
 import { useAdmin } from '@/hooks/use-admin';
+import { clientSignOut } from '@/lib/client-sign-out';
 
 interface CompetitionDataLayoutProps {
   children: React.ReactNode;
@@ -37,9 +38,10 @@ export default function CompetitionDataLayout({
   const { isAdmin } = useAdmin();
   const isLoggedIn = !!user;
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/auth/signin';
+  const handleSignOut = () => {
+    void clientSignOut(supabase).then(() => {
+      window.location.href = '/auth/signin';
+    });
   };
 
   return (
@@ -108,7 +110,13 @@ export default function CompetitionDataLayout({
                           <span>Settings</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive">
+                        <DropdownMenuItem
+                          className="cursor-pointer text-destructive focus:text-destructive"
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            handleSignOut();
+                          }}
+                        >
                           <LogOut className="mr-2 h-4 w-4" />
                           <span>Sign Out</span>
                         </DropdownMenuItem>

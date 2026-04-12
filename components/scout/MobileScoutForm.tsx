@@ -205,6 +205,7 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
                   onBack={() => setCurrentStep('match-details')}
                   currentStep={currentStepIndex}
                   totalSteps={steps.length}
+                  initialData={formData.autonomous}
                 />
               </motion.div>
             )}
@@ -226,6 +227,7 @@ export default function MobileScoutForm({ onSubmit, user }: MobileScoutFormProps
                   currentStep={currentStepIndex}
                   totalSteps={steps.length}
                   isDarkMode={true}
+                  initialData={formData.teleop}
                 />
               </motion.div>
             )}

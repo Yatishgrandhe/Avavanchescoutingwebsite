@@ -80,6 +80,39 @@ export default function PitScoutingDetails() {
   const [pitData, setPitData] = useState<PitScoutingData | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check admin status
+  useEffect(() => {
+    if (user) {
+      setIsAdmin(user.role === 'admin' || user.role === 'lead');
+    }
+  }, [user]);
+
+  const setAsMainImage = async (url: string) => {
+    if (!pitData || !isAdmin) return;
+    
+    setIsUpdating(true);
+    try {
+      // Update ALL records for this team in this organization to have this as the robot_image_url
+      // This ensures the list view always picks this image regardless of which record it chooses
+      const { error } = await supabase
+        .from('pit_scouting_data')
+        .update({ robot_image_url: url })
+        .eq('team_number', pitData.team_number)
+        .eq('organization_id', user?.organization_id);
+
+      if (error) throw error;
+      
+      setPitData(prev => prev ? ({ ...prev, robot_image_url: url }) : null);
+    } catch (err) {
+      console.error('Error setting main image:', err);
+      alert('Failed to update main image across team records');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   // Load specific pit scouting data
   useEffect(() => {
@@ -104,13 +137,36 @@ export default function PitScoutingDetails() {
           throw new Error('Pit scouting data not found');
         }
 
+        // Fetch all photos for this team in the current event (org-scoped)
+        const { data: allTeamPhotos } = await supabase
+          .from('pit_scouting_data')
+          .select('photos, robot_image_url')
+          .eq('team_number', pitScoutingData.team_number)
+          .eq('organization_id', pitScoutingData.organization_id);
+
+        const photoSet = new Set<string>();
+        if (pitScoutingData.robot_image_url) photoSet.add(pitScoutingData.robot_image_url);
+        if (Array.isArray(pitScoutingData.photos)) {
+          pitScoutingData.photos.forEach((p: string) => p && photoSet.add(p));
+        }
+        
+        // Also add photos from other records for the same team
+        if (allTeamPhotos) {
+          allTeamPhotos.forEach((record: { photos?: string[] | null; robot_image_url?: string | null }) => {
+            if (record.robot_image_url) photoSet.add(record.robot_image_url);
+            if (Array.isArray(record.photos)) {
+              record.photos.forEach((p: string) => p && photoSet.add(p));
+            }
+          });
+        }
+
         // Transform the data to match our interface
         const transformedData: PitScoutingData = {
           id: pitScoutingData.id,
           team_number: pitScoutingData.team_number,
           robot_name: pitScoutingData.robot_name || 'Unknown Robot',
           robot_image_url: pitScoutingData.robot_image_url || null,
-          photos: Array.isArray(pitScoutingData.photos) ? pitScoutingData.photos : (pitScoutingData.robot_image_url ? [pitScoutingData.robot_image_url] : []),
+          photos: Array.from(photoSet),
           climb_location: pitScoutingData.climb_location ?? null,
           drive_type: pitScoutingData.drive_type || 'Unknown',
           drive_train_details: pitScoutingData.drive_train_details || {
@@ -367,6 +423,48 @@ export default function PitScoutingDetails() {
                         ))}
                       </div>
                     )}
+                  </Card>
+                )}
+
+                {/* Team Media Gallery */}
+                {pitData.photos && pitData.photos.length > 0 && (
+                  <Card className="bg-gray-900 border-gray-800 p-6 shadow-xl">
+                    <h3 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                      <Eye className="w-4 h-4" /> Team Media Gallery
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      {pitData.photos.map((photo, i) => (
+                        <div key={i} className="relative group aspect-square rounded-lg overflow-hidden bg-black/40 border border-gray-800">
+                          <img
+                            src={photo}
+                            alt={`Team photo ${i + 1}`}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
+                            {isAdmin && photo !== pitData.robot_image_url && (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className="text-[10px] h-7 px-2 font-bold bg-blue-600 hover:bg-blue-500 text-white border-none"
+                                onClick={() => setAsMainImage(photo)}
+                                disabled={isUpdating}
+                              >
+                                Set as Main
+                              </Button>
+                            )}
+                            {photo === pitData.robot_image_url && (
+                              <Badge className="bg-green-600 text-white border-none text-[8px] uppercase font-black tracking-widest px-1.5 py-0.5">
+                                Current Main
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mt-4 text-[10px] text-gray-500 italic">
+                      All robot images for Team {pitData.team_number} from current entries.
+                    </p>
                   </Card>
                 )}
               </div>

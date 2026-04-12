@@ -54,6 +54,26 @@ export default function SyncButton() {
   const performActualSync = async () => {
     setShowSpeedTest(false);
     if (isSyncing || queueCount === 0 || !session?.access_token) return;
+
+    try {
+      const pf = await fetch('/api/sync-preflight', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const pfBody = await pf.json().catch(() => ({}));
+      if (!pf.ok) {
+        toast.error(
+          typeof pfBody.error === 'string'
+            ? pfBody.error
+            : 'Cannot reach the scouting database. Check your connection and try again.'
+        );
+        return;
+      }
+    } catch {
+      toast.error('Could not verify database connectivity. Try again when online.');
+      return;
+    }
+
     setIsSyncing(true);
     let successCount = 0;
     let failCount = 0;

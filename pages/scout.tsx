@@ -150,8 +150,8 @@ export default function Scout() {
         comments: formData.miscellaneous.comments,
         average_downtime: formData.miscellaneous.average_downtime ?? undefined,
         broke: formData.miscellaneous.broke ?? undefined,
-        shuttling: formData.autonomous?.shuttle === true,
-        shuttling_consistency: formData.autonomous?.shuttle === true ? formData.autonomous?.shuttle_consistency : undefined,
+        shuttling: formData.teleop?.shuttle === true,
+        shuttling_consistency: formData.teleop?.shuttle === true ? formData.teleop?.shuttle_consistency : undefined,
         organization_id: user?.organization_id, // include org ID from user profile
         scout_id: user?.id,
         submitted_by_email: user?.email,
@@ -161,9 +161,9 @@ export default function Scout() {
           autonomous: formData.autonomous,
           teleop: {
             ...formData.teleop,
-            shuttle: formData.autonomous?.shuttle === true,
-            shuttle_consistency: formData.autonomous?.shuttle === true ? formData.autonomous?.shuttle_consistency : undefined,
-            shuttle_runs: formData.autonomous?.shuttle === true ? (formData.autonomous?.shuttle_runs || []) : [],
+            shuttle: formData.teleop?.shuttle === true,
+            shuttle_consistency: formData.teleop?.shuttle === true ? formData.teleop?.shuttle_consistency : undefined,
+            shuttle_runs: formData.teleop?.shuttle === true ? (formData.teleop?.shuttle_runs || []) : [],
           },
         },
       };
@@ -580,9 +580,9 @@ export default function Scout() {
                                   </div>
                                 )}
                               </div>
-                              {((formData.autonomous?.runs?.length ?? 0) > 0 || (formData.teleop?.runs?.length ?? 0) > 0 || (formData.autonomous?.shuttle_runs?.length ?? 0) > 0) && (
+                              {((formData.autonomous?.runs?.length ?? 0) > 0 || (formData.teleop?.runs?.length ?? 0) > 0 || (formData.teleop?.shuttle_runs?.length ?? 0) > 0) && (
                                 <div className="text-[10px] text-muted-foreground pt-1">
-                                  Runs: Auto {formData.autonomous?.runs?.length ?? 0} ({((formData.autonomous?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'}) · Teleop {formData.teleop?.runs?.length ?? 0} ({((formData.teleop?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'}) · Shuttle {formData.autonomous?.shuttle_runs?.length ?? 0} ({((formData.autonomous?.shuttle_runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'})
+                                  Runs: Auto {formData.autonomous?.runs?.length ?? 0} ({((formData.autonomous?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'}) · Teleop {formData.teleop?.runs?.length ?? 0} ({((formData.teleop?.runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'}) · Shuttle {formData.teleop?.shuttle_runs?.length ?? 0} ({((formData.teleop?.shuttle_runs ?? []).map((r: { ball_choice: number }) => getBallChoiceLabel(r.ball_choice)).join(', ')) || '—'})
                                 </div>
                               )}
                             </div>

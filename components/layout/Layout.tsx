@@ -24,6 +24,7 @@ import { useSupabase } from '@/pages/_app';
 import { useAdmin } from '@/hooks/use-admin';
 import { ConnectionMonitor } from './ConnectionMonitor';
 import SyncButton from './SyncButton';
+import { clientSignOut } from '@/lib/client-sign-out';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -33,9 +34,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, supabase } = useSupabase();
   const { isAdmin, canAccessPickList, canAccessStats } = useAdmin();
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/auth/signin';
+  const handleSignOut = () => {
+    void clientSignOut(supabase).then(() => {
+      window.location.href = '/auth/signin';
+    });
   };
 
   return (
@@ -111,7 +113,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         <span>Settings</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive">
+                      <DropdownMenuItem
+                        className="cursor-pointer text-destructive focus:text-destructive"
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          handleSignOut();
+                        }}
+                      >
                         <LogOut className="mr-2 h-4 w-4" />
                         <span>Sign Out</span>
                       </DropdownMenuItem>

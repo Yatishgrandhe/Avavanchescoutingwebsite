@@ -71,7 +71,12 @@ export function parseNotes(notes: any, row?: ScoutingRowShuttleMeta): ParsedNote
 
   const autoRuns = Array.isArray(auto.runs) ? auto.runs : [];
   const teleopRuns = Array.isArray(teleop.runs) ? teleop.runs : [];
-  const shuttleRuns = Array.isArray(teleop.shuttle_runs) ? teleop.shuttle_runs : [];
+  /** Legacy: shuttle was collected on the auto step but stored under teleop in JSON; older rows may only have autonomous.shuttle_runs. */
+  const legacyAutoShuttleRuns = Array.isArray((auto as { shuttle_runs?: RunRecord[] }).shuttle_runs)
+    ? (auto as { shuttle_runs: RunRecord[] }).shuttle_runs
+    : [];
+  const teleopShuttleRuns = Array.isArray(teleop.shuttle_runs) ? teleop.shuttle_runs : [];
+  const shuttleRuns = teleopShuttleRuns.length > 0 ? teleopShuttleRuns : legacyAutoShuttleRuns;
   const autoFuelFromRuns = fuelFromRuns(autoRuns);
   const teleopFuelFromRuns = fuelFromRuns(teleopRuns);
 
@@ -90,8 +95,13 @@ export function parseNotes(notes: any, row?: ScoutingRowShuttleMeta): ParsedNote
   const autoFuel = autoFuelFromRuns > 0 ? autoFuelFromRuns : (autoFuelFromBalls > 0 ? autoFuelFromBalls : (Number(auto.auto_fuel_active_hub) || 0));
   const teleopFuel = teleopFuelFromRuns > 0 ? teleopFuelFromRuns : (teleopFuelFromBalls > 0 ? teleopFuelFromBalls : (Number(teleop.teleop_fuel_active_hub) || 0));
 
-  let shuttle = Boolean(teleop.shuttle) || shuttleRuns.length > 0;
-  let shuttle_consistency = normalizeShuttleConsistency(teleop.shuttle_consistency);
+  const legacyAutoShuttle = Boolean((auto as { shuttle?: boolean }).shuttle);
+  const legacyAutoShuttleConsistency = normalizeShuttleConsistency(
+    (auto as { shuttle_consistency?: string }).shuttle_consistency
+  );
+  let shuttle = Boolean(teleop.shuttle) || shuttleRuns.length > 0 || legacyAutoShuttle;
+  let shuttle_consistency =
+    normalizeShuttleConsistency(teleop.shuttle_consistency) || (legacyAutoShuttle ? legacyAutoShuttleConsistency : undefined);
   if (row && (row.shuttling === true || row.shuttling === false)) {
     shuttle = row.shuttling;
   }

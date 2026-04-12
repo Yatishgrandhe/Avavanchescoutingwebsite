@@ -24,8 +24,22 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const testingRef = useRef(false);
+  const wasOpenRef = useRef(false);
 
   const MIN_SPEED_MBPS = 5;
+
+  /** Every time the user opens the upload guard, run a fresh speed test (do not reuse last success). */
+  useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+      testingRef.current = false;
+      setStatus('idle');
+      setError(null);
+      setSpeed(0);
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen]);
 
   const runSpeedTest = useCallback(async () => {
     // Avoid double-running

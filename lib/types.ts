@@ -148,7 +148,7 @@ export interface User {
   email: string;
   image?: string;
   username?: string;
-  role?: 'user' | 'admin' | 'superadmin';
+  role?: 'user' | 'admin' | 'superadmin' | 'lead';
   organization_id?: string;
   /** FRC team number (optional; set during org setup). */
   team_number?: number | null;

@@ -33,6 +33,67 @@ function stripForPastInsert<T extends Record<string, unknown>>(
   return { ...rest, ...extra };
 }
 
+function pickColumns(
+  row: Record<string, unknown>,
+  columns: readonly string[],
+  extra: Record<string, unknown>
+): Record<string, unknown> {
+  const picked: Record<string, unknown> = {};
+  for (const column of columns) {
+    if (Object.prototype.hasOwnProperty.call(row, column)) {
+      picked[column] = row[column];
+    }
+  }
+  return { ...picked, ...extra };
+}
+
+const PAST_SCOUTING_COLUMNS = [
+  'scout_id',
+  'match_id',
+  'team_number',
+  'alliance_color',
+  'autonomous_points',
+  'teleop_points',
+  'final_score',
+  'notes',
+  'defense_rating',
+  'comments',
+  'submitted_by_name',
+  'submitted_by_email',
+  'submitted_at',
+  'autonomous_cleansing',
+  'teleop_cleansing',
+  'created_at',
+  'alliance_position',
+] as const;
+
+const PAST_PIT_COLUMNS = [
+  'team_number',
+  'robot_name',
+  'drive_type',
+  'drive_train_details',
+  'autonomous_capabilities',
+  'teleop_capabilities',
+  'endgame_capabilities',
+  'robot_dimensions',
+  'weight',
+  'programming_language',
+  'notes',
+  'photos',
+  'strengths',
+  'weaknesses',
+  'overall_rating',
+  'submitted_by',
+  'submitted_by_email',
+  'submitted_by_name',
+  'submitted_at',
+  'drive_teams_count',
+  'created_at',
+  'auto_paths',
+  'annotated_image_url',
+  'auto_fuel_count',
+] as const;
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
@@ -150,12 +211,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq('matches.event_key', effectiveEventKey);
 
     if (scoutingRecords && scoutingRecords.length > 0) {
-      const pastScouting = scoutingRecords.map((r) =>
-        stripForPastInsert(r as Record<string, unknown>, {
+      const pastScouting = scoutingRecords.map((r) => {
+        const row = stripForPastInsert(r as Record<string, unknown>, {});
+        return pickColumns(row, PAST_SCOUTING_COLUMNS, {
           competition_id: competitionId,
           organization_id: orgId,
-        })
-      );
+        });
+      });
       const { error: psErr } = await supabase.from('past_scouting_data').insert(pastScouting);
       if (psErr) {
         console.error('Archive: past_scouting_data insert', psErr);
@@ -176,12 +238,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq('roster.event_key', effectiveEventKey);
 
     if (pitRecords && pitRecords.length > 0) {
-      const pastPit = pitRecords.map((r) =>
-        stripForPastInsert(r as Record<string, unknown>, {
+      const pastPit = pitRecords.map((r) => {
+        const row = stripForPastInsert(r as Record<string, unknown>, {});
+        return pickColumns(row, PAST_PIT_COLUMNS, {
           competition_id: competitionId,
           organization_id: orgId,
-        })
-      );
+        });
+      });
       const { error: ppErr } = await supabase.from('past_pit_scouting_data').insert(pastPit);
       if (ppErr) {
         console.error('Archive: past_pit_scouting_data insert', ppErr);

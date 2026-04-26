@@ -62,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const result = await syncTbaEventToOrganization(supabase, orgId, eventKey);
     return res.status(200).json({
       success: true,
-      message: `Loaded ${result.teamsUpserted} teams and ${result.matchesUpserted} matches for ${result.eventName}`,
+      message: `Loaded ${result.teamsUpserted} teams, ${result.matchesUpserted} matches, and refreshed ${result.metricsUpdated} team metrics for ${result.eventName}`,
       data: result,
     });
   } catch (error) {

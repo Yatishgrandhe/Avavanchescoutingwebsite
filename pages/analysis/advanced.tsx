@@ -65,6 +65,10 @@ interface TeamStats {
   rpmagic?: number;
   goblin?: number;
   epa?: number;
+  tba_opr?: number;
+  normalized_opr?: number;
+  tba_epa?: number;
+  avg_shooting_time_sec?: number | null;
   best_score: number;
   worst_score: number;
   consistency_score: number;
@@ -331,7 +335,11 @@ export default function AdvancedAnalysis() {
         avg_climb_speed_sec: rebuilt.avg_climb_speed_sec ?? null,
         rpmagic: rebuilt.rpmagic,
         goblin: rebuilt.goblin,
-        epa: rebuilt.epa,
+        tba_opr: Number(teamData?.tba_opr || 0),
+        normalized_opr: Number(teamData?.normalized_opr || 0),
+        tba_epa: Number(teamData?.tba_epa || 0),
+        avg_shooting_time_sec: teamData?.avg_shooting_time_sec != null ? Number(teamData.avg_shooting_time_sec) : null,
+        epa: Number(teamData?.tba_epa || rebuilt.epa),
         best_score: bestScore,
         worst_score: worstScore,
         consistency_score: Math.round(consistencyScore),

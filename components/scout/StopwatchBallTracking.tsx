@@ -1,17 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '../ui/dialog';
-import { RunRecord, BALL_CHOICE_OPTIONS, LEGACY_BALL_CHOICE_OPTIONS, getBallChoiceLabel, type BallTrackingPhase } from '@/lib/types';
+import { RunRecord, getBallChoiceLabel, type BallTrackingPhase } from '@/lib/types';
 import { formatDurationSec } from '@/lib/utils';
-import { Play, Square, Clock, Plus, List } from 'lucide-react';
+import { Play, Square, Clock, List } from 'lucide-react';
 
 interface StopwatchBallTrackingProps {
   phaseLabel: string;
@@ -37,9 +29,6 @@ export default function StopwatchBallTracking({
   const [runs, setRuns] = useState<RunRecord[]>(() => initialData?.length ? [...initialData] : []);
   const [running, setRunning] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
-  const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
-  const [showBallChoicePopup, setShowBallChoicePopup] = useState(false);
-  const [pendingDurationSec, setPendingDurationSec] = useState(0);
 
   useEffect(() => {
     if (!running) return;
@@ -53,39 +42,18 @@ export default function StopwatchBallTracking({
   const handleStart = useCallback(() => {
     setElapsedMs(0);
     setRunning(true);
-    setSelectedChoice(null);
-    setShowBallChoicePopup(false);
   }, []);
 
   const handleStop = useCallback(() => {
     setRunning(false);
-    setPendingDurationSec(Math.round((elapsedMs / 1000) * 1000) / 1000);
-    setSelectedChoice(null);
-    setShowBallChoicePopup(true);
-  }, [elapsedMs]);
-
-  const handleSaveRun = useCallback(() => {
-    if (selectedChoice == null || selectedChoice < 0 || selectedChoice >= BALL_CHOICE_OPTIONS.length) return;
-    // New form saves 8 + option index so getBallChoiceLabel/Value use BALL_CHOICE_OPTIONS (not legacy).
-    const ball_choice = LEGACY_BALL_CHOICE_OPTIONS.length + selectedChoice;
-    const newRun = { duration_sec: Math.round(pendingDurationSec * 1000) / 1000, ball_choice };
+    const newRun = { duration_sec: Math.round((elapsedMs / 1000) * 1000) / 1000, ball_choice: 0 };
     setRuns(prev => {
       const next = [...prev, newRun];
       onRunsChange?.(next);
       return next;
     });
     setElapsedMs(0);
-    setPendingDurationSec(0);
-    setSelectedChoice(null);
-    setShowBallChoicePopup(false);
-  }, [pendingDurationSec, selectedChoice, onRunsChange]);
-
-  const handleClosePopup = useCallback(() => {
-    setShowBallChoicePopup(false);
-    setSelectedChoice(null);
-    setPendingDurationSec(0);
-    setElapsedMs(0);
-  }, []);
+  }, [elapsedMs, onRunsChange]);
 
   const handleRemoveRun = useCallback((index: number) => {
     setRuns(prev => {
@@ -135,42 +103,6 @@ export default function StopwatchBallTracking({
           </div>
         </div>
 
-        {/* Popup: multiple choice for ball count when run ends */}
-        <Dialog open={showBallChoicePopup} onOpenChange={(open) => !open && handleClosePopup()}>
-          <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
-            <DialogHeader>
-              <DialogTitle>How many balls scored?</DialogTitle>
-              <DialogDescription>
-                Run ended at <strong>{formatDurationSec(pendingDurationSec)}</strong>. Pick the ball count for this run.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 py-2">
-              {BALL_CHOICE_OPTIONS.map((opt, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => setSelectedChoice(index)}
-                  className={`rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all ${
-                    selectedChoice === index
-                      ? 'border-primary bg-primary/20 text-primary'
-                      : 'border-border bg-muted/50 hover:border-primary/50'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button type="button" variant="outline" onClick={handleClosePopup}>
-                Cancel
-              </Button>
-              <Button type="button" onClick={handleSaveRun} disabled={selectedChoice === null} className="gap-2">
-                <Plus className="w-4 h-4" /> Save this run
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
         {/* List of saved runs */}
         {runs.length > 0 && (
           <div className="space-y-2">
@@ -184,7 +116,8 @@ export default function StopwatchBallTracking({
                   className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-muted/30 border-border'}`}
                 >
                   <span>
-                    Run {i + 1}: <strong>{formatDurationSec(run.duration_sec)}</strong> — {getBallChoiceLabel(run.ball_choice)} balls
+                    Run {i + 1}: <strong>{formatDurationSec(run.duration_sec)}</strong>
+                    {run.ball_choice > 0 ? ` — ${getBallChoiceLabel(run.ball_choice)} balls` : ''}
                   </span>
                   <Button
                     type="button"

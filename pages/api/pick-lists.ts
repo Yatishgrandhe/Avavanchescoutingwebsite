@@ -328,6 +328,12 @@ async function enrichPickListWithStats(
           .single();
 
         const robot_image_url = imageByTeam.get(team.team_number) || null;
+        const { data: tbaMetrics } = await supabaseAdmin
+          .from('teams')
+          .select('tba_opr, tba_epa, normalized_opr, avg_shooting_time_sec')
+          .eq('organization_id', pickList.organization_id)
+          .eq('team_number', team.team_number)
+          .maybeSingle();
 
         if (error || !stats) {
           console.warn(`No stats found for team ${team.team_number}`);
@@ -348,6 +354,10 @@ async function enrichPickListWithStats(
             avg_defense_rating: Math.round((parseFloat(stats.avg_defense_rating) || 0) * 10) / 10,
             win_rate: 0,
             consistency_score: 0,
+            tba_opr: Math.round((parseFloat(tbaMetrics?.tba_opr) || 0) * 10) / 10,
+            tba_epa: Math.round((parseFloat(tbaMetrics?.tba_epa) || 0) * 10) / 10,
+            normalized_opr: Math.round((parseFloat(tbaMetrics?.normalized_opr) || 0) * 10) / 10,
+            avg_shooting_time_sec: Math.round((parseFloat(tbaMetrics?.avg_shooting_time_sec) || 0) * 10) / 10,
           },
         };
       } catch (error) {

@@ -4,6 +4,10 @@ export interface Team {
   team_color: string;
   organization_id: string;
   created_at: string;
+  tba_opr?: number;
+  tba_epa?: number;
+  normalized_opr?: number;
+  avg_shooting_time_sec?: number | null;
 }
 
 export interface Match {
@@ -46,7 +50,7 @@ export interface ScoutingData {
 }
 
 export interface ScoringNotes {
-  // Multiple runs per phase: each run = stopwatch duration + one multiple-choice (ball count)
+  // Multiple runs per phase: each run captures timing.
   runs?: RunRecord[];
   shuttle_runs?: RunRecord[];
   // Shuttling quesitons (Teleop)
@@ -61,16 +65,20 @@ export interface ScoringNotes {
   balls_60_75?: number;
   balls_75_90?: number;
   auto_fuel_active_hub: number;
-  auto_tower_level1: boolean;
+  /** @deprecated Legacy climb-level field retained for older records. */
+  auto_tower_level1?: boolean;
   /** Auto climb time in seconds (CLANK speed), with millisecond precision. */
   auto_climb_sec?: number | null;
   teleop_fuel_active_hub: number;
   /** Teleop climb time in seconds, with millisecond precision. */
   climb_sec?: number | null;
   teleop_fuel_shifts?: number[];
-  teleop_tower_level1: boolean;
-  teleop_tower_level2: boolean;
-  teleop_tower_level3: boolean;
+  /** @deprecated Legacy climb-level field retained for older records. */
+  teleop_tower_level1?: boolean;
+  /** @deprecated Legacy climb-level field retained for older records. */
+  teleop_tower_level2?: boolean;
+  /** @deprecated Legacy climb-level field retained for older records. */
+  teleop_tower_level3?: boolean;
 }
 
 /** One recorded run: stopwatch stopped → user picked one ball-count option. */
@@ -187,6 +195,10 @@ export interface TeamStats {
   win_rate: number;
   consistency_score: number;
   avg_shifts?: number[];
+  tba_opr?: number;
+  tba_epa?: number;
+  normalized_opr?: number;
+  avg_shooting_time_sec?: number;
 }
 
 export interface AnalysisFilters {

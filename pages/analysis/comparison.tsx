@@ -635,7 +635,7 @@ export default function TeamComparison() {
                           </div>
                           <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Climb Pts:</span>
-                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.avg_climb_pts ?? '—'}</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.normalized_opr ?? '—'}</span>
                           </div>
                           <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Uptime %:</span>
@@ -647,7 +647,7 @@ export default function TeamComparison() {
                           </div>
                           <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Avg climb speed:</span>
-                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</span>
+                            <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}</span>
                           </div>
                           <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Avg shooting time:</span>
@@ -663,7 +663,7 @@ export default function TeamComparison() {
                           </div>
                           <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>EPA:</span>
-                            <span className={`ml-2 font-bold text-primary`}>{team.epa ?? '—'}</span>
+                            <span className={`ml-2 font-bold text-primary`}>{team.tba_epa ?? team.epa ?? '—'}</span>
                           </div>
                           <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Best:</span>
@@ -775,14 +775,14 @@ export default function TeamComparison() {
                             </td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_auto_fuel ?? '—'}</td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_teleop_fuel ?? '—'}</td>
-                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_climb_pts ?? '—'}</td>
+                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.normalized_opr ?? '—'}</td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_uptime_pct != null ? `${team.avg_uptime_pct}%` : '—'}</td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.clank != null ? `${team.clank}` : '—'}</td>
-                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</td>
+                            <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}</td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}</td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.rpmagic ?? '—'}</td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.goblin ?? '—'}</td>
-                            <td className={`py-3 px-4 font-bold text-primary`}>{team.epa ?? '—'}</td>
+                            <td className={`py-3 px-4 font-bold text-primary`}>{team.tba_epa ?? team.epa ?? '—'}</td>
                             <td className={`py-3 px-4 font-semibold text-green-400`}>
                               {team.best_score}
                             </td>

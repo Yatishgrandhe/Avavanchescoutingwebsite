@@ -458,8 +458,8 @@ const TeamDetail: React.FC = () => {
       avg_shooting_time_sec: rebuilt.avg_shooting_time_sec ?? null,
       shuttle_rate: rebuilt.shuttle_rate,
       avg_shuttle_balls: rebuilt.avg_shuttle_balls,
-      endgame_epa: rebuilt.endgame_epa ?? rebuilt.avg_climb_pts ?? 0, // Endgame EPA = climbing points
-      epa: Math.round(rebuilt.epa ?? avgTotal), // Expected points per match (actual when available, else estimated)
+      endgame_epa: rebuilt.endgame_epa ?? rebuilt.avg_climb_pts ?? 0,
+      epa: Math.round(rebuilt.epa ?? avgTotal),
 
       // Data for Radar Chart (all values 0–100 for correct scale; Recharts expects numeric A and fullMark)
       radarData: [
@@ -500,7 +500,7 @@ const TeamDetail: React.FC = () => {
             </h4>
             <div className="space-y-2">
               <BreakdownItem label="FUEL (game pieces)" value={autoFuel} points={1} />
-              <BreakdownItem label="AUTO CLIMB L1" value={p.autonomous.auto_tower_level1 ? 'Yes' : 'No'} points={15} />
+              <BreakdownItem label="AUTO RUNS" value={(p.autonomous.runs || []).length} points={0} />
             </div>
           </div>
 
@@ -897,7 +897,7 @@ const TeamDetail: React.FC = () => {
                   <StatCard label="Matches" value={teamStats.totalMatches} color="blue" icon={Database} subLabel="scouted" />
                   <StatCard label="Auto EPA" value={teamStats.avgAutonomous} color="blue" icon={Clock} subLabel="pts" />
                   <StatCard label="Teleop EPA" value={teamStats.avgTeleop} color="orange" icon={Zap} subLabel="pts" />
-                  <StatCard label="Endgame EPA" value={teamStats.endgame_epa ?? teamStats.avg_climb_pts ?? 0} color="green" icon={Award} subLabel="climb pts" />
+                  <StatCard label="Normalized OPR" value={teamStats.endgame_epa ?? 0} color="green" icon={Award} subLabel="opr per shooting second" />
                   <StatCard label="Consistency" value={`${teamStats.consistencyScore}%`} color="purple" icon={Activity} />
                   <StatCard label="Shuttle Rate" value={`${teamStats.shuttle_rate}%`} color="indigo" icon={Route} />
                   <StatCard label="Avg Shuttle/Return" value={teamStats.avg_shuttle_balls != null ? teamStats.avg_shuttle_balls : '—'} color="indigo" icon={Route} />

@@ -40,6 +40,8 @@ export interface TeamComparison {
   balls_per_cycle_max?: number;
   avg_shooting_time_sec?: number | null;
   epa?: number;
+  tba_epa?: number;
+  normalized_opr?: number;
 }
 
 /** Build TeamComparison from scouting rows (competition-scoped). total_matches = distinct match_id. */

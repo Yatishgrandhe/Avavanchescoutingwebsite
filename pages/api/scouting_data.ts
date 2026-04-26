@@ -2,7 +2,6 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/supabase';
 import { calculateScore } from '@/lib/utils';
-import { updateTeamEpa } from '@/lib/epa_utils';
 import { mergeShuttlingIntoStoredNotes, normalizeShuttleConsistency } from '@/lib/scouting-notes-merge';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -314,13 +313,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         console.log('Scouting data created successfully:', result);
-
-        // EPA Automation: fire and forget update in the background
-        if (userOrgId) {
-          updateTeamEpa(finalTeamNumber, userOrgId).catch(err => {
-            console.error('Failed to trigger background EPA update:', err);
-          });
-        }
 
         res.status(201).json(result);
         return;

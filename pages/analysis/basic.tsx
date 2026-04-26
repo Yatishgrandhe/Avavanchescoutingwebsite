@@ -82,6 +82,10 @@ interface TeamData {
   balls_per_cycle_max?: number;
   avg_balls_per_cycle?: number;
   epa?: number;
+  tba_opr?: number;
+  normalized_opr?: number;
+  tba_epa?: number;
+  avg_shooting_time_sec?: number | null;
 }
 
 interface MatchData {
@@ -115,7 +119,7 @@ export default function BasicAnalysis() {
   const [selectedTeam, setSelectedTeam] = useState<string>('all');
   const [selectedEvent, setSelectedEvent] = useState<string>('all');
   const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF (Show all data for active competition)
-  type TeamSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'avg_climb_pts' | 'team_number' | 'team_name' | 'epa' | 'avg_defense_rating';
+  type TeamSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'tba_opr' | 'team_number' | 'team_name' | 'epa' | 'avg_defense_rating';
   const [teamSortField, setTeamSortField] = useState<TeamSortKey>('avg_total_score');
   const [teamSortDirection, setTeamSortDirection] = useState<'asc' | 'desc'>('desc');
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
@@ -268,7 +272,11 @@ export default function BasicAnalysis() {
           avg_climb_speed_sec: rebuilt.avg_climb_speed_sec ?? null,
           rpmagic: rebuilt.rpmagic,
           goblin: rebuilt.goblin,
-          epa: rebuilt.epa,
+          tba_opr: Number(team.tba_opr || 0),
+          normalized_opr: Number(team.normalized_opr || 0),
+          tba_epa: Number(team.tba_epa || 0),
+          avg_shooting_time_sec: team.avg_shooting_time_sec != null ? Number(team.avg_shooting_time_sec) : null,
+          epa: Number(team.tba_epa || rebuilt.epa),
         };
       });
 
@@ -619,8 +627,8 @@ export default function BasicAnalysis() {
                         <TableHead className="text-[9px] cursor-pointer hover:text-white select-none" onClick={() => handleTeamSort('total_matches')}>
                           <span className="inline-flex items-center gap-1">Matches Scouted {teamSortField === 'total_matches' && (teamSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                         </TableHead>
-                        <TableHead className="text-[9px] cursor-pointer hover:text-white select-none" onClick={() => handleTeamSort('avg_climb_pts')}>
-                          <span className="inline-flex items-center gap-1">AVG CLIMB {teamSortField === 'avg_climb_pts' && (teamSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                        <TableHead className="text-[9px] cursor-pointer hover:text-white select-none" onClick={() => handleTeamSort('tba_opr')}>
+                          <span className="inline-flex items-center gap-1">TBA OPR {teamSortField === 'tba_opr' && (teamSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                         </TableHead>
                         <TableHead className="text-[9px]">AUTO CLIMB</TableHead>
                         <TableHead className="text-[9px]">TELEOP CLIMB</TableHead>
@@ -638,7 +646,7 @@ export default function BasicAnalysis() {
                         <TableHead className="text-[9px]">RPMAGIC</TableHead>
                         <TableHead className="text-[9px]">GOBLIN</TableHead>
                         <TableHead className="text-[9px] cursor-pointer hover:text-white select-none" onClick={() => handleTeamSort('epa')}>
-                          <span className="inline-flex items-center gap-1">EPA {teamSortField === 'epa' && (teamSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                          <span className="inline-flex items-center gap-1">TBA EPA {teamSortField === 'epa' && (teamSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                         </TableHead>
                       </TableRow>
                     </TableHeader>
@@ -654,7 +662,7 @@ export default function BasicAnalysis() {
                           <TableCell className="text-sm">{team.avg_autonomous_points ?? 0}</TableCell>
                           <TableCell className="text-sm">{team.avg_teleop_points ?? 0}</TableCell>
                           <TableCell>{team.total_matches}</TableCell>
-                          <TableCell className="text-sm">{team.avg_climb_pts ?? '—'}</TableCell>
+                          <TableCell className="text-sm">{team.tba_opr != null ? Number(team.tba_opr).toFixed(1) : '—'}</TableCell>
                           <TableCell className="text-sm">{team.avg_auto_climb_pts ?? '—'}</TableCell>
                           <TableCell className="text-sm">{team.avg_teleop_climb_pts ?? '—'}</TableCell>
                           <TableCell className="text-sm">{team.avg_downtime_sec != null ? `${Math.round(team.avg_downtime_sec)}s` : (team.avg_downtime != null ? `${Number(team.avg_downtime).toFixed(0)}s` : '—')}</TableCell>
@@ -672,11 +680,11 @@ export default function BasicAnalysis() {
                               <span className="text-sm">{(team.avg_defense_rating || 0).toFixed(0)}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm">{team.clank != null ? `${team.clank}` : '—'}</TableCell>
-                          <TableCell className="text-sm">{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</TableCell>
+                          <TableCell className="text-sm">{team.normalized_opr != null ? Number(team.normalized_opr).toFixed(2) : '—'}</TableCell>
+                          <TableCell className="text-sm">{team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}</TableCell>
                           <TableCell className="text-sm">{team.rpmagic != null ? `${team.rpmagic}%` : '—'}</TableCell>
                           <TableCell className="text-sm">{team.goblin ?? '—'}</TableCell>
-                          <TableCell className="text-sm font-bold text-primary">{team.epa ?? '—'}</TableCell>
+                          <TableCell className="text-sm font-bold text-primary">{team.tba_epa != null ? Number(team.tba_epa).toFixed(1) : '—'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

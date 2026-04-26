@@ -51,6 +51,10 @@ interface TeamStat extends RebuiltTeamMetrics {
   team_name: string;
   total_matches: number;
   starter_epa?: number;
+  tba_opr?: number;
+  tba_epa?: number;
+  normalized_opr?: number;
+  avg_shooting_time_sec: number | null;
 }
 
 const calculateTeamStats = (
@@ -60,8 +64,15 @@ const calculateTeamStats = (
   epaMap?: Record<number, number>
 ): TeamStat[] => {
   const teamNameMap = new Map<number, string>();
+  const tbaMap = new Map<number, { tba_opr?: number; tba_epa?: number; normalized_opr?: number; avg_shooting_time_sec?: number | null }>();
   teams.forEach(team => {
     teamNameMap.set(team.team_number, team.team_name);
+    tbaMap.set(team.team_number, {
+      tba_opr: team.tba_opr,
+      tba_epa: team.tba_epa,
+      normalized_opr: team.normalized_opr,
+      avg_shooting_time_sec: team.avg_shooting_time_sec ?? null,
+    });
   });
 
   const teamToRecords = new Map<number, ScoutingData[]>();
@@ -87,6 +98,10 @@ const calculateTeamStats = (
       team_number: teamNumber,
       team_name: teamName,
       total_matches,
+      tba_opr: tbaMap.get(teamNumber)?.tba_opr ?? 0,
+      tba_epa: tbaMap.get(teamNumber)?.tba_epa ?? rebuilt.epa,
+      normalized_opr: tbaMap.get(teamNumber)?.normalized_opr ?? 0,
+      avg_shooting_time_sec: tbaMap.get(teamNumber)?.avg_shooting_time_sec ?? rebuilt.avg_shooting_time_sec,
     };
   }).filter(stat => stat.total_matches > 0);
 };
@@ -140,7 +155,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [clearingData, setClearingData] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   // Team stats sort: default greatest to least average score
-  type TeamStatSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'endgame_epa' | 'epa' | 'consistency_score' | 'team_number' | 'team_name' | 'shuttle_rate' | 'avg_shuttle_balls' | 'starter_epa';
+  type TeamStatSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'normalized_opr' | 'epa' | 'consistency_score' | 'team_number' | 'team_name' | 'shuttle_rate' | 'avg_shuttle_balls' | 'starter_epa';
   const [teamStatsSortField, setTeamStatsSortField] = useState<TeamStatSortKey>('avg_total_score');
   const [teamStatsSortDirection, setTeamStatsSortDirection] = useState<'asc' | 'desc'>('desc');
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
@@ -1010,7 +1025,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                                 <span className="text-[10px] text-muted-foreground uppercase block mb-1">Endgame EPA</span>
-                                <span className="text-sm font-semibold text-green-400">{team.endgame_epa ?? team.avg_climb_pts ?? '—'}</span>
+                                <span className="text-sm font-semibold text-green-400">{team.normalized_opr ?? '—'}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                                 <span className="text-[10px] text-muted-foreground uppercase block mb-1">Consistency</span>
@@ -1091,8 +1106,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('avg_teleop_points')}>
                               <span className="inline-flex items-center gap-1">Teleop EPA {teamStatsSortField === 'avg_teleop_points' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
-                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('endgame_epa')}>
-                              <span className="inline-flex items-center gap-1">Endgame EPA {teamStatsSortField === 'endgame_epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('normalized_opr')}>
+                              <span className="inline-flex items-center gap-1">Normalized OPR {teamStatsSortField === 'normalized_opr' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
                             <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('epa')}>
                               <span className="inline-flex items-center gap-1">EPA {teamStatsSortField === 'epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
@@ -1141,8 +1156,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <td className="p-4 text-muted-foreground font-medium text-xs">{team.starter_epa ?? '—'}</td>
                                 <td className="p-4 text-blue-400 font-semibold text-sm">{team.avg_autonomous_points ?? '—'}</td>
                                 <td className="p-4 text-orange-400 font-semibold text-sm">{team.avg_teleop_points ?? '—'}</td>
-                                <td className="p-4 text-green-400 font-semibold text-sm">{team.endgame_epa ?? team.avg_climb_pts ?? '—'}</td>
-                                <td className="p-4 text-primary font-bold text-sm">{team.epa ?? team.avg_total_score ?? '—'}</td>
+                                <td className="p-4 text-green-400 font-semibold text-sm">{team.normalized_opr ?? '—'}</td>
+                                <td className="p-4 text-primary font-bold text-sm">{team.tba_epa ?? team.epa ?? team.avg_total_score ?? '—'}</td>
                                 <td className="p-4">
                                   <span className={cn(
                                     "font-bold text-sm",

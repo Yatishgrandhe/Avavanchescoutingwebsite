@@ -43,6 +43,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // Calculate additional metrics and map column names
+        const { data: teamMetricRow } = await supabase
+          .from('teams')
+          .select('tba_opr, tba_epa, normalized_opr, avg_shooting_time_sec')
+          .eq('team_number', parseInt(team_number as string, 10))
+          .maybeSingle();
+
         const enrichedStats = {
           team_number: stats.team_number,
           team_name: stats.team_name,
@@ -57,6 +63,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             total_matches: stats.match_count || 0,
             avg_total_score: parseFloat(stats.avg_final_score) || 0,
           })),
+          tba_opr: roundToTenth(parseFloat(teamMetricRow?.tba_opr) || 0),
+          tba_epa: roundToTenth(parseFloat(teamMetricRow?.tba_epa) || 0),
+          normalized_opr: roundToTenth(parseFloat(teamMetricRow?.normalized_opr) || 0),
+          avg_shooting_time_sec: roundToTenth(parseFloat(teamMetricRow?.avg_shooting_time_sec) || 0),
         };
 
         res.status(200).json(enrichedStats);
@@ -78,6 +88,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const imageByTeam = await getRobotImageUrlsByTeam(supabase, teamNumbers);
 
         // Enrich with additional metrics and map column names
+        const { data: teamMetricsRows } = await supabase
+          .from('teams')
+          .select('team_number, tba_opr, tba_epa, normalized_opr, avg_shooting_time_sec')
+          .in('team_number', teamNumbers);
+        const metricByTeam = new Map<number, any>(
+          (teamMetricsRows || []).map((row: any) => [Number(row.team_number), row])
+        );
+
         const enrichedStats = (stats || []).map((stat: any) => ({
           team_number: stat.team_number,
           team_name: stat.team_name,
@@ -93,6 +111,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             total_matches: stat.match_count || 0,
             avg_total_score: parseFloat(stat.avg_final_score) || 0,
           })),
+          tba_opr: roundToTenth(parseFloat(metricByTeam.get(Number(stat.team_number))?.tba_opr) || 0),
+          tba_epa: roundToTenth(parseFloat(metricByTeam.get(Number(stat.team_number))?.tba_epa) || 0),
+          normalized_opr: roundToTenth(parseFloat(metricByTeam.get(Number(stat.team_number))?.normalized_opr) || 0),
+          avg_shooting_time_sec: roundToTenth(parseFloat(metricByTeam.get(Number(stat.team_number))?.avg_shooting_time_sec) || 0),
         }));
 
         res.status(200).json({ stats: enrichedStats });

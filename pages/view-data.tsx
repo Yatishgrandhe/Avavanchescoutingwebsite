@@ -93,7 +93,7 @@ type TeamStatSortKey =
   | 'total_matches'
   | 'avg_autonomous_points'
   | 'avg_teleop_points'
-  | 'endgame_epa'
+  | 'normalized_opr'
   | 'epa'
   | 'consistency_score'
   | 'team_number'
@@ -108,7 +108,7 @@ export default function ViewDataPage() {
 
   const [competition, setCompetition] = useState<CompetitionInfo | null>(null);
   const [scoutingData, setScoutingData] = useState<ViewDataRow[]>([]);
-  const [teams, setTeams] = useState<Array<{ team_number: number; team_name: string; starter_epa?: number }>>([]);
+  const [teams, setTeams] = useState<Array<{ team_number: number; team_name: string; starter_epa?: number; tba_epa?: number; tba_opr?: number; normalized_opr?: number }>>([]);
   const [pitScoutingData, setPitScoutingData] = useState<PitRow[]>([]);
   const [deletingPitRow, setDeletingPitRow] = useState<PitRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -314,9 +314,11 @@ export default function ViewDataPage() {
     best_score: number;
     worst_score: number;
     consistency_score: number;
-    endgame_epa?: number;
+    normalized_opr?: number;
+    tba_opr?: number;
     avg_climb_pts?: number;
     epa?: number;
+    tba_epa?: number;
     starter_epa?: number;
     [key: string]: unknown;
   };
@@ -861,7 +863,7 @@ export default function ViewDataPage() {
                       </div>
                       <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                         <span className="text-[10px] text-muted-foreground uppercase block mb-1">Endgame EPA</span>
-                        <span className="text-sm font-semibold text-green-400">{team.endgame_epa ?? team.avg_climb_pts ?? '—'}</span>
+                        <span className="text-sm font-semibold text-green-400">{team.normalized_opr ?? '—'}</span>
                       </div>
                       <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                         <span className="text-[10px] text-muted-foreground uppercase block mb-1">Consistency</span>
@@ -923,8 +925,8 @@ export default function ViewDataPage() {
                       <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('avg_teleop_points')}>
                         Teleop EPA {teamStatsSortField === 'avg_teleop_points' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
                       </th>
-                      <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('endgame_epa')}>
-                        Endgame EPA {teamStatsSortField === 'endgame_epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
+                      <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('normalized_opr')}>
+                        Normalized OPR {teamStatsSortField === 'normalized_opr' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
                       </th>
                       <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('epa')}>
                         EPA {teamStatsSortField === 'epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
@@ -962,8 +964,8 @@ export default function ViewDataPage() {
                           <td className="p-4 text-muted-foreground font-medium text-xs">{team.starter_epa ?? '—'}</td>
                           <td className="p-4 text-blue-400 font-semibold text-sm">{team.avg_autonomous_points ?? '—'}</td>
                           <td className="p-4 text-orange-400 font-semibold text-sm">{team.avg_teleop_points ?? '—'}</td>
-                          <td className="p-4 text-green-400 font-semibold text-sm">{team.endgame_epa ?? team.avg_climb_pts ?? '—'}</td>
-                          <td className="p-4 text-primary font-bold text-sm">{team.epa ?? team.avg_total_score ?? '—'}</td>
+                          <td className="p-4 text-green-400 font-semibold text-sm">{team.normalized_opr ?? '—'}</td>
+                          <td className="p-4 text-primary font-bold text-sm">{team.tba_epa ?? team.epa ?? team.avg_total_score ?? '—'}</td>
                           <td className="p-4">
                             <span className={cn('font-bold text-sm', team.consistency_score >= 80 ? 'text-green-400' : team.consistency_score >= 60 ? 'text-yellow-400' : 'text-red-400')}>
                               {team.consistency_score}%
@@ -1168,7 +1170,7 @@ export default function ViewDataPage() {
             </div>
           )}
           <div className="p-4 border-t border-white/5 bg-black/20">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center">2026 Rebuilt · Scoring from fuel, tower &amp; climb</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center">2026 TBA Metrics · Current/Future Competitions</p>
           </div>
           </>
           )}

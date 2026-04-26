@@ -71,6 +71,12 @@ export type TbaTeam = {
   name: string;
 };
 
+export type TbaEventOprs = {
+  oprs?: Record<string, number>;
+  dprs?: Record<string, number>;
+  ccwms?: Record<string, number>;
+};
+
 const COMP_ORDER: Record<string, number> = {
   qm: 0,
   ef: 1,

@@ -263,7 +263,7 @@ export default function PublicTeamHistoryPage() {
                                     <div className="flex items-center gap-8 pr-4">
                                         <div className="text-right">
                                             <p className="text-3xl font-black text-foreground">{comp.avgScore}</p>
-                                            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mt-1">Avg Score</p>
+                                            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mt-1">Avg Shooting Time</p>
                                         </div>
                                         <div className="bg-white/5 p-3 rounded-full border border-white/5 group-hover:border-primary/20 transition-all">
                                             {selectedCompetition === comp.competition_id ? <ChevronDown className="h-6 w-6 rotate-180 transition-transform" /> : <ChevronDown className="h-6 w-6 transition-transform" />}

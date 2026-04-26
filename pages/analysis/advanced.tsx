@@ -397,7 +397,7 @@ export default function AdvancedAnalysis() {
       ['Average Autonomous Points', teamStats.avg_autonomous_points],
       ['Average Teleop Points', teamStats.avg_teleop_points],
       ['Average Endgame Points', teamStats.avg_endgame_points],
-      ['Average Total Score', teamStats.avg_total_score],
+      ['Average Shooting Time (s)', teamStats.avg_shooting_time_sec ?? 0],
       ['Average Defense Rating', teamStats.avg_defense_rating],
       ['Average Downtime (s)', teamStats.avg_downtime ?? ''],
       ['Broke Rate (%)', teamStats.broke_rate ?? ''],
@@ -689,10 +689,10 @@ export default function AdvancedAnalysis() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          Avg Score
+                          Avg Shooting Time
                         </p>
                         <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                          {formatScoreRange(teamStats.total_pts_min ?? teamStats.avg_total_score, teamStats.total_pts_max ?? teamStats.avg_total_score)}
+                          {teamStats.avg_shooting_time_sec != null ? `${teamStats.avg_shooting_time_sec}s` : '—'}
                         </p>
                       </div>
                       <BarChart3 className={`w-8 h-8 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />

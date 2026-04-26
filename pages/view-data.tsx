@@ -89,6 +89,7 @@ function getPitRowTimestampMs(row: PitRow): number {
 }
 
 type TeamStatSortKey =
+  | 'avg_shooting_time_sec'
   | 'avg_total_score'
   | 'total_matches'
   | 'avg_autonomous_points'
@@ -97,8 +98,7 @@ type TeamStatSortKey =
   | 'epa'
   | 'consistency_score'
   | 'team_number'
-  | 'team_name'
-  | 'starter_epa';
+  | 'team_name';
 
 export default function ViewDataPage() {
   const router = useRouter();
@@ -118,7 +118,7 @@ export default function ViewDataPage() {
   const [activeTab, setActiveTab] = useState<CompetitionViewTab>('overview');
   const [expandedRowKey, setExpandedRowKey] = useState<string | null>(null);
   const [dataViewMode, setDataViewMode] = useState<'teams' | 'individual'>('teams');
-  const [teamStatsSortField, setTeamStatsSortField] = useState<TeamStatSortKey>('avg_total_score');
+  const [teamStatsSortField, setTeamStatsSortField] = useState<TeamStatSortKey>('avg_shooting_time_sec');
   const [teamStatsSortDirection, setTeamStatsSortDirection] = useState<'asc' | 'desc'>('desc');
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
   const [minAvgScoreFilter, setMinAvgScoreFilter] = useState<number | ''>('');
@@ -314,6 +314,7 @@ export default function ViewDataPage() {
     best_score: number;
     worst_score: number;
     consistency_score: number;
+    avg_shooting_time_sec?: number | null;
     normalized_opr?: number;
     tba_opr?: number;
     avg_climb_pts?: number;
@@ -751,7 +752,7 @@ export default function ViewDataPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground block mb-1">Min avg score</label>
+                    <label className="text-xs text-muted-foreground block mb-1">Min performance filter</label>
                     <Input
                       type="number"
                       min={0}
@@ -836,8 +837,8 @@ export default function ViewDataPage() {
                         </Badge>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest block">Avg Score</span>
-                        <span className="text-2xl font-bold text-primary">{team.avg_total_score}</span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest block">Avg Shooting Time</span>
+                        <span className="text-2xl font-bold text-primary">{team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}</span>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3 mb-4">
@@ -846,12 +847,8 @@ export default function ViewDataPage() {
                         <span className="text-sm font-semibold">{team.total_matches}</span>
                       </div>
                       <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                        <span className="text-[10px] text-muted-foreground uppercase block mb-1">Avg Score</span>
-                        <span className="text-sm font-semibold text-primary">{team.avg_total_score}</span>
-                      </div>
-                      <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                        <span className="text-[10px] text-muted-foreground uppercase block mb-1">Starter EPA</span>
-                        <span className="text-sm font-semibold text-muted-foreground">{team.starter_epa ?? '—'}</span>
+                        <span className="text-[10px] text-muted-foreground uppercase block mb-1">Avg Shooting Time</span>
+                        <span className="text-sm font-semibold text-primary">{team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}</span>
                       </div>
                       <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                         <span className="text-[10px] text-muted-foreground uppercase block mb-1">Auto EPA</span>
@@ -913,11 +910,8 @@ export default function ViewDataPage() {
                       <th className="text-left p-4 cursor-pointer hover:text-foreground" onClick={() => handleTeamStatsSort('total_matches')}>
                         Matches {teamStatsSortField === 'total_matches' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
                       </th>
-                      <th className="text-left p-4 cursor-pointer hover:text-foreground" onClick={() => handleTeamStatsSort('avg_total_score')}>
-                        Avg Score {teamStatsSortField === 'avg_total_score' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
-                      </th>
-                      <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('starter_epa')}>
-                        Starter {teamStatsSortField === 'starter_epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
+                      <th className="text-left p-4 cursor-pointer hover:text-foreground" onClick={() => handleTeamStatsSort('avg_shooting_time_sec')}>
+                        Avg Shooting Time {teamStatsSortField === 'avg_shooting_time_sec' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
                       </th>
                       <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('avg_autonomous_points')}>
                         Auto EPA {teamStatsSortField === 'avg_autonomous_points' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
@@ -959,9 +953,8 @@ export default function ViewDataPage() {
                           </td>
                           <td className="p-4 font-medium">{team.total_matches}</td>
                           <td className="p-4">
-                            <span className="font-bold text-primary text-lg">{team.avg_total_score}</span>
+                            <span className="font-bold text-primary text-lg">{team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}</span>
                           </td>
-                          <td className="p-4 text-muted-foreground font-medium text-xs">{team.starter_epa ?? '—'}</td>
                           <td className="p-4 text-blue-400 font-semibold text-sm">{team.avg_autonomous_points ?? '—'}</td>
                           <td className="p-4 text-orange-400 font-semibold text-sm">{team.avg_teleop_points ?? '—'}</td>
                           <td className="p-4 text-green-400 font-semibold text-sm">{team.normalized_opr ?? '—'}</td>

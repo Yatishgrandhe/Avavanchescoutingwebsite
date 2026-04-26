@@ -893,7 +893,7 @@ const TeamDetail: React.FC = () => {
 
                 {/* Stats Grid — aligned with data analysis: core EPAs + consistency */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
-                  <StatCard label="Avg Score" value={teamStats.avgTotal} color="primary" icon={TrendingUp} subLabel="total pts" />
+                  <StatCard label="Avg Shooting Time" value={teamStats.avg_shooting_time_sec != null ? `${teamStats.avg_shooting_time_sec}s` : '—'} color="primary" icon={TrendingUp} subLabel="per scoring run" />
                   <StatCard label="Matches" value={teamStats.totalMatches} color="blue" icon={Database} subLabel="scouted" />
                   <StatCard label="Auto EPA" value={teamStats.avgAutonomous} color="blue" icon={Clock} subLabel="pts" />
                   <StatCard label="Teleop EPA" value={teamStats.avgTeleop} color="orange" icon={Zap} subLabel="pts" />

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui';
-import { RunRecord, getBallChoiceLabel, type BallTrackingPhase } from '@/lib/types';
+import { RunRecord, type BallTrackingPhase } from '@/lib/types';
 import { formatDurationSec } from '@/lib/utils';
 import { Play, Square, Clock, List } from 'lucide-react';
 
@@ -117,7 +117,6 @@ export default function StopwatchBallTracking({
                 >
                   <span>
                     Run {i + 1}: <strong>{formatDurationSec(run.duration_sec)}</strong>
-                    {run.ball_choice > 0 ? ` — ${getBallChoiceLabel(run.ball_choice)} balls` : ''}
                   </span>
                   <Button
                     type="button"

@@ -208,7 +208,7 @@ export function ScoutingEducation() {
                     Choose teams with high scoring potential and reliability
                   </p>
                   <ul className="text-xs text-muted-foreground space-y-1">
-                    <li>• High average scores</li>
+                    <li>• Strong EPA and OPR trends</li>
                     <li>• Consistent performance</li>
                     <li>• Strong autonomous</li>
                   </ul>

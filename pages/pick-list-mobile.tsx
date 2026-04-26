@@ -356,7 +356,7 @@ export default function PickListMobilePage() {
               <Target className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
               <div>
                 <p className="font-medium text-foreground">Focus on Total Score</p>
-                <p className="text-sm text-muted-foreground">Teams with higher average scores are generally more reliable.</p>
+                <p className="text-sm text-muted-foreground">Use scouting and TBA metrics together to rank reliability.</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">

@@ -409,7 +409,7 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
 
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4">
                 <StatCard label="Total Matches" value={overallStats.totalMatches} color="blue" icon={Database} />
-                <StatCard label="Avg Score" value={overallStats.avgScore} color="primary" icon={BarChart3} />
+                <StatCard label="Avg Shooting Time" value={'—'} color="primary" icon={BarChart3} />
                 <StatCard label="Auto Avg" value={overallStats.avgAutonomous} color="blue" icon={Clock} />
                 <StatCard label="Teleop Avg" value={overallStats.avgTeleop} color="orange" icon={Zap} />
                 <StatCard label="Endgame Avg" value={overallStats.avgEndgame} color="green" icon={Award} />
@@ -478,7 +478,7 @@ const TeamHistory: React.FC<TeamHistoryProps> = () => {
                           <div className="flex items-center gap-4">
                             <div className="text-right">
                               <div className="text-2xl font-bold text-primary">{comp.avgScore}</div>
-                              <div className="text-xs text-muted-foreground uppercase tracking-wider">Avg Score</div>
+                              <div className="text-xs text-muted-foreground uppercase tracking-wider">Avg Shooting Time</div>
                             </div>
                             <Button
                               size="sm"

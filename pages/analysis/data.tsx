@@ -154,9 +154,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [clearingData, setClearingData] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  // Team stats sort: default greatest to least average score
-  type TeamStatSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'normalized_opr' | 'epa' | 'consistency_score' | 'team_number' | 'team_name' | 'shuttle_rate' | 'avg_shuttle_balls' | 'starter_epa';
-  const [teamStatsSortField, setTeamStatsSortField] = useState<TeamStatSortKey>('avg_total_score');
+  // Team stats sort defaults to shooting-time view.
+  type TeamStatSortKey = 'avg_shooting_time_sec' | 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'normalized_opr' | 'epa' | 'consistency_score' | 'team_number' | 'team_name' | 'shuttle_rate' | 'avg_shuttle_balls';
+  const [teamStatsSortField, setTeamStatsSortField] = useState<TeamStatSortKey>('avg_shooting_time_sec');
   const [teamStatsSortDirection, setTeamStatsSortDirection] = useState<'asc' | 'desc'>('desc');
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
   const [minAvgScoreFilter, setMinAvgScoreFilter] = useState<number | ''>('');
@@ -785,7 +785,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                     </select>
                   </div>
 
-                  {/* Min Matches & Min Avg Score (Team Stats view) */}
+                  {/* Min Matches filter (Team Stats view) */}
                   {viewMode === 'teams' && (
                     <div className="grid grid-cols-2 gap-2">
                       <div>
@@ -800,7 +800,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-muted-foreground block mb-1">Min avg score</label>
+                    <label className="text-xs text-muted-foreground block mb-1">Min performance filter</label>
                         <Input
                           type="number"
                           min={0}
@@ -997,8 +997,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 </Badge>
                               </div>
                               <div className="text-right flex-shrink-0">
-                                <span className="text-[10px] text-muted-foreground uppercase tracking-widest block">Avg Score</span>
-                                <span className="text-2xl font-bold text-primary" title="Average score">{team.avg_total_score}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase tracking-widest block">Avg Shooting Time</span>
+                                <span className="text-2xl font-bold text-primary" title="Average shooting time">{team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}</span>
                               </div>
                             </div>
 
@@ -1008,12 +1008,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <span className="text-sm font-semibold">{team.total_matches}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Avg Score</span>
-                                <span className="text-sm font-semibold text-primary">{team.avg_total_score}</span>
-                              </div>
-                              <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Starter EPA</span>
-                                <span className="text-sm font-semibold text-muted-foreground">{team.starter_epa ?? '—'}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Avg Shooting Time</span>
+                                <span className="text-sm font-semibold text-primary">{team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                                 <span className="text-[10px] text-muted-foreground uppercase block mb-1">Auto EPA</span>
@@ -1088,17 +1084,14 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                       <table className="w-full border-collapse">
                         <thead>
                           <tr className="border-b border-white/5 text-muted-foreground font-medium uppercase tracking-wider text-[10px]">
-                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none" onClick={() => handleTeamStatsSort('team_number')}>
-                              <span className="inline-flex items-center gap-1">Team {teamStatsSortField === 'team_number' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none" onClick={() => handleTeamStatsSort('avg_shooting_time_sec')}>
+                              <span className="inline-flex items-center gap-1">Avg Shooting Time {teamStatsSortField === 'avg_shooting_time_sec' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
                             <th className="text-left p-4 cursor-pointer hover:text-foreground select-none" onClick={() => handleTeamStatsSort('total_matches')} title="Distinct matches with scouting data (from database, not form count)">
                               <span className="inline-flex items-center gap-1">Matches scouted {teamStatsSortField === 'total_matches' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
-                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none" onClick={() => handleTeamStatsSort('avg_total_score')}>
-                              <span className="inline-flex items-center gap-1">Avg Score {teamStatsSortField === 'avg_total_score' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
-                            </th>
-                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('starter_epa')} title="Historical performance baseline from past competitions">
-                              <span className="inline-flex items-center gap-1">Starter {teamStatsSortField === 'starter_epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none" onClick={() => handleTeamStatsSort('team_number')}>
+                              <span className="inline-flex items-center gap-1">Team {teamStatsSortField === 'team_number' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
                             <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('avg_autonomous_points')}>
                               <span className="inline-flex items-center gap-1">Auto EPA {teamStatsSortField === 'avg_autonomous_points' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
@@ -1151,9 +1144,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 </td>
                                 <td className="p-4 text-foreground font-medium">{team.total_matches}</td>
                                 <td className="p-4">
-                                  <span className="font-bold text-primary text-lg">{team.avg_total_score}</span>
+                                  <span className="font-bold text-primary text-lg">{team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}</span>
                                 </td>
-                                <td className="p-4 text-muted-foreground font-medium text-xs">{team.starter_epa ?? '—'}</td>
                                 <td className="p-4 text-blue-400 font-semibold text-sm">{team.avg_autonomous_points ?? '—'}</td>
                                 <td className="p-4 text-orange-400 font-semibold text-sm">{team.avg_teleop_points ?? '—'}</td>
                                 <td className="p-4 text-green-400 font-semibold text-sm">{team.normalized_opr ?? '—'}</td>

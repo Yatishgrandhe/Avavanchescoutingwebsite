@@ -483,7 +483,7 @@ export default function PublicCompetitionHistoryPage() {
                         <tr className="border-b">
                           <th className="text-left py-2">Team</th>
                           <th className="text-left py-2">Matches</th>
-                          <th className="text-left py-2">Avg Score</th>
+                          <th className="text-left py-2">Avg Shooting Time</th>
                           <th className="text-left py-2">Auto</th>
                           <th className="text-left py-2">Teleop</th>
                           <th className="text-left py-2">Endgame</th>

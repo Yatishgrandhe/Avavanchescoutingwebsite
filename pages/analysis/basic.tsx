@@ -119,8 +119,8 @@ export default function BasicAnalysis() {
   const [selectedTeam, setSelectedTeam] = useState<string>('all');
   const [selectedEvent, setSelectedEvent] = useState<string>('all');
   const [teamDataOnly, setTeamDataOnly] = useState(false); // Default OFF (Show all data for active competition)
-  type TeamSortKey = 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'tba_opr' | 'team_number' | 'team_name' | 'epa' | 'avg_defense_rating';
-  const [teamSortField, setTeamSortField] = useState<TeamSortKey>('avg_total_score');
+  type TeamSortKey = 'avg_shooting_time_sec' | 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'tba_opr' | 'team_number' | 'team_name' | 'epa' | 'avg_defense_rating';
+  const [teamSortField, setTeamSortField] = useState<TeamSortKey>('avg_shooting_time_sec');
   const [teamSortDirection, setTeamSortDirection] = useState<'asc' | 'desc'>('desc');
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
   const [minAvgScoreFilter, setMinAvgScoreFilter] = useState<number | ''>('');
@@ -446,7 +446,7 @@ export default function BasicAnalysis() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Min avg score</label>
+                    <label className="text-xs text-slate-400 block mb-1">Min performance filter</label>
                     <Input
                       type="number"
                       min={0}
@@ -492,12 +492,14 @@ export default function BasicAnalysis() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-white">Avg Score</CardTitle>
+                <CardTitle className="text-sm font-medium text-white">Avg Shooting Time</CardTitle>
                 <TrendingUp className="h-4 w-4 text-slate-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-white">
-                  {teams.length > 0 ? (teams.reduce((sum, team) => sum + (team.avg_total_score || 0), 0) / teams.length).toFixed(0) : '0'}
+                  {teams.length > 0
+                    ? `${(teams.reduce((sum, team) => sum + (team.avg_shooting_time_sec || 0), 0) / teams.length).toFixed(1)}s`
+                    : '—'}
                 </div>
                 <p className="text-xs text-slate-400">
                   Across all teams
@@ -515,7 +517,7 @@ export default function BasicAnalysis() {
                   {topTeams.length > 0 ? (topTeams[0].team_name || `Team ${topTeams[0].team_number}`) : 'N/A'}
                 </div>
                 <p className="text-xs text-slate-400">
-                  {topTeams.length > 0 && topTeams[0].avg_total_score ? `Team ${topTeams[0].team_number} - ${topTeams[0].avg_total_score.toFixed(0)} avg` : 'No data'}
+                  {topTeams.length > 0 ? `Team ${topTeams[0].team_number} selected by scoring output` : 'No data'}
                 </p>
               </CardContent>
             </Card>
@@ -634,8 +636,8 @@ export default function BasicAnalysis() {
                         <TableHead className="text-[9px]">TELEOP CLIMB</TableHead>
                         <TableHead className="text-[9px]">AVG DOWNTIME</TableHead>
                         <TableHead className="text-[9px]">BROKE</TableHead>
-                        <TableHead className="cursor-pointer hover:text-white select-none" onClick={() => handleTeamSort('avg_total_score')}>
-                          <span className="inline-flex items-center gap-1">Average total {teamSortField === 'avg_total_score' && (teamSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                        <TableHead className="cursor-pointer hover:text-white select-none" onClick={() => handleTeamSort('avg_shooting_time_sec')}>
+                          <span className="inline-flex items-center gap-1">Avg shooting time {teamSortField === 'avg_shooting_time_sec' && (teamSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                         </TableHead>
                         <TableHead className="text-[9px]">Average balls/cycle</TableHead>
                         <TableHead className="cursor-pointer hover:text-white select-none" onClick={() => handleTeamSort('avg_defense_rating')}>
@@ -667,7 +669,7 @@ export default function BasicAnalysis() {
                           <TableCell className="text-sm">{team.avg_teleop_climb_pts ?? '—'}</TableCell>
                           <TableCell className="text-sm">{team.avg_downtime_sec != null ? `${Math.round(team.avg_downtime_sec)}s` : (team.avg_downtime != null ? `${Number(team.avg_downtime).toFixed(0)}s` : '—')}</TableCell>
                           <TableCell className="text-sm">{team.total_matches ? `${team.broke_count ?? 0}/${team.total_matches}` : '—'}</TableCell>
-                          <TableCell className="font-medium">{team.avg_total_score ?? 0}</TableCell>
+                          <TableCell className="font-medium">{team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}</TableCell>
                           <TableCell className="text-sm">{team.avg_balls_per_cycle ?? 0}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">

@@ -489,10 +489,10 @@ export default function TeamComparison() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          Best Avg Score
+                          Fastest Avg Shooting Time
                         </p>
                         <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                          {getBestTeam('avg_total_score')?.avg_total_score || 0}
+                          {getBestTeam('avg_shooting_time_sec')?.avg_shooting_time_sec != null ? `${getBestTeam('avg_shooting_time_sec')?.avg_shooting_time_sec}s` : '—'}
                         </p>
                         <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                           {getBestTeam('avg_total_score')?.team_name || 'N/A'}
@@ -590,8 +590,8 @@ export default function TeamComparison() {
                             <span className={`ml-2 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{team.total_matches}</span>
                           </div>
                           <div>
-                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Avg Score:</span>
-                            <span className={`ml-2 font-semibold text-blue-600`}>{formatScoreRange(team.total_pts_min ?? team.avg_total_score, team.total_pts_max ?? team.avg_total_score)}</span>
+                            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Avg Shooting Time:</span>
+                            <span className={`ml-2 font-semibold text-blue-600`}>{team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}</span>
                           </div>
                           <div>
                             <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Auto:</span>
@@ -694,7 +694,7 @@ export default function TeamComparison() {
                             Matches
                           </th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            Avg Score
+                            Avg Shooting Time
                           </th>
                           <th className={`text-left py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                             Auto
@@ -753,7 +753,7 @@ export default function TeamComparison() {
                               {team.total_matches}
                             </td>
                             <td className={`py-3 px-4 font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              {formatScoreRange(team.total_pts_min ?? team.avg_total_score, team.total_pts_max ?? team.avg_total_score)}
+                              {team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}
                             </td>
                             <td className={`py-3 px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               {formatScoreRange(team.auto_pts_min ?? team.avg_autonomous_points, team.auto_pts_max ?? team.avg_autonomous_points)}
@@ -802,7 +802,7 @@ export default function TeamComparison() {
                 <Card className="bg-card border-border">
                   <CardHeader>
                     <CardTitle className={`${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                      Average Scores Comparison
+                      Shooting Time Comparison
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -814,13 +814,13 @@ export default function TeamComparison() {
                               {team.team_name}
                             </span>
                             <span className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              {formatScoreRange(team.total_pts_min ?? team.avg_total_score, team.total_pts_max ?? team.avg_total_score)}
+                              {team.avg_shooting_time_sec != null ? `${team.avg_shooting_time_sec}s` : '—'}
                             </span>
                           </div>
                           <div className={`w-full rounded-full h-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                             <motion.div
                               initial={{ width: 0 }}
-                              animate={{ width: `${(team.avg_total_score / Math.max(...teamComparisons.map(t => t.avg_total_score))) * 100}%` }}
+                              animate={{ width: `${(Number(team.avg_shooting_time_sec || 0) / Math.max(1, ...teamComparisons.map(t => Number(t.avg_shooting_time_sec || 0)))) * 100}%` }}
                               transition={{ duration: 1, delay: index * 0.2 }}
                               className="h-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full"
                             />

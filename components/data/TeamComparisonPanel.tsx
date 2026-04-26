@@ -234,7 +234,7 @@ export function TeamComparisonPanel({
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="border border-white/10 bg-card/50">
               <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">Best avg score</p>
+                <p className="text-xs text-muted-foreground">Best EPA</p>
                 <p className="text-xl font-bold text-foreground">{getBestTeam('avg_total_score')?.avg_total_score ?? '—'}</p>
                 <p className="text-xs text-muted-foreground truncate">{getBestTeam('avg_total_score')?.team_name ?? '—'}</p>
               </CardContent>

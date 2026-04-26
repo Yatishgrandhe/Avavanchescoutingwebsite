@@ -67,7 +67,7 @@ export function TeamComparisonModal({ teams, isOpen, onClose }: TeamComparisonMo
                       <tr className="border-b border-gray-200">
                         <th className="text-left py-3 px-2 font-semibold text-gray-900">Team</th>
                         <th className="text-right py-3 px-2 font-semibold text-gray-900">Matches</th>
-                        <th className="text-right py-3 px-2 font-semibold text-gray-900">Avg Score</th>
+                        <th className="text-right py-3 px-2 font-semibold text-gray-900">EPA</th>
                         <th className="text-right py-3 px-2 font-semibold text-gray-900">Auto</th>
                         <th className="text-right py-3 px-2 font-semibold text-gray-900">Teleop</th>
                         <th className="text-right py-3 px-2 font-semibold text-gray-900">Endgame</th>
@@ -252,7 +252,7 @@ export function QuickComparison({ teams, onOpenComparison }: QuickComparisonProp
         <div className="flex items-center space-x-2">
           <Target className="h-4 w-4 text-blue-500" />
           <div>
-            <p className="text-gray-500">Avg Score</p>
+            <p className="text-gray-500">EPA</p>
             <p className="font-semibold text-gray-900">{avgScore.toFixed(1)}</p>
           </div>
         </div>

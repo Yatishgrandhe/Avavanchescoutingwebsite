@@ -11,48 +11,23 @@ type EventTeamMetricsRow = {
 
 type EventTeamMetricsResponse = {
   eventKey: string;
-  year: number;
   rows: EventTeamMetricsRow[];
 };
 
-const STATBOTICS_BASE_URL = 'https://api.statbotics.io/v3';
-
-function parseEventYear(eventKey: string): number | null {
-  const yearPrefix = eventKey.slice(0, 4);
-  const parsed = Number.parseInt(yearPrefix, 10);
-  if (!Number.isFinite(parsed) || parsed < 2000 || parsed > 2100) return null;
-  return parsed;
-}
-
-function parseEventCode(eventKey: string): string | null {
-  const code = eventKey.slice(4).trim().toLowerCase();
-  return code ? code : null;
-}
-
-async function fetchTeamStatboticsEpa(
-  teamNumber: number,
-  year: number,
-  eventCode: string
-): Promise<Pick<EventTeamMetricsRow, 'autoEpa' | 'teleopEpa' | 'totalEpa'>> {
-  const endpoint = `${STATBOTICS_BASE_URL}/team_event/${teamNumber}/${year}/${encodeURIComponent(eventCode)}`;
-  const response = await fetch(endpoint, {
-    headers: { Accept: 'application/json' },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Statbotics ${response.status} for team ${teamNumber} @ ${year}${eventCode}`);
+function extractTbaComponentMap(
+  eventOprs: TbaEventOprs,
+  includePatterns: RegExp[],
+  excludePatterns: RegExp[] = []
+): Record<string, number> | null {
+  const entries = Object.entries(eventOprs || {});
+  for (const [key, value] of entries) {
+    if (key === 'oprs' || key === 'ccwms' || key === 'dprs') continue;
+    if (!includePatterns.every((pattern) => pattern.test(key))) continue;
+    if (excludePatterns.some((pattern) => pattern.test(key))) continue;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+    return value as Record<string, number>;
   }
-
-  const payload = await response.json();
-  const autoEpa = payload?.epa?.breakdown?.auto_points;
-  const teleopEpa = payload?.epa?.breakdown?.teleop_points;
-  const totalEpa = payload?.epa?.mean ?? payload?.epa?.total_points ?? null;
-
-  return {
-    autoEpa: Number.isFinite(autoEpa) ? Number(autoEpa) : null,
-    teleopEpa: Number.isFinite(teleopEpa) ? Number(teleopEpa) : null,
-    totalEpa: Number.isFinite(totalEpa) ? Number(totalEpa) : null,
-  };
+  return null;
 }
 
 export default async function handler(
@@ -67,30 +42,26 @@ export default async function handler(
 
   const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
   const eventKey = String(body.eventKey || '').trim().toLowerCase();
-  const providedYear = Number.parseInt(String(body.year || ''), 10);
-  const parsedYear = parseEventYear(eventKey);
-  const year = Number.isFinite(providedYear) ? providedYear : parsedYear;
-  const eventCode = parseEventCode(eventKey);
 
   if (!eventKey) {
     res.status(400).json({ error: 'Event key is required.' });
     return;
   }
-  if (!year || year < 2000 || year > 2100) {
-    res.status(400).json({ error: 'Year is invalid. Use a valid event key or provide year.' });
-    return;
-  }
-  if (!eventCode) {
-    res.status(400).json({ error: 'Event key format is invalid.' });
-    return;
-  }
 
   try {
-    const [tbaTeams, tbaOprs] = await Promise.all([
+    const [tbaTeams, rawEventOprs] = await Promise.all([
       tbaFetchJson<TbaTeam[]>(`/event/${encodeURIComponent(eventKey)}/teams`),
       tbaFetchJson<TbaEventOprs>(`/event/${encodeURIComponent(eventKey)}/oprs`),
     ]);
-    const oprMap = tbaOprs?.oprs || {};
+    const eventOprs = rawEventOprs || {};
+    const oprMap = eventOprs.oprs || {};
+    const totalEpaMap = eventOprs.ccwms || {};
+    const autoComponentMap =
+      extractTbaComponentMap(eventOprs, [/auto/i], [/teleop/i]) ||
+      extractTbaComponentMap(eventOprs, [/auto/i, /opr/i], []);
+    const teleopComponentMap =
+      extractTbaComponentMap(eventOprs, [/teleop/i], []) ||
+      extractTbaComponentMap(eventOprs, [/tele/i, /opr/i], []);
 
     const rows = await Promise.all(
       (tbaTeams || []).map(async (team) => {
@@ -98,41 +69,26 @@ export default async function handler(
         const teamKey = `frc${teamNumber}`;
         const oprRaw = oprMap[teamKey];
         const opr = Number.isFinite(oprRaw) ? Number(oprRaw) : null;
-
-        try {
-          const epaValues = await fetchTeamStatboticsEpa(teamNumber, year, eventCode);
-          return {
-            teamNumber,
-            opr,
-            ...epaValues,
-          };
-        } catch (error) {
-          console.error('event-team-metrics: statbotics lookup failed', {
-            teamNumber,
-            year,
-            eventCode,
-            error,
-          });
-          return {
-            teamNumber,
-            opr,
-            autoEpa: null,
-            teleopEpa: null,
-            totalEpa: null,
-          };
-        }
+        const autoRaw = autoComponentMap?.[teamKey];
+        const teleopRaw = teleopComponentMap?.[teamKey];
+        const totalEpaRaw = totalEpaMap[teamKey];
+        return {
+          teamNumber,
+          opr,
+          autoEpa: Number.isFinite(autoRaw) ? Number(autoRaw) : null,
+          teleopEpa: Number.isFinite(teleopRaw) ? Number(teleopRaw) : null,
+          totalEpa: Number.isFinite(totalEpaRaw) ? Number(totalEpaRaw) : null,
+        };
       })
     );
 
     res.status(200).json({
       eventKey,
-      year,
       rows,
     });
   } catch (error) {
     console.error('event-team-metrics: upstream API failure', {
       eventKey,
-      year,
       error,
     });
 

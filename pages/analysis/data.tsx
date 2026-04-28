@@ -55,13 +55,10 @@ interface TeamStat extends RebuiltTeamMetrics {
   tba_opr?: number;
   tba_epa?: number;
   normalized_opr?: number;
-  statbotics_auto_epa?: number | null;
-  statbotics_teleop_epa?: number | null;
-  normalized_er_epa?: number | null;
+  tba_auto_epa?: number | null;
+  tba_teleop_epa?: number | null;
   avg_shooting_time_sec: number | null;
 }
-
-type EventMetricsSortKey = 'teamNumber' | 'opr' | 'autoEpa' | 'teleopEpa' | 'totalEpa';
 
 type EventMetricsRow = {
   teamNumber: number;
@@ -138,7 +135,7 @@ const calculateTeamStats = (
     const eventMetrics = eventMetricsByTeam?.[teamNumber];
     const resolvedOpr = eventMetrics?.opr ?? tbaMap.get(teamNumber)?.tba_opr ?? null;
     const resolvedTotalEpa = eventMetrics?.totalEpa ?? tbaMap.get(teamNumber)?.tba_epa ?? null;
-    const normalizedErEpa =
+    const normalizedOpr =
       resolvedOpr != null && avgShootingTimeSec != null && avgShootingTimeSec > 0
         ? roundToTenth(resolvedOpr / avgShootingTimeSec)
         : null;
@@ -151,10 +148,9 @@ const calculateTeamStats = (
       climb_status,
       tba_opr: resolvedOpr ?? 0,
       tba_epa: resolvedTotalEpa ?? rebuilt.epa,
-      normalized_opr: tbaMap.get(teamNumber)?.normalized_opr ?? 0,
-      statbotics_auto_epa: eventMetrics?.autoEpa ?? null,
-      statbotics_teleop_epa: eventMetrics?.teleopEpa ?? null,
-      normalized_er_epa: normalizedErEpa,
+      normalized_opr: normalizedOpr ?? 0,
+      tba_auto_epa: eventMetrics?.autoEpa ?? null,
+      tba_teleop_epa: eventMetrics?.teleopEpa ?? null,
       avg_shooting_time_sec: avgShootingTimeSec,
     };
   });
@@ -209,7 +205,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [clearingData, setClearingData] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   // Team stats sort defaults to shooting-time view.
-  type TeamStatSortKey = 'avg_shooting_time_sec' | 'avg_climb_speed_sec' | 'avg_total_score' | 'total_matches' | 'statbotics_auto_epa' | 'statbotics_teleop_epa' | 'normalized_er_epa' | 'tba_epa' | 'consistency_score' | 'team_number' | 'team_name' | 'shuttle_rate' | 'avg_shuttle_balls';
+  type TeamStatSortKey = 'avg_shooting_time_sec' | 'avg_climb_speed_sec' | 'avg_total_score' | 'total_matches' | 'tba_auto_epa' | 'tba_teleop_epa' | 'normalized_opr' | 'tba_epa' | 'consistency_score' | 'team_number' | 'team_name' | 'shuttle_rate' | 'avg_shuttle_balls';
   const [teamStatsSortField, setTeamStatsSortField] = useState<TeamStatSortKey>('avg_shooting_time_sec');
   const [teamStatsSortDirection, setTeamStatsSortDirection] = useState<'asc' | 'desc'>('desc');
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
@@ -219,23 +215,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [activeEventKey, setActiveEventKey] = useState<string>('');
   const [activeEventName, setActiveEventName] = useState<string>('');
   const [teamDataOnly, setTeamDataOnly] = useState(false); // Default to OFF (show all data for active competition)
-  const [analysisEventKey, setAnalysisEventKey] = useState('');
-  const [analysisEventYear, setAnalysisEventYear] = useState('');
-  const [analysisRows, setAnalysisRows] = useState<EventMetricsRow[]>([]);
-  const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const [analysisSortField, setAnalysisSortField] = useState<EventMetricsSortKey>('totalEpa');
-  const [analysisSortDirection, setAnalysisSortDirection] = useState<'asc' | 'desc'>('desc');
   useEffect(() => {
     setTeamDataOnly(loadAnalysisTeamDataOnly(false));
   }, []);
-  useEffect(() => {
-    const trimmed = analysisEventKey.trim().toLowerCase();
-    const inferredYear = Number.parseInt(trimmed.slice(0, 4), 10);
-    if (Number.isFinite(inferredYear) && inferredYear >= 2000 && inferredYear <= 2100) {
-      setAnalysisEventYear(String(inferredYear));
-    }
-  }, [analysisEventKey]);
   const [dataPageAiSummary, setDataPageAiSummary] = useState<string | null>(null);
   const [dataPageAiLoading, setDataPageAiLoading] = useState(false);
   const [dataPageAiError, setDataPageAiError] = useState<string | null>(null);
@@ -719,19 +701,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     });
   }, [filteredTeamStats, teamStatsSortField, teamStatsSortDirection]);
 
-  const sortedAnalysisRows = useMemo(() => {
-    const dir = analysisSortDirection === 'asc' ? 1 : -1;
-    return [...analysisRows].sort((a, b) => {
-      const aVal = a[analysisSortField];
-      const bVal = b[analysisSortField];
-      const aNum = aVal == null ? Number.NEGATIVE_INFINITY : Number(aVal);
-      const bNum = bVal == null ? Number.NEGATIVE_INFINITY : Number(bVal);
-      if (aNum === bNum) {
-        return a.teamNumber - b.teamNumber;
-      }
-      return (aNum - bNum) * dir;
-    });
-  }, [analysisRows, analysisSortDirection, analysisSortField]);
 
   const handleTeamStatsSort = (field: TeamStatSortKey) => {
     if (teamStatsSortField === field) {
@@ -748,52 +717,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     } else {
       setSortField(field);
       setSortDirection('asc');
-    }
-  };
-
-  const handleAnalysisSort = (field: EventMetricsSortKey) => {
-    if (analysisSortField === field) {
-      setAnalysisSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      return;
-    }
-    setAnalysisSortField(field);
-    setAnalysisSortDirection(field === 'teamNumber' ? 'asc' : 'desc');
-  };
-
-  const handleAnalysisSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const eventKey = analysisEventKey.trim().toLowerCase();
-    const year = analysisEventYear.trim();
-    if (!eventKey) {
-      setAnalysisError('Event key is required.');
-      return;
-    }
-
-    setAnalysisLoading(true);
-    setAnalysisError(null);
-    try {
-      const response = await fetch('/api/analysis/event-team-metrics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventKey,
-          year: year || undefined,
-        }),
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(payload?.error || 'Failed to fetch event team metrics.');
-      }
-      setAnalysisRows(Array.isArray(payload?.rows) ? payload.rows : []);
-      if (!year && payload?.year) {
-        setAnalysisEventYear(String(payload.year));
-      }
-    } catch (error) {
-      console.error('Data analysis EPA fetch failed', error);
-      setAnalysisRows([]);
-      setAnalysisError(error instanceof Error ? error.message : 'Failed to fetch event team metrics.');
-    } finally {
-      setAnalysisLoading(false);
     }
   };
 
@@ -935,122 +858,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
             <p className="text-sm sm:text-base md:text-xl text-muted-foreground max-w-2xl mx-auto px-4 break-words">
               Comprehensive view of all scouting data with detailed breakdowns and uploader information
             </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  TBA + Statbotics Event Metrics
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <form onSubmit={handleAnalysisSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-                  <div className="space-y-1">
-                    <label htmlFor="analysis-event-key" className="text-xs text-muted-foreground">Event Key</label>
-                    <Input
-                      id="analysis-event-key"
-                      placeholder="e.g. 2024gagai"
-                      value={analysisEventKey}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAnalysisEventKey(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label htmlFor="analysis-event-year" className="text-xs text-muted-foreground">Year</label>
-                    <Input
-                      id="analysis-event-year"
-                      placeholder="Auto from event key"
-                      value={analysisEventYear}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAnalysisEventYear(e.target.value)}
-                    />
-                  </div>
-                  <Button type="submit" disabled={analysisLoading}>
-                    {analysisLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                    Fetch Event Metrics
-                  </Button>
-                </form>
-
-                {analysisError ? (
-                  <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                    {analysisError}
-                  </div>
-                ) : null}
-
-                {analysisLoading ? (
-                  <div className="flex justify-center py-6">
-                    <Loader2 className="w-7 h-7 animate-spin text-primary" />
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto rounded-md border border-border">
-                    <table className="w-full text-sm">
-                      <thead className="bg-muted/40">
-                        <tr>
-                          {([
-                            ['teamNumber', 'Team Number'],
-                            ['opr', 'OPR'],
-                            ['autoEpa', 'Auto EPA'],
-                            ['teleopEpa', 'Teleop EPA'],
-                            ['totalEpa', 'Total EPA'],
-                          ] as Array<[EventMetricsSortKey, string]>).map(([field, label]) => (
-                            <th
-                              key={field}
-                              className="text-left p-3 cursor-pointer select-none"
-                              onClick={() => handleAnalysisSort(field)}
-                            >
-                              <span className="inline-flex items-center gap-1">
-                                {label}
-                                {analysisSortField === field ? (
-                                  analysisSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />
-                                ) : null}
-                              </span>
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sortedAnalysisRows.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="p-4 text-center text-muted-foreground">
-                              Submit an event key to load OPR and EPA values.
-                            </td>
-                          </tr>
-                        ) : (
-                          sortedAnalysisRows.map((row, index) => {
-                            const topCutoff = Math.floor(sortedAnalysisRows.length * 0.25);
-                            const bottomStart = Math.ceil(sortedAnalysisRows.length * 0.75);
-                            const rowClass =
-                              index < topCutoff
-                                ? 'bg-emerald-500/10'
-                                : index >= bottomStart
-                                  ? 'bg-red-500/10'
-                                  : 'bg-amber-500/10';
-
-                            const formatMetric = (value: number | null) => (
-                              value == null ? '—' : Number(value).toFixed(2)
-                            );
-
-                            return (
-                              <tr key={row.teamNumber} className={cn('border-t border-border/60', rowClass)}>
-                                <td className="p-3 font-medium">{row.teamNumber}</td>
-                                <td className="p-3">{formatMetric(row.opr)}</td>
-                                <td className="p-3">{formatMetric(row.autoEpa)}</td>
-                                <td className="p-3">{formatMetric(row.teleopEpa)}</td>
-                                <td className="p-3">{formatMetric(row.totalEpa)}</td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </motion.div>
 
           {/* Controls */}
@@ -1323,11 +1130,11 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                                 <span className="text-[10px] text-muted-foreground uppercase block mb-1">Auto EPA</span>
-                                <span className="text-sm font-semibold text-blue-400">{team.statbotics_auto_epa != null ? roundToTenth(team.statbotics_auto_epa) : '—'}</span>
+                                <span className="text-sm font-semibold text-blue-400">{team.tba_auto_epa != null ? roundToTenth(team.tba_auto_epa) : '—'}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                                 <span className="text-[10px] text-muted-foreground uppercase block mb-1">Teleop EPA</span>
-                                <span className="text-sm font-semibold text-orange-400">{team.statbotics_teleop_epa != null ? roundToTenth(team.statbotics_teleop_epa) : '—'}</span>
+                                <span className="text-sm font-semibold text-orange-400">{team.tba_teleop_epa != null ? roundToTenth(team.tba_teleop_epa) : '—'}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                                 <span className="text-[10px] text-muted-foreground uppercase block mb-1">Climb</span>
@@ -1338,8 +1145,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <span className="text-sm font-semibold text-green-400">{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Normalized ER EPA</span>
-                                <span className="text-sm font-semibold text-green-400">{team.normalized_er_epa != null ? roundToTenth(team.normalized_er_epa) : '—'}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Normalized OPR</span>
+                                <span className="text-sm font-semibold text-green-400">{team.normalized_opr != null ? roundToTenth(team.normalized_opr) : '—'}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                                 <span className="text-[10px] text-muted-foreground uppercase block mb-1">Consistency</span>
@@ -1407,14 +1214,14 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 cursor-pointer hover:text-foreground select-none" onClick={() => handleTeamStatsSort('team_number')}>
                               <span className="inline-flex items-center gap-1">Team {teamStatsSortField === 'team_number' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
-                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('statbotics_auto_epa')}>
-                              <span className="inline-flex items-center gap-1">Auto EPA {teamStatsSortField === 'statbotics_auto_epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('tba_auto_epa')}>
+                              <span className="inline-flex items-center gap-1">Auto EPA {teamStatsSortField === 'tba_auto_epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
-                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('statbotics_teleop_epa')}>
-                              <span className="inline-flex items-center gap-1">Teleop EPA {teamStatsSortField === 'statbotics_teleop_epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('tba_teleop_epa')}>
+                              <span className="inline-flex items-center gap-1">Teleop EPA {teamStatsSortField === 'tba_teleop_epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
-                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('normalized_er_epa')}>
-                              <span className="inline-flex items-center gap-1">Normalized ER EPA {teamStatsSortField === 'normalized_er_epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('normalized_opr')}>
+                              <span className="inline-flex items-center gap-1">Normalized OPR {teamStatsSortField === 'normalized_opr' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
                             <th className="text-left p-4 text-[9px]">
                               <span className="inline-flex items-center gap-1">Climb</span>
@@ -1466,9 +1273,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                     </div>
                                   </div>
                                 </td>
-                                <td className="p-4 text-blue-400 font-semibold text-sm">{team.statbotics_auto_epa != null ? roundToTenth(team.statbotics_auto_epa) : '—'}</td>
-                                <td className="p-4 text-orange-400 font-semibold text-sm">{team.statbotics_teleop_epa != null ? roundToTenth(team.statbotics_teleop_epa) : '—'}</td>
-                                <td className="p-4 text-green-400 font-semibold text-sm">{team.normalized_er_epa != null ? roundToTenth(team.normalized_er_epa) : '—'}</td>
+                                <td className="p-4 text-blue-400 font-semibold text-sm">{team.tba_auto_epa != null ? roundToTenth(team.tba_auto_epa) : '—'}</td>
+                                <td className="p-4 text-orange-400 font-semibold text-sm">{team.tba_teleop_epa != null ? roundToTenth(team.tba_teleop_epa) : '—'}</td>
+                                <td className="p-4 text-green-400 font-semibold text-sm">{team.normalized_opr != null ? roundToTenth(team.normalized_opr) : '—'}</td>
                                 <td className="p-4 text-sm font-semibold text-emerald-300">{team.climb_status}</td>
                                 <td className="p-4 text-sm font-semibold text-green-400">{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</td>
                                 <td className="p-4 text-primary font-bold text-sm">{team.tba_epa != null ? roundToTenth(team.tba_epa) : (team.epa ?? team.avg_total_score ?? '—')}</td>

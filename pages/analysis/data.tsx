@@ -304,25 +304,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         return;
       }
 
-      // Ensure TBA metrics are refreshed for the active event before loading team tables.
-      // This keeps OPR/EPA from showing stale zeros when sync has not run recently.
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const accessToken = session?.access_token;
-        if (accessToken && user?.organization_id) {
-          await fetch('/api/load-match-data', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify({ eventKey: targetEventKey }),
-          });
-        }
-      } catch (syncError) {
-        console.warn('TBA sync prefetch failed, continuing with existing data.', syncError);
-      }
-
       // Load scouting data for this event
       let query = supabase
         .from('scouting_data')
@@ -353,33 +334,42 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         .filter((row) => Number.isFinite(Number(row.team_number)) && Number(row.team_number) > 0)
         .sort((a: ScoutingData, b: ScoutingData) => getRowTimestampMs(b) - getRowTimestampMs(a));
 
-      // Load ONLY teams on the active event roster.
-      // This prevents showing unrelated organization teams in analysis.
-      let allTeamsQuery = supabase
-        .from('teams')
-        .select('*, roster:event_team_roster!inner(event_key, organization_id)')
-        .eq('roster.event_key', targetEventKey)
-        .order('team_number');
+      // Load roster first, then fetch teams by roster numbers.
+      // Avoid brittle client-side FK join syntax that can fail with 400 when relationship metadata differs.
+      let rosterQuery = supabase
+        .from('event_team_roster')
+        .select('team_number, organization_id')
+        .eq('event_key', targetEventKey);
       if (teamDataOnly && user?.organization_id) {
-        allTeamsQuery = allTeamsQuery.eq('roster.organization_id', user.organization_id);
+        rosterQuery = rosterQuery.eq('organization_id', user.organization_id);
       }
-      const { data: allTeamsResult, error: allTeamsError } = await allTeamsQuery;
+      const { data: rosterRows, error: rosterError } = await rosterQuery;
+      if (rosterError) throw rosterError;
+
+      const rosterTeamNumbers = Array.from(
+        new Set((rosterRows || []).map((r: { team_number: number }) => Number(r.team_number)).filter((n: number) => Number.isFinite(n) && n > 0))
+      );
+      if (rosterTeamNumbers.length === 0) {
+        if (requestId !== loadRequestIdRef.current) return;
+        setScoutingData(allScoutingRows);
+        setTeams([]);
+        setAllTeams([]);
+        setTeamStats([]);
+        setPitByTeam({});
+        setLoading(false);
+        return;
+      }
+
+      const { data: allTeamsResult, error: allTeamsError } = await supabase
+        .from('teams')
+        .select('*')
+        .in('team_number', rosterTeamNumbers)
+        .order('team_number');
 
       if (allTeamsError) throw allTeamsError;
 
       // For the team filter dropdown, exclude Avalanche (scouting own team)
-      let teamsQuery = supabase
-        .from('teams')
-        .select('*, roster:event_team_roster!inner(event_key, organization_id)')
-        .eq('roster.event_key', targetEventKey)
-        .not('team_name', 'ilike', '%avalanche%')
-        .order('team_number');
-      if (teamDataOnly && user?.organization_id) {
-        teamsQuery = teamsQuery.eq('roster.organization_id', user.organization_id);
-      }
-      const { data: teamsResult, error: teamsError } = await teamsQuery;
-
-      if (teamsError) throw teamsError;
+      const teamsResult = (allTeamsResult || []).filter((t: Team) => !String(t.team_name || '').toLowerCase().includes('avalanche'));
 
       if (requestId !== loadRequestIdRef.current) return;
       setScoutingData(allScoutingRows);
@@ -417,14 +407,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       if (requestId !== loadRequestIdRef.current) return;
       setTeamStats(stats);
 
-      // Load pit scouting data so we can show robot name / drive type per team
-      // Filter by event_team_roster to only show teams at THIS competition
+      // Load pit scouting data for roster teams at this competition.
       let pitQuery = supabase
         .from('pit_scouting_data')
-        .select('team_number, robot_name, drive_type, weight, overall_rating, roster:event_team_roster!inner(event_key)')
-        .eq('roster.event_key', targetEventKey)
+        .select('team_number, robot_name, drive_type, weight, overall_rating, organization_id, created_at')
+        .in('team_number', rosterTeamNumbers)
         .order('created_at', { ascending: false });
-
       if (teamDataOnly && user?.organization_id) {
         pitQuery = pitQuery.eq('organization_id', user.organization_id);
       }

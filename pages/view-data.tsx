@@ -469,21 +469,6 @@ export default function ViewDataPage() {
     setLoading(true);
     setError(null);
     try {
-      if (event_key && session?.access_token) {
-        try {
-          await fetch('/api/load-match-data', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({ eventKey: event_key as string }),
-          });
-        } catch (syncError) {
-          console.warn('Live TBA sync prefetch failed, continuing with cached DB metrics.', syncError);
-        }
-      }
-
       const params = new URLSearchParams();
       if (event_key) params.set('event_key', event_key as string);
       if (id) params.set('id', id as string);

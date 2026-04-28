@@ -304,6 +304,25 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         return;
       }
 
+      // Ensure TBA metrics are refreshed for the active event before loading team tables.
+      // This keeps OPR/EPA from showing stale zeros when sync has not run recently.
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const accessToken = session?.access_token;
+        if (accessToken && user?.organization_id) {
+          await fetch('/api/load-match-data', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({ eventKey: targetEventKey }),
+          });
+        }
+      } catch (syncError) {
+        console.warn('TBA sync prefetch failed, continuing with existing data.', syncError);
+      }
+
       // Load scouting data for this event
       let query = supabase
         .from('scouting_data')
@@ -334,21 +353,31 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         .filter((row) => Number.isFinite(Number(row.team_number)) && Number(row.team_number) > 0)
         .sort((a: ScoutingData, b: ScoutingData) => getRowTimestampMs(b) - getRowTimestampMs(a));
 
-      // Load ALL teams (including Avalanche) for team name lookups and Team Stats calculation
-      // Team Stats needs all teams that have scouting data, regardless of team list filter
-      const { data: allTeamsResult, error: allTeamsError } = await supabase
+      // Load ONLY teams on the active event roster.
+      // This prevents showing unrelated organization teams in analysis.
+      let allTeamsQuery = supabase
         .from('teams')
-        .select('*')
+        .select('*, roster:event_team_roster!inner(event_key, organization_id)')
+        .eq('roster.event_key', targetEventKey)
         .order('team_number');
+      if (teamDataOnly && user?.organization_id) {
+        allTeamsQuery = allTeamsQuery.eq('roster.organization_id', user.organization_id);
+      }
+      const { data: allTeamsResult, error: allTeamsError } = await allTeamsQuery;
 
       if (allTeamsError) throw allTeamsError;
 
       // For the team filter dropdown, exclude Avalanche (scouting own team)
-      const { data: teamsResult, error: teamsError } = await supabase
+      let teamsQuery = supabase
         .from('teams')
-        .select('*')
+        .select('*, roster:event_team_roster!inner(event_key, organization_id)')
+        .eq('roster.event_key', targetEventKey)
         .not('team_name', 'ilike', '%avalanche%')
         .order('team_number');
+      if (teamDataOnly && user?.organization_id) {
+        teamsQuery = teamsQuery.eq('roster.organization_id', user.organization_id);
+      }
+      const { data: teamsResult, error: teamsError } = await teamsQuery;
 
       if (teamsError) throw teamsError;
 

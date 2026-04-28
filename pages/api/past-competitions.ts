@@ -335,16 +335,53 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
         }
 
+        const metricByTeam = new Map<number, {
+          tba_opr: number;
+          tba_epa: number;
+          normalized_opr: number;
+          avg_shooting_time_sec: number | null;
+        }>();
+        if (teamNumList.length > 0) {
+          let metricQuery = supabaseAdmin
+            .from('teams')
+            .select('team_number, tba_opr, tba_epa, normalized_opr, avg_shooting_time_sec')
+            .in('team_number', teamNumList);
+          if (matchOrgFilter) {
+            metricQuery = metricQuery.eq('organization_id', matchOrgFilter);
+          }
+          const { data: metricRows } = await metricQuery;
+          for (const row of metricRows || []) {
+            const teamNumber = Number((row as { team_number: number }).team_number);
+            const next = {
+              tba_opr: Number((row as any).tba_opr ?? 0),
+              tba_epa: Number((row as any).tba_epa ?? 0),
+              normalized_opr: Number((row as any).normalized_opr ?? 0),
+              avg_shooting_time_sec:
+                (row as any).avg_shooting_time_sec != null ? Number((row as any).avg_shooting_time_sec) : null,
+            };
+            const prev = metricByTeam.get(teamNumber);
+            // Prefer rows that have non-zero TBA stats.
+            if (!prev || (Math.abs(next.tba_opr) + Math.abs(next.tba_epa)) > (Math.abs(prev.tba_opr) + Math.abs(prev.tba_epa))) {
+              metricByTeam.set(teamNumber, next);
+            }
+          }
+        }
+
         const teams = Array.from(teamNumbers)
           .sort((a, b) => a - b)
           .map((tn) => {
             const pastScores = teamScoresMap.get(tn) || [];
             const starterEpa = pastScores.length > 0 ? pastScores.reduce((a, b) => a + b, 0) / pastScores.length : 0;
+            const tbaMetrics = metricByTeam.get(tn);
 
             return {
               team_number: tn,
               team_name: teamMap.get(tn) || '',
               starter_epa: Math.round(starterEpa * 10) / 10,
+              tba_opr: tbaMetrics?.tba_opr ?? 0,
+              tba_epa: tbaMetrics?.tba_epa ?? 0,
+              normalized_opr: tbaMetrics?.normalized_opr ?? 0,
+              avg_shooting_time_sec: tbaMetrics?.avg_shooting_time_sec ?? null,
             };
           });
 

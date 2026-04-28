@@ -62,25 +62,52 @@ export default function SyncButton() {
 
     try {
       const queue = await getOfflineQueue();
+      let attemptedEventResync = false;
       
       for (const item of queue) {
         try {
           if (item.type === 'match-scouting') {
-            const res = await fetch('/api/scouting_data', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`
-              },
-              body: JSON.stringify(item.data),
-            });
+            const postMatchScouting = () =>
+              fetch('/api/scouting_data', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify(item.data),
+              });
+
+            let res = await postMatchScouting();
+            let responseBody = await res.json().catch(() => ({} as { error?: string; details?: string }));
+
+            const scheduleSyncNeeded =
+              res.status === 400 &&
+              typeof responseBody?.error === 'string' &&
+              (
+                responseBody.error.toLowerCase().includes('event schedule') ||
+                responseBody.error.toLowerCase().includes('schedule was not synced') ||
+                responseBody.error.toLowerCase().includes('not in your team')
+              );
+
+            if (scheduleSyncNeeded && !attemptedEventResync) {
+              attemptedEventResync = true;
+              const syncRes = await fetch('/api/sync-my-event', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${session.access_token}`
+                },
+              });
+              if (syncRes.ok) {
+                res = await postMatchScouting();
+                responseBody = await res.json().catch(() => ({} as { error?: string; details?: string }));
+              }
+            }
 
             if (res.ok) {
               await removeFromOfflineQueue(item.id);
               successCount++;
             } else {
-              const body = await res.json().catch(() => ({} as { error?: string; details?: string }));
-              const reason = typeof body.error === 'string' ? body.error : `HTTP ${res.status}`;
+              const reason = typeof responseBody.error === 'string' ? responseBody.error : `HTTP ${res.status}`;
               const lowerReason = reason.toLowerCase();
               const nonRetriableDuplicate =
                 res.status === 400 &&
@@ -91,7 +118,7 @@ export default function SyncButton() {
                 await removeFromOfflineQueue(item.id);
                 successCount++;
               } else {
-                console.error('Match scouting sync failed', reason, body?.details);
+                console.error('Match scouting sync failed', reason, responseBody?.details);
                 failCount++;
                 failReasons.push(reason);
               }
@@ -172,7 +199,7 @@ export default function SyncButton() {
 
   const handleSyncClick = () => {
     if (isSyncing || queueCount === 0 || !session?.access_token) return;
-    setShowSpeedTest(true);
+    void performActualSync();
   };
 
   return (

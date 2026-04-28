@@ -346,10 +346,27 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       const { data: rosterRows, error: rosterError } = await rosterQuery;
       if (rosterError) throw rosterError;
 
-      const rosterTeamNumbers = Array.from(
-        new Set((rosterRows || []).map((r: { team_number: number }) => Number(r.team_number)).filter((n: number) => Number.isFinite(n) && n > 0))
+      const rosterTeamNumbers: number[] = Array.from(
+        new Set<number>(
+          (rosterRows || [])
+            .map((r: { team_number: number }) => Number(r.team_number))
+            .filter((n: number): n is number => Number.isFinite(n) && n > 0)
+        )
       );
-      if (rosterTeamNumbers.length === 0) {
+
+      const scoutingTeamNumbers: number[] = Array.from(
+        new Set<number>(
+          allScoutingRows
+            .map((row) => Number(row.team_number))
+            .filter((n): n is number => Number.isFinite(n) && n > 0)
+        )
+      );
+
+      const teamNumbersForEvent = Array.from(
+        new Set<number>([...rosterTeamNumbers, ...scoutingTeamNumbers])
+      ).sort((a, b) => a - b);
+
+      if (teamNumbersForEvent.length === 0) {
         if (requestId !== loadRequestIdRef.current) return;
         setScoutingData(allScoutingRows);
         setTeams([]);
@@ -363,7 +380,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       const { data: allTeamsResult, error: allTeamsError } = await supabase
         .from('teams')
         .select('*')
-        .in('team_number', rosterTeamNumbers)
+        .in('team_number', teamNumbersForEvent)
         .order('team_number');
 
       if (allTeamsError) throw allTeamsError;
@@ -411,7 +428,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       let pitQuery = supabase
         .from('pit_scouting_data')
         .select('team_number, robot_name, drive_type, weight, overall_rating, organization_id, created_at')
-        .in('team_number', rosterTeamNumbers)
+        .in('team_number', teamNumbersForEvent)
         .order('created_at', { ascending: false });
       if (teamDataOnly && user?.organization_id) {
         pitQuery = pitQuery.eq('organization_id', user.organization_id);

@@ -168,19 +168,7 @@ export default function Scout() {
         },
       };
 
-      try {
-        await addToOfflineQueue('match-scouting', scoutingData, {
-          competitionKey: formData.matchData.event_key,
-          organizationId: user?.organization_id || '',
-          teamNumber: formData.teamNumber,
-          matchKey: formData.matchData.match_id,
-        });
-        
-        // Dispatch event for SyncButton
-        window.dispatchEvent(new Event('offline-queue-updated'));
-        
-        toast.success('Saved locally! Click "Submit Pending" in the menu to upload.');
-        
+      const resetForm = () => {
         setCurrentStep('match-details');
         setFormData({
           scoutName: '',
@@ -204,7 +192,64 @@ export default function Scout() {
           },
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
-      } catch (err) {
+      };
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const trySubmit = async () =>
+          fetch('/api/scouting_data', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify(scoutingData),
+          });
+
+        let response = await trySubmit();
+        let body = await response.json().catch(() => ({} as { error?: string }));
+
+        const scheduleSyncNeeded =
+          response.status === 400 &&
+          typeof body?.error === 'string' &&
+          (
+            body.error.toLowerCase().includes('event schedule') ||
+            body.error.toLowerCase().includes('schedule was not synced')
+          );
+
+        if (scheduleSyncNeeded) {
+          const syncRes = await fetch('/api/sync-my-event', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+          if (syncRes.ok) {
+            response = await trySubmit();
+            body = await response.json().catch(() => ({} as { error?: string }));
+          }
+        }
+
+        if (response.ok) {
+          toast.success('Form submitted successfully.');
+          resetForm();
+          return;
+        }
+
+        if (response.status >= 400 && response.status < 500) {
+          throw new Error(body?.error || 'Submission rejected. Please review the form and try again.');
+        }
+      }
+
+      try {
+        await addToOfflineQueue('match-scouting', scoutingData, {
+          competitionKey: formData.matchData.event_key,
+          organizationId: user?.organization_id || '',
+          teamNumber: formData.teamNumber,
+          matchKey: formData.matchData.match_id,
+        });
+        window.dispatchEvent(new Event('offline-queue-updated'));
+        toast.success('Saved locally due to connection issue. Use Submit Pending to upload.');
+        resetForm();
+      } catch {
         throw new Error('Failed to save form locally. Your browser might not support local storage or it is full.');
       }
     } catch (error) {

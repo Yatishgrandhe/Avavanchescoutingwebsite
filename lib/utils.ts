@@ -27,8 +27,8 @@ export function calculateScore(data: any) {
   if (!data) return { final_score: 0 };
 
   let score = 0;
-  const isAuto = data.auto_fuel_active_hub != null || data.auto_tower_level1 != null ||
-    (data.runs?.length && data.teleop_tower_level1 == null && data.teleop_fuel_active_hub == null);
+  const isAuto = data.auto_fuel_active_hub != null || data.auto_climb != null ||
+    (data.runs?.length && data.teleop_fuel_active_hub == null);
 
   if (isAuto) {
     const fuel = data.runs?.length ? fuelFromRuns(data.runs) : (
@@ -37,7 +37,6 @@ export function calculateScore(data: any) {
       ).reduce((s, k) => s + (Number(data[k]) || 0), 0)
     );
     score += fuel * 1;
-    if (data.auto_tower_level1) score += 15;
   } else {
     let teleopFuel = 0;
     if (data.runs?.length) {
@@ -51,9 +50,6 @@ export function calculateScore(data: any) {
         .reduce((s, k) => s + (Number(data[k]) || 0), 0);
     }
     score += teleopFuel * 1;
-    if (data.teleop_tower_level3) score += 30;
-    else if (data.teleop_tower_level2) score += 20;
-    else if (data.teleop_tower_level1) score += 10;
   }
 
   return { final_score: score };

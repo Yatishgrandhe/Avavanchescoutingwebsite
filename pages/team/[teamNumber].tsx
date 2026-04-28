@@ -458,8 +458,8 @@ const TeamDetail: React.FC = () => {
       avg_shooting_time_sec: rebuilt.avg_shooting_time_sec ?? null,
       shuttle_rate: rebuilt.shuttle_rate,
       avg_shuttle_balls: rebuilt.avg_shuttle_balls,
-      endgame_epa: rebuilt.endgame_epa ?? rebuilt.avg_climb_pts ?? 0,
-      epa: Math.round(rebuilt.epa ?? avgTotal),
+      endgame_epa: team?.normalized_opr ?? 0,
+      epa: Math.round(team?.tba_epa ?? rebuilt.epa ?? avgTotal),
 
       // Data for Radar Chart (all values 0–100 for correct scale; Recharts expects numeric A and fullMark)
       radarData: [
@@ -513,7 +513,7 @@ const TeamDetail: React.FC = () => {
               <BreakdownItem label="FUEL (game pieces)" value={teleopFuel} points={1} />
               <BreakdownItem label="SHUTTLE" value={p.teleop.shuttle ? 'Yes' : 'No'} points={0} />
               {p.teleop.shuttle && <BreakdownItem label="SHUTTLE CONS." value={p.teleop.shuttle_consistency} points={0} />}
-              {climb && <BreakdownItem label="TOWER CLIMB" value={climb.label} points={climb.points} />}
+              {climb && <BreakdownItem label="TOWER CLIMB" value={climb.label} points={0} />}
             </div>
           </div>
 
@@ -524,7 +524,7 @@ const TeamDetail: React.FC = () => {
             </h4>
             <div className="space-y-2">
               {climb ? (
-                <BreakdownItem label={`Climb ${climb.label}`} value={climb.label} points={climb.points} />
+                <BreakdownItem label={`Climb ${climb.label}`} value={climb.label} points={0} />
               ) : (
                 <div className="flex items-center justify-between p-3 rounded-lg border bg-card/30 border-white/5">
                   <span className="text-sm font-medium text-muted-foreground">Climb</span>

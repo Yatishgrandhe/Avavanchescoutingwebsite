@@ -65,11 +65,15 @@ export interface ScoringNotes {
   balls_60_75?: number;
   balls_75_90?: number;
   auto_fuel_active_hub: number;
+  auto_climb?: boolean;
+  auto_climb_level?: 'L1' | 'L2' | 'L3';
   /** @deprecated Legacy climb-level field retained for older records. */
   auto_tower_level1?: boolean;
   /** Auto climb time in seconds (CLANK speed), with millisecond precision. */
   auto_climb_sec?: number | null;
   teleop_fuel_active_hub: number;
+  teleop_climb?: boolean;
+  teleop_climb_level?: 'L1' | 'L2' | 'L3';
   /** Teleop climb time in seconds, with millisecond precision. */
   climb_sec?: number | null;
   teleop_fuel_shifts?: number[];

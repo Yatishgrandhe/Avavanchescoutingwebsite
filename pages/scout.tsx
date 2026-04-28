@@ -558,6 +558,31 @@ export default function Scout() {
                                 </div>
                               )}
                             </div>
+                            <div className="space-y-2 pt-1 border-t border-white/5">
+                              <span className="text-[10px] font-black text-muted-foreground uppercase block">Climb timing</span>
+                              <div className="text-xs space-y-1">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Auto climb:</span>
+                                  <span className="font-mono font-semibold">
+                                    {formData.autonomous?.auto_climb ? `Yes ${formData.autonomous?.auto_climb_level || ''}`.trim() : 'No'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Auto climb time:</span>
+                                  <span className="font-mono font-semibold">{formData.autonomous?.auto_climb_sec != null ? formatDurationSec(Number(formData.autonomous.auto_climb_sec)) : '—'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Teleop climb:</span>
+                                  <span className="font-mono font-semibold">
+                                    {formData.teleop?.teleop_climb ? `Yes ${formData.teleop?.teleop_climb_level || ''}`.trim() : 'No'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Teleop climb time:</span>
+                                  <span className="font-mono font-semibold">{formData.teleop?.climb_sec != null ? formatDurationSec(Number(formData.teleop.climb_sec)) : '—'}</span>
+                                </div>
+                              </div>
+                            </div>
 
                             <div className="grid grid-cols-3 gap-2 pt-2">
                               <div className="text-center">

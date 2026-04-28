@@ -23,7 +23,7 @@ import AutonomousForm from '@/components/scout/AutonomousForm';
 import TeleopForm from '@/components/scout/TeleopForm';
 import MiscellaneousForm from '@/components/scout/MiscellaneousForm';
 import { ScoringNotes } from '@/lib/types';
-import { calculateScore } from '@/lib/utils';
+import { calculateScore, formatDurationSec } from '@/lib/utils';
 import { useRouter } from 'next/router';
 import { addToOfflineQueue } from '@/lib/offline-queue';
 import { useScoutingLocks } from '@/hooks/use-scouting-locks';
@@ -480,6 +480,29 @@ export default function MobileScout() {
                               Runs — Auto: {formData.autonomous?.runs?.length ?? 0} · Teleop: {formData.teleop?.runs?.length ?? 0} · Shuttle: {formData.teleop?.shuttle_runs?.length ?? 0}
                             </p>
                           )}
+                        </div>
+                        <div className="border-t pt-2 mt-2 space-y-1">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase">Climb timing</p>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Auto climb:</span>
+                            <span className="font-mono font-medium">
+                              {formData.autonomous?.auto_climb ? `Yes ${formData.autonomous?.auto_climb_level || ''}`.trim() : 'No'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Auto climb time:</span>
+                            <span className="font-mono font-medium">{formData.autonomous?.auto_climb_sec != null ? formatDurationSec(Number(formData.autonomous.auto_climb_sec)) : '—'}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Teleop climb:</span>
+                            <span className="font-mono font-medium">
+                              {formData.teleop?.teleop_climb ? `Yes ${formData.teleop?.teleop_climb_level || ''}`.trim() : 'No'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Teleop climb time:</span>
+                            <span className="font-mono font-medium">{formData.teleop?.climb_sec != null ? formatDurationSec(Number(formData.teleop.climb_sec)) : '—'}</span>
+                          </div>
                         </div>
                         <div className="flex justify-between border-t border-muted pt-2 mt-2">
                           <span className="text-muted-foreground">Defense Rating:</span>

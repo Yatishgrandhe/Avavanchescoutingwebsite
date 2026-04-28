@@ -90,6 +90,7 @@ function getPitRowTimestampMs(row: PitRow): number {
 
 type TeamStatSortKey =
   | 'avg_shooting_time_sec'
+  | 'avg_climb_speed_sec'
   | 'avg_total_score'
   | 'total_matches'
   | 'avg_autonomous_points'
@@ -315,6 +316,8 @@ export default function ViewDataPage() {
     worst_score: number;
     consistency_score: number;
     avg_shooting_time_sec?: number | null;
+    avg_climb_speed_sec?: number | null;
+    climb_status?: string;
     normalized_opr?: number;
     tba_opr?: number;
     avg_climb_pts?: number;
@@ -333,7 +336,9 @@ export default function ViewDataPage() {
       teamToRecords.get(data.team_number)!.push(data);
     });
     const result: ViewDataTeamStat[] = [];
-    teamToRecords.forEach((records, teamNumber) => {
+    teams.forEach((teamObj) => {
+      const teamNumber = teamObj.team_number;
+      const records = teamToRecords.get(teamNumber) || [];
       const teamName = teamNameMap.get(teamNumber) || `Team ${teamNumber}`;
       const uniqueMatchIds = new Set(records.map((r) => r.match_id ?? '').filter(Boolean));
       const total_matches = uniqueMatchIds.size;
@@ -369,20 +374,43 @@ export default function ViewDataPage() {
         ? Math.max(0, Math.min(100, 100 - (stdDev / avgTotal) * 100))
         : 0;
       
-      const teamObj = teams.find(t => t.team_number === teamNumber);
       const rebuilt = computeRebuiltMetrics(
         records as unknown as Parameters<typeof computeRebuiltMetrics>[0],
         teamObj?.starter_epa
       );
+      const climbLevelCounts: Record<'L1' | 'L2' | 'L3', number> = { L1: 0, L2: 0, L3: 0 };
+      let climbYesCount = 0;
+      records.forEach((row) => {
+        const parsed = parseNotes(row.notes, row);
+        const level =
+          parsed.teleop.teleop_climb_level ||
+          parsed.autonomous.auto_climb_level ||
+          (parsed.teleop.teleop_tower_level3 ? 'L3' : parsed.teleop.teleop_tower_level2 ? 'L2' : parsed.teleop.teleop_tower_level1 ? 'L1' : parsed.autonomous.auto_tower_level1 ? 'L1' : undefined);
+        const climbed =
+          parsed.teleop.teleop_climb === true ||
+          parsed.autonomous.auto_climb === true ||
+          Boolean(parsed.teleop.teleop_tower_level1 || parsed.teleop.teleop_tower_level2 || parsed.teleop.teleop_tower_level3 || parsed.autonomous.auto_tower_level1);
+        if (climbed) {
+          climbYesCount += 1;
+          if (level) climbLevelCounts[level] += 1;
+        }
+      });
+      const preferredLevel: 'L1' | 'L2' | 'L3' | null =
+        climbLevelCounts.L3 >= climbLevelCounts.L2 && climbLevelCounts.L3 >= climbLevelCounts.L1
+          ? (climbLevelCounts.L3 > 0 ? 'L3' : null)
+          : climbLevelCounts.L2 >= climbLevelCounts.L1
+            ? (climbLevelCounts.L2 > 0 ? 'L2' : null)
+            : (climbLevelCounts.L1 > 0 ? 'L1' : null);
       result.push({
         team_number: teamNumber,
         team_name: teamName,
         total_matches,
         ...rebuilt,
+        climb_status: climbYesCount > 0 ? `Yes ${preferredLevel || ''}`.trim() : 'No',
         starter_epa: teamObj?.starter_epa,
       });
     });
-    return result.filter((s) => s.total_matches > 0);
+    return result;
   }, [scoutingData, teams]);
 
   const pitByTeam = React.useMemo(() => {
@@ -859,7 +887,15 @@ export default function ViewDataPage() {
                         <span className="text-sm font-semibold text-orange-400">{team.avg_teleop_points ?? '—'}</span>
                       </div>
                       <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                        <span className="text-[10px] text-muted-foreground uppercase block mb-1">Endgame EPA</span>
+                        <span className="text-[10px] text-muted-foreground uppercase block mb-1">Climb</span>
+                        <span className="text-sm font-semibold text-emerald-300">{team.climb_status ?? 'No'}</span>
+                      </div>
+                      <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                        <span className="text-[10px] text-muted-foreground uppercase block mb-1">Avg Climb Time</span>
+                        <span className="text-sm font-semibold text-green-400">{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</span>
+                      </div>
+                      <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                        <span className="text-[10px] text-muted-foreground uppercase block mb-1">Normalized OPR</span>
                         <span className="text-sm font-semibold text-green-400">{team.normalized_opr ?? '—'}</span>
                       </div>
                       <div className="bg-white/5 p-3 rounded-xl border border-white/5">
@@ -922,6 +958,12 @@ export default function ViewDataPage() {
                       <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('normalized_opr')}>
                         Normalized OPR {teamStatsSortField === 'normalized_opr' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
                       </th>
+                      <th className="text-left p-4 text-[9px]">
+                        Climb
+                      </th>
+                      <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('avg_climb_speed_sec')}>
+                        Avg Climb Time {teamStatsSortField === 'avg_climb_speed_sec' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
+                      </th>
                       <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('epa')}>
                         EPA {teamStatsSortField === 'epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}
                       </th>
@@ -958,6 +1000,8 @@ export default function ViewDataPage() {
                           <td className="p-4 text-blue-400 font-semibold text-sm">{team.avg_autonomous_points ?? '—'}</td>
                           <td className="p-4 text-orange-400 font-semibold text-sm">{team.avg_teleop_points ?? '—'}</td>
                           <td className="p-4 text-green-400 font-semibold text-sm">{team.normalized_opr ?? '—'}</td>
+                          <td className="p-4 text-sm font-semibold text-emerald-300">{team.climb_status ?? 'No'}</td>
+                          <td className="p-4 text-sm font-semibold text-green-400">{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</td>
                           <td className="p-4 text-primary font-bold text-sm">{team.tba_epa ?? team.epa ?? team.avg_total_score ?? '—'}</td>
                           <td className="p-4">
                             <span className={cn('font-bold text-sm', team.consistency_score >= 80 ? 'text-green-400' : team.consistency_score >= 60 ? 'text-yellow-400' : 'text-red-400')}>

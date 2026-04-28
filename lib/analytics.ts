@@ -13,6 +13,8 @@ const MATCH_LENGTH_SEC = 165;
 export interface ParsedNotes {
   autonomous: {
     auto_fuel_active_hub: number;
+    auto_climb?: boolean;
+    auto_climb_level?: 'L1' | 'L2' | 'L3';
     auto_tower_level1: boolean;
     auto_climb_sec?: number | null;
     runs?: RunRecord[];
@@ -28,6 +30,8 @@ export interface ParsedNotes {
   teleop: {
     teleop_fuel_active_hub: number;
     teleop_fuel_shifts: number[];
+    teleop_climb?: boolean;
+    teleop_climb_level?: 'L1' | 'L2' | 'L3';
     teleop_tower_level1: boolean;
     teleop_tower_level2: boolean;
     teleop_tower_level3: boolean;
@@ -114,6 +118,11 @@ export function parseNotes(notes: any, row?: ScoutingRowShuttleMeta): ParsedNote
   return {
     autonomous: {
       auto_fuel_active_hub: autoFuel,
+      auto_climb: auto.auto_climb === true || Boolean(auto.auto_tower_level1),
+      auto_climb_level:
+        auto.auto_climb_level === 'L1' || auto.auto_climb_level === 'L2' || auto.auto_climb_level === 'L3'
+          ? auto.auto_climb_level
+          : (auto.auto_tower_level1 ? 'L1' : undefined),
       auto_tower_level1: Boolean(auto.auto_tower_level1),
       auto_climb_sec: auto.auto_climb_sec != null && !Number.isNaN(Number(auto.auto_climb_sec)) ? Number(auto.auto_climb_sec) : undefined,
       runs: autoRuns.length ? autoRuns : undefined,
@@ -129,6 +138,13 @@ export function parseNotes(notes: any, row?: ScoutingRowShuttleMeta): ParsedNote
     teleop: {
       teleop_fuel_active_hub: teleopFuel,
       teleop_fuel_shifts: teleopShifts.map((n: number) => Number(n) || 0),
+      teleop_climb:
+        teleop.teleop_climb === true ||
+        Boolean(teleop.teleop_tower_level1 || teleop.teleop_tower_level2 || teleop.teleop_tower_level3),
+      teleop_climb_level:
+        teleop.teleop_climb_level === 'L1' || teleop.teleop_climb_level === 'L2' || teleop.teleop_climb_level === 'L3'
+          ? teleop.teleop_climb_level
+          : (teleop.teleop_tower_level3 ? 'L3' : teleop.teleop_tower_level2 ? 'L2' : teleop.teleop_tower_level1 ? 'L1' : undefined),
       teleop_tower_level1: Boolean(teleop.teleop_tower_level1),
       teleop_tower_level2: Boolean(teleop.teleop_tower_level2),
       teleop_tower_level3: Boolean(teleop.teleop_tower_level3),
@@ -168,6 +184,12 @@ export function getTeleopFuelCount(notes: any): number {
 /** Climb points from tower levels: auto 15 if L1, teleop 10/20/30 (highest only). */
 export function getClimbPoints(notes: any): number {
   const p = parseNotes(notes);
+  const usingNewClimbModel =
+    p.autonomous.auto_climb != null ||
+    p.autonomous.auto_climb_level != null ||
+    p.teleop.teleop_climb != null ||
+    p.teleop.teleop_climb_level != null;
+  if (usingNewClimbModel) return 0;
   let pts = 0;
   if (p.autonomous.auto_tower_level1) pts += 15;
   if (p.teleop.teleop_tower_level3) pts += 30;
@@ -205,6 +227,12 @@ export function hadClimbSuccess(notes: any): boolean {
 /** Single climb achieved per match (robot can only do one). Returns label and points; highest level wins. */
 export function getClimbAchieved(notes: any): { label: string; points: number } | null {
   const p = parseNotes(notes);
+  if (p.teleop.teleop_climb) {
+    return { label: p.teleop.teleop_climb_level || 'Yes', points: 0 };
+  }
+  if (p.autonomous.auto_climb) {
+    return { label: `Auto ${p.autonomous.auto_climb_level || 'Yes'}`, points: 0 };
+  }
   if (p.teleop.teleop_tower_level3) return { label: 'L3', points: 30 };
   if (p.teleop.teleop_tower_level2) return { label: 'L2', points: 20 };
   if (p.teleop.teleop_tower_level1) return { label: 'L1', points: 10 };
@@ -215,7 +243,9 @@ export function getClimbAchieved(notes: any): { label: string; points: number } 
 /** Teleop climb time in seconds from notes (for CLANK speed display). Returns null if not recorded. */
 export function getClimbSpeedSec(notes: any): number | null {
   const p = parseNotes(notes);
-  const sec = p.teleop.climb_sec;
+  const teleopSec = p.teleop.climb_sec;
+  if (teleopSec != null && !Number.isNaN(teleopSec)) return teleopSec;
+  const sec = p.autonomous.auto_climb_sec;
   if (sec == null || Number.isNaN(sec)) return null;
   return sec;
 }
@@ -492,9 +522,14 @@ export function computeRebuiltMetrics(rows: ScoutingRowForAnalytics[], starterEp
     totalAutoClimbPts += getAutoClimbPoints(notes);
     totalTeleopClimbPts += getTeleopClimbPoints(notes);
     totalClimbAdjusted += getClimbPointsAdjusted(notes);
-    const climbSec = getClimbSpeedSec(notes);
-    if (climbSec != null) {
-      climbSpeedSum += climbSec;
+    const teleopClimbSec = p.teleop.climb_sec;
+    if (teleopClimbSec != null && !Number.isNaN(teleopClimbSec)) {
+      climbSpeedSum += teleopClimbSec;
+      climbSpeedCount += 1;
+    }
+    const autoClimbSec = p.autonomous.auto_climb_sec;
+    if (autoClimbSec != null && !Number.isNaN(autoClimbSec)) {
+      climbSpeedSum += autoClimbSec;
       climbSpeedCount += 1;
     }
     if (hadClimbSuccess(notes)) climbSuccesses += 1;

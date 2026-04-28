@@ -50,6 +50,7 @@ interface TeamStat extends RebuiltTeamMetrics {
   team_number: number;
   team_name: string;
   total_matches: number;
+  climb_status: string;
   starter_epa?: number;
   tba_opr?: number;
   tba_epa?: number;
@@ -83,7 +84,9 @@ const calculateTeamStats = (
     teamToRecords.get(data.team_number)!.push(data);
   });
 
-  return Array.from(teamToRecords.entries()).map(([teamNumber, records]) => {
+  return teams.map((team) => {
+    const teamNumber = team.team_number;
+    const records = teamToRecords.get(teamNumber) || [];
     const teamName = teamNameMap.get(teamNumber) || `Team ${teamNumber}`;
     const uniqueMatchIds = new Set(records.map(r => r.match_id ?? '').filter(Boolean));
     const total_matches =
@@ -92,18 +95,43 @@ const calculateTeamStats = (
         : uniqueMatchIds.size;
 
     const rebuilt = computeRebuiltMetrics(records, epaMap?.[teamNumber]);
+    const climbLevelCounts: Record<'L1' | 'L2' | 'L3', number> = { L1: 0, L2: 0, L3: 0 };
+    let climbYesCount = 0;
+    records.forEach((row) => {
+      const parsed = parseNotes(row.notes, row);
+      const level =
+        parsed.teleop.teleop_climb_level ||
+        parsed.autonomous.auto_climb_level ||
+        (parsed.teleop.teleop_tower_level3 ? 'L3' : parsed.teleop.teleop_tower_level2 ? 'L2' : parsed.teleop.teleop_tower_level1 ? 'L1' : parsed.autonomous.auto_tower_level1 ? 'L1' : undefined);
+      const climbed =
+        parsed.teleop.teleop_climb === true ||
+        parsed.autonomous.auto_climb === true ||
+        Boolean(parsed.teleop.teleop_tower_level1 || parsed.teleop.teleop_tower_level2 || parsed.teleop.teleop_tower_level3 || parsed.autonomous.auto_tower_level1);
+      if (climbed) {
+        climbYesCount += 1;
+        if (level) climbLevelCounts[level] += 1;
+      }
+    });
+    const preferredLevel: 'L1' | 'L2' | 'L3' | null =
+      climbLevelCounts.L3 >= climbLevelCounts.L2 && climbLevelCounts.L3 >= climbLevelCounts.L1
+        ? (climbLevelCounts.L3 > 0 ? 'L3' : null)
+        : climbLevelCounts.L2 >= climbLevelCounts.L1
+          ? (climbLevelCounts.L2 > 0 ? 'L2' : null)
+          : (climbLevelCounts.L1 > 0 ? 'L1' : null);
+    const climb_status = climbYesCount > 0 ? `Yes ${preferredLevel || ''}`.trim() : 'No';
 
     return {
       ...rebuilt,
       team_number: teamNumber,
       team_name: teamName,
       total_matches,
+      climb_status,
       tba_opr: tbaMap.get(teamNumber)?.tba_opr ?? 0,
       tba_epa: tbaMap.get(teamNumber)?.tba_epa ?? rebuilt.epa,
       normalized_opr: tbaMap.get(teamNumber)?.normalized_opr ?? 0,
       avg_shooting_time_sec: tbaMap.get(teamNumber)?.avg_shooting_time_sec ?? rebuilt.avg_shooting_time_sec,
     };
-  }).filter(stat => stat.total_matches > 0);
+  });
 };
 
 const getRowTimestampMs = (row: Pick<ScoutingData, 'submitted_at' | 'created_at'>): number => {
@@ -155,7 +183,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [clearingData, setClearingData] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   // Team stats sort defaults to shooting-time view.
-  type TeamStatSortKey = 'avg_shooting_time_sec' | 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'normalized_opr' | 'epa' | 'consistency_score' | 'team_number' | 'team_name' | 'shuttle_rate' | 'avg_shuttle_balls';
+  type TeamStatSortKey = 'avg_shooting_time_sec' | 'avg_climb_speed_sec' | 'avg_total_score' | 'total_matches' | 'avg_autonomous_points' | 'avg_teleop_points' | 'normalized_opr' | 'epa' | 'consistency_score' | 'team_number' | 'team_name' | 'shuttle_rate' | 'avg_shuttle_balls';
   const [teamStatsSortField, setTeamStatsSortField] = useState<TeamStatSortKey>('avg_shooting_time_sec');
   const [teamStatsSortDirection, setTeamStatsSortDirection] = useState<'asc' | 'desc'>('desc');
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
@@ -1020,7 +1048,15 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <span className="text-sm font-semibold text-orange-400">{team.avg_teleop_points ?? '—'}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Endgame EPA</span>
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Climb</span>
+                                <span className="text-sm font-semibold text-emerald-300">{team.climb_status}</span>
+                              </div>
+                              <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Avg Climb Time</span>
+                                <span className="text-sm font-semibold text-green-400">{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</span>
+                              </div>
+                              <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Normalized OPR</span>
                                 <span className="text-sm font-semibold text-green-400">{team.normalized_opr ?? '—'}</span>
                               </div>
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
@@ -1034,10 +1070,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                                 <span className="text-[10px] text-muted-foreground uppercase block mb-1">Avg Shuttle / Return</span>
                                 <span className="text-sm font-semibold text-amber-300">{team.avg_shuttle_balls != null ? roundToTenth(team.avg_shuttle_balls) : '—'}</span>
-                              </div>
-                              <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Shuttle Rate</span>
-                                <span className="text-sm font-semibold">{team.shuttle_rate}%</span>
                               </div>
                             </div>
 
@@ -1102,6 +1134,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('normalized_opr')}>
                               <span className="inline-flex items-center gap-1">Normalized OPR {teamStatsSortField === 'normalized_opr' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
+                            <th className="text-left p-4 text-[9px]">
+                              <span className="inline-flex items-center gap-1">Climb</span>
+                            </th>
+                            <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('avg_climb_speed_sec')}>
+                              <span className="inline-flex items-center gap-1">Avg Climb Time {teamStatsSortField === 'avg_climb_speed_sec' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
+                            </th>
                             <th className="text-left p-4 cursor-pointer hover:text-foreground select-none text-[9px]" onClick={() => handleTeamStatsSort('epa')}>
                               <span className="inline-flex items-center gap-1">EPA {teamStatsSortField === 'epa' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />)}</span>
                             </th>
@@ -1149,6 +1187,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <td className="p-4 text-blue-400 font-semibold text-sm">{team.avg_autonomous_points ?? '—'}</td>
                                 <td className="p-4 text-orange-400 font-semibold text-sm">{team.avg_teleop_points ?? '—'}</td>
                                 <td className="p-4 text-green-400 font-semibold text-sm">{team.normalized_opr ?? '—'}</td>
+                                <td className="p-4 text-sm font-semibold text-emerald-300">{team.climb_status}</td>
+                                <td className="p-4 text-sm font-semibold text-green-400">{team.avg_climb_speed_sec != null ? `${team.avg_climb_speed_sec}s` : '—'}</td>
                                 <td className="p-4 text-primary font-bold text-sm">{team.tba_epa ?? team.epa ?? team.avg_total_score ?? '—'}</td>
                                 <td className="p-4">
                                   <span className={cn(

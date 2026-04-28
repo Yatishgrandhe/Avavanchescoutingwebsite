@@ -7,7 +7,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 /**
  * GET ?year=2026 — list FRC events for dropdown (admin/superadmin only).
- * Uses server TBA_API_KEY.
+ * Uses server TBA_AUTH_KEY.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   if (req.method !== 'GET') {
@@ -67,10 +67,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json({ year, events: simple });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'TBA request failed';
-    if (msg.includes('TBA_API_KEY') || msg.includes('not configured')) {
+    if (msg.includes('TBA API key is not configured') || msg.includes('not configured')) {
       res.status(503).json({
         error:
-          'The Blue Alliance API key is missing. Add TBA_API_KEY to Vercel/host env (see .env.example).',
+          'The Blue Alliance API key is missing. Add TBA_AUTH_KEY to Vercel/host env (see .env.example).',
       });
       return;
     }

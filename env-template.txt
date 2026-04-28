@@ -12,4 +12,4 @@ DISCORD_CLIENT_ID=1410224475592720499
 DISCORD_CLIENT_SECRET=z5hdVYza8753QdjB0FBmyNtSTfYxTiH3
 
 # The Blue Alliance API (optional)
-TBA_API_KEY=your_tba_api_key
+TBA_AUTH_KEY=your_tba_api_key

@@ -245,7 +245,7 @@ export default function TeamManagementPage() {
       setTbaEvents(list);
       setTbaEventsHint(
         list.length === 0
-          ? 'TBA returned no events for this year. Try another season, or ensure the server has TBA_API_KEY (or THE_BLUE_ALLIANCE_API_KEY) set.'
+          ? 'TBA returned no events for this year. Try another season, or ensure the server has TBA_AUTH_KEY (legacy aliases still supported) set.'
           : null
       );
     } catch (e) {

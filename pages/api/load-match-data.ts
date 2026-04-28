@@ -68,8 +68,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     console.error('load-match-data', error);
     const msg = error instanceof Error ? error.message : 'Unknown error';
-    if (msg.includes('TBA_API_KEY')) {
-      return res.status(503).json({ error: 'The Blue Alliance is not configured (set TBA_API_KEY).' });
+    if (msg.includes('TBA API key is not configured')) {
+      return res.status(503).json({ error: 'The Blue Alliance is not configured (set TBA_AUTH_KEY).' });
     }
     return res.status(500).json({ error: 'Failed to load match data', details: msg });
   }

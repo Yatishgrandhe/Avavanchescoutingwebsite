@@ -142,11 +142,42 @@ export async function syncTbaEventToOrganization(
   }));
 
   if (canonicalNames.length > 0) {
-    const { error: teamsErr } = await supabase.from('teams').upsert(canonicalNames, {
+    const primaryUpsert = await supabase.from('teams').upsert(canonicalNames, {
       onConflict: 'organization_id,team_number',
     });
-    if (teamsErr) {
-      throw new Error(`teams upsert: ${teamsErr.message}`);
+    if (primaryUpsert.error) {
+      const msg = String(primaryUpsert.error.message || '');
+      const missingCompositeUnique =
+        msg.includes('there is no unique or exclusion constraint matching the ON CONFLICT specification');
+
+      if (!missingCompositeUnique) {
+        console.error('syncTbaEventToOrganization: teams upsert failed', {
+          organizationId,
+          eventKey: key,
+          rowCount: canonicalNames.length,
+          sampleRow: canonicalNames[0] || null,
+          error: primaryUpsert.error,
+        });
+        throw new Error(`teams upsert failed for event ${key}: ${primaryUpsert.error.message}`);
+      }
+
+      console.warn('syncTbaEventToOrganization: teams table missing composite unique key; falling back to team_number conflict', {
+        organizationId,
+        eventKey: key,
+      });
+      const fallbackUpsert = await supabase.from('teams').upsert(canonicalNames, {
+        onConflict: 'team_number',
+      });
+      if (fallbackUpsert.error) {
+        console.error('syncTbaEventToOrganization: teams fallback upsert failed', {
+          organizationId,
+          eventKey: key,
+          rowCount: canonicalNames.length,
+          sampleRow: canonicalNames[0] || null,
+          error: fallbackUpsert.error,
+        });
+        throw new Error(`teams upsert fallback failed for event ${key}: ${fallbackUpsert.error.message}`);
+      }
     }
   }
 

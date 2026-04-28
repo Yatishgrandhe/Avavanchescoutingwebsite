@@ -56,6 +56,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json(syncResult);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Sync failed';
-    res.status(502).json({ error: message });
+    console.error('sync-my-event failed', {
+      organizationId: orgId,
+      eventKey,
+      error,
+    });
+    res.status(502).json({ error: `TBA sync failed for ${eventKey}: ${message}` });
   }
 }

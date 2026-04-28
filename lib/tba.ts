@@ -1,5 +1,6 @@
 /**
- * The Blue Alliance API v3 (server-side only — use TBA_API_KEY in env).
+ * The Blue Alliance API v3 (server-side only).
+ * Canonical env key: TBA_AUTH_KEY (legacy aliases are still supported).
  * @see https://www.thebluealliance.com/apidocs/v3
  */
 
@@ -7,12 +8,13 @@ const TBA_BASE = 'https://www.thebluealliance.com/api/v3';
 
 export function getTbaApiKey(): string {
   const key =
+    process.env.TBA_AUTH_KEY?.trim() ||
     process.env.TBA_API_KEY?.trim() ||
     process.env.THE_BLUE_ALLIANCE_API_KEY?.trim() ||
     process.env.BLUE_ALLIANCE_API_KEY?.trim();
   if (!key) {
     throw new Error(
-      'TBA_API_KEY is not configured (set TBA_API_KEY, or THE_BLUE_ALLIANCE_API_KEY / BLUE_ALLIANCE_API_KEY, in server env)'
+      'TBA API key is not configured (set TBA_AUTH_KEY, or legacy aliases TBA_API_KEY / THE_BLUE_ALLIANCE_API_KEY / BLUE_ALLIANCE_API_KEY, in server env)'
     );
   }
   return key;

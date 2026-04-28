@@ -70,8 +70,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json(result);
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Sync failed';
-    if (msg.includes('TBA_API_KEY')) {
-      res.status(503).json({ error: 'The Blue Alliance is not configured (set TBA_API_KEY).' });
+    if (msg.includes('TBA API key is not configured')) {
+      res.status(503).json({ error: 'The Blue Alliance is not configured (set TBA_AUTH_KEY).' });
       return;
     }
     console.error('sync-from-tba', e);

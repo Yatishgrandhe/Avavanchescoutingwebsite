@@ -55,28 +55,10 @@ export default function SyncButton() {
     setShowSpeedTest(false);
     if (isSyncing || queueCount === 0 || !session?.access_token) return;
 
-    try {
-      const pf = await fetch('/api/sync-preflight', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      const pfBody = await pf.json().catch(() => ({}));
-      if (!pf.ok) {
-        toast.error(
-          typeof pfBody.error === 'string'
-            ? pfBody.error
-            : 'Cannot reach the scouting database. Check your connection and try again.'
-        );
-        return;
-      }
-    } catch {
-      toast.error('Could not verify database connectivity. Try again when online.');
-      return;
-    }
-
     setIsSyncing(true);
     let successCount = 0;
     let failCount = 0;
+    const failReasons: string[] = [];
 
     try {
       const queue = await getOfflineQueue();
@@ -97,8 +79,22 @@ export default function SyncButton() {
               await removeFromOfflineQueue(item.id);
               successCount++;
             } else {
-              console.error('Match scouting sync failed');
-              failCount++;
+              const body = await res.json().catch(() => ({} as { error?: string; details?: string }));
+              const reason = typeof body.error === 'string' ? body.error : `HTTP ${res.status}`;
+              const lowerReason = reason.toLowerCase();
+              const nonRetriableDuplicate =
+                res.status === 400 &&
+                (lowerReason.includes('already submitted') ||
+                  lowerReason.includes('one submission per person'));
+              if (nonRetriableDuplicate) {
+                // This queued item is already represented in DB; drop it so sync is no longer blocked.
+                await removeFromOfflineQueue(item.id);
+                successCount++;
+              } else {
+                console.error('Match scouting sync failed', reason, body?.details);
+                failCount++;
+                failReasons.push(reason);
+              }
             }
           } else if (item.type === 'pit-scouting') {
             const { submissionData, photosToUpload, annotatedImageToUpload, editingId } = item.data;
@@ -152,11 +148,19 @@ export default function SyncButton() {
         } catch (itemErr) {
           console.error(`Failed to process item ${item.id}`, itemErr);
           failCount++;
+          failReasons.push(itemErr instanceof Error ? itemErr.message : 'Unknown sync error');
         }
       }
 
       if (successCount > 0) toast.success(`Successfully synced ${successCount} form(s)`);
-      if (failCount > 0) toast.error(`Failed to sync ${failCount} form(s).`);
+      if (failCount > 0) {
+        const firstReason = failReasons[0];
+        toast.error(
+          firstReason
+            ? `Failed to sync ${failCount} form(s): ${firstReason}`
+            : `Failed to sync ${failCount} form(s).`
+        );
+      }
     } catch (e) {
       console.error('Sync error:', e);
       toast.error('An error occurred during sync');

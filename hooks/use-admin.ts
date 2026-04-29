@@ -39,6 +39,7 @@ export function useAdmin() {
   }, [session, user]);
 
   const isBlockedFromPickList = !!user?.id && PICKLIST_BLOCKED_ADMIN_USER_IDS.includes(user.id);
+  const canEditForms = isAdmin || user?.role === 'superadmin' || !!user?.can_edit_forms;
   // Allow pick list if admin/superadmin OR if they have specific permission, AND not blocked
   const canAccessPickList = (isAdmin || user?.role === 'superadmin' || !!user?.can_view_pick_list) && !isBlockedFromPickList;
   const canAccessStats = isAdmin || user?.role === 'superadmin' || !!user?.can_view_stats;
@@ -46,6 +47,7 @@ export function useAdmin() {
   return {
     isAdmin: isAdmin || user?.role === 'superadmin' || user?.role === 'admin',
     isSuperAdmin: user?.role === 'superadmin',
+    canEditForms,
     canAccessPickList,
     canAccessStats,
     user: userData,

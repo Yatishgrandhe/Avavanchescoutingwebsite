@@ -104,7 +104,7 @@ type TeamStatSortKey =
 export default function ViewDataPage() {
   const router = useRouter();
   const { user, supabase, session } = useSupabase();
-  const { isAdmin, isSuperAdmin } = useAdmin();
+  const { canEditForms } = useAdmin();
   const { event_key, id, competition_key, year } = router.query;
 
   const [competition, setCompetition] = useState<CompetitionInfo | null>(null);
@@ -1324,7 +1324,7 @@ export default function ViewDataPage() {
                   )}
                 </CardContent>
               </Link>
-              {isAdmin && rowId && (
+              {canEditForms && rowId && (
                 <div className="flex items-center gap-2 p-2 border-t border-white/10 bg-background/30" onClick={(e) => e.stopPropagation()}>
                   {isLive && (
                     <Link href={`/pit-scouting?id=${encodeURIComponent(rowId)}&edit=true`} className="flex-1">

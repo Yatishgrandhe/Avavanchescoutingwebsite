@@ -67,7 +67,7 @@ export default function AdminScoutingFormsPage() {
 
 function AdminScoutingFormsInner() {
   const { supabase } = useSupabase();
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  const { canEditForms, loading: adminLoading } = useAdmin();
   const router = useRouter();
   const { name } = router.query;
   const [loading, setLoading] = useState(true);
@@ -106,8 +106,8 @@ function AdminScoutingFormsInner() {
   };
 
   useEffect(() => {
-    if (!adminLoading && isAdmin && name) loadForms();
-  }, [adminLoading, isAdmin, name]);
+    if (!adminLoading && canEditForms && name) loadForms();
+  }, [adminLoading, canEditForms, name]);
 
   const getTeamName = (teamNumber: number) => {
     return data?.teams?.[teamNumber] ?? `Team ${teamNumber}`;
@@ -147,14 +147,14 @@ function AdminScoutingFormsInner() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canEditForms) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center py-16 px-4">
           <Shield className="w-16 h-16 text-muted-foreground mb-4" />
           <h2 className="text-xl font-semibold text-foreground mb-2">Admin access required</h2>
           <p className="text-muted-foreground text-center mb-6">
-            You need administrator privileges to view this page.
+            You need form editing privileges to view this page.
           </p>
           <Button variant="outline" onClick={() => router.push('/admin/scouting-stats')}>
             Back to Scouting Stats

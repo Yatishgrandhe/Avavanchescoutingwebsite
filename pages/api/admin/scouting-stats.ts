@@ -37,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Get user profile to find organization_id
     const { data: profile, error: profileError } = await supabase
       .from('users')
-      .select('organization_id, role')
+      .select('organization_id, role, can_edit_forms')
       .eq('id', user.id)
       .single();
 
@@ -46,8 +46,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'User profile not found' });
     }
 
-    if (profile.role !== 'admin' && profile.role !== 'superadmin') {
-      return res.status(403).json({ error: 'Admin access required' });
+    if (profile.role !== 'admin' && profile.role !== 'superadmin' && !profile.can_edit_forms) {
+      return res.status(403).json({ error: 'Form editing access required' });
     }
 
     const orgId = profile.organization_id;

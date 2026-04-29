@@ -111,7 +111,7 @@ function mergePitRows(localRows: PitScoutingData[], serverRows: PitScoutingData[
 
 export default function PitScoutingData() {
   const { user, loading, supabase } = useSupabase();
-  const { isAdmin } = useAdmin();
+  const { canEditForms } = useAdmin();
   const router = useRouter();
   const [pitData, setPitData] = useState<PitScoutingData[]>([]);
   const [filteredData, setFilteredData] = useState<PitScoutingData[]>([]);
@@ -527,7 +527,7 @@ export default function PitScoutingData() {
                           <TableHead>
                             <div className="flex items-center space-x-2">
                               <span>Actions</span>
-                              {isAdmin && (
+                              {canEditForms && (
                                 <Shield className="w-4 h-4 text-yellow-500" />
                               )}
                             </div>
@@ -573,7 +573,7 @@ export default function PitScoutingData() {
                                   <Eye className="h-4 w-4 mr-1" />
                                   View
                                 </Button>
-                                {isAdmin && !item.is_local_only && (
+                                {canEditForms && !item.is_local_only && (
                                   <>
                                     <Button
                                       variant="outline"
@@ -645,7 +645,7 @@ export default function PitScoutingData() {
                           )}
                         </CardContent>
                       </Link>
-                      {isAdmin && item.id && !item.is_local_only && (
+                      {canEditForms && item.id && !item.is_local_only && (
                         <div className="flex items-center gap-2 p-2 border-t border-white/10 bg-black/20" onClick={(e) => e.stopPropagation()}>
                           <Link href={`/pit-scouting?id=${encodeURIComponent(item.id)}&edit=true`} className="flex-1">
                             <Button size="sm" variant="outline" className="w-full h-8 text-xs bg-gray-800 border-gray-600 text-white hover:bg-gray-700">
@@ -1070,7 +1070,7 @@ export default function PitScoutingData() {
                       >
                         Close
                       </Button>
-                      {isAdmin && (
+                      {canEditForms && (
                         <Button
                           onClick={() => handleEdit(selectedDetailItem)}
                           className="bg-blue-600 hover:bg-blue-500 text-white gap-2 shadow-lg shadow-blue-500/20"

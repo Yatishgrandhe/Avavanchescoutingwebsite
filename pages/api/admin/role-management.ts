@@ -37,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'GET') {
     const { data, error } = await supabase
       .from('users')
-      .select('id, name, email, role, can_view_pick_list, can_view_stats')
+      .select('id, name, email, role, can_edit_forms, can_view_pick_list, can_view_stats')
       .eq('organization_id', orgId)
       .order('name', { ascending: true });
     
@@ -47,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // UPDATE USER ROLE / PERMISSIONS
   if (req.method === 'PATCH') {
-    const { id, role, can_view_pick_list, can_view_stats } = req.body;
+    const { id, role, can_edit_forms, can_view_pick_list, can_view_stats } = req.body;
     if (!id) return res.status(400).json({ error: 'User ID is required' });
 
     // 1. Fetch the target user to check their role and org
@@ -83,6 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 4. Perform the update
     const updateData: any = {};
     if (role !== undefined) updateData.role = role;
+    if (can_edit_forms !== undefined) updateData.can_edit_forms = can_edit_forms;
     if (can_view_pick_list !== undefined) updateData.can_view_pick_list = can_view_pick_list;
     if (can_view_stats !== undefined) updateData.can_view_stats = can_view_stats;
 
@@ -90,7 +91,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .from('users')
       .update(updateData)
       .eq('id', id)
-      .select('id, name, email, role, can_view_pick_list, can_view_stats')
+      .select('id, name, email, role, can_edit_forms, can_view_pick_list, can_view_stats')
       .single();
 
     if (error) return res.status(500).json({ error: error.message });

@@ -46,7 +46,7 @@ export default function AdminScoutingStatsPage() {
 
 function AdminScoutingStatsInner() {
   const { supabase } = useSupabase();
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  const { canEditForms, loading: adminLoading } = useAdmin();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,10 +80,10 @@ function AdminScoutingStatsInner() {
   };
 
   useEffect(() => {
-    if (!adminLoading && isAdmin) {
+    if (!adminLoading && canEditForms) {
       loadStats();
     }
-  }, [adminLoading, isAdmin]);
+  }, [adminLoading, canEditForms]);
 
   if (adminLoading) {
     return (
@@ -95,14 +95,14 @@ function AdminScoutingStatsInner() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canEditForms) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center py-16 px-4">
           <Shield className="w-16 h-16 text-muted-foreground mb-4" />
           <h2 className="text-xl font-semibold text-foreground mb-2">Admin access required</h2>
           <p className="text-muted-foreground text-center mb-6">
-            You need administrator privileges to view scouting stats.
+            You need form editing privileges to view scouting stats.
           </p>
           <Button variant="outline" onClick={() => router.push('/')}>
             Back to Dashboard

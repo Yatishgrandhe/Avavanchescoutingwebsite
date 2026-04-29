@@ -45,6 +45,7 @@ import { TeamComparisonPanel } from '@/components/data/TeamComparisonPanel';
 import { getOrgCurrentEvent } from '@/lib/org-app-config';
 import { getLocalPendingMatchRows } from '@/lib/local-pending-data';
 import { loadAnalysisTeamDataOnly, saveAnalysisTeamDataOnly } from '@/lib/view-data-filter-storage';
+import { parseStatboticsTeamEventRow, type StatboticsTeamEventRow } from '@/lib/statbotics-team-events';
 
 interface TeamStat extends RebuiltTeamMetrics {
   team_number: number;
@@ -67,6 +68,10 @@ type EventMetricsRow = {
   teleopEpa: number | null;
   totalEpa: number | null;
 };
+
+type StatboticsTeamEPA = StatboticsTeamEventRow;
+
+type StatboticsSortKey = 'rank' | 'team' | 'totalEPA' | 'autoEPA' | 'teleopEPA' | 'endgameEPA' | 'record';
 
 const calculateTeamStats = (
   scoutingData: ScoutingData[],
@@ -210,11 +215,19 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [teamStatsSortDirection, setTeamStatsSortDirection] = useState<'asc' | 'desc'>('desc');
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
   const [minAvgScoreFilter, setMinAvgScoreFilter] = useState<number | ''>('');
-  const [pitByTeam, setPitByTeam] = useState<Record<number, { robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }>>({});
   const [starterEpaMap, setStarterEpaMap] = useState<Record<number, number>>({});
   const [activeEventKey, setActiveEventKey] = useState<string>('');
   const [activeEventName, setActiveEventName] = useState<string>('');
   const [teamDataOnly, setTeamDataOnly] = useState(false); // Default to OFF (show all data for active competition)
+  const [statboticsEventKey, setStatboticsEventKey] = useState('');
+  const [statboticsValidationError, setStatboticsValidationError] = useState<string | null>(null);
+  const [statboticsError, setStatboticsError] = useState<string | null>(null);
+  const [statboticsNoData, setStatboticsNoData] = useState(false);
+  const [statboticsLoading, setStatboticsLoading] = useState(false);
+  const [statboticsRows, setStatboticsRows] = useState<StatboticsTeamEPA[]>([]);
+  const [statboticsSortField, setStatboticsSortField] = useState<StatboticsSortKey>('totalEPA');
+  const [statboticsSortDirection, setStatboticsSortDirection] = useState<'asc' | 'desc'>('desc');
+  const statboticsFetchFailedRef = useRef(false);
   useEffect(() => {
     setTeamDataOnly(loadAnalysisTeamDataOnly(false));
   }, []);
@@ -394,7 +407,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         setTeams([]);
         setAllTeams([]);
         setTeamStats([]);
-        setPitByTeam({});
         setLoading(false);
         return;
       }
@@ -477,31 +489,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       );
       if (requestId !== loadRequestIdRef.current) return;
       setTeamStats(stats);
-
-      // Load pit scouting data for roster teams at this competition.
-      let pitQuery = supabase
-        .from('pit_scouting_data')
-        .select('team_number, robot_name, drive_type, weight, overall_rating, organization_id, created_at')
-        .in('team_number', teamNumbersForEvent)
-        .order('created_at', { ascending: false });
-      if (teamDataOnly && user?.organization_id) {
-        pitQuery = pitQuery.eq('organization_id', user.organization_id);
-      }
-      const { data: pitDataResult } = await pitQuery;
-
-      const pitMap: Record<number, { robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }> = {};
-      (pitDataResult || []).forEach((row: { team_number: number; robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }) => {
-        if (!pitMap[row.team_number]) {
-          pitMap[row.team_number] = {
-            robot_name: row.robot_name ?? null,
-            drive_type: row.drive_type ?? null,
-            weight: row.weight ?? null,
-            overall_rating: row.overall_rating ?? null,
-          };
-        }
-      });
-      if (requestId !== loadRequestIdRef.current) return;
-      setPitByTeam(pitMap);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -701,6 +688,39 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     });
   }, [filteredTeamStats, teamStatsSortField, teamStatsSortDirection]);
 
+  const sortedStatboticsRows = useMemo(() => {
+    const dir = statboticsSortDirection === 'asc' ? 1 : -1;
+    return [...statboticsRows].sort((a, b) => {
+      const aVal = a[statboticsSortField];
+      const bVal = b[statboticsSortField];
+      if (statboticsSortField === 'record') {
+        const aStr = String(aVal ?? '');
+        const bStr = String(bVal ?? '');
+        return aStr.localeCompare(bStr) * dir;
+      }
+      if (statboticsSortField === 'team') {
+        const aNum = Number.parseInt(String(aVal ?? ''), 10);
+        const bNum = Number.parseInt(String(bVal ?? ''), 10);
+        return ((Number.isFinite(aNum) ? aNum : -Infinity) - (Number.isFinite(bNum) ? bNum : -Infinity)) * dir;
+      }
+      const aNum = aVal == null ? Number.NEGATIVE_INFINITY : Number(aVal);
+      const bNum = bVal == null ? Number.NEGATIVE_INFINITY : Number(bVal);
+      return (aNum - bNum) * dir;
+    });
+  }, [statboticsRows, statboticsSortDirection, statboticsSortField]);
+
+  const topThreeStatboticsTeams = useMemo(() => {
+    return [...statboticsRows]
+      .sort((a, b) => {
+        const aNum = a.totalEPA == null ? Number.NEGATIVE_INFINITY : Number(a.totalEPA);
+        const bNum = b.totalEPA == null ? Number.NEGATIVE_INFINITY : Number(b.totalEPA);
+        return bNum - aNum;
+      })
+      .slice(0, 3)
+      .map((row) => row.team);
+  }, [statboticsRows]);
+
+
   const handleTeamStatsSort = (field: TeamStatSortKey) => {
     if (teamStatsSortField === field) {
       setTeamStatsSortDirection(d => d === 'asc' ? 'desc' : 'asc');
@@ -716,6 +736,73 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     } else {
       setSortField(field);
       setSortDirection('asc');
+    }
+  };
+
+  const handleStatboticsSort = (field: StatboticsSortKey) => {
+    if (statboticsSortField === field) {
+      setStatboticsSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setStatboticsSortField(field);
+    setStatboticsSortDirection(field === 'team' ? 'asc' : 'desc');
+  };
+
+  const fetchTeamEPAs = async (eventKey: string): Promise<StatboticsTeamEPA[]> => {
+    statboticsFetchFailedRef.current = false;
+    try {
+      const response = await fetch(`https://api.statbotics.io/v3/team_events?event=${encodeURIComponent(eventKey)}`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`Statbotics API error: ${response.status}`);
+      }
+      const payload = await response.json();
+      if (!Array.isArray(payload)) return [];
+      return payload.map((item: unknown) => parseStatboticsTeamEventRow(item))
+        .sort((a, b) => {
+          const aNum = a.totalEPA == null ? Number.NEGATIVE_INFINITY : Number(a.totalEPA);
+          const bNum = b.totalEPA == null ? Number.NEGATIVE_INFINITY : Number(b.totalEPA);
+          return bNum - aNum;
+        });
+    } catch (error) {
+      console.error('fetchTeamEPAs failed', error);
+      statboticsFetchFailedRef.current = true;
+      setStatboticsError('Failed to reach Statbotics API. Please try again.');
+      return [];
+    }
+  };
+
+  const handleStatboticsSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const eventKey = statboticsEventKey.trim();
+    const validEventKey = /^\d{4}[a-z0-9]+$/.test(eventKey) && eventKey === eventKey.toLowerCase();
+    if (!eventKey) {
+      setStatboticsValidationError('Event key is required.');
+      return;
+    }
+    if (!validEventKey) {
+      setStatboticsValidationError('Event key format looks wrong. Use lowercase like 2024casj.');
+      return;
+    }
+
+    setStatboticsValidationError(null);
+    setStatboticsError(null);
+    setStatboticsNoData(false);
+    setStatboticsLoading(true);
+    try {
+      const rows = await fetchTeamEPAs(eventKey);
+      setStatboticsRows(rows);
+      if (rows.length === 0 && !statboticsFetchFailedRef.current) {
+        setStatboticsNoData(true);
+      }
+    } catch (error) {
+      console.error('Statbotics submit fetch failed', error);
+      setStatboticsError('Failed to reach Statbotics API. Please try again.');
+      setStatboticsRows([]);
+    } finally {
+      setStatboticsLoading(false);
     }
   };
 
@@ -854,6 +941,120 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                 Data Analysis
               </h1>
             </div>
+            <p className="text-sm sm:text-base md:text-xl text-muted-foreground max-w-2xl mx-auto px-4 break-words">
+              Comprehensive view of all scouting data with detailed breakdowns and uploader information
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.1 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Statbotics EPA
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <form onSubmit={handleStatboticsSubmit} className="flex flex-col sm:flex-row gap-3">
+                  <Input
+                    placeholder="Event Key (e.g. 2024casj)"
+                    value={statboticsEventKey}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const value = e.target.value.trim();
+                      setStatboticsEventKey(value);
+                      if (!value) {
+                        setStatboticsValidationError(null);
+                        return;
+                      }
+                      const valid = /^\d{4}[a-z0-9]+$/.test(value) && value === value.toLowerCase();
+                      setStatboticsValidationError(valid ? null : 'Event key format looks wrong. Use lowercase like 2024casj.');
+                    }}
+                  />
+                  <Button type="submit" disabled={statboticsLoading}>
+                    {statboticsLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    Submit
+                  </Button>
+                </form>
+
+                {statboticsValidationError ? (
+                  <p className="text-sm text-destructive">{statboticsValidationError}</p>
+                ) : null}
+                {statboticsError ? (
+                  <p className="text-sm text-destructive">{statboticsError}</p>
+                ) : null}
+                {statboticsNoData ? (
+                  <p className="text-sm text-muted-foreground">No data found for this event. Check the event key format (e.g. 2024casj)</p>
+                ) : null}
+
+                <div className="overflow-x-auto rounded-lg border border-border/60">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/30">
+                      <tr className="text-left">
+                        {([
+                          ['rank', 'Rank'],
+                          ['team', 'Team'],
+                          ['totalEPA', 'Total EPA'],
+                          ['autoEPA', 'Auto EPA'],
+                          ['teleopEPA', 'Teleop EPA'],
+                          ['endgameEPA', 'Endgame EPA'],
+                          ['record', 'Record'],
+                        ] as Array<[StatboticsSortKey, string]>).map(([field, label]) => (
+                          <th
+                            key={field}
+                            className="p-3 cursor-pointer select-none"
+                            onClick={() => handleStatboticsSort(field)}
+                          >
+                            <span className="inline-flex items-center gap-1">
+                              {label}
+                              {statboticsSortField === field ? (
+                                statboticsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />
+                              ) : null}
+                            </span>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedStatboticsRows.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="p-4 text-center text-muted-foreground">
+                            Submit an event key to load Statbotics EPA data.
+                          </td>
+                        </tr>
+                      ) : (
+                        sortedStatboticsRows.map((row) => {
+                          const topIndex = topThreeStatboticsTeams.indexOf(row.team);
+                          const rowClass =
+                            topIndex === 0
+                              ? 'bg-amber-400/20'
+                              : topIndex === 1
+                                ? 'bg-slate-300/20'
+                                : topIndex === 2
+                                  ? 'bg-orange-400/20'
+                                  : '';
+                          const formatValue = (value: number | null) => (value == null ? '—' : roundToTenth(value));
+                          return (
+                            <tr key={row.team} className={cn('border-t border-border/60', rowClass)}>
+                              <td className="p-3">{row.rank ?? '—'}</td>
+                              <td className="p-3 font-semibold">{row.team || '—'}</td>
+                              <td className="p-3">{formatValue(row.totalEPA)}</td>
+                              <td className="p-3">{formatValue(row.autoEPA)}</td>
+                              <td className="p-3">{formatValue(row.teleopEPA)}</td>
+                              <td className="p-3">{formatValue(row.endgameEPA)}</td>
+                              <td className="p-3">{row.record ?? '—'}</td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
 
           {/* Controls */}
@@ -1158,16 +1359,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                               </div>
                             </div>
 
-                            {pitByTeam[team.team_number] && (
-                              <div className="mb-4 p-3 rounded-xl border border-white/5 bg-white/[0.02]">
-                                <span className="text-[10px] text-muted-foreground uppercase block mb-1">Pit</span>
-                                <span className="text-sm font-medium text-foreground">{pitByTeam[team.team_number].robot_name || '—'}</span>
-                                {pitByTeam[team.team_number].drive_type && <span className="text-sm text-muted-foreground"> · {pitByTeam[team.team_number].drive_type}</span>}
-                                {(pitByTeam[team.team_number].weight != null && pitByTeam[team.team_number].weight! > 0) && <span className="text-sm text-muted-foreground"> · {pitByTeam[team.team_number].weight} lbs</span>}
-                                {(pitByTeam[team.team_number].overall_rating != null && pitByTeam[team.team_number].overall_rating! > 0) && <span className="text-sm text-muted-foreground"> ★{pitByTeam[team.team_number].overall_rating}/10</span>}
-                              </div>
-                            )}
-
                             <div className="flex gap-2 pt-2 border-t border-white/5">
                               <Button
                                 size="sm"
@@ -1237,15 +1428,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                             <th className="text-left p-4 cursor-pointer hover:text-foreground text-[9px]" onClick={() => handleTeamStatsSort('avg_shuttle_balls')}>
                               <span className="inline-flex items-center gap-1">Avg Shuttle/Return {teamStatsSortField === 'avg_shuttle_balls' && (teamStatsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5 inline" /> : <ChevronUp className="w-3.5 h-3.5 inline" />)}</span>
                             </th>
-                            <th className="text-left p-4 text-[11px]">Pit</th>
                             <th className="text-right p-4 text-[11px]">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
                           {sortedTeamStats
-                            .map((team, index) => {
-                              const pit = pitByTeam[team.team_number];
-                              return (
+                            .map((team, index) => (
                               <motion.tr
                                 key={team.team_number}
                                 initial={{ opacity: 0, y: 10 }}
@@ -1286,24 +1474,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 </td>
                                 <td className="p-4 text-sm font-semibold">{team.shuttle_rate}%</td>
                                 <td className="p-4 text-sm font-semibold text-amber-300">{team.avg_shuttle_balls != null ? roundToTenth(team.avg_shuttle_balls) : '—'}</td>
-                                <td className="p-4">
-                                  {pit ? (
-                                    <a
-                                      href={`/team/${team.team_number}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="block text-sm text-muted-foreground hover:text-primary transition-colors"
-                                    >
-                                      <span className="font-medium text-foreground">{pit.robot_name || '—'}</span>
-                                      {pit.drive_type && <span className="ml-1 text-xs"> · {pit.drive_type}</span>}
-                                      {pit.weight != null && pit.weight > 0 && <span className="ml-1 text-xs"> · {pit.weight} lbs</span>}
-                                      {pit.overall_rating != null && pit.overall_rating > 0 && <span className="ml-1 text-xs"> ★{pit.overall_rating}/10</span>}
-                                    </a>
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">—</span>
-                                  )}
-                                </td>
                                 <td className="p-4 text-right">
                                   <div className="flex justify-end gap-2">
                                     <Button
@@ -1334,8 +1504,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                   </div>
                                 </td>
                               </motion.tr>
-                            );
-                            })}
+                            ))}
                         </tbody>
                       </table>
                     </div>

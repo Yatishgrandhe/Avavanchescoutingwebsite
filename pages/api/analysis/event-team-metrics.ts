@@ -21,6 +21,18 @@ type StatboticsTeamEpa = {
   teleopEpa: number | null;
 };
 
+function toTeamNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  const raw = String(value ?? '').trim().toLowerCase();
+  if (!raw) return null;
+  const numeric = Number(raw);
+  if (Number.isFinite(numeric)) return numeric;
+  const match = raw.match(/(\d+)/);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function parseStatboticsTeamEpa(raw: unknown): StatboticsTeamEpa | null {
   if (!raw || typeof raw !== 'object') return null;
 
@@ -77,7 +89,7 @@ async function fetchStatboticsByTeams(
     teamNumbers.map(async (teamNumber) => {
       try {
         const response = await fetch(
-          `https://api.statbotics.io/v3/team_event/${encodeURIComponent(String(teamNumber))}/${encodeURIComponent(eventKey)}`,
+          `https://api.statbotics.io/v3/team_event/${encodeURIComponent(`frc${teamNumber}`)}/${encodeURIComponent(eventKey)}`,
           {
             method: 'GET',
             headers: { Accept: 'application/json' },
@@ -86,6 +98,18 @@ async function fetchStatboticsByTeams(
 
         if (response.ok) {
           const payload: unknown = await response.json();
+          return { teamNumber, payload };
+        }
+
+        const numericResponse = await fetch(
+          `https://api.statbotics.io/v3/team_event/${encodeURIComponent(String(teamNumber))}/${encodeURIComponent(eventKey)}`,
+          {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+          }
+        );
+        if (numericResponse.ok) {
+          const payload: unknown = await numericResponse.json();
           return { teamNumber, payload };
         }
 
@@ -102,6 +126,7 @@ async function fetchStatboticsByTeams(
             eventKey,
             teamNumber,
             teamEventStatus: response.status,
+            numericTeamEventStatus: numericResponse.status,
             teamStatus: fallback.status,
           });
           return null;
@@ -164,8 +189,8 @@ async function fetchStatboticsByEventKeys(
     if (!payload) continue;
     for (const raw of payload) {
       const parsed = parseStatboticsTeamEventRow(raw);
-      const teamNum = Number(parsed.team);
-      if (!Number.isFinite(teamNum)) continue;
+      const teamNum = toTeamNumber(parsed.team);
+      if (teamNum == null) continue;
       byTeam.set(teamNum, {
         totalEpa: parsed.totalEPA,
         autoEpa: parsed.autoEPA,
@@ -206,12 +231,12 @@ export default async function handler(
       .map((team) => Number(team.team_number))
       .filter((teamNumber) => Number.isFinite(teamNumber));
 
-    const [statboticsByTeams, statboticsByEvent] = await Promise.all([
-      fetchStatboticsByTeams(eventKey, teamNumbers),
-      fetchStatboticsByEventKeys(
-        Array.from(new Set([eventKey, ...(Array.isArray(divisionKeys) ? divisionKeys : [])]))
-      ),
-    ]);
+    const statboticsByEvent = await fetchStatboticsByEventKeys(
+      Array.from(new Set([eventKey, ...(Array.isArray(divisionKeys) ? divisionKeys : [])]))
+    );
+    const missingTeams = teamNumbers.filter((teamNumber) => !statboticsByEvent.has(teamNumber));
+    const statboticsByTeams =
+      missingTeams.length > 0 ? await fetchStatboticsByTeams(eventKey, missingTeams) : new Map<number, StatboticsTeamEpa>();
 
     const eventOprs = rawEventOprs || {};
     const oprMap = eventOprs.oprs || {};

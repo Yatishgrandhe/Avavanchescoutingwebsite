@@ -68,6 +68,20 @@ type EventMetricsRow = {
   totalEpa: number | null;
 };
 
+type StatboticsTeamEPA = {
+  team: string;
+  totalEPA: number | null;
+  autoEPA: number | null;
+  teleopEPA: number | null;
+  endgameEPA: number | null;
+  startEPA: number | null;
+  preElimEPA: number | null;
+  rank: number | null;
+  record: string | null;
+};
+
+type StatboticsSortKey = 'rank' | 'team' | 'totalEPA' | 'autoEPA' | 'teleopEPA' | 'endgameEPA' | 'record';
+
 const calculateTeamStats = (
   scoutingData: ScoutingData[],
   teams: Team[],
@@ -215,6 +229,15 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [activeEventKey, setActiveEventKey] = useState<string>('');
   const [activeEventName, setActiveEventName] = useState<string>('');
   const [teamDataOnly, setTeamDataOnly] = useState(false); // Default to OFF (show all data for active competition)
+  const [statboticsEventKey, setStatboticsEventKey] = useState('');
+  const [statboticsValidationError, setStatboticsValidationError] = useState<string | null>(null);
+  const [statboticsError, setStatboticsError] = useState<string | null>(null);
+  const [statboticsNoData, setStatboticsNoData] = useState(false);
+  const [statboticsLoading, setStatboticsLoading] = useState(false);
+  const [statboticsRows, setStatboticsRows] = useState<StatboticsTeamEPA[]>([]);
+  const [statboticsSortField, setStatboticsSortField] = useState<StatboticsSortKey>('totalEPA');
+  const [statboticsSortDirection, setStatboticsSortDirection] = useState<'asc' | 'desc'>('desc');
+  const statboticsFetchFailedRef = useRef(false);
   useEffect(() => {
     setTeamDataOnly(loadAnalysisTeamDataOnly(false));
   }, []);
@@ -701,6 +724,38 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     });
   }, [filteredTeamStats, teamStatsSortField, teamStatsSortDirection]);
 
+  const sortedStatboticsRows = useMemo(() => {
+    const dir = statboticsSortDirection === 'asc' ? 1 : -1;
+    return [...statboticsRows].sort((a, b) => {
+      const aVal = a[statboticsSortField];
+      const bVal = b[statboticsSortField];
+      if (statboticsSortField === 'record') {
+        const aStr = String(aVal ?? '');
+        const bStr = String(bVal ?? '');
+        return aStr.localeCompare(bStr) * dir;
+      }
+      if (statboticsSortField === 'team') {
+        const aNum = Number.parseInt(String(aVal ?? ''), 10);
+        const bNum = Number.parseInt(String(bVal ?? ''), 10);
+        return ((Number.isFinite(aNum) ? aNum : -Infinity) - (Number.isFinite(bNum) ? bNum : -Infinity)) * dir;
+      }
+      const aNum = aVal == null ? Number.NEGATIVE_INFINITY : Number(aVal);
+      const bNum = bVal == null ? Number.NEGATIVE_INFINITY : Number(bVal);
+      return (aNum - bNum) * dir;
+    });
+  }, [statboticsRows, statboticsSortDirection, statboticsSortField]);
+
+  const topThreeStatboticsTeams = useMemo(() => {
+    return [...statboticsRows]
+      .sort((a, b) => {
+        const aNum = a.totalEPA == null ? Number.NEGATIVE_INFINITY : Number(a.totalEPA);
+        const bNum = b.totalEPA == null ? Number.NEGATIVE_INFINITY : Number(b.totalEPA);
+        return bNum - aNum;
+      })
+      .slice(0, 3)
+      .map((row) => row.team);
+  }, [statboticsRows]);
+
 
   const handleTeamStatsSort = (field: TeamStatSortKey) => {
     if (teamStatsSortField === field) {
@@ -717,6 +772,91 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     } else {
       setSortField(field);
       setSortDirection('asc');
+    }
+  };
+
+  const handleStatboticsSort = (field: StatboticsSortKey) => {
+    if (statboticsSortField === field) {
+      setStatboticsSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setStatboticsSortField(field);
+    setStatboticsSortDirection(field === 'team' ? 'asc' : 'desc');
+  };
+
+  const fetchTeamEPAs = async (eventKey: string): Promise<StatboticsTeamEPA[]> => {
+    statboticsFetchFailedRef.current = false;
+    try {
+      const response = await fetch(`https://api.statbotics.io/v3/team_events?event=${encodeURIComponent(eventKey)}`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`Statbotics API error: ${response.status}`);
+      }
+      const payload = await response.json();
+      if (!Array.isArray(payload)) return [];
+      return payload
+        .map((item): StatboticsTeamEPA => ({
+          team: String(item?.team ?? ''),
+          totalEPA: Number.isFinite(item?.epa?.mean)
+            ? Number(item.epa.mean)
+            : (Number.isFinite(item?.epa?.breakdown?.total_points) ? Number(item.epa.breakdown.total_points) : null),
+          autoEPA: Number.isFinite(item?.epa?.breakdown?.auto_points) ? Number(item.epa.breakdown.auto_points) : null,
+          teleopEPA: Number.isFinite(item?.epa?.breakdown?.teleop_points) ? Number(item.epa.breakdown.teleop_points) : null,
+          endgameEPA: Number.isFinite(item?.epa?.breakdown?.endgame_points) ? Number(item.epa.breakdown.endgame_points) : null,
+          startEPA: Number.isFinite(item?.epa?.start) ? Number(item.epa.start) : null,
+          preElimEPA: Number.isFinite(item?.epa?.pre_elim) ? Number(item.epa.pre_elim) : null,
+          rank: Number.isFinite(item?.rank) ? Number(item.rank) : null,
+          record:
+            Number.isFinite(item?.record?.wins) &&
+            Number.isFinite(item?.record?.losses) &&
+            Number.isFinite(item?.record?.ties)
+              ? `${item.record.wins}-${item.record.losses}-${item.record.ties}`
+              : null,
+        }))
+        .sort((a, b) => {
+          const aNum = a.totalEPA == null ? Number.NEGATIVE_INFINITY : Number(a.totalEPA);
+          const bNum = b.totalEPA == null ? Number.NEGATIVE_INFINITY : Number(b.totalEPA);
+          return bNum - aNum;
+        });
+    } catch (error) {
+      console.error('fetchTeamEPAs failed', error);
+      statboticsFetchFailedRef.current = true;
+      setStatboticsError('Failed to reach Statbotics API. Please try again.');
+      return [];
+    }
+  };
+
+  const handleStatboticsSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const eventKey = statboticsEventKey.trim();
+    const validEventKey = /^\d{4}[a-z0-9]+$/.test(eventKey) && eventKey === eventKey.toLowerCase();
+    if (!eventKey) {
+      setStatboticsValidationError('Event key is required.');
+      return;
+    }
+    if (!validEventKey) {
+      setStatboticsValidationError('Event key format looks wrong. Use lowercase like 2024casj.');
+      return;
+    }
+
+    setStatboticsValidationError(null);
+    setStatboticsError(null);
+    setStatboticsNoData(false);
+    setStatboticsLoading(true);
+    try {
+      const rows = await fetchTeamEPAs(eventKey);
+      setStatboticsRows(rows);
+      if (rows.length === 0 && !statboticsFetchFailedRef.current) {
+        setStatboticsNoData(true);
+      }
+    } catch (error) {
+      console.error('Statbotics submit fetch failed', error);
+      setStatboticsError('Failed to reach Statbotics API. Please try again.');
+      setStatboticsRows([]);
+    } finally {
+      setStatboticsLoading(false);
     }
   };
 
@@ -858,6 +998,117 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
             <p className="text-sm sm:text-base md:text-xl text-muted-foreground max-w-2xl mx-auto px-4 break-words">
               Comprehensive view of all scouting data with detailed breakdowns and uploader information
             </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.1 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Statbotics EPA
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <form onSubmit={handleStatboticsSubmit} className="flex flex-col sm:flex-row gap-3">
+                  <Input
+                    placeholder="Event Key (e.g. 2024casj)"
+                    value={statboticsEventKey}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const value = e.target.value.trim();
+                      setStatboticsEventKey(value);
+                      if (!value) {
+                        setStatboticsValidationError(null);
+                        return;
+                      }
+                      const valid = /^\d{4}[a-z0-9]+$/.test(value) && value === value.toLowerCase();
+                      setStatboticsValidationError(valid ? null : 'Event key format looks wrong. Use lowercase like 2024casj.');
+                    }}
+                  />
+                  <Button type="submit" disabled={statboticsLoading}>
+                    {statboticsLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    Submit
+                  </Button>
+                </form>
+
+                {statboticsValidationError ? (
+                  <p className="text-sm text-destructive">{statboticsValidationError}</p>
+                ) : null}
+                {statboticsError ? (
+                  <p className="text-sm text-destructive">{statboticsError}</p>
+                ) : null}
+                {statboticsNoData ? (
+                  <p className="text-sm text-muted-foreground">No data found for this event. Check the event key format (e.g. 2024casj)</p>
+                ) : null}
+
+                <div className="overflow-x-auto rounded-lg border border-border/60">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/30">
+                      <tr className="text-left">
+                        {([
+                          ['rank', 'Rank'],
+                          ['team', 'Team'],
+                          ['totalEPA', 'Total EPA'],
+                          ['autoEPA', 'Auto EPA'],
+                          ['teleopEPA', 'Teleop EPA'],
+                          ['endgameEPA', 'Endgame EPA'],
+                          ['record', 'Record'],
+                        ] as Array<[StatboticsSortKey, string]>).map(([field, label]) => (
+                          <th
+                            key={field}
+                            className="p-3 cursor-pointer select-none"
+                            onClick={() => handleStatboticsSort(field)}
+                          >
+                            <span className="inline-flex items-center gap-1">
+                              {label}
+                              {statboticsSortField === field ? (
+                                statboticsSortDirection === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />
+                              ) : null}
+                            </span>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedStatboticsRows.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="p-4 text-center text-muted-foreground">
+                            Submit an event key to load Statbotics EPA data.
+                          </td>
+                        </tr>
+                      ) : (
+                        sortedStatboticsRows.map((row) => {
+                          const topIndex = topThreeStatboticsTeams.indexOf(row.team);
+                          const rowClass =
+                            topIndex === 0
+                              ? 'bg-amber-400/20'
+                              : topIndex === 1
+                                ? 'bg-slate-300/20'
+                                : topIndex === 2
+                                  ? 'bg-orange-400/20'
+                                  : '';
+                          const formatValue = (value: number | null) => (value == null ? '—' : roundToTenth(value));
+                          return (
+                            <tr key={row.team} className={cn('border-t border-border/60', rowClass)}>
+                              <td className="p-3">{row.rank ?? '—'}</td>
+                              <td className="p-3 font-semibold">{row.team || '—'}</td>
+                              <td className="p-3">{formatValue(row.totalEPA)}</td>
+                              <td className="p-3">{formatValue(row.autoEPA)}</td>
+                              <td className="p-3">{formatValue(row.teleopEPA)}</td>
+                              <td className="p-3">{formatValue(row.endgameEPA)}</td>
+                              <td className="p-3">{row.record ?? '—'}</td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
 
           {/* Controls */}

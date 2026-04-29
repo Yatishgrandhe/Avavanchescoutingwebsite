@@ -56,8 +56,8 @@ interface TeamStat extends RebuiltTeamMetrics {
   tba_opr?: number;
   tba_epa?: number;
   normalized_opr?: number;
-  tba_auto_epa?: number | null;
-  tba_teleop_epa?: number | null;
+  tba_auto_epa: number | null;
+  tba_teleop_epa: number | null;
   avg_shooting_time_sec: number | null;
 }
 
@@ -152,7 +152,7 @@ const calculateTeamStats = (
       total_matches,
       climb_status,
       tba_opr: resolvedOpr ?? 0,
-      tba_epa: resolvedTotalEpa ?? rebuilt.epa,
+      tba_epa: eventMetrics?.totalEpa ?? tbaMap.get(teamNumber)?.tba_epa ?? rebuilt.epa,
       normalized_opr: normalizedOpr != null ? normalizedOpr : undefined,
       tba_auto_epa: eventMetrics?.autoEpa ?? null,
       tba_teleop_epa: eventMetrics?.teleopEpa ?? null,
@@ -196,6 +196,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const [allTeams, setAllTeams] = useState<Team[]>([]); // All teams for name lookups
   const [teamStats, setTeamStats] = useState<TeamStat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [epaUpdating, setEpaUpdating] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
   const [showUploaderInfo, setShowUploaderInfo] = useState(true);
@@ -237,6 +239,21 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const loadRequestIdRef = useRef(0);
   const dataPageSummarizeOnceRef = useRef(false);
   const dataPageSummarizeInFlightRef = useRef(false);
+  const calculateTeamStatsMemoized = useCallback(
+    (
+      scoutingRows: ScoutingData[],
+      teamRows: Team[],
+      matchCountsFromDb?: Record<number, number>,
+      epaMap?: Record<number, number>,
+      eventMetricsByTeam?: Record<number, EventMetricsRow>
+    ) => calculateTeamStats(scoutingRows, teamRows, matchCountsFromDb, epaMap, eventMetricsByTeam),
+    []
+  );
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setSearchTerm(searchInput), 150);
+    return () => window.clearTimeout(timeoutId);
+  }, [searchInput]);
 
   const rowsForDataPageAi = useMemo(() => {
     if (selectedTeam != null) {
@@ -308,6 +325,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
     const requestId = ++loadRequestIdRef.current;
     try {
       setLoading(true);
+      setEpaUpdating(false);
 
       let targetEventKey = '';
       let targetEventName = '';
@@ -340,34 +358,15 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       }
 
       // Load scouting data for this event
-      let query = supabase
+      let scoutingQuery = supabase
         .from('scouting_data')
         .select('*, matches!inner(event_key)')
         .eq('matches.event_key', targetEventKey);
 
       // Apply organization filter if toggle is ON
       if (teamDataOnly && user?.organization_id) {
-        query = query.eq('organization_id', user.organization_id);
+        scoutingQuery = scoutingQuery.eq('organization_id', user.organization_id);
       }
-
-      const { data: scoutingDataResult, error: scoutingError } = await query;
-
-      if (scoutingError) {
-        console.error('Error loading scouting data:', scoutingError);
-        throw scoutingError;
-      }
-
-      // Sort by submitted_at first, then created_at as fallback (most recent first)
-      const sortedScoutingData = (scoutingDataResult || []).sort((a: ScoutingData, b: ScoutingData) => getRowTimestampMs(b) - getRowTimestampMs(a));
-      const localPendingRows = await getLocalPendingMatchRows(user?.organization_id);
-      const localPendingForEvent = localPendingRows.filter((row) =>
-        row.competition_key
-          ? row.competition_key === targetEventKey
-          : row.match_id.includes(targetEventKey)
-      ) as unknown as ScoutingData[];
-      const allScoutingRows = [...localPendingForEvent, ...sortedScoutingData]
-        .filter((row) => Number.isFinite(Number(row.team_number)) && Number(row.team_number) > 0)
-        .sort((a: ScoutingData, b: ScoutingData) => getRowTimestampMs(b) - getRowTimestampMs(a));
 
       // Load roster first, then fetch teams by roster numbers.
       // Avoid brittle client-side FK join syntax that can fail with 400 when relationship metadata differs.
@@ -378,12 +377,33 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       if (teamDataOnly && user?.organization_id) {
         rosterQuery = rosterQuery.eq('organization_id', user.organization_id);
       }
-      const { data: rosterRows, error: rosterError } = await rosterQuery;
-      if (rosterError) throw rosterError;
+
+      const [scoutingResult, rosterResult, localPendingRows] = await Promise.all([
+        scoutingQuery,
+        rosterQuery,
+        getLocalPendingMatchRows(user?.organization_id),
+      ]);
+
+      if (scoutingResult.error) {
+        console.error('Error loading scouting data:', scoutingResult.error);
+        throw scoutingResult.error;
+      }
+      if (rosterResult.error) throw rosterResult.error;
+
+      // Sort by submitted_at first, then created_at as fallback (most recent first)
+      const sortedScoutingData = (scoutingResult.data || []).sort((a: ScoutingData, b: ScoutingData) => getRowTimestampMs(b) - getRowTimestampMs(a));
+      const localPendingForEvent = localPendingRows.filter((row) =>
+        row.competition_key
+          ? row.competition_key === targetEventKey
+          : row.match_id.includes(targetEventKey)
+      ) as unknown as ScoutingData[];
+      const allScoutingRows = [...localPendingForEvent, ...sortedScoutingData]
+        .filter((row) => Number.isFinite(Number(row.team_number)) && Number(row.team_number) > 0)
+        .sort((a: ScoutingData, b: ScoutingData) => getRowTimestampMs(b) - getRowTimestampMs(a));
 
       const rosterTeamNumbers: number[] = Array.from(
         new Set<number>(
-          (rosterRows || [])
+          (rosterResult.data || [])
             .map((r: { team_number: number }) => Number(r.team_number))
             .filter((n: number): n is number => Number.isFinite(n) && n > 0)
         )
@@ -411,33 +431,58 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         return;
       }
 
-      const { data: allTeamsResult, error: allTeamsError } = await supabase
+      const teamNumbers = [...teamNumbersForEvent];
+      const teamsQuery = supabase
         .from('teams')
         .select('*')
-        .in('team_number', teamNumbersForEvent)
+        .in('team_number', teamNumbers)
         .order('team_number');
+      const pastDataQuery = supabase
+        .from('past_scouting_data')
+        .select('team_number, notes')
+        .in('team_number', teamNumbers);
+      const eventMetricsQuery = fetch('/api/analysis/event-team-metrics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventKey: targetEventKey,
+        }),
+      });
 
+      const { data: allTeamsResult, error: allTeamsError } = await teamsQuery;
       if (allTeamsError) throw allTeamsError;
 
+      // Keep match counts aligned with exactly what is loaded on this page.
+      const matchCountsFromLoadedRows = computeDistinctMatchCounts(allScoutingRows);
+      const allTeamsRows = (allTeamsResult || []) as Team[];
       // For the team filter dropdown, exclude Avalanche (scouting own team)
-      const teamsResult = (allTeamsResult || []).filter((t: Team) => !String(t.team_name || '').toLowerCase().includes('avalanche'));
+      const teamsResult = allTeamsRows.filter((t: Team) => !String(t.team_name || '').toLowerCase().includes('avalanche'));
 
       if (requestId !== loadRequestIdRef.current) return;
       setScoutingData(allScoutingRows);
-      setTeams(teamsResult || []);
-      setAllTeams(allTeamsResult || []);
+      setTeams(teamsResult);
+      setAllTeams(allTeamsRows);
+      setTeamStats(
+        calculateTeamStatsMemoized(
+          allScoutingRows,
+          allTeamsRows,
+          matchCountsFromLoadedRows,
+          {},
+          {}
+        )
+      );
+      setLoading(false);
+      setEpaUpdating(true);
 
-      // Calculate starter EPA from past historical data
-      const teamNums = (allTeamsResult || []).map((t: any) => t.team_number);
-      const { data: pastData } = await supabase
-        .from('past_scouting_data')
-        .select('team_number, notes')
-        .in('team_number', teamNums);
+      const [pastDataResult, eventMetricsResponse] = await Promise.all([pastDataQuery, eventMetricsQuery]);
 
+      if (requestId !== loadRequestIdRef.current) return;
       const epaMap: Record<number, number> = {};
-      if (pastData) {
+      if (pastDataResult.error) {
+        console.error('Error loading past scouting data:', pastDataResult.error);
+      } else if (pastDataResult.data) {
         const teamScores: Record<number, number[]> = {};
-        pastData.forEach((row: any) => {
+        pastDataResult.data.forEach((row: any) => {
           const rebuilt = computeRebuiltMetrics([row as any]);
           const score = rebuilt.epa; // This will be the estimated score for one match
           if (!teamScores[row.team_number]) teamScores[row.team_number] = [];
@@ -452,22 +497,26 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
       let eventMetricsByTeam: Record<number, EventMetricsRow> = {};
       try {
-        const metricsResponse = await fetch('/api/analysis/event-team-metrics', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            eventKey: targetEventKey,
-          }),
-        });
-        if (!metricsResponse.ok) {
-          const err = await metricsResponse.json().catch(() => ({}));
+        if (!eventMetricsResponse.ok) {
+          const err = await eventMetricsResponse.json().catch(() => ({}));
           console.error('event-team-metrics load failed', err);
         } else {
-          const metricsPayload = await metricsResponse.json().catch(() => ({}));
+          const metricsPayload = await eventMetricsResponse.json().catch(() => ({}));
           const rows = Array.isArray(metricsPayload?.rows) ? metricsPayload.rows : [];
           eventMetricsByTeam = rows.reduce((acc: Record<number, EventMetricsRow>, row: EventMetricsRow) => {
             if (Number.isFinite(Number(row.teamNumber))) {
-              acc[Number(row.teamNumber)] = row;
+              const toNullableNumber = (value: unknown): number | null => {
+                const numeric = Number(value);
+                return Number.isFinite(numeric) ? numeric : null;
+              };
+              acc[Number(row.teamNumber)] = {
+                ...row,
+                teamNumber: Number(row.teamNumber),
+                opr: toNullableNumber(row.opr),
+                autoEpa: toNullableNumber(row.autoEpa),
+                teleopEpa: toNullableNumber(row.teleopEpa),
+                totalEpa: toNullableNumber(row.totalEpa),
+              };
             }
             return acc;
           }, {});
@@ -476,21 +525,20 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         console.error('event-team-metrics request failed', eventMetricError);
       }
 
-      // Keep match counts aligned with exactly what is loaded on this page.
-      const matchCountsFromLoadedRows = computeDistinctMatchCounts(allScoutingRows);
-
       // Calculate team statistics using loaded rows for both averages and match counts.
-      const stats = calculateTeamStats(
+      const stats = calculateTeamStatsMemoized(
         allScoutingRows,
-        allTeamsResult || [],
+        allTeamsRows,
         matchCountsFromLoadedRows,
         epaMap,
         eventMetricsByTeam
       );
       if (requestId !== loadRequestIdRef.current) return;
       setTeamStats(stats);
+      setEpaUpdating(false);
     } catch (error) {
       console.error('Error loading data:', error);
+      if (requestId === loadRequestIdRef.current) setEpaUpdating(false);
     } finally {
       if (requestId === loadRequestIdRef.current) setLoading(false);
     }
@@ -966,8 +1014,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input
                       placeholder="Search by team, match, or comments..."
-                      value={searchTerm}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                      value={searchInput}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}
                       className="pl-10"
                     />
                   </div>
@@ -1124,6 +1172,11 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                     ? `Team Statistics (${sortedTeamStats.length} teams)`
                     : `Scouting Data (${sortedData.length} records)`
                   }
+                  {viewMode === 'teams' && epaUpdating && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full border border-blue-400/30 bg-blue-500/10 text-blue-300">
+                      Updating EPA...
+                    </span>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>

@@ -153,7 +153,7 @@ const calculateTeamStats = (
       climb_status,
       tba_opr: resolvedOpr ?? 0,
       tba_epa: resolvedTotalEpa ?? rebuilt.epa,
-      normalized_opr: normalizedOpr ?? 0,
+      normalized_opr: normalizedOpr != null ? normalizedOpr : undefined,
       tba_auto_epa: eventMetrics?.autoEpa ?? null,
       tba_teleop_epa: eventMetrics?.teleopEpa ?? null,
       avg_shooting_time_sec: avgShootingTimeSec,

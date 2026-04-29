@@ -32,9 +32,9 @@ export function parseStatboticsTeamEventRow(raw: unknown): StatboticsTeamEventRo
   const totalRec = recordRoot?.total as Record<string, unknown> | undefined;
 
   const totalEPA =
-    parseStatboticsFinite(stats?.mean) ??
     parseStatboticsFinite(totalPointsBlock?.mean) ??
     parseStatboticsFinite(breakdown?.total_points) ??
+    parseStatboticsFinite(stats?.mean) ??
     parseStatboticsFinite(epa?.mean);
 
   const autoEPA = parseStatboticsFinite(breakdown?.auto_points);

@@ -84,12 +84,14 @@ async function fetchStatboticsByTeams(
   teamNumbers: number[]
 ): Promise<Map<number, StatboticsTeamEpa>> {
   const byTeam = new Map<number, StatboticsTeamEpa>();
+  const seasonYear = Number.parseInt(eventKey.slice(0, 4), 10);
+  const seasonYearParam = Number.isFinite(seasonYear) ? seasonYear : new Date().getFullYear();
 
   const responses = await Promise.all(
     teamNumbers.map(async (teamNumber) => {
       try {
         const response = await fetch(
-          `https://api.statbotics.io/v3/team_event/${encodeURIComponent(`frc${teamNumber}`)}/${encodeURIComponent(eventKey)}`,
+          `https://api.statbotics.io/v3/team_year/${encodeURIComponent(String(teamNumber))}/${encodeURIComponent(String(seasonYearParam))}`,
           {
             method: 'GET',
             headers: { Accept: 'application/json' },
@@ -100,39 +102,13 @@ async function fetchStatboticsByTeams(
           const payload: unknown = await response.json();
           return { teamNumber, payload };
         }
-
-        const numericResponse = await fetch(
-          `https://api.statbotics.io/v3/team_event/${encodeURIComponent(String(teamNumber))}/${encodeURIComponent(eventKey)}`,
-          {
-            method: 'GET',
-            headers: { Accept: 'application/json' },
-          }
-        );
-        if (numericResponse.ok) {
-          const payload: unknown = await numericResponse.json();
-          return { teamNumber, payload };
-        }
-
-        const fallback = await fetch(
-          `https://api.statbotics.io/v3/team/${encodeURIComponent(String(teamNumber))}`,
-          {
-            method: 'GET',
-            headers: { Accept: 'application/json' },
-          }
-        );
-
-        if (!fallback.ok) {
-          console.warn('event-team-metrics: Statbotics request not ok', {
-            eventKey,
-            teamNumber,
-            teamEventStatus: response.status,
-            numericTeamEventStatus: numericResponse.status,
-            teamStatus: fallback.status,
-          });
-          return null;
-        }
-
-        return { teamNumber, payload: (await fallback.json()) as unknown };
+        console.warn('event-team-metrics: Statbotics request not ok', {
+          eventKey,
+          teamNumber,
+          seasonYear: seasonYearParam,
+          teamYearStatus: response.status,
+        });
+        return null;
       } catch (error) {
         console.warn('event-team-metrics: Statbotics request failed', {
           eventKey,

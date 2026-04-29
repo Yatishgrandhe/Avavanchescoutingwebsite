@@ -15,6 +15,12 @@ type EventTeamMetricsResponse = {
   rows: EventTeamMetricsRow[];
 };
 
+type StatboticsTeamEpa = {
+  totalEpa: number | null;
+  autoEpa: number | null;
+  teleopEpa: number | null;
+};
+
 function extractTbaComponentMap(
   eventOprs: TbaEventOprs,
   includePatterns: RegExp[],
@@ -29,6 +35,51 @@ function extractTbaComponentMap(
     return value as Record<string, number>;
   }
   return null;
+}
+
+async function fetchStatboticsByEventKeys(
+  eventKeys: string[]
+): Promise<Map<number, StatboticsTeamEpa>> {
+  const byTeam = new Map<number, StatboticsTeamEpa>();
+
+  const responses = await Promise.all(
+    eventKeys.map(async (key) => {
+      try {
+        const response = await fetch(`https://api.statbotics.io/v3/team_events?event=${encodeURIComponent(key)}`, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) {
+          console.warn('event-team-metrics: Statbotics request not ok', {
+            eventKey: key,
+            status: response.status,
+          });
+          return null;
+        }
+        const payload: unknown = await response.json();
+        return Array.isArray(payload) ? payload : null;
+      } catch (error) {
+        console.warn('event-team-metrics: Statbotics request failed', { eventKey: key, error });
+        return null;
+      }
+    })
+  );
+
+  for (const payload of responses) {
+    if (!payload) continue;
+    for (const raw of payload) {
+      const parsed = parseStatboticsTeamEventRow(raw);
+      const teamNum = Number(parsed.team);
+      if (!Number.isFinite(teamNum)) continue;
+      byTeam.set(teamNum, {
+        totalEpa: parsed.totalEPA,
+        autoEpa: parsed.autoEPA,
+        teleopEpa: parsed.teleopEPA,
+      });
+    }
+  }
+
+  return byTeam;
 }
 
 export default async function handler(
@@ -50,43 +101,16 @@ export default async function handler(
   }
 
   try {
-    const [tbaTeams, rawEventOprs, statboticsRes] = await Promise.all([
+    const [tbaTeams, rawEventOprs, divisionKeys] = await Promise.all([
       tbaFetchJson<TbaTeam[]>(`/event/${encodeURIComponent(eventKey)}/teams`),
       tbaFetchJson<TbaEventOprs>(`/event/${encodeURIComponent(eventKey)}/oprs`),
-      fetch(`https://api.statbotics.io/v3/team_events?event=${encodeURIComponent(eventKey)}`, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      }),
+      tbaFetchJson<string[]>(`/event/${encodeURIComponent(eventKey)}/divisions`).catch(() => []),
     ]);
 
-    const statboticsByTeam = new Map<
-      number,
-      { totalEpa: number | null; autoEpa: number | null; teleopEpa: number | null }
-    >();
-    if (statboticsRes.ok) {
-      try {
-        const statPayload: unknown = await statboticsRes.json();
-        if (Array.isArray(statPayload)) {
-          for (const raw of statPayload) {
-            const parsed = parseStatboticsTeamEventRow(raw);
-            const teamNum = Number(parsed.team);
-            if (!Number.isFinite(teamNum)) continue;
-            statboticsByTeam.set(teamNum, {
-              totalEpa: parsed.totalEPA,
-              autoEpa: parsed.autoEPA,
-              teleopEpa: parsed.teleopEPA,
-            });
-          }
-        }
-      } catch (statErr) {
-        console.error('event-team-metrics: Statbotics JSON parse failed', { eventKey, statErr });
-      }
-    } else {
-      console.warn('event-team-metrics: Statbotics request not ok', {
-        eventKey,
-        status: statboticsRes.status,
-      });
-    }
+    const statboticsEventKeys = Array.from(
+      new Set([eventKey, ...(Array.isArray(divisionKeys) ? divisionKeys : [])])
+    );
+    const statboticsByTeam = await fetchStatboticsByEventKeys(statboticsEventKeys);
 
     const eventOprs = rawEventOprs || {};
     const oprMap = eventOprs.oprs || {};

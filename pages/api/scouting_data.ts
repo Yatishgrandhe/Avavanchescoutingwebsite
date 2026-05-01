@@ -81,16 +81,29 @@ async function fetchStatboticsMatchPhaseScores(matchId: string, allianceColor: s
     );
     if (!response.ok) return null;
     const payload: unknown = await response.json();
-    const result = payload && typeof payload === 'object'
+    const payloadObj = payload && typeof payload === 'object'
+      ? (payload as Record<string, unknown>)
+      : null;
+    const result = payloadObj
       ? (payload as Record<string, unknown>).result
       : null;
     if (!result || typeof result !== 'object') return null;
     const resultObj = result as Record<string, unknown>;
-    const autoKey = `${alliance}_auto_points`;
-    const teleopKey = `${alliance}_teleop_points`;
-    const autoPoints = Number(resultObj[autoKey]);
-    const teleopPoints = Number(resultObj[teleopKey]);
-    if (!Number.isFinite(autoPoints) || !Number.isFinite(teleopPoints)) return null;
+    const pickNumber = (keys: string[]): number | null => {
+      for (const keyName of keys) {
+        const numeric = Number(resultObj[keyName]);
+        if (Number.isFinite(numeric)) return numeric;
+      }
+      return null;
+    };
+    const autoPoints = pickNumber([`${alliance}_auto_points`, `${alliance}_auto`]);
+    const teleopPoints = pickNumber([`${alliance}_teleop_points`, `${alliance}_teleop`]);
+    if (autoPoints == null || teleopPoints == null) return null;
+    const statusRaw = String(payloadObj?.status || '').trim().toLowerCase();
+    // Statbotics can expose zeroed phase fields before a match is actually complete.
+    if ((autoPoints === 0 && teleopPoints === 0) && statusRaw && statusRaw !== 'completed') {
+      return null;
+    }
     return {
       autoPoints: Math.round(autoPoints),
       teleopPoints: Math.round(teleopPoints),

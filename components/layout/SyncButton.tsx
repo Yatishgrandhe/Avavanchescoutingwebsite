@@ -10,7 +10,7 @@ import SpeedTestModal from './SpeedTestModal';
 export default function SyncButton() {
   const [queueCount, setQueueCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
-  const { session } = useSupabase();
+  const { session, supabase } = useSupabase();
   const [showSpeedTest, setShowSpeedTest] = useState(false);
   const [requiredSpeedMbps, setRequiredSpeedMbps] = useState(5);
   const [speedFormType, setSpeedFormType] = useState<'match-scouting' | 'pit-scouting' | 'sync'>('sync');
@@ -31,7 +31,13 @@ export default function SyncButton() {
     };
   }, []);
 
-  const uploadBlob = async (blob: Blob, name: string, teamNumber: string, teamName: string) => {
+  const getAccessToken = async (): Promise<string | null> => {
+    if (session?.access_token) return session.access_token;
+    const { data: { session: freshSession } } = await supabase.auth.getSession();
+    return freshSession?.access_token || null;
+  };
+
+  const uploadBlob = async (blob: Blob, name: string, teamNumber: string, teamName: string, accessToken: string) => {
     const formData = new FormData();
     formData.append('image', blob, name);
     formData.append('teamNumber', teamNumber);
@@ -40,7 +46,7 @@ export default function SyncButton() {
     const uploadRes = await fetch('/api/upload-robot-image', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${session?.access_token}`
+        'Authorization': `Bearer ${accessToken}`
       },
       body: formData,
     });
@@ -55,7 +61,13 @@ export default function SyncButton() {
 
   const performActualSync = async (speedToken: string) => {
     setShowSpeedTest(false);
-    if (isSyncing || queueCount === 0 || !session?.access_token) return;
+    if (isSyncing || queueCount === 0) return;
+
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      toast.error('Sign in again to upload pending forms.');
+      return;
+    }
 
     setIsSyncing(true);
     let successCount = 0;
@@ -74,7 +86,7 @@ export default function SyncButton() {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${session.access_token}`,
+                  'Authorization': `Bearer ${accessToken}`,
                   'x-speed-verified-token': speedToken,
                 },
                 body: JSON.stringify(item.data),
@@ -97,7 +109,7 @@ export default function SyncButton() {
               const syncRes = await fetch('/api/sync-my-event', {
                 method: 'POST',
                 headers: {
-                  'Authorization': `Bearer ${session.access_token}`
+                  'Authorization': `Bearer ${accessToken}`
                 },
               });
               if (syncRes.ok) {
@@ -133,7 +145,7 @@ export default function SyncButton() {
             // Upload photos
             if (photosToUpload && photosToUpload.length > 0) {
               for (const p of photosToUpload) {
-                const url = await uploadBlob(p.blob, p.name, submissionData.team_number.toString(), submissionData.robot_name || 'Unknown');
+                const url = await uploadBlob(p.blob, p.name, submissionData.team_number.toString(), submissionData.robot_name || 'Unknown', accessToken);
                 if (url) finalPhotos.push(url);
               }
             }
@@ -141,7 +153,7 @@ export default function SyncButton() {
             // Upload annotated image
             let finalAnnotatedUrl = submissionData.annotated_image_url;
             if (annotatedImageToUpload) {
-              const url = await uploadBlob(annotatedImageToUpload.blob, annotatedImageToUpload.name, submissionData.team_number.toString(), submissionData.robot_name || 'Unknown');
+              const url = await uploadBlob(annotatedImageToUpload.blob, annotatedImageToUpload.name, submissionData.team_number.toString(), submissionData.robot_name || 'Unknown', accessToken);
               if (url) finalAnnotatedUrl = url;
             }
 
@@ -156,7 +168,7 @@ export default function SyncButton() {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`,
+                'Authorization': `Bearer ${accessToken}`,
                 'x-speed-verified-token': speedToken,
               },
               body: JSON.stringify({
@@ -199,7 +211,7 @@ export default function SyncButton() {
   };
 
   const handleSyncClick = () => {
-    if (isSyncing || queueCount === 0 || !session?.access_token) return;
+    if (isSyncing || queueCount === 0) return;
     void getOfflineQueue().then((queue) => {
       const containsPit = queue.some((item) => item.type === 'pit-scouting');
       setRequiredSpeedMbps(containsPit ? 5 : 2.0000001);

@@ -77,6 +77,11 @@ interface ViewDataRow {
   created_at?: string;
   submitted_at?: string;
   submitted_by_name?: string | null;
+  scouted_score_rounded?: number | null;
+  statbotics_expected_score_rounded?: number | null;
+  score_delta?: number | null;
+  alliance_scouted_count?: number;
+  alliance_finalized?: boolean;
 }
 
 type PitRow = { id?: string; team_number: number; robot_name?: string | null; photos?: string[] | null; auto_fuel_count?: number; [key: string]: unknown };
@@ -109,7 +114,7 @@ export default function ViewDataPage() {
 
   const [competition, setCompetition] = useState<CompetitionInfo | null>(null);
   const [scoutingData, setScoutingData] = useState<ViewDataRow[]>([]);
-  const [teams, setTeams] = useState<Array<{ team_number: number; team_name: string; starter_epa?: number; tba_epa?: number; tba_opr?: number; normalized_opr?: number }>>([]);
+  const [teams, setTeams] = useState<Array<{ team_number: number; team_name: string; starter_epa?: number; tba_epa?: number; tba_opr?: number; normalized_opr?: number; tba_auto_epa?: number | null; tba_teleop_epa?: number | null }>>([]);
   const [pitScoutingData, setPitScoutingData] = useState<PitRow[]>([]);
   const [deletingPitRow, setDeletingPitRow] = useState<PitRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -406,6 +411,14 @@ export default function ViewDataPage() {
         team_name: teamName,
         total_matches,
         ...rebuilt,
+        avg_autonomous_points:
+          total_scores.length > 0 ? roundToTenth(avgAutonomous) : (teamObj?.tba_auto_epa != null ? roundToTenth(Number(teamObj.tba_auto_epa)) : 0),
+        avg_teleop_points:
+          total_scores.length > 0 ? roundToTenth(avgTeleop) : (teamObj?.tba_teleop_epa != null ? roundToTenth(Number(teamObj.tba_teleop_epa)) : 0),
+        avg_total_score:
+          total_scores.length > 0 ? roundToTenth(avgTotal) : (teamObj?.tba_epa != null ? roundToTenth(Number(teamObj.tba_epa)) : 0),
+        normalized_opr: teamObj?.normalized_opr != null ? roundToTenth(Number(teamObj.normalized_opr)) : undefined,
+        tba_epa: teamObj?.tba_epa != null ? roundToTenth(Number(teamObj.tba_epa)) : undefined,
         climb_status: climbYesCount > 0 ? `Yes ${preferredLevel || ''}`.trim() : 'No',
         starter_epa: teamObj?.starter_epa,
       });
@@ -495,9 +508,43 @@ export default function ViewDataPage() {
         throw new Error(err.error || `Failed to load (${res.status})`);
       }
       const data = await res.json();
+      let eventMetricsMap = new Map<number, { autoEpa: number | null; teleopEpa: number | null; totalEpa: number | null }>();
+      if (event_key) {
+        const metricsRes = await fetch('/api/analysis/event-team-metrics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventKey: event_key }),
+        });
+        if (metricsRes.ok) {
+          const metricsJson = await metricsRes.json();
+          const rows = Array.isArray(metricsJson?.rows) ? metricsJson.rows : [];
+          eventMetricsMap = new Map(
+            rows
+              .filter((row: any) => Number.isFinite(Number(row.teamNumber)))
+              .map((row: any) => [
+                Number(row.teamNumber),
+                {
+                  autoEpa: Number.isFinite(Number(row.autoEpa)) ? Number(row.autoEpa) : null,
+                  teleopEpa: Number.isFinite(Number(row.teleopEpa)) ? Number(row.teleopEpa) : null,
+                  totalEpa: Number.isFinite(Number(row.totalEpa)) ? Number(row.totalEpa) : null,
+                },
+              ])
+          );
+        }
+      }
       setCompetition(data.competition || null);
       setScoutingData(Array.isArray(data.scoutingData) ? data.scoutingData : []);
-      setTeams(Array.isArray(data.teams) ? data.teams : []);
+      setTeams(
+        (Array.isArray(data.teams) ? data.teams : []).map((team: any) => {
+          const metrics = eventMetricsMap.get(Number(team.team_number));
+          return {
+            ...team,
+            tba_auto_epa: metrics?.autoEpa ?? null,
+            tba_teleop_epa: metrics?.teleopEpa ?? null,
+            tba_epa: metrics?.totalEpa ?? team.tba_epa,
+          };
+        })
+      );
       setPitScoutingData(Array.isArray(data.pitScoutingData) ? data.pitScoutingData : []);
     } catch (e: any) {
       setError(e?.message || 'Failed to load competition data.');
@@ -1061,6 +1108,9 @@ export default function ViewDataPage() {
                   <th className="text-left p-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('final_score')}>
                     Total {sortField === 'final_score' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
+                  <th className="text-left p-4 whitespace-nowrap">Scouted Score</th>
+                  <th className="text-left p-4 whitespace-nowrap">Statbotics Expected</th>
+                  <th className="text-left p-4 whitespace-nowrap">Status</th>
                   <th className="text-left p-4 cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => handleSort('defense_rating')}>
                     Defense {sortField === 'defense_rating' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
@@ -1111,6 +1161,29 @@ export default function ViewDataPage() {
                       <td className="py-3 px-4 text-orange-400 font-bold align-middle">{data.teleop_points ?? '—'}</td>
                       <td className="py-3 px-4 align-middle">
                         <span className="text-lg font-black text-foreground">{data.final_score ?? '—'}</span>
+                      </td>
+                      <td className="py-3 px-4 align-middle">
+                        <span className="font-semibold text-emerald-300">{data.scouted_score_rounded ?? '—'}</span>
+                      </td>
+                      <td className="py-3 px-4 align-middle">
+                        <span className="font-semibold text-primary">{data.statbotics_expected_score_rounded ?? '—'}</span>
+                        {data.score_delta != null && (
+                          <span className={cn('ml-2 text-xs', data.score_delta >= 0 ? 'text-green-400' : 'text-red-400')}>
+                            Δ {data.score_delta}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 align-middle">
+                        <div className="flex flex-col gap-1">
+                          <span className={cn('text-xs font-semibold', data.alliance_finalized ? 'text-green-400' : 'text-amber-400')}>
+                            {data.alliance_finalized ? 'Finalized' : 'Provisional'}
+                          </span>
+                          {!data.alliance_finalized && (
+                            <span className="text-[10px] text-muted-foreground">
+                              Finalized after all 3 alliance teams are scouted.
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4 align-middle">
                         <div className="flex items-center gap-2">

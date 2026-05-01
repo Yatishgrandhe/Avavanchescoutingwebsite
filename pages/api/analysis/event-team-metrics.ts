@@ -197,19 +197,25 @@ export default async function handler(
   }
 
   try {
-    const [tbaTeams, rawEventOprs, divisionKeys] = await Promise.all([
+    const [tbaTeamsResult, eventOprsResult, divisionKeysResult] = await Promise.allSettled([
       tbaFetchJson<TbaTeam[]>(`/event/${encodeURIComponent(eventKey)}/teams`),
       tbaFetchJson<TbaEventOprs>(`/event/${encodeURIComponent(eventKey)}/oprs`),
-      tbaFetchJson<string[]>(`/event/${encodeURIComponent(eventKey)}/divisions`).catch(() => []),
+      tbaFetchJson<string[]>(`/event/${encodeURIComponent(eventKey)}/divisions`),
     ]);
 
-    const teamNumbers = (tbaTeams || [])
+    const tbaTeams = tbaTeamsResult.status === 'fulfilled' ? (tbaTeamsResult.value || []) : [];
+    const rawEventOprs = eventOprsResult.status === 'fulfilled' ? (eventOprsResult.value || {}) : {};
+    const divisionKeys = divisionKeysResult.status === 'fulfilled' ? (divisionKeysResult.value || []) : [];
+
+    const teamNumbersFromTba = (tbaTeams || [])
       .map((team) => Number(team.team_number))
       .filter((teamNumber) => Number.isFinite(teamNumber));
 
     const statboticsByEvent = await fetchStatboticsByEventKeys(
       Array.from(new Set([eventKey, ...(Array.isArray(divisionKeys) ? divisionKeys : [])]))
     );
+    const statboticsTeamNumbers = Array.from(statboticsByEvent.keys());
+    const teamNumbers = Array.from(new Set([...teamNumbersFromTba, ...statboticsTeamNumbers]));
     const missingTeams = teamNumbers.filter((teamNumber) => !statboticsByEvent.has(teamNumber));
     const statboticsByTeams =
       missingTeams.length > 0 ? await fetchStatboticsByTeams(eventKey, missingTeams) : new Map<number, StatboticsTeamEpa>();
@@ -224,8 +230,7 @@ export default async function handler(
       extractTbaComponentMap(eventOprs, [/teleop/i], []) ||
       extractTbaComponentMap(eventOprs, [/tele/i, /opr/i], []);
 
-    const rows = (tbaTeams || []).map((team) => {
-      const teamNumber = team.team_number;
+    const rows = teamNumbers.map((teamNumber) => {
       const teamKey = `frc${teamNumber}`;
       const oprRaw = oprMap[teamKey];
       const opr = Number.isFinite(oprRaw) ? Number(oprRaw) : null;

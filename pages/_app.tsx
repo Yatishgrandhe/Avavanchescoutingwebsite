@@ -6,6 +6,7 @@ import Head from 'next/head';
 import { Toaster } from '@/components/ui/toaster';
 import { handleRefreshResize } from '@/lib/refresh-handler';
 import { getSupabaseClient } from '@/lib/supabase';
+import { preloadDailyScoutingCaches } from '@/lib/daily-scouting-preload';
 
 import '@/styles/globals.css';
 
@@ -143,6 +144,12 @@ export default function App({ Component, pageProps }: AppProps) {
       }
     };
   }, [supabase]);
+
+  useEffect(() => {
+    if (!loading && user?.organization_id) {
+      void preloadDailyScoutingCaches(supabase, user);
+    }
+  }, [loading, user, supabase]);
 
   return (
     <>

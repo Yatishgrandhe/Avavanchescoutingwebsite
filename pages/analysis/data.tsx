@@ -417,9 +417,34 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         )
       );
 
-      const teamNumbersForEvent = Array.from(
+      let teamNumbersForEvent = Array.from(
         new Set<number>([...rosterTeamNumbers, ...scoutingTeamNumbers])
       ).sort((a, b) => a - b);
+
+      if (teamNumbersForEvent.length === 0) {
+        let matchesQuery = supabase
+          .from('matches')
+          .select('red_teams, blue_teams')
+          .eq('event_key', targetEventKey);
+        if (teamDataOnly && user?.organization_id) {
+          matchesQuery = matchesQuery.eq('organization_id', user.organization_id);
+        }
+        const { data: matchesRows } = await matchesQuery;
+        const scheduleTeamNumbers = Array.from(
+          new Set<number>(
+            (matchesRows || [])
+              .flatMap((row: { red_teams?: number[]; blue_teams?: number[] }) => [
+                ...(Array.isArray(row.red_teams) ? row.red_teams : []),
+                ...(Array.isArray(row.blue_teams) ? row.blue_teams : []),
+              ])
+              .map((n: number) => Number(n))
+              .filter((n: number): n is number => Number.isFinite(n) && n > 0)
+          )
+        ).sort((a, b) => a - b);
+        if (scheduleTeamNumbers.length > 0) {
+          teamNumbersForEvent = scheduleTeamNumbers;
+        }
+      }
 
       if (teamNumbersForEvent.length === 0) {
         if (requestId !== loadRequestIdRef.current) return;

@@ -15,10 +15,18 @@ import { cn } from '@/lib/utils';
 interface SpeedTestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onPass: () => void;
+  onPass: (token: string, measuredMbps: number) => void;
+  minSpeedMbps?: number;
+  formType?: 'match-scouting' | 'pit-scouting' | 'sync';
 }
 
-export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestModalProps) {
+export default function SpeedTestModal({
+  isOpen,
+  onClose,
+  onPass,
+  minSpeedMbps = 5,
+  formType = 'sync',
+}: SpeedTestModalProps) {
   const [status, setStatus] = useState<'idle' | 'testing' | 'success' | 'fail'>('idle');
   const [speed, setSpeed] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +34,7 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
   const testingRef = useRef(false);
   const wasOpenRef = useRef(false);
 
-  const MIN_SPEED_MBPS = 5;
+  const MIN_SPEED_MBPS = minSpeedMbps;
 
   /** Every time the user opens the upload guard, run a fresh speed test (do not reuse last success). */
   useEffect(() => {
@@ -139,7 +147,7 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
       abortControllerRef.current = null;
       testingRef.current = false;
     }
-  }, [status]); // Status in deps to allow re-runs
+  }, [status, MIN_SPEED_MBPS]); // Status in deps to allow re-runs
 
 
 
@@ -265,7 +273,7 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
                   <p className="text-sm font-semibold text-emerald-500/80 uppercase tracking-widest">Great Connection</p>
                 </div>
                 <p className="max-w-[280px] text-xs text-muted-foreground leading-relaxed">
-                  Your upload connection is stable and exceeds the 5 Mbps requirement. Reliable sync is ready.
+                  Your upload connection is stable and exceeds the required threshold. Reliable sync is ready.
                 </p>
               </motion.div>
             )}
@@ -285,7 +293,7 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
                   <p className="text-sm font-semibold text-rose-500 uppercase tracking-widest">Insufficient Speed</p>
                 </div>
                 <p className="max-w-[280px] text-xs text-muted-foreground leading-relaxed">
-                  {error ? error : `Connection speed is below the required 5 Mbps. Direct upload is disabled to prevent data corruption.`}
+                  {error ? error : `Connection speed is below the required ${MIN_SPEED_MBPS} Mbps. Submission is disabled.`}
                 </p>
               </motion.div>
             )}
@@ -306,7 +314,26 @@ export default function SpeedTestModal({ isOpen, onClose, onPass }: SpeedTestMod
 
           {status === 'success' && (
             <Button
-              onClick={onPass}
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/speedtest/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ formType, uploadMbps: speed }),
+                  });
+                  if (!response.ok) {
+                    const body = await response.json().catch(() => ({}));
+                    setError(body?.error || 'Failed to validate speed test.');
+                    setStatus('fail');
+                    return;
+                  }
+                  const body = await response.json();
+                  onPass(body.token, Number(body.measuredMbps || speed));
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : 'Failed to validate speed test.');
+                  setStatus('fail');
+                }
+              }}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 rounded-xl transition-all shadow-lg shadow-emerald-500/20 hover:scale-[1.02]"
             >
               <CloudUpload className="w-5 h-5 mr-4" />

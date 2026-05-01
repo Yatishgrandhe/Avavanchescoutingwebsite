@@ -390,6 +390,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           scoutQuery = scoutQuery.eq('organization_id', matchOrgFilter);
         }
         const { data: scoutingData } = await scoutQuery;
+        const scoutingRows = (scoutingData || []) as Array<Record<string, any>>;
+        const allianceCountMap = new Map<string, Set<number>>();
+        for (const row of scoutingRows) {
+          const matchId = String(row.match_id || '');
+          const alliance = String(row.alliance_color || '').toLowerCase();
+          if (!matchId || !alliance) continue;
+          const key = `${matchId}::${alliance}`;
+          if (!allianceCountMap.has(key)) allianceCountMap.set(key, new Set<number>());
+          const pos = Number(row.alliance_position);
+          if (Number.isFinite(pos) && pos >= 1 && pos <= 3) {
+            allianceCountMap.get(key)!.add(pos);
+          }
+        }
+        const scoutingDataWithDerived = scoutingRows.map((row) => {
+          const matchId = String(row.match_id || '');
+          const alliance = String(row.alliance_color || '').toLowerCase();
+          const key = `${matchId}::${alliance}`;
+          const scoutedCount = allianceCountMap.get(key)?.size ?? 0;
+          const allianceFinalized = scoutedCount >= 3;
+          const teamNumber = Number(row.team_number);
+          const tbaMetrics = metricByTeam.get(teamNumber);
+          const statboticsExpectedScoreRounded =
+            tbaMetrics?.tba_epa != null && Number.isFinite(Number(tbaMetrics.tba_epa))
+              ? Math.round(Number(tbaMetrics.tba_epa))
+              : null;
+          const scoutedScoreRounded =
+            Number.isFinite(Number(row.final_score)) ? Math.round(Number(row.final_score)) : null;
+          const scoreDelta =
+            scoutedScoreRounded != null && statboticsExpectedScoreRounded != null
+              ? scoutedScoreRounded - statboticsExpectedScoreRounded
+              : null;
+
+          return {
+            ...row,
+            scouted_score_rounded: scoutedScoreRounded,
+            statbotics_expected_score_rounded: statboticsExpectedScoreRounded,
+            score_delta: scoreDelta,
+            alliance_scouted_count: scoutedCount,
+            alliance_finalized: allianceFinalized,
+          };
+        });
 
         const competition = {
           id: eventKeyStr,
@@ -439,7 +480,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             red_teams: m.red_teams || [],
             blue_teams: m.blue_teams || [],
           })),
-          scoutingData: scoutingData || [],
+          scoutingData: scoutingDataWithDerived,
           pitScoutingData: normalizedPitScoutingData,
           pickLists: [],
         });
@@ -601,6 +642,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .from('past_scouting_data')
           .select('*')
           .in('competition_id', compIds);
+        const scoutingRows = (scoutingData || []) as Array<Record<string, any>>;
+        const allianceCountMap = new Map<string, Set<number>>();
+        for (const row of scoutingRows) {
+          const matchId = String(row.match_id || '');
+          const alliance = String(row.alliance_color || '').toLowerCase();
+          if (!matchId || !alliance) continue;
+          const key = `${matchId}::${alliance}`;
+          if (!allianceCountMap.has(key)) allianceCountMap.set(key, new Set<number>());
+          const pos = Number(row.alliance_position);
+          if (Number.isFinite(pos) && pos >= 1 && pos <= 3) allianceCountMap.get(key)!.add(pos);
+        }
+        const scoutingDataWithDerived = scoutingRows.map((row) => {
+          const matchId = String(row.match_id || '');
+          const alliance = String(row.alliance_color || '').toLowerCase();
+          const key = `${matchId}::${alliance}`;
+          const scoutedCount = allianceCountMap.get(key)?.size ?? 0;
+          const allianceFinalized = scoutedCount >= 3;
+          const scoutedScoreRounded = Number.isFinite(Number(row.final_score)) ? Math.round(Number(row.final_score)) : null;
+          return {
+            ...row,
+            scouted_score_rounded: scoutedScoreRounded,
+            statbotics_expected_score_rounded: null,
+            score_delta: null,
+            alliance_scouted_count: scoutedCount,
+            alliance_finalized: allianceFinalized,
+          };
+        });
 
         if (scoutingError) {
           console.error('past_scouting_data:', scoutingError);
@@ -633,7 +701,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           },
           teams: updatedTeams,
           matches: matchesList,
-          scoutingData: scoutingData || [],
+          scoutingData: scoutingDataWithDerived,
           pitScoutingData,
           pickLists,
         });

@@ -3,6 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/supabase';
 import { calculateScore } from '@/lib/utils';
 import { mergeShuttlingIntoStoredNotes, normalizeShuttleConsistency } from '@/lib/scouting-notes-merge';
+import {
+  requiredUploadMbpsForForm,
+  verifySpeedVerificationToken,
+} from '@/lib/speed-verification';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -56,6 +60,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === 'POST') {
       try {
+        const speedToken = (req.headers['x-speed-verified-token'] as string | undefined) || '';
+        const speedPayload = verifySpeedVerificationToken(speedToken);
+        const minUploadMbps = requiredUploadMbpsForForm('match-scouting');
+        const validFormType = speedPayload?.formType === 'match-scouting' || speedPayload?.formType === 'sync';
+        if (!speedPayload || !validFormType || speedPayload.uploadMbps < minUploadMbps) {
+          res.status(400).json({
+            error: 'Match scouting submit requires completed speed test above 2 Mbps.',
+          });
+          return;
+        }
+
         // Reject if match scouting is locked for this organization (admin-only setting)
         let matchLocked = false;
         if (userOrgId) {
@@ -259,6 +274,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           autonomous_points: finalAutonomousPoints,
           teleop_points: finalTeleopPoints,
           final_score: finalScore,
+          scouted_score_rounded: Number.isFinite(Number(finalScore)) ? Math.round(Number(finalScore)) : null,
           autonomous_cleansing: 0,
           teleop_cleansing: 0,
           notes: finalNotes,

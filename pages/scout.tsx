@@ -27,11 +27,13 @@ import AutonomousForm from '@/components/scout/AutonomousForm';
 import TeleopForm from '@/components/scout/TeleopForm';
 import MiscellaneousForm from '@/components/scout/MiscellaneousForm';
 import Layout from '@/components/layout/Layout';
+import SpeedTestModal from '@/components/layout/SpeedTestModal';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAdmin } from '@/hooks/use-admin';
 import { useScoutingLocks } from '@/hooks/use-scouting-locks';
 import { ScoringNotes } from '@/lib/types';
 import { calculateScore, cn, formatDurationSec } from '@/lib/utils';
+import { preloadDailyScoutingCaches } from '@/lib/daily-scouting-preload';
 
 type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'miscellaneous' | 'review';
 
@@ -72,6 +74,7 @@ export default function Scout() {
   const loading = userLoading || adminLoading;
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSpeedTest, setShowSpeedTest] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     scoutName: '',
     matchData: {
@@ -127,9 +130,10 @@ export default function Scout() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (speedToken: string) => {
     if (isSubmitting) return;
 
+    setShowSpeedTest(false);
     setIsSubmitting(true);
     try {
       const autonomousPoints = calculateScore(formData.autonomous).final_score;
@@ -202,6 +206,7 @@ export default function Scout() {
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${session.access_token}`,
+              'x-speed-verified-token': speedToken,
             },
             body: JSON.stringify(scoutingData),
           });
@@ -230,6 +235,7 @@ export default function Scout() {
 
         if (response.ok) {
           toast.success('Form submitted successfully.');
+          await preloadDailyScoutingCaches(supabase, user);
           resetForm();
           return;
         }
@@ -248,6 +254,7 @@ export default function Scout() {
         });
         window.dispatchEvent(new Event('offline-queue-updated'));
         toast.success('Saved locally due to connection issue. Use Submit Pending to upload.');
+        await preloadDailyScoutingCaches(supabase, user);
         resetForm();
       } catch {
         throw new Error('Failed to save form locally. Your browser might not support local storage or it is full.');
@@ -661,7 +668,7 @@ export default function Scout() {
                           Back
                         </Button>
                         <Button
-                          onClick={handleSubmit}
+                          onClick={() => setShowSpeedTest(true)}
                           disabled={isSubmitting}
                           className="flex-[2] h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/25"
                         >
@@ -684,6 +691,15 @@ export default function Scout() {
             </div>
           </div>
         </div>
+        <SpeedTestModal
+          isOpen={showSpeedTest}
+          onClose={() => setShowSpeedTest(false)}
+          minSpeedMbps={2.0000001}
+          formType="match-scouting"
+          onPass={(token) => {
+            void handleSubmit(token);
+          }}
+        />
       </Layout>
     </ProtectedRoute>
   );

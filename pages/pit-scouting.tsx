@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { addToOfflineQueue } from '@/lib/offline-queue';
 import Layout from '@/components/layout/Layout';
+import SpeedTestModal from '@/components/layout/SpeedTestModal';
 import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui';
 import {
   Wrench,
@@ -30,6 +31,7 @@ import { compressImageForUpload } from '@/lib/image-upload';
 import { useAdmin } from '@/hooks/use-admin';
 import { useScoutingLocks } from '@/hooks/use-scouting-locks';
 import { cn } from '@/lib/utils';
+import { preloadDailyScoutingCaches } from '@/lib/daily-scouting-preload';
 import { Badge } from '@/components/ui/badge';
 import PitPhotosUpload, { PhotoItem } from '@/components/ui/PitPhotosUpload';
 import AutoPathAnnotator, { AutoPath, AutoPathAnnotatorRef } from '@/components/ui/AutoPathAnnotator';
@@ -124,6 +126,7 @@ export default function PitScouting() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const [scoutNames, setScoutNames] = useState<string[]>([]);
+  const [showSpeedTest, setShowSpeedTest] = useState(false);
   const annotatorRef = React.useRef<AutoPathAnnotatorRef>(null);
   /** Stored blob when leaving step 2 so we can upload it on submit (annotator unmounted on step 3) */
   const exportedAnnotatedBlobRef = useRef<Blob | null>(null);
@@ -222,6 +225,27 @@ export default function PitScouting() {
       setTeamsError(null);
 
       try {
+        if (user?.organization_id) {
+          const dayKey = window.localStorage.getItem('avalanche:preload:dayKey');
+          const eventKey = dayKey?.split('::')?.[2];
+          if (eventKey) {
+            const teamsRaw = window.localStorage.getItem(`avalanche:preload:pitTeams:${user.organization_id}:${eventKey}`);
+            const namesRaw = window.localStorage.getItem(`avalanche:preload:scoutNames:${user.organization_id}`);
+            if (teamsRaw) {
+              const parsedTeams = JSON.parse(teamsRaw);
+              if (Array.isArray(parsedTeams) && parsedTeams.length > 0) {
+                setTeams(parsedTeams);
+              }
+            }
+            if (namesRaw) {
+              const parsedNames = JSON.parse(namesRaw);
+              if (Array.isArray(parsedNames) && parsedNames.length > 0) {
+                setScoutNames(parsedNames);
+              }
+            }
+          }
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) {
           setTeams([]);
@@ -264,7 +288,7 @@ export default function PitScouting() {
     };
 
     loadTeams();
-  }, [supabase.auth]);
+  }, [supabase.auth, user?.organization_id]);
 
   // Normalize value from DB to array (handles string or array)
   const toArray = (v: unknown): string[] => {
@@ -386,8 +410,9 @@ export default function PitScouting() {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (speedToken: string) => {
     try {
+      setShowSpeedTest(false);
       setSubmitting(true);
       setSubmitError(null);
       setSubmitSuccess(false);
@@ -498,6 +523,7 @@ export default function PitScouting() {
         photosToUpload,
         annotatedImageToUpload,
         editingId: isEditMode ? editingId : null,
+        speedToken,
       }, {
         competitionKey,
         organizationId: user?.organization_id || '',
@@ -507,6 +533,7 @@ export default function PitScouting() {
       // Dispatch event to update SyncButton
       window.dispatchEvent(new Event('offline-queue-updated'));
       toast.success('Saved locally! Click "Submit Pending" in the menu to upload.');
+      await preloadDailyScoutingCaches(supabase, user);
 
       try {
         sessionStorage.removeItem('pitScoutingDraft');
@@ -1327,7 +1354,7 @@ export default function PitScouting() {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  handleSubmit();
+                  setShowSpeedTest(true);
                 }}
                 className={cn("min-w-[140px] touch-manipulation", submitting ? "opacity-80" : "hover:scale-105 active:scale-95 transition-transform bg-primary hover:bg-primary/90 text-white")}
                 aria-busy={submitting}
@@ -1343,6 +1370,15 @@ export default function PitScouting() {
           </div>
         </div>
       </div>
+      <SpeedTestModal
+        isOpen={showSpeedTest}
+        onClose={() => setShowSpeedTest(false)}
+        minSpeedMbps={5}
+        formType="pit-scouting"
+        onPass={(token) => {
+          void handleSubmit(token);
+        }}
+      />
     </Layout>
   );
 }

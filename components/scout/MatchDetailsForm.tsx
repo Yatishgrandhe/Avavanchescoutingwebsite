@@ -48,7 +48,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   fetchSubmittedMatchIdsForName,
   initialData,
 }) => {
-  const { supabase } = useSupabase();
+  const { supabase, user } = useSupabase();
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(initialData?.matchData || null);
   const [selectedTeam, setSelectedTeam] = useState<number | null>(initialData?.teamNumber || null);
@@ -69,6 +69,13 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
   useEffect(() => {
     const fetchScoutNames = async () => {
       try {
+        if (user?.organization_id) {
+          const cachedScoutNames = window.localStorage.getItem(`avalanche:preload:scoutNames:${user.organization_id}`);
+          if (cachedScoutNames) {
+            const parsed = JSON.parse(cachedScoutNames);
+            if (Array.isArray(parsed) && parsed.length > 0) setScoutNames(parsed);
+          }
+        }
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) return;
 
@@ -86,7 +93,7 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
       }
     };
     fetchScoutNames();
-  }, [supabase.auth]);
+  }, [supabase.auth, user?.organization_id]);
 
   // Sync initialData with state when it changes
   useEffect(() => {
@@ -119,6 +126,22 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
     setApiMessage('');
 
     try {
+      if (user?.organization_id) {
+        const dayKey = window.localStorage.getItem('avalanche:preload:dayKey');
+        const eventKey = dayKey?.split('::')?.[2];
+        if (eventKey) {
+          const localKey = `avalanche:preload:matchSchedule:${user.organization_id}:${eventKey}`;
+          const localRaw = window.localStorage.getItem(localKey);
+          if (localRaw) {
+            const localMatches = JSON.parse(localRaw) as Match[];
+            if (Array.isArray(localMatches) && localMatches.length > 0) {
+              setMatches(localMatches);
+              setLoading(false);
+            }
+          }
+        }
+      }
+
       const cacheKey = 'match-details:matches';
       const cached = getCachedValue<{ matches: Match[]; message?: string }>(cacheKey);
       if (cached) {

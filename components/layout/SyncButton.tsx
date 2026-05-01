@@ -10,8 +10,10 @@ import SpeedTestModal from './SpeedTestModal';
 export default function SyncButton() {
   const [queueCount, setQueueCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
-  const { session, supabase } = useSupabase();
+  const { session } = useSupabase();
   const [showSpeedTest, setShowSpeedTest] = useState(false);
+  const [requiredSpeedMbps, setRequiredSpeedMbps] = useState(5);
+  const [speedFormType, setSpeedFormType] = useState<'match-scouting' | 'pit-scouting' | 'sync'>('sync');
 
   const checkQueue = async () => {
     const queue = await getOfflineQueue();
@@ -51,7 +53,7 @@ export default function SyncButton() {
   };
 
 
-  const performActualSync = async () => {
+  const performActualSync = async (speedToken: string) => {
     setShowSpeedTest(false);
     if (isSyncing || queueCount === 0 || !session?.access_token) return;
 
@@ -72,7 +74,8 @@ export default function SyncButton() {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${session.access_token}`
+                  'Authorization': `Bearer ${session.access_token}`,
+                  'x-speed-verified-token': speedToken,
                 },
                 body: JSON.stringify(item.data),
               });
@@ -149,26 +152,24 @@ export default function SyncButton() {
               annotated_image_url: finalAnnotatedUrl
             };
             
-            let error;
-            if (editingId) {
-              const { submitted_by, submitted_by_email, submitted_by_name, submitted_at, ...updateFields } = payload;
-              const { error: err } = await supabase
-                .from('pit_scouting_data')
-                .update(updateFields)
-                .eq('id', editingId);
-              error = err;
-            } else {
-              const { error: err } = await supabase
-                .from('pit_scouting_data')
-                .insert([payload]);
-              error = err;
-            }
-
-            if (!error) {
+            const response = await fetch('/api/pit-scouting-data', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+                'x-speed-verified-token': speedToken,
+              },
+              body: JSON.stringify({
+                submissionData: payload,
+                editingId: editingId || null,
+              }),
+            });
+            if (response.ok) {
               await removeFromOfflineQueue(item.id);
               successCount++;
             } else {
-              console.error('Pit scouting sync failed', error);
+              const body = await response.json().catch(() => ({} as { error?: string }));
+              console.error('Pit scouting sync failed', body?.error || response.statusText);
               failCount++;
             }
           }
@@ -199,7 +200,12 @@ export default function SyncButton() {
 
   const handleSyncClick = () => {
     if (isSyncing || queueCount === 0 || !session?.access_token) return;
-    void performActualSync();
+    void getOfflineQueue().then((queue) => {
+      const containsPit = queue.some((item) => item.type === 'pit-scouting');
+      setRequiredSpeedMbps(containsPit ? 5 : 2.0000001);
+      setSpeedFormType('sync');
+      setShowSpeedTest(true);
+    });
   };
 
   return (
@@ -236,7 +242,11 @@ export default function SyncButton() {
       <SpeedTestModal 
         isOpen={showSpeedTest}
         onClose={() => setShowSpeedTest(false)}
-        onPass={performActualSync}
+        onPass={(token) => {
+          void performActualSync(token);
+        }}
+        minSpeedMbps={requiredSpeedMbps}
+        formType={speedFormType}
       />
     </>
   );

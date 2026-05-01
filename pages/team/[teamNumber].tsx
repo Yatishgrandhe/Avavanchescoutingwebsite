@@ -444,6 +444,7 @@ const TeamDetail: React.FC = () => {
     const worstScore = scores.length > 0 ? Math.min(...scores) : 0;
     const tbaAutoEpa = Number((team as any)?.tba_auto_epa);
     const tbaTeleopEpa = Number((team as any)?.tba_teleop_epa);
+    const teamConsistency = Number((team as any)?.consistency);
     const hasTbaAutoEpa = Number.isFinite(tbaAutoEpa);
     const hasTbaTeleopEpa = Number.isFinite(tbaTeleopEpa);
 
@@ -459,7 +460,9 @@ const TeamDetail: React.FC = () => {
       avgDefense: Math.round(avgDefense),
       bestScore,
       worstScore,
-      consistencyScore: totalMatches > 0 ? Math.round(consistencyScore) : 0,
+      consistencyScore: totalMatches > 0
+        ? Math.round(consistencyScore)
+        : (Number.isFinite(teamConsistency) ? Math.round(teamConsistency) : 0),
       // REBUILT + EPA
       avg_auto_fuel: rebuilt.avg_auto_fuel,
       avg_teleop_fuel: rebuilt.avg_teleop_fuel,

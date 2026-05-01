@@ -65,6 +65,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.warn('team api: current_event_key lookup failed', eventCfgError);
       }
 
+      // Public pages may not have org context; fallback to the latest event this team appears in.
+      if (!currentEventKey) {
+        try {
+          const { data: teamMatchRows } = await supabase
+            .from('matches')
+            .select('event_key, match_number, red_teams, blue_teams')
+            .order('created_at', { ascending: false })
+            .limit(400);
+
+          const appearsInAlliance = (alliance: unknown): boolean => {
+            if (!Array.isArray(alliance)) return false;
+            return alliance.some((entry) => Number(entry) === teamNum);
+          };
+
+          const matchWithTeam = (teamMatchRows || []).find((row: any) =>
+            appearsInAlliance(row?.red_teams) || appearsInAlliance(row?.blue_teams)
+          );
+          const fallbackEventKey = matchWithTeam?.event_key ? String(matchWithTeam.event_key).trim() : '';
+          if (fallbackEventKey) {
+            currentEventKey = fallbackEventKey;
+          }
+        } catch (fallbackEventError) {
+          console.warn('team api: fallback event key lookup failed', fallbackEventError);
+        }
+      }
+
       let eventMetricsRow: { teamNumber: number; opr: number | null; autoEpa: number | null; teleopEpa: number | null; totalEpa: number | null } | null = null;
       if (currentEventKey && req.headers.host) {
         try {
@@ -108,6 +134,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         normalized_opr: team?.normalized_opr ?? eventMetricsRow?.opr ?? null,
         tba_auto_epa: eventMetricsRow?.autoEpa ?? null,
         tba_teleop_epa: eventMetricsRow?.teleopEpa ?? null,
+        consistency: team?.consistency ?? null,
       };
 
       const totalMatches = scoutingData?.length || 0;

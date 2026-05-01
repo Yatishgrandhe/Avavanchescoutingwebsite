@@ -1,6 +1,18 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/lib/supabase';
 
+function parseAllianceTeamNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return Number(value);
+  const raw = String(value ?? '').trim().toLowerCase();
+  if (!raw) return null;
+  const direct = Number(raw);
+  if (Number.isFinite(direct)) return direct;
+  const match = raw.match(/(\d+)/);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
     try {
@@ -72,11 +84,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .from('matches')
             .select('event_key, match_number, red_teams, blue_teams')
             .order('created_at', { ascending: false })
-            .limit(400);
+            .limit(1000);
 
           const appearsInAlliance = (alliance: unknown): boolean => {
             if (!Array.isArray(alliance)) return false;
-            return alliance.some((entry) => Number(entry) === teamNum);
+            return alliance.some((entry) => parseAllianceTeamNumber(entry) === teamNum);
           };
 
           const matchWithTeam = (teamMatchRows || []).find((row: any) =>
@@ -88,6 +100,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         } catch (fallbackEventError) {
           console.warn('team api: fallback event key lookup failed', fallbackEventError);
+        }
+      }
+
+      // Secondary fallback via event roster in case match arrays are stale/differently formatted.
+      if (!currentEventKey) {
+        try {
+          const { data: rosterRows } = await supabase
+            .from('event_team_roster')
+            .select('event_key')
+            .eq('team_number', teamNum)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          const rosterEventKey = rosterRows?.[0]?.event_key ? String(rosterRows[0].event_key).trim() : '';
+          if (rosterEventKey) {
+            currentEventKey = rosterEventKey;
+          }
+        } catch (rosterFallbackError) {
+          console.warn('team api: roster fallback event key lookup failed', rosterFallbackError);
         }
       }
 

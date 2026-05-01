@@ -291,9 +291,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         console.log('Scouting data to insert:', scoutingData);
 
-        // Use upsert to handle duplicate submissions (unique constraint on scout_id, match_id, team_number, alliance_color)
-        // This allows updating existing submissions instead of failing
-        const { data: result, error: insertError } = await supabase
+        // Preferred path uses upsert. Some environments may miss the ON CONFLICT backing unique constraint;
+        // fallback to plain insert in that case so sync/submission does not 500.
+        let result: unknown = null;
+        let insertError: { code?: string; message?: string } | null = null;
+        const upsertAttempt = await supabase
           .from('scouting_data')
           .upsert(scoutingData, {
             onConflict: 'scout_id,match_id,team_number,alliance_color',
@@ -301,6 +303,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           })
           .select()
           .single();
+        result = upsertAttempt.data;
+        insertError = upsertAttempt.error as { code?: string; message?: string } | null;
+
+        const missingConflictConstraint =
+          insertError &&
+          (insertError.code === '42P10' ||
+            /no unique or exclusion constraint matching the on conflict specification/i.test(String(insertError.message)));
+
+        if (missingConflictConstraint) {
+          const insertAttempt = await supabase
+            .from('scouting_data')
+            .insert([scoutingData])
+            .select()
+            .single();
+          result = insertAttempt.data;
+          insertError = insertAttempt.error as { code?: string; message?: string } | null;
+        }
 
         if (insertError) {
           console.error('Database upsert error:', insertError);

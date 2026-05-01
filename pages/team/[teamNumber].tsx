@@ -1404,6 +1404,12 @@ const TeamDetail: React.FC = () => {
                             <div className="text-[10px] text-primary font-semibold uppercase tracking-widest">
                               Scouted Match Score
                             </div>
+                            <div className="mt-1 text-[10px] text-muted-foreground">
+                              Statbotics {data.statbotics_expected_score_rounded ?? '—'} (A {data.statbotics_auto_score_rounded ?? '—'} · T {data.statbotics_teleop_score_rounded ?? '—'})
+                            </div>
+                            <div className={cn('text-[9px] font-semibold uppercase tracking-widest mt-1', data.alliance_finalized ? 'text-green-400' : 'text-amber-400')}>
+                              {data.alliance_finalized ? 'Finalized (3/3 alliance forms)' : 'Provisional until 3/3 alliance forms'}
+                            </div>
                           </div>
                         </div>
 
@@ -1505,6 +1511,9 @@ const TeamDetail: React.FC = () => {
                                         Δ {data.score_delta}
                                       </span>
                                     )}
+                                  </p>
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    Auto {data.statbotics_auto_score_rounded ?? '—'} · Teleop {data.statbotics_teleop_score_rounded ?? '—'}
                                   </p>
                                   {!data.alliance_finalized && (
                                     <p className="mt-1 text-xs text-muted-foreground">

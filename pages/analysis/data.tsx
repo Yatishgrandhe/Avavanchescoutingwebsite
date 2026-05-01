@@ -1693,6 +1693,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                             </span>
                                           )}
                                         </div>
+                                        <div className="mt-1 text-[10px] text-muted-foreground">
+                                          Auto {data.statbotics_auto_score_rounded ?? '—'} · Teleop {data.statbotics_teleop_score_rounded ?? '—'}
+                                        </div>
                                         {!data.alliance_finalized && (
                                           <p className="mt-1 text-[10px] text-muted-foreground">
                                             Finalized only after all 3 teams on this alliance in this match are scouted.
@@ -1882,6 +1885,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                                     Δ {data.score_delta}
                                                   </span>
                                                 )}
+                                              </div>
+                                              <div className="mt-1 text-xs text-muted-foreground">
+                                                Auto {data.statbotics_auto_score_rounded ?? '—'} · Teleop {data.statbotics_teleop_score_rounded ?? '—'}
                                               </div>
                                               {!data.alliance_finalized && (
                                                 <p className="mt-1 text-xs text-muted-foreground">

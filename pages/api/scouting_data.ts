@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/supabase';
 import { calculateScore } from '@/lib/utils';
-import { parseStatboticsTeamEventRow } from '@/lib/statbotics-team-events';
+import { getBallChoiceScoreFromRange } from '@/lib/types';
 import { mergeShuttlingIntoStoredNotes, normalizeShuttleConsistency } from '@/lib/scouting-notes-merge';
 import {
   requiredUploadMbpsForForm,
@@ -12,45 +12,97 @@ import {
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-function parseTeamNumber(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  const raw = String(value ?? '').trim().toLowerCase();
-  if (!raw) return null;
-  const direct = Number(raw);
-  if (Number.isFinite(direct)) return direct;
-  const match = raw.match(/(\d+)/);
-  if (!match) return null;
-  const parsed = Number(match[1]);
-  return Number.isFinite(parsed) ? parsed : null;
+type ScoringRun = { duration_sec: number; ball_choice: number };
+type MatchPhaseScores = { autoPoints: number; teleopPoints: number } | null;
+
+function parseRunsForPhase(notes: unknown, phase: 'autonomous' | 'teleop'): ScoringRun[] {
+  const parsed = typeof notes === 'string' ? JSON.parse(notes || '{}') : (notes || {});
+  if (!parsed || typeof parsed !== 'object') return [];
+  const block = (parsed as Record<string, unknown>)[phase];
+  if (!block || typeof block !== 'object') return [];
+  const runs = (block as Record<string, unknown>).runs;
+  if (!Array.isArray(runs)) return [];
+  return runs
+    .map((run) => {
+      const item = run as Record<string, unknown>;
+      const durationSec = Number(item.duration_sec);
+      const ballChoice = Number(item.ball_choice);
+      return {
+        duration_sec: Number.isFinite(durationSec) && durationSec > 0 ? durationSec : 0,
+        ball_choice: Number.isFinite(ballChoice) ? ballChoice : 0,
+      };
+    })
+    .filter((run) => run.duration_sec > 0);
 }
 
-async function fetchStatboticsExpectedScoresByTeam(eventKey: string): Promise<Map<number, number>> {
-  const expectedByTeam = new Map<number, number>();
-  if (!eventKey) return expectedByTeam;
+function getPhaseWeightFromNotes(notes: unknown, phase: 'autonomous' | 'teleop'): number {
+  const runs = parseRunsForPhase(notes, phase);
+  if (runs.length === 0) return 0;
+  const cycleCount = runs.length;
+  const totalSeconds = runs.reduce((sum, run) => sum + run.duration_sec, 0);
+  const scoredBalls = runs.reduce((sum, run) => sum + getBallChoiceScoreFromRange(run.ball_choice), 0);
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return 0;
+  // Weight uses cycle throughput and cycle quality from range selections.
+  return (cycleCount / totalSeconds) * Math.max(1, scoredBalls);
+}
 
+function allocateRoundedShares(totalPoints: number, weights: number[]): number[] {
+  const total = Math.max(0, Math.round(Number(totalPoints) || 0));
+  if (weights.length === 0) return [];
+  const positiveWeights = weights.map((w) => (Number.isFinite(w) && w > 0 ? w : 0));
+  const weightSum = positiveWeights.reduce((sum, w) => sum + w, 0);
+  const normalizedWeights =
+    weightSum > 0 ? positiveWeights : positiveWeights.map(() => 1);
+  const normalizedSum = normalizedWeights.reduce((sum, w) => sum + w, 0);
+  const rawShares = normalizedWeights.map((w) => (normalizedSum > 0 ? (total * w) / normalizedSum : 0));
+  const floors = rawShares.map((value) => Math.floor(value));
+  let remainder = total - floors.reduce((sum, value) => sum + value, 0);
+  const order = rawShares
+    .map((value, idx) => ({ idx, frac: value - Math.floor(value) }))
+    .sort((a, b) => b.frac - a.frac);
+  for (let i = 0; i < order.length && remainder > 0; i += 1) {
+    floors[order[i].idx] += 1;
+    remainder -= 1;
+  }
+  return floors;
+}
+
+async function fetchStatboticsMatchPhaseScores(matchId: string, allianceColor: string): Promise<MatchPhaseScores> {
+  const key = String(matchId || '').trim().toLowerCase();
+  const alliance = String(allianceColor || '').trim().toLowerCase();
+  if (!key || (alliance !== 'red' && alliance !== 'blue')) return null;
   try {
     const response = await fetch(
-      `https://api.statbotics.io/v3/team_events?event=${encodeURIComponent(eventKey)}`,
+      `https://api.statbotics.io/v3/match/${encodeURIComponent(key)}`,
       {
         method: 'GET',
         headers: { Accept: 'application/json' },
       }
     );
-    if (!response.ok) return expectedByTeam;
+    if (!response.ok) return null;
     const payload: unknown = await response.json();
-    if (!Array.isArray(payload)) return expectedByTeam;
-
-    for (const row of payload) {
-      const parsed = parseStatboticsTeamEventRow(row);
-      const teamNumber = parseTeamNumber(parsed.team);
-      if (teamNumber == null || parsed.totalEPA == null) continue;
-      expectedByTeam.set(teamNumber, Math.round(parsed.totalEPA));
-    }
+    const result = payload && typeof payload === 'object'
+      ? (payload as Record<string, unknown>).result
+      : null;
+    if (!result || typeof result !== 'object') return null;
+    const resultObj = result as Record<string, unknown>;
+    const autoKey = `${alliance}_auto_points`;
+    const teleopKey = `${alliance}_teleop_points`;
+    const autoPoints = Number(resultObj[autoKey]);
+    const teleopPoints = Number(resultObj[teleopKey]);
+    if (!Number.isFinite(autoPoints) || !Number.isFinite(teleopPoints)) return null;
+    return {
+      autoPoints: Math.round(autoPoints),
+      teleopPoints: Math.round(teleopPoints),
+    };
   } catch (error) {
-    console.warn('scouting_data: failed fetching statbotics expected scores', { eventKey, error });
+    console.warn('scouting_data: failed fetching statbotics match phase scores', {
+      matchId: key,
+      allianceColor: alliance,
+      error,
+    });
   }
-
-  return expectedByTeam;
+  return null;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
@@ -391,7 +443,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const { data: allianceRows, error: allianceRowsError } = await supabase
           .from('scouting_data')
-          .select('id, team_number, alliance_position, final_score')
+          .select('id, team_number, alliance_position, final_score, notes')
           .eq('organization_id', userOrgId)
           .eq('match_id', finalMatchId)
           .eq('alliance_color', finalAllianceColor);
@@ -409,20 +461,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const allianceScoutedCount = Math.max(uniqueAllianceSlots.size, uniqueAllianceTeams.size);
           const allianceFinalized = allianceScoutedCount >= 3;
 
-          let expectedByTeam = new Map<number, number>();
-          const eventKey = String(matchScheduleRow?.event_key || '').trim().toLowerCase();
-          if (allianceFinalized && eventKey) {
-            expectedByTeam = await fetchStatboticsExpectedScoresByTeam(eventKey);
+          let autoSharesById = new Map<string, number>();
+          let teleopSharesById = new Map<string, number>();
+          if (allianceFinalized) {
+            const phaseScores = await fetchStatboticsMatchPhaseScores(finalMatchId, finalAllianceColor);
+            if (phaseScores) {
+              const rowsForAllocation = allianceRows as Array<{ id: string; notes?: unknown }>;
+              const autoWeights = rowsForAllocation.map((row) => getPhaseWeightFromNotes(row.notes, 'autonomous'));
+              const teleopWeights = rowsForAllocation.map((row) => getPhaseWeightFromNotes(row.notes, 'teleop'));
+              const autoShares = allocateRoundedShares(phaseScores.autoPoints, autoWeights);
+              const teleopShares = allocateRoundedShares(phaseScores.teleopPoints, teleopWeights);
+              rowsForAllocation.forEach((row, idx) => {
+                autoSharesById.set(row.id, autoShares[idx] ?? 0);
+                teleopSharesById.set(row.id, teleopShares[idx] ?? 0);
+              });
+            }
           }
 
-          for (const row of allianceRows as Array<{ id: string; team_number?: unknown; final_score?: unknown }>) {
+          for (const row of allianceRows as Array<{ id: string; final_score?: unknown }>) {
             const scoutedScoreRounded = Number.isFinite(Number(row.final_score))
               ? Math.round(Number(row.final_score))
               : null;
-            const teamNumber = Number(row.team_number);
+            const statboticsAutoScoreRounded =
+              allianceFinalized && autoSharesById.has(row.id) ? autoSharesById.get(row.id) ?? null : null;
+            const statboticsTeleopScoreRounded =
+              allianceFinalized && teleopSharesById.has(row.id) ? teleopSharesById.get(row.id) ?? null : null;
             const statboticsExpectedScoreRounded =
-              allianceFinalized && Number.isFinite(teamNumber) && expectedByTeam.has(teamNumber)
-                ? expectedByTeam.get(teamNumber) ?? null
+              statboticsAutoScoreRounded != null && statboticsTeleopScoreRounded != null
+                ? statboticsAutoScoreRounded + statboticsTeleopScoreRounded
                 : null;
             const scoreDelta =
               scoutedScoreRounded != null && statboticsExpectedScoreRounded != null
@@ -433,6 +499,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               .from('scouting_data')
               .update({
                 scouted_score_rounded: scoutedScoreRounded,
+                statbotics_auto_score_rounded: statboticsAutoScoreRounded,
+                statbotics_teleop_score_rounded: statboticsTeleopScoreRounded,
                 statbotics_expected_score_rounded: statboticsExpectedScoreRounded,
                 score_delta: scoreDelta,
                 alliance_scouted_count: allianceScoutedCount,

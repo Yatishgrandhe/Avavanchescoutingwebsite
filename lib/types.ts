@@ -35,6 +35,8 @@ export interface ScoutingData {
   final_score: number;
   scouted_score_rounded?: number | null;
   statbotics_expected_score_rounded?: number | null;
+  statbotics_auto_score_rounded?: number | null;
+  statbotics_teleop_score_rounded?: number | null;
   score_delta?: number | null;
   alliance_scouted_count?: number;
   alliance_finalized?: boolean | null;

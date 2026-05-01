@@ -1678,6 +1678,27 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                           </div>
                                         )}
                                       </div>
+                                      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                                          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Scouted vs Statbotics score</span>
+                                          <span className={cn('text-[10px] font-semibold uppercase', data.alliance_finalized ? 'text-green-400' : 'text-amber-400')}>
+                                            {data.alliance_finalized ? 'Finalized' : 'Provisional'}
+                                          </span>
+                                        </div>
+                                        <div className="mt-2 text-xs text-foreground">
+                                          Scouted {data.scouted_score_rounded ?? '—'} · Statbotics {data.statbotics_expected_score_rounded ?? '—'}
+                                          {data.score_delta != null && (
+                                            <span className={cn('ml-2 font-semibold', data.score_delta >= 0 ? 'text-green-400' : 'text-red-400')}>
+                                              Δ {data.score_delta}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {!data.alliance_finalized && (
+                                          <p className="mt-1 text-[10px] text-muted-foreground">
+                                            Finalized only after all 3 teams on this alliance in this match are scouted.
+                                          </p>
+                                        )}
+                                      </div>
 
                                       {autoRuns.length === 0 && teleopRuns.length === 0 && (
                                         <div className="text-xs text-muted-foreground text-center py-2">No runs recorded (legacy data)</div>
@@ -1847,6 +1868,27 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                         const teleopRuns = formNotes.teleop.runs || [];
                                         return (
                                           <div className="space-y-6">
+                                            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                                              <div className="flex items-center justify-between gap-2 flex-wrap">
+                                                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Scouted vs Statbotics score</span>
+                                                <span className={cn('text-[10px] font-semibold uppercase', data.alliance_finalized ? 'text-green-400' : 'text-amber-400')}>
+                                                  {data.alliance_finalized ? 'Finalized' : 'Provisional'}
+                                                </span>
+                                              </div>
+                                              <div className="mt-2 text-sm text-foreground">
+                                                Scouted {data.scouted_score_rounded ?? '—'} · Statbotics {data.statbotics_expected_score_rounded ?? '—'}
+                                                {data.score_delta != null && (
+                                                  <span className={cn('ml-2 font-semibold', data.score_delta >= 0 ? 'text-green-400' : 'text-red-400')}>
+                                                    Δ {data.score_delta}
+                                                  </span>
+                                                )}
+                                              </div>
+                                              {!data.alliance_finalized && (
+                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                  Finalized only after all 3 teams on this alliance in this match are scouted.
+                                                </p>
+                                              )}
+                                            </div>
                                             <div className="pb-4 border-b border-white/10">
                                               <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">2026 Rebuilt · Shooting runs &amp; estimated score</h4>
                                               <ScoutingRunsBreakdown notes={data.notes} shuttleRow={data} compact />

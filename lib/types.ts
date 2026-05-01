@@ -6,6 +6,8 @@ export interface Team {
   created_at: string;
   tba_opr?: number;
   tba_epa?: number;
+  tba_auto_epa?: number | null;
+  tba_teleop_epa?: number | null;
   normalized_opr?: number;
   avg_shooting_time_sec?: number | null;
 }
@@ -31,6 +33,11 @@ export interface ScoutingData {
   autonomous_points: number;
   teleop_points: number;
   final_score: number;
+  scouted_score_rounded?: number | null;
+  statbotics_expected_score_rounded?: number | null;
+  score_delta?: number | null;
+  alliance_scouted_count?: number;
+  alliance_finalized?: boolean | null;
   /** @deprecated No longer used (2026 game); kept for DB compatibility. */
   autonomous_cleansing?: number;
   /** @deprecated No longer used (2026 game); kept for DB compatibility. */

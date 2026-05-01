@@ -64,6 +64,7 @@ import { PitScoutingData } from '@/pages/pit-scouting-data';
 import { hasCompetitionPitSidebarRows } from '@/lib/pit-scouting-visibility';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
 import { mergePitDriveTrainDetails, formatPitBallCapacity, getPitBallHoldAmount } from '@/lib/pit-drive-train';
+import { getOrgCurrentEvent } from '@/lib/org-app-config';
 
 // Helper component for stat cards
 const StatCard = ({ label, value, color, icon: Icon, subLabel }: any) => (
@@ -306,10 +307,17 @@ const TeamDetail: React.FC = () => {
               const rows = Array.isArray(metricsJson?.rows) ? metricsJson.rows : [];
               const row = rows.find((r: any) => Number(r.teamNumber) === teamNum);
               if (row) {
+                const opr = Number(row.opr);
+                const avgShootingTimeSec = Number((enrichedTeam as any)?.avg_shooting_time_sec);
+                const normalizedOpr =
+                  Number.isFinite(opr) && Number.isFinite(avgShootingTimeSec) && avgShootingTimeSec > 0
+                    ? Math.round((opr / avgShootingTimeSec) * 10) / 10
+                    : (enrichedTeam as any).normalized_opr;
                 enrichedTeam = {
                   ...enrichedTeam,
+                  tba_opr: Number.isFinite(opr) ? opr : (enrichedTeam as any).tba_opr,
                   tba_epa: Number.isFinite(Number(row.totalEpa)) ? Number(row.totalEpa) : enrichedTeam.tba_epa,
-                  normalized_opr: Number.isFinite(Number(row.opr)) ? Number(row.opr) : enrichedTeam.normalized_opr,
+                  normalized_opr: normalizedOpr,
                   tba_auto_epa: Number.isFinite(Number(row.autoEpa)) ? Number(row.autoEpa) : null,
                   tba_teleop_epa: Number.isFinite(Number(row.teleopEpa)) ? Number(row.teleopEpa) : null,
                 } as any;
@@ -404,7 +412,44 @@ const TeamDetail: React.FC = () => {
         }
       }
 
-      setTeam(teamData);
+      let enrichedTeamData: Team = teamData as Team;
+      if (user?.organization_id) {
+        try {
+          const { eventKey } = await getOrgCurrentEvent(supabase, user.organization_id);
+          if (eventKey) {
+            const metricsRes = await fetch('/api/analysis/event-team-metrics', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ eventKey }),
+            });
+            if (metricsRes.ok) {
+              const metricsJson = await metricsRes.json().catch(() => ({}));
+              const rows = Array.isArray(metricsJson?.rows) ? metricsJson.rows : [];
+              const row = rows.find((r: any) => Number(r.teamNumber) === teamNum);
+              if (row) {
+                const opr = Number(row.opr);
+                const avgShootingTimeSec = Number((teamData as any)?.avg_shooting_time_sec);
+                const normalizedOpr =
+                  Number.isFinite(opr) && Number.isFinite(avgShootingTimeSec) && avgShootingTimeSec > 0
+                    ? Math.round((opr / avgShootingTimeSec) * 10) / 10
+                    : (teamData as any)?.normalized_opr;
+                enrichedTeamData = {
+                  ...(teamData as Team),
+                  tba_opr: Number.isFinite(opr) ? opr : (teamData as any)?.tba_opr,
+                  tba_epa: Number.isFinite(Number(row.totalEpa)) ? Number(row.totalEpa) : (teamData as any)?.tba_epa,
+                  normalized_opr: normalizedOpr,
+                  tba_auto_epa: Number.isFinite(Number(row.autoEpa)) ? Number(row.autoEpa) : null,
+                  tba_teleop_epa: Number.isFinite(Number(row.teleopEpa)) ? Number(row.teleopEpa) : null,
+                };
+              }
+            }
+          }
+        } catch (eventMetricsError) {
+          console.warn('team detail event metrics enrich failed', eventMetricsError);
+        }
+      }
+
+      setTeam(enrichedTeamData);
       setScoutingData(scoutingDataResult || []);
       setPitData(pitDataResult);
       setCompetitionPitTabVisible(false);
@@ -930,9 +975,10 @@ const TeamDetail: React.FC = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
                   <StatCard label="Avg Shooting Time" value={teamStats.avg_shooting_time_sec != null ? `${teamStats.avg_shooting_time_sec}s` : '—'} color="primary" icon={TrendingUp} subLabel="per scoring run" />
                   <StatCard label="Matches" value={teamStats.totalMatches} color="blue" icon={Database} subLabel="scouted" />
-                  <StatCard label="Auto EPA" value={teamStats.avgAutonomous ?? '—'} color="blue" icon={Clock} subLabel="pts" />
-                  <StatCard label="Teleop EPA" value={teamStats.avgTeleop ?? '—'} color="orange" icon={Zap} subLabel="pts" />
-                  <StatCard label="Normalized OPR" value={teamStats.endgame_epa ?? '—'} color="green" icon={Award} subLabel="opr per shooting second" />
+                  <StatCard label="Auto EPA" value={(team as any)?.tba_auto_epa != null ? Math.round(Number((team as any).tba_auto_epa)) : (teamStats.avgAutonomous ?? '—')} color="blue" icon={Clock} subLabel="pts" />
+                  <StatCard label="Teleop EPA" value={(team as any)?.tba_teleop_epa != null ? Math.round(Number((team as any).tba_teleop_epa)) : (teamStats.avgTeleop ?? '—')} color="orange" icon={Zap} subLabel="pts" />
+                  <StatCard label="EPA" value={(team as any)?.tba_epa != null ? Math.round(Number((team as any).tba_epa)) : (teamStats.epa ?? '—')} color="purple" icon={Activity} subLabel="expected points" />
+                  <StatCard label="Normalized OPR" value={(team as any)?.normalized_opr != null ? Math.round(Number((team as any).normalized_opr) * 10) / 10 : (teamStats.endgame_epa ?? '—')} color="green" icon={Award} subLabel="opr per shooting second" />
                   <StatCard label="Consistency" value={teamStats.totalMatches > 0 ? `${teamStats.consistencyScore}%` : '—'} color="purple" icon={Activity} />
                   <StatCard label="Shuttle Rate" value={`${teamStats.shuttle_rate}%`} color="indigo" icon={Route} />
                   <StatCard label="Avg Shuttle/Return" value={teamStats.avg_shuttle_balls != null ? teamStats.avg_shuttle_balls : '—'} color="indigo" icon={Route} />
@@ -1444,6 +1490,27 @@ const TeamDetail: React.FC = () => {
                                 </div>
                                 <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4">
                                   <ScoutingRunsBreakdown notes={data.notes} shuttleRow={data} />
+                                </div>
+                                <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4">
+                                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                                    <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Scouted vs Statbotics score</h4>
+                                    <span className={cn('text-[10px] font-semibold uppercase', data.alliance_finalized ? 'text-green-400' : 'text-amber-400')}>
+                                      {data.alliance_finalized ? 'Finalized' : 'Provisional'}
+                                    </span>
+                                  </div>
+                                  <p className="mt-2 text-sm text-foreground">
+                                    Scouted {data.scouted_score_rounded ?? '—'} · Statbotics {data.statbotics_expected_score_rounded ?? '—'}
+                                    {data.score_delta != null && (
+                                      <span className={cn('ml-2 font-semibold', data.score_delta >= 0 ? 'text-green-400' : 'text-red-400')}>
+                                        Δ {data.score_delta}
+                                      </span>
+                                    )}
+                                  </p>
+                                  {!data.alliance_finalized && (
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      Finalized only after all 3 teams on this alliance in this match are scouted.
+                                    </p>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-2 mb-2">
                                   <div className="h-1 w-4 bg-primary rounded-full" />

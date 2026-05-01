@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { createClient } from '@supabase/supabase-js';
 import { parseStatboticsFinite, parseStatboticsTeamEventRow } from '@/lib/statbotics-team-events';
 import { tbaFetchJson, type TbaEventOprs, type TbaTeam } from '@/lib/tba';
 
@@ -77,6 +78,30 @@ function extractTbaComponentMap(
     return value as Record<string, number>;
   }
   return null;
+}
+
+async function fetchRosterTeamNumbers(eventKey: string): Promise<number[]> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseServiceKey) return [];
+
+  try {
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { data, error } = await supabase
+      .from('event_team_roster')
+      .select('team_number')
+      .eq('event_key', eventKey);
+    if (error) {
+      console.warn('event-team-metrics: roster fallback query failed', { eventKey, error });
+      return [];
+    }
+    return (data || [])
+      .map((row: { team_number?: unknown }) => Number(row.team_number))
+      .filter((teamNumber) => Number.isFinite(teamNumber));
+  } catch (error) {
+    console.warn('event-team-metrics: roster fallback request failed', { eventKey, error });
+    return [];
+  }
 }
 
 async function fetchStatboticsByTeams(
@@ -210,12 +235,13 @@ export default async function handler(
     const teamNumbersFromTba = (tbaTeams || [])
       .map((team) => Number(team.team_number))
       .filter((teamNumber) => Number.isFinite(teamNumber));
+    const rosterTeamNumbers = teamNumbersFromTba.length > 0 ? [] : await fetchRosterTeamNumbers(eventKey);
 
     const statboticsByEvent = await fetchStatboticsByEventKeys(
       Array.from(new Set([eventKey, ...(Array.isArray(divisionKeys) ? divisionKeys : [])]))
     );
     const statboticsTeamNumbers = Array.from(statboticsByEvent.keys());
-    const teamNumbers = Array.from(new Set([...teamNumbersFromTba, ...statboticsTeamNumbers]));
+    const teamNumbers = Array.from(new Set([...teamNumbersFromTba, ...rosterTeamNumbers, ...statboticsTeamNumbers]));
     const missingTeams = teamNumbers.filter((teamNumber) => !statboticsByEvent.has(teamNumber));
     const statboticsByTeams =
       missingTeams.length > 0 ? await fetchStatboticsByTeams(eventKey, missingTeams) : new Map<number, StatboticsTeamEpa>();

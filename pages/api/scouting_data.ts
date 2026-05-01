@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/supabase';
 import { calculateScore } from '@/lib/utils';
+import { parseStatboticsTeamEventRow } from '@/lib/statbotics-team-events';
 import { mergeShuttlingIntoStoredNotes, normalizeShuttleConsistency } from '@/lib/scouting-notes-merge';
 import {
   requiredUploadMbpsForForm,
@@ -10,6 +11,47 @@ import {
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+function parseTeamNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  const raw = String(value ?? '').trim().toLowerCase();
+  if (!raw) return null;
+  const direct = Number(raw);
+  if (Number.isFinite(direct)) return direct;
+  const match = raw.match(/(\d+)/);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function fetchStatboticsExpectedScoresByTeam(eventKey: string): Promise<Map<number, number>> {
+  const expectedByTeam = new Map<number, number>();
+  if (!eventKey) return expectedByTeam;
+
+  try {
+    const response = await fetch(
+      `https://api.statbotics.io/v3/team_events?event=${encodeURIComponent(eventKey)}`,
+      {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      }
+    );
+    if (!response.ok) return expectedByTeam;
+    const payload: unknown = await response.json();
+    if (!Array.isArray(payload)) return expectedByTeam;
+
+    for (const row of payload) {
+      const parsed = parseStatboticsTeamEventRow(row);
+      const teamNumber = parseTeamNumber(parsed.team);
+      if (teamNumber == null || parsed.totalEPA == null) continue;
+      expectedByTeam.set(teamNumber, Math.round(parsed.totalEPA));
+    }
+  } catch (error) {
+    console.warn('scouting_data: failed fetching statbotics expected scores', { eventKey, error });
+  }
+
+  return expectedByTeam;
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   try {
@@ -250,7 +292,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Composite FK: matches(organization_id, match_id) — must exist before insert (avoids opaque 500)
         const { data: matchScheduleRow } = await supabase
           .from('matches')
-          .select('match_id')
+          .select('match_id, event_key')
           .eq('organization_id', userOrgId)
           .eq('match_id', finalMatchId)
           .maybeSingle();
@@ -345,6 +387,59 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             details: insertError.message,
           });
           return;
+        }
+
+        const { data: allianceRows, error: allianceRowsError } = await supabase
+          .from('scouting_data')
+          .select('id, team_number, alliance_position, final_score')
+          .eq('organization_id', userOrgId)
+          .eq('match_id', finalMatchId)
+          .eq('alliance_color', finalAllianceColor);
+        if (allianceRowsError) {
+          console.warn('scouting_data: failed loading alliance rows for scoring status', allianceRowsError);
+        } else if (Array.isArray(allianceRows) && allianceRows.length > 0) {
+          const uniqueAllianceSlots = new Set<number>();
+          const uniqueAllianceTeams = new Set<number>();
+          allianceRows.forEach((row: { alliance_position?: unknown; team_number?: unknown }) => {
+            const position = Number(row.alliance_position);
+            const teamNumber = Number(row.team_number);
+            if (Number.isFinite(position) && position >= 1 && position <= 3) uniqueAllianceSlots.add(position);
+            if (Number.isFinite(teamNumber) && teamNumber > 0) uniqueAllianceTeams.add(teamNumber);
+          });
+          const allianceScoutedCount = Math.max(uniqueAllianceSlots.size, uniqueAllianceTeams.size);
+          const allianceFinalized = allianceScoutedCount >= 3;
+
+          let expectedByTeam = new Map<number, number>();
+          const eventKey = String(matchScheduleRow?.event_key || '').trim().toLowerCase();
+          if (allianceFinalized && eventKey) {
+            expectedByTeam = await fetchStatboticsExpectedScoresByTeam(eventKey);
+          }
+
+          for (const row of allianceRows as Array<{ id: string; team_number?: unknown; final_score?: unknown }>) {
+            const scoutedScoreRounded = Number.isFinite(Number(row.final_score))
+              ? Math.round(Number(row.final_score))
+              : null;
+            const teamNumber = Number(row.team_number);
+            const statboticsExpectedScoreRounded =
+              allianceFinalized && Number.isFinite(teamNumber) && expectedByTeam.has(teamNumber)
+                ? expectedByTeam.get(teamNumber) ?? null
+                : null;
+            const scoreDelta =
+              scoutedScoreRounded != null && statboticsExpectedScoreRounded != null
+                ? scoutedScoreRounded - statboticsExpectedScoreRounded
+                : null;
+
+            await supabase
+              .from('scouting_data')
+              .update({
+                scouted_score_rounded: scoutedScoreRounded,
+                statbotics_expected_score_rounded: statboticsExpectedScoreRounded,
+                score_delta: scoreDelta,
+                alliance_scouted_count: allianceScoutedCount,
+                alliance_finalized: allianceFinalized,
+              })
+              .eq('id', row.id);
+          }
         }
 
         console.log('Scouting data created successfully:', result);

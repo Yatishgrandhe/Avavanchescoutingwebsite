@@ -161,7 +161,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ...(team || { team_number: teamNum, team_name: `Team ${teamNum}` }),
         tba_epa: eventMetricsRow?.totalEpa ?? team?.tba_epa ?? null,
         tba_opr: eventMetricsRow?.opr ?? team?.tba_opr ?? null,
-        normalized_opr: team?.normalized_opr ?? eventMetricsRow?.opr ?? null,
+        normalized_opr: team?.normalized_opr ?? null,
         tba_auto_epa: eventMetricsRow?.autoEpa ?? null,
         tba_teleop_epa: eventMetricsRow?.teleopEpa ?? null,
         consistency: team?.consistency ?? null,

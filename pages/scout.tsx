@@ -27,7 +27,6 @@ import AutonomousForm from '@/components/scout/AutonomousForm';
 import TeleopForm from '@/components/scout/TeleopForm';
 import MiscellaneousForm from '@/components/scout/MiscellaneousForm';
 import Layout from '@/components/layout/Layout';
-import SpeedTestModal from '@/components/layout/SpeedTestModal';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAdmin } from '@/hooks/use-admin';
 import { useScoutingLocks } from '@/hooks/use-scouting-locks';
@@ -74,7 +73,6 @@ export default function Scout() {
   const loading = userLoading || adminLoading;
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSpeedTest, setShowSpeedTest] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     scoutName: '',
     matchData: {
@@ -130,10 +128,9 @@ export default function Scout() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleSubmit = async (speedToken: string) => {
+  const handleSubmit = async () => {
     if (isSubmitting) return;
 
-    setShowSpeedTest(false);
     setIsSubmitting(true);
     try {
       const autonomousPoints = calculateScore(formData.autonomous).final_score;
@@ -198,53 +195,6 @@ export default function Scout() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       };
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        const trySubmit = async () =>
-          fetch('/api/scouting_data', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-              'x-speed-verified-token': speedToken,
-            },
-            body: JSON.stringify(scoutingData),
-          });
-
-        let response = await trySubmit();
-        let body = await response.json().catch(() => ({} as { error?: string }));
-
-        const scheduleSyncNeeded =
-          response.status === 400 &&
-          typeof body?.error === 'string' &&
-          (
-            body.error.toLowerCase().includes('event schedule') ||
-            body.error.toLowerCase().includes('schedule was not synced')
-          );
-
-        if (scheduleSyncNeeded) {
-          const syncRes = await fetch('/api/sync-my-event', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${session.access_token}` },
-          });
-          if (syncRes.ok) {
-            response = await trySubmit();
-            body = await response.json().catch(() => ({} as { error?: string }));
-          }
-        }
-
-        if (response.ok) {
-          toast.success('Form submitted successfully.');
-          await preloadDailyScoutingCaches(supabase, user);
-          resetForm();
-          return;
-        }
-
-        if (response.status >= 400 && response.status < 500) {
-          throw new Error(body?.error || 'Submission rejected. Please review the form and try again.');
-        }
-      }
-
       try {
         await addToOfflineQueue('match-scouting', scoutingData, {
           competitionKey: formData.matchData.event_key,
@@ -253,7 +203,7 @@ export default function Scout() {
           matchKey: formData.matchData.match_id,
         });
         window.dispatchEvent(new Event('offline-queue-updated'));
-        toast.success('Saved locally due to connection issue. Use Submit Pending to upload.');
+        toast.success('Saved locally. Use Submit Pending to upload.');
         await preloadDailyScoutingCaches(supabase, user);
         resetForm();
       } catch {
@@ -668,7 +618,7 @@ export default function Scout() {
                           Back
                         </Button>
                         <Button
-                          onClick={() => setShowSpeedTest(true)}
+                          onClick={handleSubmit}
                           disabled={isSubmitting}
                           className="flex-[2] h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/25"
                         >
@@ -691,15 +641,6 @@ export default function Scout() {
             </div>
           </div>
         </div>
-        <SpeedTestModal
-          isOpen={showSpeedTest}
-          onClose={() => setShowSpeedTest(false)}
-          minSpeedMbps={2.0000001}
-          formType="match-scouting"
-          onPass={(token) => {
-            void handleSubmit(token);
-          }}
-        />
       </Layout>
     </ProtectedRoute>
   );

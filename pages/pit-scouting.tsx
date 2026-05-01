@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { addToOfflineQueue } from '@/lib/offline-queue';
 import Layout from '@/components/layout/Layout';
-import SpeedTestModal from '@/components/layout/SpeedTestModal';
 import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui';
 import {
   Wrench,
@@ -126,7 +125,6 @@ export default function PitScouting() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const [scoutNames, setScoutNames] = useState<string[]>([]);
-  const [showSpeedTest, setShowSpeedTest] = useState(false);
   const annotatorRef = React.useRef<AutoPathAnnotatorRef>(null);
   /** Stored blob when leaving step 2 so we can upload it on submit (annotator unmounted on step 3) */
   const exportedAnnotatedBlobRef = useRef<Blob | null>(null);
@@ -410,9 +408,8 @@ export default function PitScouting() {
     }
   };
 
-  const handleSubmit = async (speedToken: string) => {
+  const handleSubmit = async () => {
     try {
-      setShowSpeedTest(false);
       setSubmitting(true);
       setSubmitError(null);
       setSubmitSuccess(false);
@@ -523,7 +520,6 @@ export default function PitScouting() {
         photosToUpload,
         annotatedImageToUpload,
         editingId: isEditMode ? editingId : null,
-        speedToken,
       }, {
         competitionKey,
         organizationId: user?.organization_id || '',
@@ -1354,7 +1350,7 @@ export default function PitScouting() {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  setShowSpeedTest(true);
+                  handleSubmit();
                 }}
                 className={cn("min-w-[140px] touch-manipulation", submitting ? "opacity-80" : "hover:scale-105 active:scale-95 transition-transform bg-primary hover:bg-primary/90 text-white")}
                 aria-busy={submitting}
@@ -1370,15 +1366,6 @@ export default function PitScouting() {
           </div>
         </div>
       </div>
-      <SpeedTestModal
-        isOpen={showSpeedTest}
-        onClose={() => setShowSpeedTest(false)}
-        minSpeedMbps={5}
-        formType="pit-scouting"
-        onPass={(token) => {
-          void handleSubmit(token);
-        }}
-      />
     </Layout>
   );
 }

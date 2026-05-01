@@ -293,7 +293,33 @@ const TeamDetail: React.FC = () => {
         const teamPit = teamPits.length > 0
           ? teamPits.find((p: any) => (Array.isArray(p.photos) && p.photos.length > 0) || (p.robot_image_url && String(p.robot_image_url).trim())) || teamPits[teamPits.length - 1]
           : null;
-        setTeam(teamInfo ? { ...teamInfo } : { team_number: teamNum, team_name: `Team ${teamNum}`, organization_id: '', team_color: '', created_at: '' });
+        let enrichedTeam = teamInfo ? { ...teamInfo } : { team_number: teamNum, team_name: `Team ${teamNum}`, organization_id: '', team_color: '', created_at: '' };
+        if (eventKey) {
+          try {
+            const metricsRes = await fetch('/api/analysis/event-team-metrics', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ eventKey }),
+            });
+            if (metricsRes.ok) {
+              const metricsJson = await metricsRes.json();
+              const rows = Array.isArray(metricsJson?.rows) ? metricsJson.rows : [];
+              const row = rows.find((r: any) => Number(r.teamNumber) === teamNum);
+              if (row) {
+                enrichedTeam = {
+                  ...enrichedTeam,
+                  tba_epa: Number.isFinite(Number(row.totalEpa)) ? Number(row.totalEpa) : enrichedTeam.tba_epa,
+                  normalized_opr: Number.isFinite(Number(row.opr)) ? Number(row.opr) : enrichedTeam.normalized_opr,
+                  tba_auto_epa: Number.isFinite(Number(row.autoEpa)) ? Number(row.autoEpa) : null,
+                  tba_teleop_epa: Number.isFinite(Number(row.teleopEpa)) ? Number(row.teleopEpa) : null,
+                } as any;
+              }
+            }
+          } catch (err) {
+            console.warn('team detail event metrics load failed', err);
+          }
+        }
+        setTeam(enrichedTeam as Team);
         setScoutingData(teamScouting);
         setPitData(teamPit);
         setLoading(false);
@@ -390,8 +416,6 @@ const TeamDetail: React.FC = () => {
   };
 
   const calculateTeamStats = () => {
-    if (scoutingData.length === 0) return null;
-
     const totalMatches = scoutingData.length;
     const rows = scoutingData.map((d) => ({
       notes: d.notes,
@@ -415,19 +439,27 @@ const TeamDetail: React.FC = () => {
       ? Math.max(0, Math.min(100, 100 - (standardDeviation / avgTotal) * 100))
       : 0;
 
-    const avgDefense = scoutingData.reduce((sum, data) => sum + (data.defense_rating || 0), 0) / totalMatches;
-    const bestScore = Math.max(...scores);
-    const worstScore = Math.min(...scores);
+    const avgDefense = totalMatches > 0 ? scoutingData.reduce((sum, data) => sum + (data.defense_rating || 0), 0) / totalMatches : 0;
+    const bestScore = scores.length > 0 ? Math.max(...scores) : 0;
+    const worstScore = scores.length > 0 ? Math.min(...scores) : 0;
+    const tbaAutoEpa = Number((team as any)?.tba_auto_epa);
+    const tbaTeleopEpa = Number((team as any)?.tba_teleop_epa);
+    const hasTbaAutoEpa = Number.isFinite(tbaAutoEpa);
+    const hasTbaTeleopEpa = Number.isFinite(tbaTeleopEpa);
 
     return {
       totalMatches,
-      avgAutonomous: Math.round(scoutingData.reduce((sum, d) => sum + (d.autonomous_points || 0), 0) / totalMatches),
-      avgTeleop: Math.round(scoutingData.reduce((sum, d) => sum + (d.teleop_points || 0), 0) / totalMatches),
+      avgAutonomous: totalMatches > 0
+        ? Math.round(scoutingData.reduce((sum, d) => sum + (d.autonomous_points || 0), 0) / totalMatches)
+        : (hasTbaAutoEpa ? Math.round(tbaAutoEpa) : 0),
+      avgTeleop: totalMatches > 0
+        ? Math.round(scoutingData.reduce((sum, d) => sum + (d.teleop_points || 0), 0) / totalMatches)
+        : (hasTbaTeleopEpa ? Math.round(tbaTeleopEpa) : 0),
       avgTotal: Math.round(avgTotal),
       avgDefense: Math.round(avgDefense),
       bestScore,
       worstScore,
-      consistencyScore: Math.round(consistencyScore),
+      consistencyScore: totalMatches > 0 ? Math.round(consistencyScore) : 0,
       // REBUILT + EPA
       avg_auto_fuel: rebuilt.avg_auto_fuel,
       avg_teleop_fuel: rebuilt.avg_teleop_fuel,
@@ -895,10 +927,10 @@ const TeamDetail: React.FC = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
                   <StatCard label="Avg Shooting Time" value={teamStats.avg_shooting_time_sec != null ? `${teamStats.avg_shooting_time_sec}s` : '—'} color="primary" icon={TrendingUp} subLabel="per scoring run" />
                   <StatCard label="Matches" value={teamStats.totalMatches} color="blue" icon={Database} subLabel="scouted" />
-                  <StatCard label="Auto EPA" value={teamStats.avgAutonomous} color="blue" icon={Clock} subLabel="pts" />
-                  <StatCard label="Teleop EPA" value={teamStats.avgTeleop} color="orange" icon={Zap} subLabel="pts" />
-                  <StatCard label="Normalized OPR" value={teamStats.endgame_epa ?? 0} color="green" icon={Award} subLabel="opr per shooting second" />
-                  <StatCard label="Consistency" value={`${teamStats.consistencyScore}%`} color="purple" icon={Activity} />
+                  <StatCard label="Auto EPA" value={teamStats.avgAutonomous ?? '—'} color="blue" icon={Clock} subLabel="pts" />
+                  <StatCard label="Teleop EPA" value={teamStats.avgTeleop ?? '—'} color="orange" icon={Zap} subLabel="pts" />
+                  <StatCard label="Normalized OPR" value={teamStats.endgame_epa ?? '—'} color="green" icon={Award} subLabel="opr per shooting second" />
+                  <StatCard label="Consistency" value={teamStats.totalMatches > 0 ? `${teamStats.consistencyScore}%` : '—'} color="purple" icon={Activity} />
                   <StatCard label="Shuttle Rate" value={`${teamStats.shuttle_rate}%`} color="indigo" icon={Route} />
                   <StatCard label="Avg Shuttle/Return" value={teamStats.avg_shuttle_balls != null ? teamStats.avg_shuttle_balls : '—'} color="indigo" icon={Route} />
                 </div>
@@ -1319,6 +1351,9 @@ const TeamDetail: React.FC = () => {
                             <div className="text-2xl font-black text-foreground flex items-baseline gap-1.5">
                               {data.final_score}
                               <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">points</span>
+                            </div>
+                            <div className="text-[10px] text-primary font-semibold uppercase tracking-widest">
+                              Scouted Match Score
                             </div>
                           </div>
                         </div>

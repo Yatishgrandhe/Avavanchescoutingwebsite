@@ -12,6 +12,20 @@ export default function AuthCallback() {
   const started = useRef(false);
 
   useEffect(() => {
+    let disposed = false;
+    let authSubscription: { unsubscribe: () => void } | null = null;
+    const redirectTimers = new Set<ReturnType<typeof setTimeout>>();
+
+    const redirectAfter = (destination: string) => {
+      const timer = setTimeout(() => {
+        redirectTimers.delete(timer);
+        if (!disposed) {
+          void router.push(destination);
+        }
+      }, 2000);
+      redirectTimers.add(timer);
+    };
+
     const handleCallback = async () => {
       if (started.current) return;
       started.current = true;
@@ -62,9 +76,7 @@ export default function AuthCallback() {
         
         setError(errorMessage);
         setLoading(false);
-        setTimeout(() => {
-          router.push(`/auth/error?message=${encodeURIComponent(errorMessage)}&error=${authError || error_code || 'unknown'}`);
-        }, 2000);
+        redirectAfter(`/auth/error?message=${encodeURIComponent(errorMessage)}&error=${authError || error_code || 'unknown'}`);
         return;
       }
 
@@ -77,7 +89,7 @@ export default function AuthCallback() {
       if (codeParamInUrl && (!code || !String(code).trim())) {
         setError('Invalid sign-in link: the authorization code is missing. Please try signing in again.');
         setLoading(false);
-        setTimeout(() => router.push(`/auth/error?message=${encodeURIComponent('Invalid sign-in link: the authorization code is missing. Please try signing in again.')}&error=session_error`), 2000);
+        redirectAfter(`/auth/error?message=${encodeURIComponent('Invalid sign-in link: the authorization code is missing. Please try signing in again.')}&error=session_error`);
         return;
       }
 
@@ -237,7 +249,7 @@ export default function AuthCallback() {
             }
             setError(errorMessage);
             setLoading(false);
-            setTimeout(() => router.push(`/auth/error?message=${encodeURIComponent(errorMessage)}&error=session_error`), 2000);
+            redirectAfter(`/auth/error?message=${encodeURIComponent(errorMessage)}&error=session_error`);
             return;
           }
           if (data?.session) {
@@ -246,20 +258,20 @@ export default function AuthCallback() {
           }
           setError('Failed to complete authentication');
           setLoading(false);
-          setTimeout(() => router.push(`/auth/error?message=${encodeURIComponent('Failed to complete authentication.')}&error=session_error`), 2000);
+          redirectAfter(`/auth/error?message=${encodeURIComponent('Failed to complete authentication.')}&error=session_error`);
           return;
         } catch (err) {
           if (err instanceof Error && err.message === 'EXCHANGE_TIMEOUT') {
             setError('Authentication timed out. Please try again.');
             setLoading(false);
-            setTimeout(() => router.push(`/auth/error?message=${encodeURIComponent('Authentication timed out. Please try again.')}&error=timeout`), 2000);
+            redirectAfter(`/auth/error?message=${encodeURIComponent('Authentication timed out. Please try again.')}&error=timeout`);
             return;
           }
           console.error('exchangeCodeForSession error:', err);
           const errMsg = err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.';
           setError(errMsg);
           setLoading(false);
-          setTimeout(() => router.push(`/auth/error?message=${encodeURIComponent(errMsg)}&error=session_error`), 2000);
+          redirectAfter(`/auth/error?message=${encodeURIComponent(errMsg)}&error=session_error`);
           return;
         }
       }
@@ -275,6 +287,7 @@ export default function AuthCallback() {
             await finishWithGuildCheck(session);
           }
         });
+        authSubscription = subscription;
 
         const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
 
@@ -290,7 +303,7 @@ export default function AuthCallback() {
           }
           setError(errorMessage);
           setLoading(false);
-          setTimeout(() => router.push(`/auth/error?message=${encodeURIComponent(errorMessage)}&error=session_error`), 2000);
+          redirectAfter(`/auth/error?message=${encodeURIComponent(errorMessage)}&error=session_error`);
           return;
         }
 
@@ -302,21 +315,20 @@ export default function AuthCallback() {
         }
 
         const waitMs = 15000;
-        setTimeout(() => {
+        const waitTimer = setTimeout(() => {
           subscription.unsubscribe();
           if (!sessionReceived) {
             setError('Authentication timed out. Please try signing in again.');
             setLoading(false);
-            setTimeout(() => router.push('/auth/error?message=Authentication timed out. Please try signing in again.&error=timeout'), 2000);
+            redirectAfter('/auth/error?message=Authentication timed out. Please try signing in again.&error=timeout');
           }
         }, waitMs);
+        redirectTimers.add(waitTimer);
       } catch (err) {
         console.error('Unexpected error:', err);
         setError('An unexpected error occurred. Please try again.');
         setLoading(false);
-        setTimeout(() => {
-          router.push('/auth/error?message=An unexpected error occurred. Please try again.&error=unexpected_error');
-        }, 2000);
+        redirectAfter('/auth/error?message=An unexpected error occurred. Please try again.&error=unexpected_error');
       }
     };
 
@@ -324,6 +336,13 @@ export default function AuthCallback() {
     if (router.isReady || hasCodeInUrl) {
       handleCallback();
     }
+
+    return () => {
+      disposed = true;
+      authSubscription?.unsubscribe();
+      redirectTimers.forEach((timer) => clearTimeout(timer));
+      redirectTimers.clear();
+    };
   }, [router.isReady, router.query, router]);
 
   if (loading) {

@@ -79,10 +79,6 @@ export function getScreenInfo(): ScreenInfo {
 }
 
 export function useScreenSize() {
-  if (typeof window === 'undefined') {
-    return getScreenInfo();
-  }
-  
   const [screenInfo, setScreenInfo] = React.useState<ScreenInfo>(getScreenInfo);
   
   React.useEffect(() => {

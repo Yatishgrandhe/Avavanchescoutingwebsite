@@ -24,6 +24,7 @@ import { addToOfflineQueue } from '@/lib/offline-queue';
 import PitPhotosUpload, { PhotoItem } from '@/components/ui/PitPhotosUpload';
 import { toast } from 'sonner';
 import { useScoutingLocks } from '@/hooks/use-scouting-locks';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 interface Team {
   team_number: number;
   team_name: string;
@@ -415,11 +416,6 @@ export default function PitScoutingMobile() {
     );
   }
 
-  if (!user) {
-    router.push('/');
-    return null;
-  }
-
   if (!locksLoading && pitScoutingLocked) {
     return (
       <div className="min-h-screen bg-background p-4 flex flex-col items-center justify-center text-center">
@@ -448,7 +444,8 @@ export default function PitScoutingMobile() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <ProtectedRoute>
+      <div className="min-h-screen bg-background">
       {/* Mobile Header */}
       <div className="bg-card border-b border-border p-4">
         <div className="flex items-center justify-between mb-4">
@@ -1335,6 +1332,7 @@ export default function PitScoutingMobile() {
           )}
         </AnimatePresence>
       </div>
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 }

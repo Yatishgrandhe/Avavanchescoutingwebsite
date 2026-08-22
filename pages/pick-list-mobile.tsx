@@ -10,8 +10,17 @@ import { PickList as PickListType } from '@/lib/types';
 import { useSupabase } from '@/pages/_app';
 import { useAdmin } from '@/hooks/use-admin';
 import { Plus, List, Trophy, Target, Users, GraduationCap, Shield, AlertCircle, Home, Menu } from 'lucide-react';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 export default function PickListMobilePage() {
+  return (
+    <ProtectedRoute>
+      <PickListMobileContent />
+    </ProtectedRoute>
+  );
+}
+
+function PickListMobileContent() {
   const router = useRouter();
   const { supabase, user, session } = useSupabase();
   const { canAccessPickList, loading: adminLoading } = useAdmin();

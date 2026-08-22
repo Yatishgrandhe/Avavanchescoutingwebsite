@@ -30,6 +30,7 @@ import { compressImageForUpload } from '@/lib/image-upload';
 import { useAdmin } from '@/hooks/use-admin';
 import { useScoutingLocks } from '@/hooks/use-scouting-locks';
 import { cn } from '@/lib/utils';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { Badge } from '@/components/ui/badge';
 import PitPhotosUpload, { PhotoItem } from '@/components/ui/PitPhotosUpload';
 import AutoPathAnnotator, { AutoPath, AutoPathAnnotatorRef } from '@/components/ui/AutoPathAnnotator';
@@ -539,12 +540,6 @@ export default function PitScouting() {
     );
   }
 
-  if (!user) {
-    router.push('/');
-    return null;
-  }
-
-
   if (!locksLoading && pitScoutingLocked) {
     return (
       <Layout>
@@ -571,7 +566,8 @@ export default function PitScouting() {
   }
 
   return (
-    <Layout>
+    <ProtectedRoute>
+      <Layout>
       <div className="max-w-5xl mx-auto space-y-6">
 
         {/* Header Section */}
@@ -1343,6 +1339,7 @@ export default function PitScouting() {
           </div>
         </div>
       </div>
-    </Layout>
+      </Layout>
+    </ProtectedRoute>
   );
 }

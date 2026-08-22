@@ -100,6 +100,7 @@ interface AnalysisFilters {
 }
 
 export default function AdvancedAnalysis() {
+  const router = useRouter();
   const { user, loading: authLoading } = useSupabase();
   const { isSuperAdmin, loading: adminLoading } = useAdmin();
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
@@ -122,6 +123,12 @@ export default function AdvancedAnalysis() {
   const summarizeInFlightRef = useRef(false);
   const superAdminAutoSummarizeRef = useRef(false);
   const canUseCommentSummary = isSuperAdmin;
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      void router.replace('/');
+    }
+  }, [authLoading, router, user]);
 
   // Load available teams from Supabase
   useEffect(() => {
@@ -417,8 +424,6 @@ export default function AdvancedAnalysis() {
   }
 
   if (!user) {
-    const router = useRouter();
-    router.push('/');
     return null;
   }
 

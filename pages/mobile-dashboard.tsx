@@ -21,6 +21,7 @@ import { getOrgCurrentEvent } from '@/lib/org-app-config';
 import { getDashboardStatsForActiveEvent } from '@/lib/dashboard-event-stats';
 import { getCachedValue, setCachedValue } from '@/lib/local-client-cache';
 import Layout from '../components/layout/Layout';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 // Types for dashboard data (all real from DB)
 interface DashboardStats {
@@ -214,13 +215,9 @@ export default function MobileDashboard() {
     );
   }
 
-  if (!user) {
-    router.push('/');
-    return null;
-  }
-
   return (
-    <Layout>
+    <ProtectedRoute>
+      <Layout>
       <div className="space-y-6">
         {/* Welcome Section */}
         <motion.div
@@ -465,6 +462,7 @@ export default function MobileDashboard() {
           </Card>
         </motion.div>
       </div>
-    </Layout>
+      </Layout>
+    </ProtectedRoute>
   );
 }

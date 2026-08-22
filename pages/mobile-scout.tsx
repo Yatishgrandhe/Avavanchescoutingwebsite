@@ -27,6 +27,7 @@ import { calculateScore, formatDurationSec } from '@/lib/utils';
 import { useRouter } from 'next/router';
 import { addToOfflineQueue } from '@/lib/offline-queue';
 import { useScoutingLocks } from '@/hooks/use-scouting-locks';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { AlertCircle, Lock } from 'lucide-react';
 
 type ScoutingStep = 'match-details' | 'autonomous' | 'teleop' | 'miscellaneous' | 'review';
@@ -218,11 +219,6 @@ export default function MobileScout() {
     );
   }
 
-  if (!user) {
-    router.push('/');
-    return null;
-  }
-
   if (!locksLoading && matchScoutingLocked) {
     return (
       <div className="min-h-screen bg-background p-4 flex flex-col items-center justify-center">
@@ -251,7 +247,8 @@ export default function MobileScout() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <ProtectedRoute>
+      <div className="min-h-screen bg-background">
       {/* Mobile Header */}
       <div className="bg-card border-b border-border p-3 sm:p-4">
         <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -566,6 +563,7 @@ export default function MobileScout() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 }

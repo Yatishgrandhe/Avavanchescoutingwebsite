@@ -345,18 +345,42 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       if (requestId !== loadRequestIdRef.current) return;
       setTeamStats(stats);
 
-      // Load pit scouting data so we can show robot name / drive type per team
-      // Filter by event_team_roster to only show teams at THIS competition
-      let pitQuery = supabase
-        .from('pit_scouting_data')
-        .select('team_number, robot_name, drive_type, weight, overall_rating, roster:event_team_roster!inner(event_key)')
-        .eq('roster.event_key', targetEventKey)
-        .order('created_at', { ascending: false });
+      // Load pit scouting data so we can show robot name / drive type per team.
+      // `pit_scouting_data.team_number` is not a database foreign key to
+      // `event_team_roster`, so PostgREST cannot perform an embedded join here.
+      // Resolve the event roster first, then filter pit rows by its team numbers.
+      let rosterQuery = supabase
+        .from('event_team_roster')
+        .select('team_number')
+        .eq('event_key', targetEventKey);
 
       if (teamDataOnly && user?.organization_id) {
-        pitQuery = pitQuery.eq('organization_id', user.organization_id);
+        rosterQuery = rosterQuery.eq('organization_id', user.organization_id);
       }
-      const { data: pitDataResult } = await pitQuery;
+
+      const { data: rosterRows, error: rosterError } = await rosterQuery;
+      if (rosterError) throw rosterError;
+
+      const rosterTeamNumbers = Array.from(
+        new Set((rosterRows || []).map((row: { team_number: number }) => row.team_number))
+      );
+      let pitDataResult: { team_number: number; robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }[] | null = [];
+
+      if (rosterTeamNumbers.length > 0) {
+        let pitQuery = supabase
+          .from('pit_scouting_data')
+          .select('team_number, robot_name, drive_type, weight, overall_rating')
+          .in('team_number', rosterTeamNumbers)
+          .order('created_at', { ascending: false });
+
+        if (teamDataOnly && user?.organization_id) {
+          pitQuery = pitQuery.eq('organization_id', user.organization_id);
+        }
+
+        const { data, error } = await pitQuery;
+        if (error) throw error;
+        pitDataResult = data;
+      }
 
       const pitMap: Record<number, { robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }> = {};
       (pitDataResult || []).forEach((row: { team_number: number; robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }) => {

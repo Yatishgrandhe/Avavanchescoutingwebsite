@@ -3,9 +3,7 @@ import formidable, { Fields, Files, File } from 'formidable';
 import fs from 'fs';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
-import { google } from 'googleapis';
 import sharp from 'sharp';
-import { CURRENT_EVENT_NAME } from '@/lib/constants';
 
 // Disable Next.js body parsing for file uploads
 export const config = {
@@ -14,14 +12,13 @@ export const config = {
     },
 };
 
-// Pit scouting robot images: upload to Google Drive first (primary), Supabase Storage as backup.
-// Required Google Drive env keys: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, GOOGLE_DRIVE_FOLDER_ID
+// Pit scouting robot images are stored in the public Supabase Storage bucket.
+// Keeping one durable, project-owned storage location prevents Drive permissions from
+// breaking images after a competition has been archived.
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const STORAGE_BUCKET = 'robot-images';
-
-const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
 function devLog(...args: unknown[]) {
     if (process.env.NODE_ENV !== 'production') {
@@ -109,79 +106,6 @@ async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeT
     }
 
     return publicUrl;
-}
-
-// Upload to Google Drive (OAuth2 User flow)
-async function uploadToGoogleDrive(
-    filePath: string,
-    fileName: string,
-    mimeType: string,
-    opts?: { driveFileName?: string; driveDescription?: string }
-): Promise<string> {
-    const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-    const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-    const GOOGLE_REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
-    const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
-
-    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REFRESH_TOKEN || !GOOGLE_DRIVE_FOLDER_ID) {
-        throw new Error('Google OAuth configuration missing (ClientId, ClientSecret, or RefreshToken)');
-    }
-
-    try {
-        let folderId = (GOOGLE_DRIVE_FOLDER_ID || '').trim();
-        if (folderId.includes('drive.google.com')) {
-            const match = folderId.match(/\/folders\/([a-zA-Z0-9_-]+)/) || folderId.match(/id=([a-zA-Z0-9_-]+)/);
-            if (match && match[1]) folderId = match[1].trim();
-        }
-
-        const oauth2Client = new google.auth.OAuth2(
-            GOOGLE_CLIENT_ID,
-            GOOGLE_CLIENT_SECRET,
-            'https://developers.google.com/oauthplayground'
-        );
-
-        oauth2Client.setCredentials({
-            refresh_token: GOOGLE_REFRESH_TOKEN
-        });
-
-        const drive = google.drive({ version: 'v3', auth: oauth2Client });
-
-        const displayName = opts?.driveFileName ?? fileName;
-        const description = opts?.driveDescription ?? `Pit scouting - ${CURRENT_EVENT_NAME}`;
-
-        console.log(`[API/upload-robot-image] OAuth Uploading: ${displayName} to folder ${folderId}`);
-
-        const response = await drive.files.create({
-            requestBody: {
-                name: displayName,
-                description,
-                parents: [folderId],
-            },
-            media: {
-                mimeType: mimeType,
-                body: fs.createReadStream(filePath),
-            },
-            fields: 'id',
-            supportsAllDrives: true
-        });
-
-        const fileId = response.data.id;
-        if (!fileId) throw new Error('No file ID returned');
-
-        // Set permissions to public
-        try {
-            await drive.permissions.create({
-                fileId: fileId,
-                requestBody: { role: 'reader', type: 'anyone' },
-                supportsAllDrives: true
-            });
-        } catch (e) { console.warn('Permission error:', e); }
-
-        return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
-    } catch (error: any) {
-        console.error('[API/upload-robot-image] OAuth error:', error.message);
-        throw error;
-    }
 }
 
 // Parse multipart form data
@@ -293,14 +217,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const hasKey = !!SUPABASE_SERVICE_ROLE_KEY;
         const keyPrefix = SUPABASE_SERVICE_ROLE_KEY ? SUPABASE_SERVICE_ROLE_KEY.substring(0, 10) : 'missing';
         const keyStartsWithJWT = SUPABASE_SERVICE_ROLE_KEY ? SUPABASE_SERVICE_ROLE_KEY.startsWith('eyJ') : false;
-        const gdrive = {
-            GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
-            GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
-            GOOGLE_REFRESH_TOKEN: !!process.env.GOOGLE_REFRESH_TOKEN,
-            GOOGLE_DRIVE_FOLDER_ID: !!process.env.GOOGLE_DRIVE_FOLDER_ID,
-        };
-        const gdriveReady = gdrive.GOOGLE_CLIENT_ID && gdrive.GOOGLE_CLIENT_SECRET && gdrive.GOOGLE_REFRESH_TOKEN && gdrive.GOOGLE_DRIVE_FOLDER_ID;
-
         return res.status(200).json({
             configured: hasUrl && hasKey,
             hasSupabaseUrl: hasUrl,
@@ -309,10 +225,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             keyIsJWTFormat: keyStartsWithJWT,
             bucket: STORAGE_BUCKET,
             supabaseUrl: SUPABASE_URL ? SUPABASE_URL.substring(0, 30) + '...' : 'missing',
-            googleDrive: gdrive,
-            googleDriveReady: gdriveReady,
-            uploadOrder: 'Google Drive first (primary), then Supabase Storage (backup)',
-            note: 'Pit scouting images upload to Google Drive when all 4 keys are set; otherwise Supabase only.'
+            uploadOrder: 'Supabase Storage',
+            note: 'Pit scouting images are stored in the public robot-images bucket.'
         });
     }
 
@@ -417,9 +331,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             pathsToCleanup.add(uploadFilePath);
         }
 
-        const driveFileName = `${CURRENT_EVENT_NAME} - Team ${teamNumber} - ${teamName}${extension}`;
-        const driveDescription = `Pit scouting - ${CURRENT_EVENT_NAME} - Team ${teamNumber} - ${teamName}`;
-
         const originalSizeBytes = fs.statSync(filePath).size;
         const optimizedSizeBytes = fs.statSync(uploadFilePath).size;
         const savedBytes = Math.max(0, originalSizeBytes - optimizedSizeBytes);
@@ -434,55 +345,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             savedPct,
         });
 
-        // Storage attempts: Google Drive primary, Supabase as backup
-        let imageUrl: string | null = null;
-        let storageMethodUsed = '';
-        let driveErrorMsg: string | null = null;
-        let supabaseErrorMsg: string | null = null;
-
-        const hasGoogleDrive = !!(
-            process.env.GOOGLE_CLIENT_ID &&
-            process.env.GOOGLE_CLIENT_SECRET &&
-            process.env.GOOGLE_REFRESH_TOKEN &&
-            process.env.GOOGLE_DRIVE_FOLDER_ID
-        );
-
-        // Attempt 1: Google Drive (primary) — display name includes event, team number, robot name
-        if (hasGoogleDrive) {
-            try {
-                devLog('[API/upload-robot-image] Attempting Google Drive upload (primary)...');
-                imageUrl = await uploadToGoogleDrive(uploadFilePath, fileName, mimeType, {
-                    driveFileName,
-                    driveDescription,
-                });
-                storageMethodUsed = 'Google Drive';
-                devLog(`[API/upload-robot-image] Google Drive upload successful: ${imageUrl}`);
-            } catch (driveError) {
-                driveErrorMsg = driveError instanceof Error ? driveError.message : 'Unknown Google Drive error';
-                console.warn('[API/upload-robot-image] Google Drive upload failed:', driveErrorMsg);
-            }
-        }
-
-        // Attempt 2: Supabase Storage (backup)
-        if (!imageUrl) {
-            try {
-                devLog('[API/upload-robot-image] Attempting Supabase Storage upload (backup)...');
-                imageUrl = await uploadToSupabaseStorage(uploadFilePath, fileName, mimeType);
-                storageMethodUsed = 'Supabase Storage';
-                devLog(`[API/upload-robot-image] Supabase upload successful: ${imageUrl}`);
-            } catch (supabaseError) {
-                supabaseErrorMsg = supabaseError instanceof Error ? supabaseError.message : 'Unknown Supabase error';
-                console.warn('[API/upload-robot-image] Supabase upload failed:', supabaseErrorMsg);
-            }
-        }
-
-        if (!imageUrl) {
-            const details = [driveErrorMsg, supabaseErrorMsg].filter(Boolean).join(' | ') || 'No storage method succeeded.';
+        let imageUrl: string;
+        try {
+            devLog('[API/upload-robot-image] Uploading to Supabase Storage...');
+            imageUrl = await uploadToSupabaseStorage(uploadFilePath, fileName, mimeType);
+        } catch (storageError) {
+            const details = storageError instanceof Error ? storageError.message : 'Unknown Supabase Storage error';
             return res.status(500).json({
-                error: 'All upload methods failed',
+                error: 'Supabase Storage upload failed',
                 details,
-                driveError: driveErrorMsg ?? undefined,
-                supabaseError: supabaseErrorMsg ?? undefined
             });
         }
 
@@ -491,8 +362,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             success: true,
             fileName: fileName,
             directViewUrl: imageUrl,
-            storageMethod: storageMethodUsed,
-            message: `Image uploaded successfully using ${storageMethodUsed}`,
+            storageMethod: 'Supabase Storage',
+            message: 'Image uploaded successfully to Supabase Storage',
         });
 
     } catch (error) {

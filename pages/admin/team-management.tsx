@@ -764,7 +764,6 @@ export default function TeamManagementPage() {
 
                   <CompetitionCsvImport
                     accessToken={session?.access_token}
-                    eventKey={eventKey}
                     eventName={eventName}
                     onImported={(importedEventKey, importedEventName, matchCount) => {
                       setEventKey(importedEventKey);

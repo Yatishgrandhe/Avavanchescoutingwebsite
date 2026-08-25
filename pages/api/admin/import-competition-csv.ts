@@ -68,6 +68,17 @@ function parseMatchNumber(value: string): number | null {
   return matched && Number(matched[1]) > 0 ? Number(matched[1]) : null;
 }
 
+function eventKeyFromName(eventName: string): string {
+  const slug = eventName
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 70);
+  return `csv-${slug || 'schedule'}`;
+}
+
 function validateCsv(csv: string): ImportedMatch[] {
   const rows = parseCsv(csv.replace(/^\uFEFF/, ''));
   if (rows.length < 2) throw new Error('Include a header row and at least one match row.');
@@ -135,13 +146,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
-  const eventKey = typeof body.eventKey === 'string' ? body.eventKey.trim() : '';
   const eventName = typeof body.eventName === 'string' ? body.eventName.trim() : '';
+  const requestedEventKey = typeof body.eventKey === 'string' ? body.eventKey.trim() : '';
   const csv = typeof body.csv === 'string' ? body.csv : '';
-  if (!eventKey || !eventName) {
-    res.status(400).json({ error: 'Event key and display name are required.' });
+  if (!eventName) {
+    res.status(400).json({ error: 'Competition name is required.' });
     return;
   }
+  const eventKey = requestedEventKey || eventKeyFromName(eventName);
   if (!/^[a-z0-9_-]{3,80}$/i.test(eventKey)) {
     res.status(400).json({ error: 'Event key may only use letters, numbers, hyphens, and underscores.' });
     return;

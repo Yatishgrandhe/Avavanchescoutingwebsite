@@ -19,20 +19,17 @@ Rules:
 
 type Props = {
   accessToken?: string;
-  eventKey: string;
   eventName: string;
   onImported: (eventKey: string, eventName: string, matchCount: number) => void;
 };
 
-export function CompetitionCsvImport({ accessToken, eventKey, eventName, onImported }: Props) {
-  const [importEventKey, setImportEventKey] = useState(eventKey);
+export function CompetitionCsvImport({ accessToken, eventName, onImported }: Props) {
   const [importEventName, setImportEventName] = useState(eventName);
   const [fileName, setFileName] = useState('');
   const [csv, setCsv] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
 
-  useEffect(() => setImportEventKey(eventKey), [eventKey]);
   useEffect(() => setImportEventName(eventName), [eventName]);
 
   const preview = useMemo(() => csv.split(/\r?\n/).filter(Boolean).slice(0, 4), [csv]);
@@ -73,7 +70,7 @@ export function CompetitionCsvImport({ accessToken, eventKey, eventName, onImpor
       const response = await fetch('/api/admin/import-competition-csv', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify({ eventKey: importEventKey, eventName: importEventName, csv }),
+        body: JSON.stringify({ eventName: importEventName, csv }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Import failed.');
@@ -96,9 +93,10 @@ export function CompetitionCsvImport({ accessToken, eventKey, eventName, onImpor
         <CardDescription className="text-sm">Import a photographed or manual schedule without clearing existing competition data.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2"><Label htmlFor="csv-event-key">Event key</Label><Input id="csv-event-key" value={importEventKey} onChange={(event) => setImportEventKey(event.target.value)} placeholder="e.g. 2026ncash" /></div>
-          <div className="space-y-2"><Label htmlFor="csv-event-name">Display name</Label><Input id="csv-event-name" value={importEventName} onChange={(event) => setImportEventName(event.target.value)} placeholder="e.g. Asheville Regional" /></div>
+        <div className="space-y-2">
+          <Label htmlFor="csv-event-name">Competition name</Label>
+          <Input id="csv-event-name" value={importEventName} onChange={(event) => setImportEventName(event.target.value)} placeholder="e.g. Asheville Regional" />
+          <p className="text-xs text-muted-foreground">Avalanche creates the schedule ID automatically from this name.</p>
         </div>
         <div className="rounded-lg border border-dashed border-border/80 bg-background/30 p-4">
           <Label htmlFor="competition-csv" className="flex cursor-pointer flex-wrap items-center justify-between gap-3 text-sm font-medium">

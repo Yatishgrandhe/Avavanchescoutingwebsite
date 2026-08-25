@@ -604,17 +604,21 @@ export default function TeamManagementPage() {
                     Competition management
                   </CardTitle>
                   <CardDescription className="text-sm">
-                    Choose an official FRC event from The Blue Alliance; teams and match schedule sync automatically about every minute while this page is open.
+                    {eventSource === 'csv'
+                      ? 'This competition uses an imported CSV schedule. It will not be replaced by automatic TBA syncs.'
+                      : 'Choose an official FRC event from The Blue Alliance; teams and match schedule sync automatically about every minute while this page is open.'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
                   <div className="rounded-xl border border-border/60 bg-muted/20 p-4 md:p-5 space-y-4">
                     <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                       <Settings className="h-4 w-4 text-primary shrink-0" aria-hidden />
-                      Active competition (TBA)
+                      Active competition ({eventSource === 'csv' ? 'CSV schedule' : 'TBA'})
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      New organizations start with no event until an admin selects one here. Students joining an org are never placed into a competition automatically.
+                      {eventSource === 'csv'
+                        ? 'This schedule was imported from CSV. To replace it with an official TBA event, choose or enter that event below and use the switch action.'
+                        : 'New organizations start with no event until an admin selects one here. Students joining an org are never placed into a competition automatically.'}
                     </p>
                     <div className="flex flex-wrap items-end gap-3">
                       <div className="space-y-2">
@@ -729,18 +733,20 @@ export default function TeamManagementPage() {
                         ) : (
                           <Check className="h-4 w-4" aria-hidden />
                         )}
-                        Save &amp; sync from TBA
+                        {eventSource === 'csv' ? 'Switch to TBA & sync' : 'Save & sync from TBA'}
                       </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => runTbaSync()}
-                        disabled={isSyncingTba || !eventKey.trim()}
-                        className="min-h-10"
-                      >
-                        {isSyncingTba ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Database className="h-4 w-4" aria-hidden />}
-                        Sync now
-                      </Button>
+                      {eventSource === 'tba' ? (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => runTbaSync()}
+                          disabled={isSyncingTba || !eventKey.trim()}
+                          className="min-h-10"
+                        >
+                          {isSyncingTba ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Database className="h-4 w-4" aria-hidden />}
+                          Sync now
+                        </Button>
+                      ) : null}
                       <Button
                         type="button"
                         variant="outline"

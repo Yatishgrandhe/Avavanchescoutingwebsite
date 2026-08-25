@@ -76,12 +76,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .from('app_config')
         .select('key, value')
         .eq('organization_id', orgId)
-        .in('key', ['current_event_key', 'current_event_source']);
+        .in('key', ['current_event_key', 'current_event_source', 'current_event_match_ids']);
       const config = new Map((cfg || []).map((row) => [row.key, row.value]));
       const activeEventKey = (config.get('current_event_key') || '').trim();
       const activeEventSource = (config.get('current_event_source') || 'tba').trim();
       const eventKey = queryEventKey || activeEventKey;
       const eventSource = eventKey === activeEventKey ? activeEventSource : 'tba';
+      let importedMatchIds: string[] = [];
+      if (eventSource === 'csv') {
+        try {
+          const parsed = JSON.parse(config.get('current_event_match_ids') || '[]');
+          importedMatchIds = Array.isArray(parsed)
+            ? parsed.filter((matchId): matchId is string => typeof matchId === 'string' && matchId.length > 0)
+            : [];
+        } catch {
+          importedMatchIds = [];
+        }
+      }
 
       if (!eventKey) {
         return res.status(200).json({
@@ -102,12 +113,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
-      const { data: matches, error: matchesError } = await supabase
+      let matchesQuery = supabase
         .from('matches')
         .select('*')
         .eq('organization_id', orgId)
-        .eq('event_key', eventKey)
-        .order('match_number', { ascending: true });
+        .eq('event_key', eventKey);
+      if (eventSource === 'csv' && importedMatchIds.length > 0) {
+        matchesQuery = matchesQuery.in('match_id', importedMatchIds);
+      }
+      const { data: matches, error: matchesError } = await matchesQuery.order('match_number', { ascending: true });
 
       if (matchesError) {
         console.error('Error fetching matches:', matchesError);

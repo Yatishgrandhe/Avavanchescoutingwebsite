@@ -112,6 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     for (const [k, v] of [
       ['current_event_key', key],
       ['current_event_name', name],
+      ['current_event_source', 'tba'],
     ] as const) {
       const { error } = await supabase.from('app_config').upsert(
         { key: k, value: v, organization_id: orgId, updated_at: now },
@@ -131,4 +132,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   res.setHeader('Allow', ['GET', 'POST', 'PUT']);
   res.status(405).end(`Method ${req.method} Not Allowed`);
 }
-

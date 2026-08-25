@@ -72,16 +72,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const queryEventKey = typeof req.query.event_key === 'string' ? req.query.event_key.trim() : '';
 
-      let eventKey = queryEventKey;
-      if (!eventKey) {
-        const { data: cfg } = await supabase
-          .from('app_config')
-          .select('value')
-          .eq('organization_id', orgId)
-          .eq('key', 'current_event_key')
-          .maybeSingle();
-        eventKey = (cfg?.value as string | undefined)?.trim() || '';
-      }
+      const { data: cfg } = await supabase
+        .from('app_config')
+        .select('key, value')
+        .eq('organization_id', orgId)
+        .in('key', ['current_event_key', 'current_event_source']);
+      const config = new Map((cfg || []).map((row) => [row.key, row.value]));
+      const activeEventKey = (config.get('current_event_key') || '').trim();
+      const activeEventSource = (config.get('current_event_source') || 'tba').trim();
+      const eventKey = queryEventKey || activeEventKey;
+      const eventSource = eventKey === activeEventKey ? activeEventSource : 'tba';
 
       if (!eventKey) {
         return res.status(200).json({
@@ -90,12 +90,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      // Auto-sync from TBA synchronously to ensure fresh data every time the page is loaded.
-      try {
-        const { syncTbaEventToOrganization } = await import('@/lib/syncTbaToOrg');
-        await syncTbaEventToOrganization(supabase, orgId, eventKey);
-      } catch (syncErr) {
-        console.warn('Auto TBA sync failed during matches fetch:', syncErr);
+      // CSV schedules are intentionally authoritative: a TBA sync could replace a photographed
+      // schedule with incomplete or differently numbered matches. Historical or TBA events retain
+      // the existing refresh behavior.
+      if (eventSource !== 'csv') {
+        try {
+          const { syncTbaEventToOrganization } = await import('@/lib/syncTbaToOrg');
+          await syncTbaEventToOrganization(supabase, orgId, eventKey);
+        } catch (syncErr) {
+          console.warn('Auto TBA sync failed during matches fetch:', syncErr);
+        }
       }
 
       const { data: matches, error: matchesError } = await supabase

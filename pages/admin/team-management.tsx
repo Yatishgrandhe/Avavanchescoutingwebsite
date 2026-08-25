@@ -55,6 +55,7 @@ import {
   isInvitePastExpiry,
 } from '@/lib/invite-config';
 import { toast } from 'sonner';
+import { CompetitionCsvImport } from '@/components/admin/CompetitionCsvImport';
 
 export default function TeamManagementPage() {
   const { user, supabase, session } = useSupabase();
@@ -751,6 +752,17 @@ export default function TeamManagementPage() {
                       <p className="text-[11px] text-muted-foreground">{tbaSyncStatus}</p>
                     )}
                   </div>
+
+                  <CompetitionCsvImport
+                    accessToken={session?.access_token}
+                    eventKey={eventKey}
+                    eventName={eventName}
+                    onImported={(importedEventKey, importedEventName, matchCount) => {
+                      setEventKey(importedEventKey);
+                      setEventName(importedEventName);
+                      setTbaSyncStatus(`Imported ${matchCount} matches from CSV. Automatic TBA sync is paused for this CSV schedule.`);
+                    }}
+                  />
 
                   <div>
                     <div className="rounded-xl border border-amber-500/35 bg-amber-500/[0.06] p-4 space-y-3">

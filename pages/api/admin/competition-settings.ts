@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-const KEYS = ['current_event_key', 'current_event_name'] as const;
+const KEYS = ['current_event_key', 'current_event_name', 'current_event_source'] as const;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -55,6 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json({
       current_event_key: (map.current_event_key || '').trim(),
       current_event_name: (map.current_event_name || '').trim(),
+      current_event_source: (map.current_event_source || 'tba').trim(),
     });
     return;
   }

@@ -82,6 +82,7 @@ export default function TeamManagementPage() {
   // Competition Settings State
   const [eventKey, setEventKey] = useState('');
   const [eventName, setEventName] = useState('');
+  const [eventSource, setEventSource] = useState<'tba' | 'csv'>('tba');
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [tbaYear, setTbaYear] = useState(() => new Date().getFullYear());
@@ -218,6 +219,7 @@ export default function TeamManagementPage() {
         const data = await res.json();
         setEventKey(data.current_event_key || '');
         setEventName(data.current_event_name || '');
+        setEventSource(data.current_event_source === 'csv' ? 'csv' : 'tba');
       }
     } catch (err) {
       console.error('Failed to fetch competition settings', err);
@@ -295,17 +297,17 @@ export default function TeamManagementPage() {
   }, [supabase]);
 
   useEffect(() => {
-    if (!isAdmin || !eventKey.trim()) return;
+    if (!isAdmin || eventSource !== 'tba' || !eventKey.trim()) return;
     runTbaSync({ silent: true });
-  }, [isAdmin, eventKey, runTbaSync]);
+  }, [isAdmin, eventKey, eventSource, runTbaSync]);
 
   useEffect(() => {
-    if (!isAdmin || !eventKey.trim()) return;
+    if (!isAdmin || eventSource !== 'tba' || !eventKey.trim()) return;
     const id = window.setInterval(() => {
       runTbaSync({ silent: true });
     }, 60_000);
     return () => window.clearInterval(id);
-  }, [isAdmin, eventKey, runTbaSync]);
+  }, [isAdmin, eventKey, eventSource, runTbaSync]);
 
   const handleSaveCompetition = async () => {
     if (!eventKey.trim() || !eventName.trim()) {
@@ -331,6 +333,7 @@ export default function TeamManagementPage() {
       });
 
       if (res.ok) {
+        setEventSource('tba');
         toast.success('Competition settings updated');
         await runTbaSync();
       } else {
@@ -760,6 +763,7 @@ export default function TeamManagementPage() {
                     onImported={(importedEventKey, importedEventName, matchCount) => {
                       setEventKey(importedEventKey);
                       setEventName(importedEventName);
+                      setEventSource('csv');
                       setTbaSyncStatus(`Imported ${matchCount} matches from CSV. Automatic TBA sync is paused for this CSV schedule.`);
                     }}
                   />

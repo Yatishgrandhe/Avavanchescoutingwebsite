@@ -40,22 +40,30 @@ export const ConnectionMonitor = () => {
     // Initial measure immediately
     measureConnection();
 
-    // Ping every 5 seconds
-    const interval = setInterval(measureConnection, 5000);
+    // This is a status indicator, not a keep-alive. A five-second poll created
+    // 720 serverless requests per hour for every open tab without improving the
+    // result a scout sees. Recheck periodically and when the browser returns to
+    // the foreground instead.
+    const interval = setInterval(measureConnection, 60_000);
 
     // Re-ping whenever a page navigation completes
     router.events.on('routeChangeComplete', measureConnection);
 
     // Browser online/offline events
     const handleOffline = () => { setStatus('offline'); setLatency(null); };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') measureConnection();
+    };
     window.addEventListener('online', measureConnection);
     window.addEventListener('offline', handleOffline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       clearInterval(interval);
       router.events.off('routeChangeComplete', measureConnection);
       window.removeEventListener('online', measureConnection);
       window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [measureConnection, router.events]);
 

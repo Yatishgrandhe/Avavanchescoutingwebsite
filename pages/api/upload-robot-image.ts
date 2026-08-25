@@ -68,6 +68,10 @@ async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeT
         .from(STORAGE_BUCKET)
         .upload(fileName, fileBuffer, {
             contentType: mimeType,
+            // Every generated name includes a timestamp, so an uploaded photo is
+            // immutable. Let the CDN and browser retain it for a year rather than
+            // repeatedly pulling the same robot photo from Storage.
+            cacheControl: '31536000',
             upsert: true, // Replace if file already exists
         });
 

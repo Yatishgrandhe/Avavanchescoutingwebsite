@@ -29,11 +29,7 @@ import { Badge } from '@/components/ui';
 import Logo from '@/components/ui/Logo';
 import GuestLayout from '@/components/layout/GuestLayout';
 import Link from 'next/link';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from '@/lib/supabase';
 
 interface Team {
     team_number: number;
@@ -116,9 +112,9 @@ export default function PublicTeamHistoryPage() {
                     .eq('competition_id', comp.id);
 
                 if (!sError && scouting && scouting.length > 0) {
-                    const scores = scouting.map(d => d.final_score || 0);
-                    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-                    const variance = scores.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / scores.length;
+                    const scores = scouting.map((d: any) => d.final_score || 0);
+                    const avg = scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
+                    const variance = scores.reduce((a: number, b: number) => a + Math.pow(b - avg, 2), 0) / scores.length;
                     const consistency = Math.max(0, 100 - (Math.sqrt(variance) / avg) * 100);
 
                     results.push({

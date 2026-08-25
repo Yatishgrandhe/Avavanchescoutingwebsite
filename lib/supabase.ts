@@ -1,13 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 import { ScoutingData } from './types';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // Create a singleton instance to avoid multiple GoTrueClient instances
 let supabaseInstance: any = null;
 
 export const getSupabaseClient = () => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase client configuration is missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
+  }
+
   if (!supabaseInstance) {
     supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
@@ -27,8 +31,16 @@ export const getSupabaseClient = () => {
   return supabaseInstance;
 };
 
-// For backward compatibility, export the client
-export const supabase = getSupabaseClient();
+// Keep the existing `supabase.from(...)` API without creating a browser client
+// while Next.js is collecting page data during a build. The real client is
+// created only when code actually calls into Supabase.
+export const supabase: any = new Proxy({}, {
+  get(_target, property) {
+    const client = getSupabaseClient() as any;
+    const value = client[property];
+    return typeof value === 'function' ? value.bind(client) : value;
+  },
+});
 
 // Database helper functions
 export const db = {

@@ -3,7 +3,7 @@ import { CheckCircle2, ClipboardCopy, FileSpreadsheet, Loader2, Sparkles, Upload
 import { toast } from 'sonner';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from '@/components/ui';
 
-const GEMINI_PROMPT = `Read these FRC match-schedule photos and return only RFC 4180 CSV text—no Markdown fences, explanation, or extra columns.
+const GEMINI_PROMPT = `Read these FRC match-schedule photos and create a downloadable file named frc_match_schedule.csv. The file must contain RFC 4180 CSV only—no Markdown fences, explanation, or extra columns.
 
 Use this exact header:
 match_number,red_1,red_2,red_3,blue_1,blue_2,blue_3
@@ -15,7 +15,8 @@ Rules:
 - Preserve the schedule exactly as shown.
 - Skip non-qualification rows such as practice, playoffs, finals, or breaks.
 - Omit any match row with an unreadable team number rather than guessing.
-- Before returning, ensure every included row has all six alliance team numbers.`;
+- Before creating the file, ensure every included row has all six alliance team numbers.
+- Attach the finished frc_match_schedule.csv file to your response. If you cannot attach files, return only the raw CSV text so I can save it as frc_match_schedule.csv.`;
 
 type Props = {
   accessToken?: string;
@@ -119,7 +120,7 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
           <ol className="list-decimal space-y-2 pl-5 text-muted-foreground">
             <li>Take clear, straight-on photos of the schedule. Include its headers and every red and blue team number.</li>
             <li>Upload the photos to Gemini, then copy and paste this prompt.</li>
-            <li>Save Gemini&apos;s response as a <code>.csv</code> file and choose it above.</li>
+            <li>Download Gemini&apos;s attached <code>frc_match_schedule.csv</code> file and choose it above. If Gemini returned text instead, save that text as a <code>.csv</code> file.</li>
           </ol>
           <div className="flex items-center justify-between gap-3"><p className="text-sm font-medium text-foreground">Gemini prompt</p><Button type="button" variant="secondary" size="sm" onClick={copyPrompt}><ClipboardCopy className="h-4 w-4" aria-hidden />Copy</Button></div>
           <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">{GEMINI_PROMPT}</pre>

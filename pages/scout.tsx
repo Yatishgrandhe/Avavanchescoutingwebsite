@@ -72,6 +72,7 @@ export default function Scout() {
   const loading = userLoading || adminLoading;
   const [currentStep, setCurrentStep] = useState<ScoutingStep>('match-details');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
     scoutName: '',
     matchData: {
@@ -130,6 +131,18 @@ export default function Scout() {
   const handleSubmit = async () => {
     if (isSubmitting) return;
 
+    const missingFields: string[] = [];
+    if (!formData.matchData.match_id) missingFields.push('match');
+    if (!formData.teamNumber) missingFields.push('team');
+    if (!formData.scoutName.trim()) missingFields.push('scout name');
+    if (!formData.alliancePosition) missingFields.push('alliance position');
+    if (formData.miscellaneous.broke === null) missingFields.push('robot broke status');
+    if (missingFields.length > 0) {
+      setSubmitError(`Complete the following before submitting: ${missingFields.join(', ')}.`);
+      return;
+    }
+
+    setSubmitError(null);
     setIsSubmitting(true);
     try {
       const autonomousPoints = calculateScore(formData.autonomous).final_score;
@@ -472,7 +485,7 @@ export default function Scout() {
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <div className="space-y-8">
+                  <div className="space-y-8">
                       <div className="text-center space-y-2">
                         <h2 className="text-2xl font-black tracking-tight text-foreground uppercase">Review & Submit</h2>
                         <div className="flex items-center justify-center gap-2">
@@ -609,6 +622,13 @@ export default function Scout() {
                           </CardContent>
                         </Card>
                       </div>
+
+                      {submitError ? (
+                        <div role="alert" className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+                          <span>{submitError}</span>
+                        </div>
+                      ) : null}
 
                       <div className="flex gap-4 pt-4">
                         <Button

@@ -97,7 +97,9 @@ export default function SyncButton() {
               await removeFromOfflineQueue(item.id);
               successCount++;
             } else {
-              console.error('Match scouting sync failed');
+              const body = await res.json().catch(() => ({}));
+              console.error('Match scouting sync failed', body);
+              toast.error(typeof body.error === 'string' ? body.error : 'A match scouting form could not be submitted.');
               failCount++;
             }
           } else if (item.type === 'pit-scouting') {

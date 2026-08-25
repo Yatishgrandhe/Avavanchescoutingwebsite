@@ -206,6 +206,10 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
                 setValidationError('Please provide a defense rating between 0 and 10.');
                 return;
               }
+              if (formData.broke === null) {
+                setValidationError('Please choose whether the robot broke before continuing.');
+                return;
+              }
 
               onNext({
                 defense_rating: defenseRating,

@@ -394,6 +394,8 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
           {/* Error Message */}
           {error && (
             <motion.div
+              id="match-details-error"
+              role="alert"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex items-center space-x-2 text-red-400 bg-red-500/20 p-3 rounded-lg border border-red-500/30"
@@ -416,8 +418,9 @@ const MatchDetailsForm: React.FC<MatchDetailsFormProps> = ({
           )}
           <Button
             onClick={handleNext}
-            disabled={!selectedMatch || !selectedTeam || !alliancePosition || !scoutName.trim()}
+            disabled={loading || matches.length === 0}
             className="ml-auto"
+            aria-describedby={error ? 'match-details-error' : undefined}
           >
             Next
           </Button>

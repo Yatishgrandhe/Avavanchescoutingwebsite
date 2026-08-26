@@ -46,6 +46,7 @@ export default function AnalysisIndex() {
   const [stats, setStats] = useState<{ teams: number; matchForms: number; pitForms: number } | null>(null);
   const [activeEventKey, setActiveEventKey] = useState<string>('');
   const [activeEventName, setActiveEventName] = useState<string>('');
+  const [activeEventSource, setActiveEventSource] = useState<'csv' | 'tba'>('tba');
 
   useEffect(() => {
     const loadStats = async () => {
@@ -53,10 +54,11 @@ export default function AnalysisIndex() {
         // Fetch organization's active event
         let currentEventKey = '';
         if (user?.organization_id) {
-          const { eventKey, eventName } = await getOrgCurrentEvent(supabase, user.organization_id);
+          const { eventKey, eventName, eventSource } = await getOrgCurrentEvent(supabase, user.organization_id);
           currentEventKey = eventKey;
           setActiveEventKey(eventKey);
           setActiveEventName(eventName);
+          setActiveEventSource(eventSource);
         }
 
         let matchCountQuery = supabase.from('scouting_data').select('id, matches!inner(event_key)', { count: 'exact', head: true });
@@ -206,7 +208,9 @@ export default function AnalysisIndex() {
                   <p className="text-2xl font-bold text-foreground tabular-nums">
                     {stats ? stats.teams : '—'}
                   </p>
-                  <p className="text-sm text-muted-foreground font-medium">Teams at event (TBA)</p>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    {activeEventSource === 'csv' ? 'Teams in imported schedule' : 'Teams at event (TBA)'}
+                  </p>
                 </div>
               </div>
             </Card>

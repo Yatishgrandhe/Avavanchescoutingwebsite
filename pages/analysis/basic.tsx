@@ -120,6 +120,7 @@ export default function BasicAnalysis() {
   const [teamSortDirection, setTeamSortDirection] = useState<'asc' | 'desc'>('desc');
   const [minMatchesFilter, setMinMatchesFilter] = useState<number | ''>('');
   const [minAvgScoreFilter, setMinAvgScoreFilter] = useState<number | ''>('');
+  const [activeEventSource, setActiveEventSource] = useState<'csv' | 'tba'>('tba');
 
   useEffect(() => {
     fetchData();
@@ -132,8 +133,9 @@ export default function BasicAnalysis() {
       // Fetch organization's active event if available
       let currentEventKey = '';
       if (user?.organization_id) {
-        const { eventKey } = await getOrgCurrentEvent(supabase, user.organization_id);
+        const { eventKey, eventSource } = await getOrgCurrentEvent(supabase, user.organization_id);
         currentEventKey = eventKey;
+        setActiveEventSource(eventSource);
       }
 
       // Load scouting data exactly like data.tsx does
@@ -505,7 +507,7 @@ export default function BasicAnalysis() {
               <CardContent>
                 <div className="text-2xl font-bold text-white">{teams.length}</div>
                 <p className="text-xs text-slate-400">
-                  Teams in database
+                  {activeEventSource === 'csv' ? 'Teams in imported schedule' : 'Teams in active event'}
                 </p>
               </CardContent>
             </Card>

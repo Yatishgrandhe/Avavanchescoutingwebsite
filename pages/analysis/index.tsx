@@ -53,9 +53,13 @@ export default function AnalysisIndex() {
       try {
         // Fetch organization's active event
         let currentEventKey = '';
+        let currentEventSource: 'csv' | 'tba' = 'tba';
+        let currentEventTeamNumbers: number[] = [];
         if (user?.organization_id) {
-          const { eventKey, eventName, eventSource } = await getOrgCurrentEvent(supabase, user.organization_id);
+          const { eventKey, eventName, eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, user.organization_id);
           currentEventKey = eventKey;
+          currentEventSource = eventSource;
+          currentEventTeamNumbers = eventTeamNumbers;
           setActiveEventKey(eventKey);
           setActiveEventName(eventName);
           setActiveEventSource(eventSource);
@@ -77,11 +81,17 @@ export default function AnalysisIndex() {
 
         const [rosterRes, matchRes, pitRes] = await Promise.all([
           currentEventKey && user?.organization_id
-            ? supabase
+            ? (() => {
+                let rosterQuery = supabase
                 .from('event_team_roster')
                 .select('*', { count: 'exact', head: true })
                 .eq('organization_id', user.organization_id)
-                .eq('event_key', currentEventKey)
+                .eq('event_key', currentEventKey);
+                if (currentEventSource === 'csv' && currentEventTeamNumbers.length > 0) {
+                  rosterQuery = rosterQuery.in('team_number', currentEventTeamNumbers);
+                }
+                return rosterQuery;
+              })()
             : Promise.resolve({ count: 0 }),
           matchCountQuery,
           pitCountQuery,

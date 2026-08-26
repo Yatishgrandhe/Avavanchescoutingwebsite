@@ -238,6 +238,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ['current_event_name', eventName],
     ['current_event_source', 'csv'],
     ['current_event_match_ids', JSON.stringify(matchRows.map((match) => match.match_id))],
+    ['current_event_team_numbers', JSON.stringify(teamNumbers)],
   ].map(([key, value]) => ({ key, value, organization_id: organizationId, updated_at: now }));
   const { error: configError } = await supabase.from('app_config').upsert(configRows, {
     onConflict: 'key,organization_id',

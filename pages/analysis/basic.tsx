@@ -132,9 +132,13 @@ export default function BasicAnalysis() {
 
       // Fetch organization's active event if available
       let currentEventKey = '';
+      let currentEventSource: 'csv' | 'tba' = 'tba';
+      let currentEventTeamNumbers: number[] = [];
       if (user?.organization_id) {
-        const { eventKey, eventSource } = await getOrgCurrentEvent(supabase, user.organization_id);
+        const { eventKey, eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, user.organization_id);
         currentEventKey = eventKey;
+        currentEventSource = eventSource;
+        currentEventTeamNumbers = eventTeamNumbers;
         setActiveEventSource(eventSource);
       }
 
@@ -173,12 +177,15 @@ export default function BasicAnalysis() {
       // the shared teams table instead of the teams actually imported for this event.
       let allTeams: any[] = [];
       if (currentEventKey && user?.organization_id) {
-        const { data: rosterRows, error: rosterError } = await supabase
+        let rosterQuery = supabase
           .from('event_team_roster')
           .select('team_number, team_name')
           .eq('organization_id', user.organization_id)
-          .eq('event_key', currentEventKey)
-          .order('team_number');
+          .eq('event_key', currentEventKey);
+        if (currentEventSource === 'csv' && currentEventTeamNumbers.length > 0) {
+          rosterQuery = rosterQuery.in('team_number', currentEventTeamNumbers);
+        }
+        const { data: rosterRows, error: rosterError } = await rosterQuery.order('team_number');
 
         if (rosterError) {
           console.error('Error fetching event roster:', rosterError);

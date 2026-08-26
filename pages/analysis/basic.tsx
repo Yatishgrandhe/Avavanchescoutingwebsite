@@ -166,19 +166,60 @@ export default function BasicAnalysis() {
         return new Date(bTime).getTime() - new Date(aTime).getTime();
       });
 
-      // Load teams exactly like data.tsx does
-      const { data: teamsResult, error: teamsError } = await supabase
-        .from('teams')
-        .select('*')
-        .not('team_name', 'ilike', '%avalanche%')
-        .order('team_number');
+      // The event roster is the source of truth for an imported CSV schedule.
+      // Without this scope, the analysis page showed every team ever present in
+      // the shared teams table instead of the teams actually imported for this event.
+      let allTeams: any[] = [];
+      if (currentEventKey && user?.organization_id) {
+        const { data: rosterRows, error: rosterError } = await supabase
+          .from('event_team_roster')
+          .select('team_number, team_name')
+          .eq('organization_id', user.organization_id)
+          .eq('event_key', currentEventKey)
+          .order('team_number');
 
-      if (teamsError) {
-        console.error('Error fetching teams:', teamsError);
-        throw teamsError;
+        if (rosterError) {
+          console.error('Error fetching event roster:', rosterError);
+          throw rosterError;
+        }
+
+        const roster = rosterRows || [];
+        const rosterNumbers = Array.from(new Set(roster.map((team: any) => team.team_number)));
+        if (rosterNumbers.length > 0) {
+          const { data: teamsResult, error: teamsError } = await supabase
+            .from('teams')
+            .select('*')
+            .in('team_number', rosterNumbers)
+            .order('team_number');
+
+          if (teamsError) {
+            console.error('Error fetching roster teams:', teamsError);
+            throw teamsError;
+          }
+
+          const teamsByNumber = new Map((teamsResult || []).map((team: any) => [team.team_number, team]));
+          allTeams = roster.map((rosterTeam: any) => {
+            const resolvedTeam: any = teamsByNumber.get(rosterTeam.team_number);
+            return {
+              ...resolvedTeam,
+              team_number: rosterTeam.team_number,
+              team_name: resolvedTeam?.team_name || rosterTeam.team_name || `Team ${rosterTeam.team_number}`,
+            };
+          });
+        }
+      } else {
+        const { data: teamsResult, error: teamsError } = await supabase
+          .from('teams')
+          .select('*')
+          .not('team_name', 'ilike', '%avalanche%')
+          .order('team_number');
+
+        if (teamsError) {
+          console.error('Error fetching teams:', teamsError);
+          throw teamsError;
+        }
+        allTeams = teamsResult || [];
       }
-
-      const allTeams = teamsResult || [];
 
       // Set matches data for matches tab
       const teamsMap = new Map();

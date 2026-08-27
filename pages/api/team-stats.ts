@@ -27,7 +27,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'GET') {
     try {
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
-      const { team_number } = req.query;
+      const { team_number, organization_id: queryOrgId } = req.query;
+
+      // Resolve CSV event scope if org provided
+      let csvTeamNumbers: number[] = [];
+      if (queryOrgId) {
+        try {
+          const { getOrgCurrentEvent } = await import('@/lib/org-app-config');
+          const { eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, queryOrgId as string);
+          if (eventSource === 'csv') csvTeamNumbers = eventTeamNumbers;
+        } catch {
+          // Non-critical
+        }
+      }
 
       if (team_number) {
         // Get stats for specific team
@@ -61,11 +73,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         res.status(200).json(enrichedStats);
       } else {
-        // Get stats for all teams
-        const { data: stats, error } = await supabase
+        // Get stats for all teams, scoped to CSV event teams when active
+        let statsQuery = supabase
           .from('team_statistics')
           .select('*')
           .order('avg_final_score', { ascending: false });
+
+        if (csvTeamNumbers.length > 0) {
+          statsQuery = statsQuery.in('team_number', csvTeamNumbers);
+        }
+
+        const { data: stats, error } = await statsQuery;
 
         if (error) {
           console.error('Error fetching team stats:', error);

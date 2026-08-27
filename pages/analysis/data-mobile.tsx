@@ -81,11 +81,22 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
         return new Date(bTime).getTime() - new Date(aTime).getTime();
       });
 
-      // Load teams
-      const { data: teamsResult, error: teamsError } = await supabase
+      // Load teams, scoped to CSV event teams when active
+      let teamsQuery = supabase
         .from('teams')
         .select('*')
         .order('team_number');
+
+      try {
+        const { eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, user?.organization_id || '');
+        if (eventSource === 'csv' && eventTeamNumbers.length > 0) {
+          teamsQuery = teamsQuery.in('team_number', eventTeamNumbers);
+        }
+      } catch {
+        // Non-critical; show all teams
+      }
+
+      const { data: teamsResult, error: teamsError } = await teamsQuery;
 
       if (teamsError) throw teamsError;
 

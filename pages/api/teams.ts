@@ -36,6 +36,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { team_number } = req.query;
 
+    // Resolve CSV event scope
+    let csvTeamNumbers: number[] = [];
+    try {
+      const { getOrgCurrentEvent } = await import('@/lib/org-app-config');
+      const { eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, user.organization_id);
+      if (eventSource === 'csv') csvTeamNumbers = eventTeamNumbers;
+    } catch {
+      // Non-critical
+    }
+
     if (team_number) {
       // Get specific team
       const { data: team, error } = await supabase
@@ -52,12 +62,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       res.status(200).json(team);
     } else {
-      // Get all teams for org
-      const { data: teams, error } = await supabase
+      // Get all teams for org, scoped to CSV event teams when active
+      let teamsQuery = supabase
         .from('teams')
         .select('*')
         .eq('organization_id', user.organization_id)
         .order('team_number');
+
+      if (csvTeamNumbers.length > 0) {
+        teamsQuery = teamsQuery.in('team_number', csvTeamNumbers);
+      }
+
+      const { data: teams, error } = await teamsQuery;
 
       if (error) {
         console.error('Error fetching teams:', error);

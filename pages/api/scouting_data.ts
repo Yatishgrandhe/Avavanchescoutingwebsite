@@ -343,14 +343,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           organization_id: filterOrgId 
         } = req.query;
 
+        // Resolve the user's org and active event for CSV scoping
+        const resolvedOrgId = (filterOrgId as string) || profile?.organization_id || '';
+        let csvMatchIds: string[] = [];
+        if (resolvedOrgId) {
+          try {
+            const { getOrgCurrentEvent } = await import('@/lib/org-app-config');
+            const { eventSource, eventMatchIds } = await getOrgCurrentEvent(supabase, resolvedOrgId);
+            if (eventSource === 'csv' && eventMatchIds.length > 0) {
+              csvMatchIds = eventMatchIds;
+            }
+          } catch {
+            // Non-critical; fall through without CSV scoping
+          }
+        }
+
         if (myMatchIdsParam === '1' || myMatchIdsParam === 'true') {
           const scoutName = typeof scoutNameParam === 'string' ? scoutNameParam.trim() : '';
-          if (scoutName && profile?.organization_id) {
-            const { data: rows, error: fetchErr } = await supabase
+          if (scoutName && resolvedOrgId) {
+            let idQuery = supabase
               .from('scouting_data')
               .select('match_id')
-              .eq('organization_id', profile.organization_id)
+              .eq('organization_id', resolvedOrgId)
               .eq('submitted_by_name', scoutName);
+            // Scope to CSV match IDs when event source is CSV
+            if (csvMatchIds.length > 0) {
+              idQuery = idQuery.in('match_id', csvMatchIds);
+            }
+            const { data: rows, error: fetchErr } = await idQuery;
             if (fetchErr) {
               return res.status(200).json({ match_ids: [] });
             }
@@ -366,6 +386,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (team_number) query = query.eq('team_number', parseInt(team_number as string, 10));
         if (alliance_color) query = query.eq('alliance_color', alliance_color as string);
         if (filterOrgId) query = query.eq('organization_id', filterOrgId as string);
+
+        // Scope to CSV match IDs when event source is CSV (prevents leaking other event data)
+        if (csvMatchIds.length > 0) {
+          query = query.in('match_id', csvMatchIds);
+        }
 
         const { data, error: fetchError } = await query;
 

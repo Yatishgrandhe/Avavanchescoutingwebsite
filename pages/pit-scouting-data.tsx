@@ -51,6 +51,7 @@ import {
 } from '@/lib/pit-drive-train';
 import { normalizePitPhotoUrls, mergePitPhotoUrlLists } from '@/lib/pit-images';
 import { PitPhotoImg } from '@/components/pit/PitPhotoImg';
+import { getOrgCurrentEvent } from '@/lib/org-app-config';
 
 export interface PitScoutingData {
   id: string;
@@ -199,7 +200,17 @@ export default function PitScoutingData() {
           throw new Error(`Failed to load pit scouting data: ${pitScoutingResult.error.message}`);
         }
 
-        const pitScoutingData = pitScoutingResult.data;
+        // Filter to CSV event teams only when active
+        let pitScoutingData = pitScoutingResult.data;
+        try {
+          const { eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, user.organization_id);
+          if (eventSource === 'csv' && eventTeamNumbers.length > 0) {
+            const csvTeamSet = new Set(eventTeamNumbers);
+            pitScoutingData = (pitScoutingData || []).filter((row: any) => csvTeamSet.has(row.team_number));
+          }
+        } catch {
+          // Non-critical; fall through without CSV filtering
+        }
 
         const transformedData: PitScoutingData[] = (pitScoutingData || []).map((item: any) => {
           const photosNorm = normalizePitPhotoUrls({
@@ -354,7 +365,19 @@ export default function PitScoutingData() {
         throw new Error(`Failed to load pit scouting data: ${error.message}`);
       }
 
-      const transformedData: PitScoutingData[] = (pitScoutingData || []).map((item: any) => {
+      // Filter to CSV event teams only when active
+      let filteredPitData = pitScoutingData;
+      try {
+        const { eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, user.organization_id);
+        if (eventSource === 'csv' && eventTeamNumbers.length > 0) {
+          const csvTeamSet = new Set(eventTeamNumbers);
+          filteredPitData = (filteredPitData || []).filter((row: any) => csvTeamSet.has(row.team_number));
+        }
+      } catch {
+        // Non-critical
+      }
+
+      const transformedData: PitScoutingData[] = (filteredPitData || []).map((item: any) => {
         const photosNorm = normalizePitPhotoUrls({
           robot_image_url: item.robot_image_url,
           photos: item.photos,

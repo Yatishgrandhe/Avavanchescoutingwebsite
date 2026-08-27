@@ -311,13 +311,33 @@ export default function Home() {
         return;
       }
 
+      // Resolve CSV match IDs and team numbers for scoping
+      let csvMatchIds: string[] = [];
+      let csvTeamNumbers: number[] = [];
+      if (user?.organization_id) {
+        try {
+          const { eventSource, eventMatchIds, eventTeamNumbers } = await getOrgCurrentEvent(supabase, user.organization_id);
+          if (eventSource === 'csv') {
+            csvMatchIds = eventMatchIds;
+            csvTeamNumbers = eventTeamNumbers;
+          }
+        } catch {
+          // Non-critical
+        }
+      }
+
+      let pitQuery = supabase
+        .from('pit_scouting_data')
+        .select('id, team_number, robot_name, created_at')
+        .order('created_at', { ascending: false })
+        .limit(3);
+      if (csvTeamNumbers.length > 0) {
+        pitQuery = pitQuery.in('team_number', csvTeamNumbers);
+      }
+
       const [enrichedScouting, pitRes] = await Promise.all([
-        fetchRecentMatchScoutingForActivity(supabase, { orgId: user?.organization_id, limit: 5 }),
-        supabase
-          .from('pit_scouting_data')
-          .select('id, team_number, robot_name, created_at')
-          .order('created_at', { ascending: false })
-          .limit(3),
+        fetchRecentMatchScoutingForActivity(supabase, { orgId: user?.organization_id, limit: 5, csvMatchIds: csvMatchIds.length > 0 ? csvMatchIds : undefined }),
+        pitQuery,
       ]);
 
       const activities: RecentActivity[] = [];

@@ -135,11 +135,25 @@ export default function AdvancedAnalysis() {
     const loadTeams = async () => {
       try {
         setTeamsLoading(true);
-        const { data: teams, error } = await supabase
+        let teamsQuery = supabase
           .from('teams')
           .select('team_number, team_name')
           .not('team_name', 'ilike', '%avalanche%')
           .order('team_number');
+
+        // Filter by CSV event teams when active
+        if (user?.organization_id) {
+          try {
+            const { eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, user.organization_id);
+            if (eventSource === 'csv' && eventTeamNumbers.length > 0) {
+              teamsQuery = teamsQuery.in('team_number', eventTeamNumbers);
+            }
+          } catch {
+            // Non-critical; show all teams
+          }
+        }
+
+        const { data: teams, error } = await teamsQuery;
 
         if (error) {
           console.error('Error loading teams:', error);

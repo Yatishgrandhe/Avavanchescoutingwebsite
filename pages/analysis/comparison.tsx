@@ -113,10 +113,22 @@ export default function TeamComparison() {
     const loadTeams = async () => {
       try {
         setTeamsLoading(true);
-        const { data: teams, error } = await supabase
+        let teamsQuery = supabase
           .from('teams')
           .select('team_number, team_name')
           .order('team_number');
+
+        // Filter by CSV event teams when active
+        try {
+          const { eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, user.organization_id || '');
+          if (eventSource === 'csv' && eventTeamNumbers.length > 0) {
+            teamsQuery = teamsQuery.in('team_number', eventTeamNumbers);
+          }
+        } catch {
+          // Non-critical; show all teams
+        }
+
+        const { data: teams, error } = await teamsQuery;
         if (error) {
           console.error('Error loading teams:', error);
           setError('Failed to load teams');

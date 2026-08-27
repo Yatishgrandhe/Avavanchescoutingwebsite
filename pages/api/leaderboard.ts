@@ -50,10 +50,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const orgId = profile.organization_id;
 
+    // Resolve CSV event scope
+    let csvMatchIds: string[] = [];
+    let csvTeamNumbers: number[] = [];
+    try {
+      const { getOrgCurrentEvent } = await import('@/lib/org-app-config');
+      const { eventSource, eventMatchIds, eventTeamNumbers } = await getOrgCurrentEvent(supabase, orgId);
+      if (eventSource === 'csv') {
+        csvMatchIds = eventMatchIds;
+        csvTeamNumbers = eventTeamNumbers;
+      }
+    } catch {
+      // Non-critical; fall through without CSV scoping
+    }
+
     // Fetch data from all sources (pit needs team_number to count unique teams = one form per team)
+    let matchQuery = supabase.from('scouting_data').select('submitted_by_name').eq('organization_id', orgId);
+    let pitQuery = supabase.from('pit_scouting_data').select('submitted_by_name, team_number').eq('organization_id', orgId);
+
+    // Scope to CSV event data when active
+    if (csvMatchIds.length > 0) {
+      matchQuery = matchQuery.in('match_id', csvMatchIds);
+    }
+    if (csvTeamNumbers.length > 0) {
+      pitQuery = pitQuery.in('team_number', csvTeamNumbers);
+    }
+
     const [matchRes, pitRes, namesRes] = await Promise.all([
-      supabase.from('scouting_data').select('submitted_by_name').eq('organization_id', orgId),
-      supabase.from('pit_scouting_data').select('submitted_by_name, team_number').eq('organization_id', orgId),
+      matchQuery,
+      pitQuery,
       supabase.from('scout_names').select('name').eq('organization_id', orgId).order('sort_order', { ascending: true }).order('name', { ascending: true }),
     ]);
 

@@ -1,14 +1,31 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
     try {
-      const { teamNumber } = req.query;
+      const { teamNumber, organization_id: queryOrgId } = req.query;
       const teamNum = parseInt(teamNumber as string);
 
       if (!teamNum) {
         return res.status(400).json({ error: 'Invalid team number' });
+      }
+
+      // Resolve CSV event scope if org provided
+      let csvMatchIds: string[] = [];
+      if (queryOrgId && supabaseServiceKey) {
+        try {
+          const admin = createClient(supabaseUrl, supabaseServiceKey);
+          const { getOrgCurrentEvent } = await import('@/lib/org-app-config');
+          const { eventSource, eventMatchIds } = await getOrgCurrentEvent(admin, queryOrgId as string);
+          if (eventSource === 'csv') csvMatchIds = eventMatchIds;
+        } catch {
+          // Non-critical
+        }
       }
 
       // Get team information (allow missing for past-only teams)
@@ -23,12 +40,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: 'Failed to fetch team' });
       }
 
-      // Get all scouting data for this team
-      const { data: scoutingData, error: scoutingError } = await supabase
+      // Get all scouting data for this team, scoped to CSV match IDs when active
+      let scoutingQuery = supabase
         .from('scouting_data')
         .select('*')
         .eq('team_number', teamNum)
         .order('created_at', { ascending: false });
+
+      if (csvMatchIds.length > 0) {
+        scoutingQuery = scoutingQuery.in('match_id', csvMatchIds);
+      }
+
+      const { data: scoutingData, error: scoutingError } = await scoutingQuery;
 
       if (scoutingError) {
         console.error('Error fetching scouting data:', scoutingError);

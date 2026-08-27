@@ -17,7 +17,7 @@ export type RecentScoutingActivityRow = {
 
 export async function fetchRecentMatchScoutingForActivity(
   supabase: SupabaseClient,
-  options: { orgId?: string | null; limit?: number }
+  options: { orgId?: string | null; limit?: number; csvMatchIds?: string[] }
 ): Promise<RecentScoutingActivityRow[]> {
   const limit = options.limit ?? 5;
   let q = supabase
@@ -27,6 +27,9 @@ export async function fetchRecentMatchScoutingForActivity(
     .limit(limit);
   if (options.orgId) {
     q = q.eq('organization_id', options.orgId);
+  }
+  if (options.csvMatchIds && options.csvMatchIds.length > 0) {
+    q = q.in('match_id', options.csvMatchIds);
   }
 
   const { data: scoutRows, error } = await q;

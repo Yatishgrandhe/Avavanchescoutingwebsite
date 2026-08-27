@@ -53,11 +53,12 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
   const csvStats = useMemo(() => {
     if (!csv) return null;
     const lines = csv.split(/\r?\n/).filter(Boolean);
-    const headerLine = lines[0] || '';
-    const hasTeamSection = lines.some((l) => /^team[_\s]?number/i.test(l.trim()));
-    const matchCount = lines.filter((l) => /^\d+,/.test(l.trim())).length;
+    const teamSectionIdx = lines.findIndex((l) => /^team[_\s]?number/i.test(l.trim()));
+    const hasTeamSection = teamSectionIdx >= 0;
+    const matchLines = hasTeamSection ? lines.slice(0, teamSectionIdx) : lines;
+    const matchCount = matchLines.filter((l) => /^\d+,/.test(l.trim())).length;
     const teamNameCount = hasTeamSection
-      ? lines.slice(lines.findIndex((l) => /^team[_\s]?number/i.test(l.trim())) + 1).filter((l) => /^\d+,/.test(l.trim())).length
+      ? lines.slice(teamSectionIdx + 1).filter((l) => /^\d+,/.test(l.trim())).length
       : 0;
     return { matchCount, teamNameCount, hasTeamSection, totalLines: lines.length };
   }, [csv]);

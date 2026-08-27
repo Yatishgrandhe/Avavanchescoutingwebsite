@@ -146,6 +146,24 @@ export default function SyncButton() {
             if (!error) {
               await removeFromOfflineQueue(item.id);
               successCount++;
+
+              // Register the scouted team into the active competition (idempotent), so
+              // manually-scouted teams not on the original schedule merge into the event.
+              try {
+                const teamNum = Number(submissionData?.team_number);
+                if (Number.isFinite(teamNum) && teamNum > 0 && session?.access_token) {
+                  await fetch('/api/pit-scouting/register-team', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${session.access_token}`,
+                    },
+                    body: JSON.stringify({ team_number: teamNum }),
+                  });
+                }
+              } catch {
+                // registration is best-effort; ignore failures here
+              }
             } else {
               console.error('Pit scouting sync failed', error);
               failCount++;

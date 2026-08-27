@@ -620,10 +620,12 @@ export default function PitScouting() {
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-xl flex items-center gap-3 text-sm"
+              className="bg-amber-500/10 border border-amber-500/25 text-amber-100 p-4 rounded-xl flex items-start gap-3 text-sm"
             >
-              <AlertCircle size={18} />
-              {teamsError}
+              <AlertCircle size={18} className="text-amber-400 shrink-0 mt-0.5" />
+              <span>
+                {teamsError} You can still type a team number below and scout it manually — the team will be added to your competition when submitted.
+              </span>
             </motion.div>
           )}
           {submitSuccess && (
@@ -688,33 +690,40 @@ export default function PitScouting() {
 
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Team Number <span className="text-red-400">*</span></label>
-                        {loadingTeams ? (
-                          <div className="glass-input h-10 flex items-center px-3 text-muted-foreground text-sm gap-2">
-                            <Loader2 size={14} className="animate-spin" /> Loading...
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={formData.teamNumber ? formData.teamNumber.toString() : ''}
+                          onChange={(e) => {
+                            const num = parseInt(e.target.value.replace(/[^\d]/g, ''), 10);
+                            setFormData(prev => ({ ...prev, teamNumber: Number.isFinite(num) ? num : 0 }));
+                          }}
+                          placeholder="Enter team number (e.g. 1234)"
+                          className="glass-input border-white/10 placeholder:text-muted-foreground/30"
+                          disabled={loadingTeams && teams.length === 0}
+                        />
+                        {teams.length > 0 && (
+                          <div className="relative">
+                            <select
+                              value={teams.some((t) => t.team_number === formData.teamNumber) ? formData.teamNumber.toString() : ''}
+                              onChange={(e) => setFormData(prev => ({ ...prev, teamNumber: parseInt(e.target.value) || 0 }))}
+                              className="glass-input w-full border-white/10 px-3 py-2 text-sm rounded-lg bg-background/40 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                              aria-label="Quick pick from event roster"
+                            >
+                              <option value="">— Or pick from event roster —</option>
+                              {teams.map((team) => (
+                                <option key={team.team_number} value={team.team_number.toString()}>
+                                  {team.team_number} — {team.team_name || 'Team'}
+                                </option>
+                              ))}
+                            </select>
                           </div>
-                        ) : (
-                          <Select
-                            value={formData.teamNumber ? formData.teamNumber.toString() : ''}
-                            onValueChange={(value) => setFormData(prev => ({ ...prev, teamNumber: parseInt(value) || 0 }))}
-                          >
-                            <SelectTrigger className="glass-input w-full border-white/10">
-                              <SelectValue placeholder="Select Team" />
-                            </SelectTrigger>
-                            <SelectContent className="glass border-white/10 max-h-[300px]">
-                              {teams.length === 0 ? (
-                                <SelectItem value="no-teams" disabled>
-                                  {teamsError || 'No teams for your event — sync TBA in Team Management'}
-                                </SelectItem>
-                              ) : (
-                                teams.map((team) => (
-                                  <SelectItem key={team.team_number} value={team.team_number.toString()} className="focus:bg-white/10">
-                                    <span>{team.team_number}</span>
-                                    {team.team_name ? <span className="text-muted-foreground ml-2">— {team.team_name}</span> : null}
-                                  </SelectItem>
-                                ))
-                              )}
-                            </SelectContent>
-                          </Select>
+                        )}
+                        {!loadingTeams && teams.length === 0 && !teamsError && (
+                          <p className="text-xs text-muted-foreground">
+                            No teams loaded yet — you can still type a team number and scout it.
+                          </p>
                         )}
                       </div>
 

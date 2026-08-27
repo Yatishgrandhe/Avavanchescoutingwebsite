@@ -519,10 +519,10 @@ export default function PitScoutingMobile() {
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-destructive/20 text-destructive p-3 rounded-md text-sm text-center flex items-center justify-center"
+                      className="bg-amber-500/15 text-amber-200 p-3 rounded-md text-sm text-center flex items-center justify-center"
                     >
-                      <AlertCircle className="h-5 w-5 mr-2" />
-                      {teamsError}
+                      <AlertCircle className="h-5 w-5 mr-2 shrink-0" />
+                      <span>{teamsError} You can still type a team number below — the team will be added to your competition when submitted.</span>
                     </motion.div>
                   )}
 
@@ -542,31 +542,39 @@ export default function PitScoutingMobile() {
                       <label className="block text-sm font-medium mb-2">
                         Team Number <span className="text-destructive">*</span>
                       </label>
-                      {loadingTeams ? (
-                        <div className="flex items-center justify-center h-10 px-3 py-2 rounded-md border border-input bg-background">
-                          <Loader2 className="h-4 w-4 animate-spin mr-2 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Loading teams...</span>
-                        </div>
-                      ) : (
-                        <Select 
-                          value={formData.teamNumber ? formData.teamNumber.toString() : ''} 
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="Enter team number (e.g. 1234)"
+                        value={formData.teamNumber ? formData.teamNumber.toString() : ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const num = parseInt(e.target.value.replace(/[^\d]/g, ''), 10);
+                          setFormData(prev => ({ ...prev, teamNumber: Number.isFinite(num) ? num : 0 }));
+                        }}
+                        disabled={loadingTeams && teams.length === 0}
+                      />
+                      {teams.length > 0 && (
+                        <Select
+                          value={teams.some((t) => t.team_number === formData.teamNumber) ? formData.teamNumber.toString() : ''}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, teamNumber: parseInt(value) || 0 }))}
                         >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select a team" />
+                          <SelectTrigger className="w-full mt-2">
+                            <SelectValue placeholder="Or pick from event roster" />
                           </SelectTrigger>
                           <SelectContent>
-                            {teams.length === 0 ? (
-                              <SelectItem value="no-teams" disabled>No teams found in database</SelectItem>
-                            ) : (
-                              teams.map((team) => (
-                                <SelectItem key={team.team_number} value={team.team_number.toString()}>
-                                  {team.team_number} — {team.team_name || 'Team ' + team.team_number}
-                                </SelectItem>
-                              ))
-                            )}
+                            {teams.map((team) => (
+                              <SelectItem key={team.team_number} value={team.team_number.toString()}>
+                                {team.team_number} — {team.team_name || 'Team ' + team.team_number}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
+                      )}
+                      {!loadingTeams && teams.length === 0 && !teamsError && (
+                        <p className="text-xs text-muted-foreground mt-1.5">
+                          No teams loaded yet — you can still type a team number and scout it.
+                        </p>
                       )}
                     </div>
                     <div>

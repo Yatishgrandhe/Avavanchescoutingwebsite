@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, ClipboardCopy, Download, FileSpreadsheet, Loader2, Sparkles, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from '@/components/ui';
@@ -43,6 +43,8 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
   const [csv, setCsv] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const promptRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => setImportEventName(eventName), [eventName]);
 
@@ -63,10 +65,35 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
 
   async function copyPrompt() {
     try {
-      await navigator.clipboard.writeText(GEMINI_PROMPT);
-      toast.success('Gemini prompt copied');
+      // Try modern clipboard API first
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(GEMINI_PROMPT);
+      } else {
+        // Fallback: select the pre element's text content
+        const pre = promptRef.current;
+        if (!pre) throw new Error('No element');
+        const range = document.createRange();
+        range.selectNodeContents(pre);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+        document.execCommand('copy');
+        sel?.removeAllRanges();
+      }
+      setCopied(true);
+      toast.success('Gemini prompt copied to clipboard');
+      setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Could not copy the prompt. Select and copy it manually.');
+      // Last resort: select text so user can Cmd+C
+      const pre = promptRef.current;
+      if (pre) {
+        const range = document.createRange();
+        range.selectNodeContents(pre);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      }
+      toast.info('Text selected — press Cmd+C / Ctrl+C to copy');
     }
   }
 
@@ -171,8 +198,8 @@ team_number,team_name
             <li>Gemini will also research team names from its FRC knowledge. These are included in the CSV after the match rows and will automatically populate team names in the app.</li>
           </ol>
           <p className="text-xs text-muted-foreground">Alternatively, download the template CSV, fill in your schedule manually, and upload it.</p>
-          <div className="flex items-center justify-between gap-3"><p className="text-sm font-medium text-foreground">Gemini prompt</p><Button type="button" variant="secondary" size="sm" onClick={copyPrompt}><ClipboardCopy className="h-4 w-4" aria-hidden />Copy</Button></div>
-          <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">{GEMINI_PROMPT}</pre>
+          <div className="flex items-center justify-between gap-3"><p className="text-sm font-medium text-foreground">Gemini prompt</p><Button type="button" variant="secondary" size="sm" onClick={copyPrompt}>{copied ? <><CheckCircle2 className="h-4 w-4" aria-hidden />Copied!</> : <><ClipboardCopy className="h-4 w-4" aria-hidden />Copy</>}</Button></div>
+          <pre ref={promptRef} className="max-h-64 overflow-auto whitespace-pre-wrap rounded-md bg-muted/50 p-3 text-xs text-muted-foreground select-all">{GEMINI_PROMPT}</pre>
           <p className="flex items-start gap-2 text-xs text-muted-foreground"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />Expected headers: <code>match_number,red_1,...,blue_3</code> followed by a blank line and <code>team_number,team_name</code></p>
         </div>}
       </CardContent>

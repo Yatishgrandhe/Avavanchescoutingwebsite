@@ -11,7 +11,7 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/Button';
 import { BallTrackingPhase, getBallChoiceScoreFromRange, RunRecord } from '@/lib/types';
-import { Award, Play, Square, Clock } from 'lucide-react';
+import { Award, Play, Square, Clock, AlertCircle } from 'lucide-react';
 import { formatDurationSec } from '@/lib/utils';
 import StopwatchBallTracking from './StopwatchBallTracking';
 
@@ -38,6 +38,8 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
   const [autoClimbElapsedMs, setAutoClimbElapsedMs] = useState(0);
   const [showAutoClimbPopup, setShowAutoClimbPopup] = useState(false);
   const [pendingAutoClimbSec, setPendingAutoClimbSec] = useState(0);
+  const [validationWarning, setValidationWarning] = useState<string | null>(null);
+  const [pendingRuns, setPendingRuns] = useState<RunRecord[]>([]);
 
   useEffect(() => {
     if (!autoClimbTimerRunning) return;
@@ -78,6 +80,38 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
   }, []);
 
   const handleComplete = (runs: RunRecord[]) => {
+    const hasClimbL1 = autoTowerLevel1;
+    const hasClimbTime = autoClimbSec !== '' && !Number.isNaN(Number(autoClimbSec)) && Number(autoClimbSec) > 0;
+    const hasRuns = runs && runs.length > 0;
+
+    if (!hasRuns && !hasClimbL1 && !hasClimbTime) {
+      setPendingRuns(runs || []);
+      setValidationWarning('No auto data recorded. Consider adding at least one fuel run or climb data before continuing.');
+      return;
+    }
+
+    if (!hasRuns) {
+      setPendingRuns(runs || []);
+      setValidationWarning('No auto fuel runs recorded. The robot may have scored 0, but double-check before continuing.');
+      return;
+    }
+
+    setValidationWarning(null);
+    const totalFuel = (runs || []).reduce(
+      (sum, r) => sum + getBallChoiceScoreFromRange(r.ball_choice),
+      0
+    );
+    onNext({
+      runs,
+      auto_fuel_active_hub: Math.round(totalFuel * 10) / 10,
+      auto_tower_level1: autoTowerLevel1,
+      auto_climb_sec: autoClimbSec !== '' && !Number.isNaN(Number(autoClimbSec)) ? Math.round(Number(autoClimbSec) * 1000) / 1000 : undefined,
+    });
+  };
+
+  const handleForceContinue = () => {
+    const runs = pendingRuns;
+    setValidationWarning(null);
     const totalFuel = (runs || []).reduce(
       (sum, r) => sum + getBallChoiceScoreFromRange(r.ball_choice),
       0
@@ -99,6 +133,39 @@ const AutonomousForm: React.FC<AutonomousFormProps> = ({
     >
       <Card className="bg-card border-border">
         <CardContent className="space-y-4 p-4 sm:p-6">
+          {/* Validation Warning */}
+          {validationWarning && (
+            <motion.div
+              role="alert"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4"
+            >
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-amber-500">Missing Auto Data</p>
+                <p className="text-sm text-amber-400/80 mt-1">{validationWarning}</p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="border-amber-500/30 text-amber-500 hover:bg-amber-500/10 shrink-0"
+                onClick={handleForceContinue}
+              >
+                Continue anyway
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="text-amber-500/60 hover:text-amber-500 shrink-0"
+                onClick={() => setValidationWarning(null)}
+              >
+                Dismiss
+              </Button>
+            </motion.div>
+          )}
           {/* Auto climb: L1 + CLANK speed */}
           <div className={`rounded-xl p-3 sm:p-4 border ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-muted/30 border-border'}`}>
             <div className="flex items-center space-x-2 pb-2 border-b border-border/50">

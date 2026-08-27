@@ -238,15 +238,19 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const urlEventKey = urlParams.get('event_key');
 
+      let targetEventSource: 'csv' | 'tba' = 'tba';
+      let targetEventTeamNumbers: number[] = [];
       if (urlEventKey) {
         targetEventKey = urlEventKey;
         // Try to find name in URL or leave blank
         targetEventName = urlParams.get('event_name') || urlEventKey;
       } else if (user?.organization_id) {
         // 2. No URL param, use organization's current_event_key from app_config
-        const { eventKey, eventName } = await getOrgCurrentEvent(supabase, user.organization_id);
+        const { eventKey, eventName, eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, user.organization_id);
         targetEventKey = eventKey;
         targetEventName = eventName;
+        targetEventSource = eventSource;
+        targetEventTeamNumbers = eventTeamNumbers;
       }
 
       setActiveEventKey(targetEventKey);
@@ -293,19 +297,33 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
       // Load ALL teams (including Avalanche) for team name lookups and Team Stats calculation
       // Team Stats needs all teams that have scouting data, regardless of team list filter
-      const { data: allTeamsResult, error: allTeamsError } = await supabase
+      let allTeamsQuery = supabase
         .from('teams')
         .select('*')
         .order('team_number');
+
+      // For CSV events, restrict to only the teams from the imported CSV
+      if (targetEventSource === 'csv' && targetEventTeamNumbers.length > 0) {
+        allTeamsQuery = allTeamsQuery.in('team_number', targetEventTeamNumbers);
+      }
+
+      const { data: allTeamsResult, error: allTeamsError } = await allTeamsQuery;
 
       if (allTeamsError) throw allTeamsError;
 
       // For the team filter dropdown, exclude Avalanche (scouting own team)
-      const { data: teamsResult, error: teamsError } = await supabase
+      let teamsDropdownQuery = supabase
         .from('teams')
         .select('*')
         .not('team_name', 'ilike', '%avalanche%')
         .order('team_number');
+
+      // For CSV events, restrict dropdown to only CSV-imported teams
+      if (targetEventSource === 'csv' && targetEventTeamNumbers.length > 0) {
+        teamsDropdownQuery = teamsDropdownQuery.in('team_number', targetEventTeamNumbers);
+      }
+
+      const { data: teamsResult, error: teamsError } = await teamsDropdownQuery;
 
       if (teamsError) throw teamsError;
 
@@ -356,6 +374,11 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
 
       if (teamDataOnly && user?.organization_id) {
         rosterQuery = rosterQuery.eq('organization_id', user.organization_id);
+      }
+
+      // For CSV events, restrict roster to CSV-imported teams
+      if (targetEventSource === 'csv' && targetEventTeamNumbers.length > 0) {
+        rosterQuery = rosterQuery.in('team_number', targetEventTeamNumbers);
       }
 
       const { data: rosterRows, error: rosterError } = await rosterQuery;

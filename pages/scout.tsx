@@ -132,13 +132,24 @@ export default function Scout() {
     if (isSubmitting) return;
 
     const missingFields: string[] = [];
-    if (!formData.matchData.match_id) missingFields.push('match');
-    if (!formData.teamNumber) missingFields.push('team');
+    if (!formData.matchData.match_id) missingFields.push('match selection');
+    if (!formData.teamNumber) missingFields.push('team selection');
     if (!formData.scoutName.trim()) missingFields.push('scout name');
     if (!formData.alliancePosition) missingFields.push('alliance position');
-    if (formData.miscellaneous.broke === null) missingFields.push('robot broke status');
+
+    const autoScore = calculateScore(formData.autonomous);
+    const teleopScore = calculateScore(formData.teleop);
+    if (autoScore.final_score === 0 && teleopScore.final_score === 0 &&
+        (formData.autonomous.runs?.length ?? 0) === 0 && (formData.teleop.runs?.length ?? 0) === 0) {
+      missingFields.push('at least one scoring run (auto or teleop)');
+    }
+
+    if (formData.miscellaneous.broke === null) missingFields.push('robot broke status (Yes/No)');
+    if (formData.miscellaneous.defense_rating === 0) missingFields.push('defense rating (0 is valid but confirm intentional)');
+
     if (missingFields.length > 0) {
-      setSubmitError(`Complete the following before submitting: ${missingFields.join(', ')}.`);
+      setSubmitError(`Review the following before submitting: ${missingFields.join(', ')}.`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 

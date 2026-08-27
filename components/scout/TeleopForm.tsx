@@ -11,7 +11,7 @@ import {
 } from '../ui/dialog';
 import { BallTrackingPhase, getBallChoiceScoreFromRange, type ScoringNotes, RunRecord } from '@/lib/types';
 import { formatDurationSec, cn } from '@/lib/utils';
-import { Award, Play, Square, Clock, Trash2 } from 'lucide-react';
+import { Award, Play, Square, Clock, Trash2, AlertCircle } from 'lucide-react';
 import StopwatchBallTracking from './StopwatchBallTracking';
 import { normalizeShuttleConsistency } from '@/lib/scouting-notes-merge';
 
@@ -56,6 +56,7 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
     initialData?.shuttle_consistency === 'inconsistent' ? 'inconsistent' : 'consistent'
   );
   const [shuttleRuns, setShuttleRuns] = useState<RunRecord[]>(() => initialData?.shuttle_runs || []);
+  const [validationWarning, setValidationWarning] = useState<string | null>(null);
 
   useEffect(() => {
     if (!climbTimerRunning) return;
@@ -98,6 +99,41 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
   const progressPercentage = (currentStep / totalSteps) * 100;
 
   const handleComplete = () => {
+    const hasTowerLevel = towerLevel1 || towerLevel2 || towerLevel3;
+    const hasRuns = fuelRuns && fuelRuns.length > 0;
+    const hasShuttle = shuttle && shuttleRuns.length > 0;
+
+    if (!hasTowerLevel && !hasRuns && !hasShuttle) {
+      setValidationWarning('No teleop data recorded. Consider adding tower climb level, fuel runs, or shuttle data before continuing.');
+      return;
+    }
+
+    if (!hasTowerLevel) {
+      setValidationWarning('No tower climb level selected. If the robot did not climb the tower, continue anyway to confirm.');
+      return;
+    }
+
+    setValidationWarning(null);
+    const totalFuel = (fuelRuns || []).reduce(
+      (sum, r) => sum + getBallChoiceScoreFromRange(r.ball_choice),
+      0
+    );
+    onNext({
+      runs: fuelRuns,
+      teleop_fuel_active_hub: Math.round(totalFuel * 10) / 10,
+      teleop_fuel_shifts: (fuelRuns || []).map(r => getBallChoiceScoreFromRange(r.ball_choice)),
+      teleop_tower_level1: towerLevel1,
+      teleop_tower_level2: towerLevel2,
+      teleop_tower_level3: towerLevel3,
+      climb_sec: climbSec !== '' && !Number.isNaN(Number(climbSec)) ? Number(climbSec) : undefined,
+      shuttle,
+      shuttle_consistency: shuttle ? normalizeShuttleConsistency(shuttleConsistency) : undefined,
+      shuttle_runs: shuttle ? shuttleRuns : [],
+    });
+  };
+
+  const handleForceContinue = () => {
+    setValidationWarning(null);
     const totalFuel = (fuelRuns || []).reduce(
       (sum, r) => sum + getBallChoiceScoreFromRange(r.ball_choice),
       0
@@ -125,6 +161,39 @@ const TeleopForm: React.FC<TeleopFormProps> = ({
     >
       <Card className="bg-card border-border shadow-lg">
         <CardContent className="space-y-4 p-4 sm:p-6">
+          {/* Validation Warning */}
+          {validationWarning && (
+            <motion.div
+              role="alert"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4"
+            >
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-amber-500">Missing Teleop Data</p>
+                <p className="text-sm text-amber-400/80 mt-1">{validationWarning}</p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="border-amber-500/30 text-amber-500 hover:bg-amber-500/10 shrink-0"
+                onClick={handleForceContinue}
+              >
+                Continue anyway
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="text-amber-500/60 hover:text-amber-500 shrink-0"
+                onClick={() => setValidationWarning(null)}
+              >
+                Dismiss
+              </Button>
+            </motion.div>
+          )}
           {/* TOWER Climb Section */}
           <div className={`rounded-xl p-3 sm:p-4 border ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-muted/30 border-border'}`}>
             <div className="flex items-center space-x-2 pb-2 border-b border-border/50">

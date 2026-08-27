@@ -41,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  const { eventKey, eventName } = await getOrgCurrentEvent(supabase, orgId);
+  const { eventKey, eventName, eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, orgId);
 
   if (!eventKey) {
     res.status(200).json({
@@ -53,20 +53,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  // Try to auto-sync fresh team roster data from TBA
-  try {
-    const { syncTbaEventToOrganization } = await import('@/lib/syncTbaToOrg');
-    await syncTbaEventToOrganization(supabase, orgId, eventKey);
-  } catch (syncErr) {
-    console.warn('Auto TBA sync failed during pit scouting team fetch:', syncErr);
+  // Skip TBA sync for CSV-imported schedules
+  if (eventSource !== 'csv') {
+    try {
+      const { syncTbaEventToOrganization } = await import('@/lib/syncTbaToOrg');
+      await syncTbaEventToOrganization(supabase, orgId, eventKey);
+    } catch (syncErr) {
+      console.warn('Auto TBA sync failed during pit scouting team fetch:', syncErr);
+    }
   }
 
-  const { data: roster } = await supabase
+  let rosterQuery = supabase
     .from('event_team_roster')
     .select('team_number, team_name')
     .eq('organization_id', orgId)
-    .eq('event_key', eventKey)
-    .order('team_number', { ascending: true });
+    .eq('event_key', eventKey);
+
+  // For CSV events, strictly filter by the exact team numbers from the CSV import
+  if (eventSource === 'csv' && eventTeamNumbers.length > 0) {
+    rosterQuery = rosterQuery.in('team_number', eventTeamNumbers);
+  }
+
+  const { data: roster } = await rosterQuery.order('team_number', { ascending: true });
 
   if (roster && roster.length > 0) {
     res.status(200).json({
@@ -80,17 +88,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  const { data: matchRows } = await supabase
-    .from('matches')
-    .select('red_teams, blue_teams')
-    .eq('organization_id', orgId)
-    .eq('event_key', eventKey);
+  let nums: Set<number>;
+  if (eventSource === 'csv' && eventTeamNumbers.length > 0) {
+    // For CSV events, use the exact team numbers extracted from the CSV
+    nums = new Set(eventTeamNumbers);
+  } else {
+    const { data: matchRows } = await supabase
+      .from('matches')
+      .select('red_teams, blue_teams')
+      .eq('organization_id', orgId)
+      .eq('event_key', eventKey);
 
-  const nums = new Set<number>();
-  for (const m of matchRows || []) {
-    const row = m as { red_teams?: number[]; blue_teams?: number[] };
-    (row.red_teams || []).forEach((n) => nums.add(n));
-    (row.blue_teams || []).forEach((n) => nums.add(n));
+    nums = new Set<number>();
+    for (const m of matchRows || []) {
+      const row = m as { red_teams?: number[]; blue_teams?: number[] };
+      (row.red_teams || []).forEach((n) => nums.add(n));
+      (row.blue_teams || []).forEach((n) => nums.add(n));
+    }
   }
 
   const sorted = Array.from(nums).sort((a, b) => a - b);

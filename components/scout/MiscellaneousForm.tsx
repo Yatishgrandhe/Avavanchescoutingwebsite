@@ -198,16 +198,22 @@ const MiscellaneousForm: React.FC<MiscellaneousFormProps> = ({
 
           <Button
             onClick={() => {
-              // Validate required fields
+              const missingFields: string[] = [];
               const defenseRating = typeof formData.defense_rating === 'number' ? formData.defense_rating : 0;
               const comments = formData.comments.trim();
 
               if (defenseRating < 0 || defenseRating > 10) {
-                setValidationError('Please provide a defense rating between 0 and 10.');
-                return;
+                missingFields.push('defense rating (must be 0-10)');
               }
               if (formData.broke === null) {
-                setValidationError('Please choose whether the robot broke before continuing.');
+                missingFields.push('robot broke status (Yes/No)');
+              }
+              if (!comments) {
+                missingFields.push('scout observations (recommended)');
+              }
+
+              if (missingFields.length > 0) {
+                setValidationError(`Missing: ${missingFields.join(', ')}`);
                 return;
               }
 

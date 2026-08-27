@@ -92,3 +92,34 @@ export function sortTbaMatches(matches: TbaMatch[]): TbaMatch[] {
 export function teamKeysToNumbers(keys: string[]): number[] {
   return keys.map((k) => parseInt(String(k).replace(/^frc/i, ''), 10)).filter((n) => Number.isFinite(n));
 }
+
+/**
+ * Resolve official team names from TBA for a given set of FRC team numbers.
+ * Best-effort: each team is fetched individually via /team/frc{number}.
+ * Returns a Map<team_number, team_name> (nickname preferred, then full name).
+ */
+export async function resolveTeamNamesFromTba(teamNumbers: number[]): Promise<Map<number, string>> {
+  const result = new Map<number, string>();
+  if (teamNumbers.length === 0) return result;
+  try {
+    // Fetch in parallel with a small concurrency guard
+    const unique = Array.from(new Set(teamNumbers));
+    const chunkSize = 8;
+    for (let i = 0; i < unique.length; i += chunkSize) {
+      const chunk = unique.slice(i, i + chunkSize);
+      const settled = await Promise.allSettled(
+        chunk.map((num) => tbaFetchJson<{ team_number: number; nickname?: string; name?: string }>(`/team/frc${num}`))
+      );
+      settled.forEach((entry) => {
+        if (entry.status === 'fulfilled') {
+          const team = entry.value;
+          const name = (team.nickname || team.name || '').trim();
+          if (name) result.set(team.team_number, name);
+        }
+      });
+    }
+  } catch (e) {
+    // ignore — caller handles gracefully
+  }
+  return result;
+}

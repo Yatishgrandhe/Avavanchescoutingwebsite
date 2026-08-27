@@ -5,15 +5,10 @@ import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Inpu
 
 const GEMINI_PROMPT = `Read these FRC match-schedule photos and create a downloadable file named frc_match_schedule.csv. The file must contain RFC 4180 CSV only — no Markdown fences, explanation, or extra columns.
 
-Use this exact structure:
-
-SECTION 1 — Match Schedule (start immediately, no blank lines before the header):
+Use this exact header:
 match_number,red_1,red_2,red_3,blue_1,blue_2,blue_3
 
-SECTION 2 — Team Names (one blank line after the last match row, then this header):
-team_number,team_name
-
-Rules for the match schedule:
+Rules:
 - One qualification match per row.
 - match_number must be only the numeric match number (QM 12 becomes 12).
 - Each red_* and blue_* value must be only a numeric FRC team number.
@@ -21,13 +16,6 @@ Rules for the match schedule:
 - Skip non-qualification rows such as practice, playoffs, finals, or breaks.
 - Omit any match row with an unreadable team number rather than guessing.
 - Ensure every included row has all six alliance team numbers.
-
-Rules for team names:
-- After the match rows, leave one blank line, then add the team_number,team_name header.
-- List every unique team number that appeared in the schedule.
-- Use your FRC knowledge to provide the official team name for each team number.
-- If you are not certain of a team name, write "Team <number>" as the name.
-- Sort by team_number ascending.
 
 Attach the finished frc_match_schedule.csv file. If you cannot attach files, return only the raw CSV text so I can save it as frc_match_schedule.csv.`;
 
@@ -53,14 +41,8 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
   const csvStats = useMemo(() => {
     if (!csv) return null;
     const lines = csv.split(/\r?\n/).filter(Boolean);
-    const teamSectionIdx = lines.findIndex((l) => /^team[_\s]?number/i.test(l.trim()));
-    const hasTeamSection = teamSectionIdx >= 0;
-    const matchLines = hasTeamSection ? lines.slice(0, teamSectionIdx) : lines;
-    const matchCount = matchLines.filter((l) => /^\d+,/.test(l.trim())).length;
-    const teamNameCount = hasTeamSection
-      ? lines.slice(teamSectionIdx + 1).filter((l) => /^\d+,/.test(l.trim())).length
-      : 0;
-    return { matchCount, teamNameCount, hasTeamSection, totalLines: lines.length };
+    const matchCount = lines.filter((l) => /^\d+,/.test(l.trim())).length;
+    return { matchCount, totalLines: lines.length };
   }, [csv]);
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -121,39 +103,7 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
 7,971,179,2910,1024,195,254
 8,3476,33,4613,67,118,1323
 9,177,125,3538,217,303,1619
-10,148,1717,27,2056,180,973
-
-team_number,team_name
-27,Team RUSH
-33,Killer Bees
-67,The HOT Team
-118,The Robonauts
-125,NUTRONs
-148,Robowranglers
-177,Bobcat Robotics
-179,Children of the Swamp
-180,SPAM
-195,CyberKnights
-217,ThunderChickens
-225,TechFire
-254,The Cheesy Poofs
-303,TEST Team
-319,Big Bad Bob
-330,The Beach Bots
-364,Fusion
-971,SPARTICS
-973,Greybots
-1024,Kil-A-Bytes
-1114,Simbotics
-1323,MadTown Robotics
-1619,Up-A-Creek Robotics
-1678,Citrus Circuits
-1717,D'Penguineers
-2056,OP Robotics
-2910,Jack in the Bot
-3476,Code Orange
-3538,RoboJackets
-4613,Barker Redbacks`;
+10,148,1717,27,2056,180,973`;
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -183,9 +133,10 @@ team_number,team_name
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Import failed.');
-      const msg = result.teamNamesApplied > 0
-        ? `Imported ${result.importedMatches} matches, ${result.importedTeams} teams, and ${result.teamNamesApplied} team names.`
-        : `Imported ${result.importedMatches} matches and ${result.importedTeams} teams.`;
+      const nameMsg = result.teamNamesApplied > 0
+        ? ` and enriched ${result.teamNamesApplied} team names from TBA`
+        : '';
+      const msg = `Imported ${result.importedMatches} matches and ${result.importedTeams} teams${nameMsg}. Existing data was merged, nothing deleted.`;
       setImportResult({ ok: true, message: msg });
       toast.success(msg);
       onImported(result.eventKey, result.eventName, result.importedMatches);
@@ -222,13 +173,7 @@ team_number,team_name
           {preview.length > 0 && <>
             {csvStats && (
               <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                <span className="rounded-md bg-primary/10 px-2 py-1 text-primary font-medium">{csvStats.matchCount} matches</span>
-                {csvStats.teamNameCount > 0 && (
-                  <span className="rounded-md bg-green-500/10 px-2 py-1 text-green-400 font-medium">{csvStats.teamNameCount} team names</span>
-                )}
-                {!csvStats.hasTeamSection && (
-                  <span className="rounded-md bg-yellow-500/10 px-2 py-1 text-yellow-400">No team names section found</span>
-                )}
+                <span className="rounded-md bg-primary/10 px-2 py-1 text-primary font-medium">{csvStats.matchCount} matches parsed</span>
               </div>
             )}
             <pre className="mt-2 max-h-28 overflow-auto rounded-md bg-muted/50 p-3 text-xs text-muted-foreground whitespace-pre-wrap">{preview.join('\n')}</pre>
@@ -257,12 +202,12 @@ team_number,team_name
             <li>Take clear, straight-on photos of the schedule. Include its headers and every red and blue team number.</li>
             <li>Upload the photos to Gemini, then copy and paste this prompt.</li>
             <li>Download Gemini&apos;s attached <code>frc_match_schedule.csv</code> file and choose it above. If Gemini returned text instead, save that text as a <code>.csv</code> file.</li>
-            <li>Gemini will also research team names from its FRC knowledge. These are included in the CSV after the match rows and will automatically populate team names in the app.</li>
+            <li>Team names are automatically looked up from The Blue Alliance (TBA) by team number. CSV imports merge with existing data — nothing is deleted.</li>
           </ol>
           <p className="text-xs text-muted-foreground">Alternatively, download the template CSV, fill in your schedule manually, and upload it.</p>
           <div className="flex items-center justify-between gap-3"><p className="text-sm font-medium text-foreground">Gemini prompt</p><Button type="button" variant="secondary" size="sm" onClick={copyPrompt}>{copied ? <><CheckCircle2 className="h-4 w-4" aria-hidden />Copied!</> : <><ClipboardCopy className="h-4 w-4" aria-hidden />Copy</>}</Button></div>
           <pre ref={promptRef} className="max-h-64 overflow-auto whitespace-pre-wrap rounded-md bg-muted/50 p-3 text-xs text-muted-foreground select-all">{GEMINI_PROMPT}</pre>
-          <p className="flex items-start gap-2 text-xs text-muted-foreground"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />Expected headers: <code>match_number,red_1,...,blue_3</code> followed by a blank line and <code>team_number,team_name</code></p>
+          <p className="flex items-start gap-2 text-xs text-muted-foreground"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />Expected header: <code>match_number,red_1,red_2,red_3,blue_1,blue_2,blue_3</code></p>
         </div>}
       </CardContent>
     </Card>

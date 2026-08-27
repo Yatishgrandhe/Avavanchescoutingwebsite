@@ -240,6 +240,108 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error('Error creating match:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
+  } else if (req.method === 'PUT') {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const token = authHeader.split(' ')[1];
+      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !authUser) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role, organization_id')
+        .eq('id', authUser.id)
+        .maybeSingle();
+      if (profile?.role !== 'admin' && profile?.role !== 'superadmin') {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+      const orgId = profile?.organization_id;
+      if (!orgId) {
+        return res.status(400).json({ error: 'No organization' });
+      }
+
+      const { match_id, match_number, red_teams, blue_teams } = req.body;
+      if (!match_id) {
+        return res.status(400).json({ error: 'Missing match_id' });
+      }
+      const update: Record<string, unknown> = {};
+      if (match_number !== undefined && match_number !== null) update.match_number = match_number;
+      if (Array.isArray(red_teams)) update.red_teams = red_teams;
+      if (Array.isArray(blue_teams)) update.blue_teams = blue_teams;
+      if (Object.keys(update).length === 0) {
+        return res.status(400).json({ error: 'Nothing to update' });
+      }
+
+      update.updated_at = new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from('matches')
+        .update(update)
+        .eq('organization_id', orgId)
+        .eq('match_id', match_id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating match:', error);
+        return res.status(500).json({ error: 'Failed to update match' });
+      }
+
+      res.status(200).json({ match: data });
+    } catch (error) {
+      console.error('Error updating match:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  } else if (req.method === 'DELETE') {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const token = authHeader.split(' ')[1];
+      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !authUser) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role, organization_id')
+        .eq('id', authUser.id)
+        .maybeSingle();
+      if (profile?.role !== 'admin' && profile?.role !== 'superadmin') {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+      const orgId = profile?.organization_id;
+      if (!orgId) {
+        return res.status(400).json({ error: 'No organization' });
+      }
+
+      const matchId = typeof req.query.match_id === 'string' ? req.query.match_id.trim() : '';
+      if (!matchId) {
+        return res.status(400).json({ error: 'Missing match_id' });
+      }
+
+      // Preserve historical scouting records: only remove the match schedule row.
+      const { error } = await supabase
+        .from('matches')
+        .delete()
+        .eq('organization_id', orgId)
+        .eq('match_id', matchId);
+
+      if (error) {
+        console.error('Error deleting match:', error);
+        return res.status(500).json({ error: 'Failed to delete match' });
+      }
+
+      res.status(200).json({ ok: true });
+    } catch (error) {
+      console.error('Error deleting match:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   } else {
     res.status(405).json({ error: 'Method not allowed' });
   }

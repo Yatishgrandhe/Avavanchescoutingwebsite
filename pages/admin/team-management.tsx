@@ -56,6 +56,8 @@ import {
 } from '@/lib/invite-config';
 import { toast } from 'sonner';
 import { CompetitionCsvImport } from '@/components/admin/CompetitionCsvImport';
+import { ManualScheduleEditor } from '@/components/admin/ManualScheduleEditor';
+import { ManualPitEntry } from '@/components/admin/ManualPitEntry';
 
 export default function TeamManagementPage() {
   const { user, supabase, session } = useSupabase();
@@ -94,6 +96,9 @@ export default function TeamManagementPage() {
   const [tbaEventSearch, setTbaEventSearch] = useState('');
   const [tbaSyncStatus, setTbaSyncStatus] = useState<string | null>(null);
   const [isSyncingTba, setIsSyncingTba] = useState(false);
+  const [eventTeams, setEventTeams] = useState<{ team_number: number; team_name: string }[]>([]);
+  const [eventTeamsLoading, setEventTeamsLoading] = useState(false);
+  const [scheduleRevision, setScheduleRevision] = useState(0);
 
   // Invite Management State
   const [invites, setInvites] = useState<any[]>([]);
@@ -308,6 +313,30 @@ export default function TeamManagementPage() {
     }, 60_000);
     return () => window.clearInterval(id);
   }, [isAdmin, eventKey, eventSource, runTbaSync]);
+
+  const loadEventTeams = useCallback(async () => {
+    if (!session?.access_token) return;
+    setEventTeamsLoading(true);
+    try {
+      const res = await fetch('/api/pit-scouting/event-teams', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(json.teams)) {
+        setEventTeams(json.teams as { team_number: number; team_name: string }[]);
+      }
+    } catch (err) {
+      console.error('Failed to load event teams', err);
+    } finally {
+      setEventTeamsLoading(false);
+    }
+  }, [session?.access_token]);
+
+  useEffect(() => {
+    if (!isAdmin || !eventKey.trim()) return;
+    loadEventTeams();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, eventKey, eventSource, scheduleRevision]);
 
   const handleSaveCompetition = async () => {
     if (!eventKey.trim() || !eventName.trim()) {
@@ -769,8 +798,28 @@ export default function TeamManagementPage() {
                       setEventKey(importedEventKey);
                       setEventName(importedEventName);
                       setEventSource('csv');
+                      setScheduleRevision((r) => r + 1);
                       setTbaSyncStatus(`Imported ${matchCount} matches from CSV. Automatic TBA sync is paused for this CSV schedule.`);
                     }}
+                  />
+
+                  <ManualScheduleEditor
+                    accessToken={session?.access_token}
+                    eventKey={eventKey}
+                    eventSource={eventSource}
+                    onSchedulesChanged={() => setScheduleRevision((r) => r + 1)}
+                  />
+
+                  {eventTeamsLoading && (
+                    <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Loading event teams…
+                    </p>
+                  )}
+
+                  <ManualPitEntry
+                    accessToken={session?.access_token}
+                    teams={eventTeams}
+                    onPitChanged={() => setScheduleRevision((r) => r + 1)}
                   />
 
                   <div>

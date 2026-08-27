@@ -210,6 +210,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { matches: imported, teamNames: csvTeamNames } = parseResult;
 
   const organizationId = profile.organization_id;
+
+  // Build a lookup of team names from the CSV (if Gemini provided them)
+  const csvNameLookup = new Map<number, string>();
+  for (const entry of csvTeamNames) {
+    csvNameLookup.set(entry.team_number, entry.team_name);
+  }
+
   const teamNumbers = Array.from(new Set(imported.flatMap((match) => [...match.red, ...match.blue])));
   const now = new Date().toISOString();
   // ── Clean-slate: delete any roster rows for this org+event that are NOT in the CSV ──
@@ -224,10 +231,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Non-fatal — continue with import
   }
 
-  // Upsert roster rows for CSV teams
+  // Upsert roster rows for CSV teams — use CSV team name if available
   const rosterRows = teamNumbers.map((team_number) => ({
     organization_id: organizationId, event_key: eventKey, team_number,
-    team_name: `Team ${team_number}`, updated_at: now,
+    team_name: csvNameLookup.get(team_number) || `Team ${team_number}`,
+    updated_at: now,
   }));
   if (rosterRows.length > 0) {
     const { error: rosterError } = await supabase.from('event_team_roster').upsert(rosterRows, {
@@ -246,12 +254,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('CSV team read', teamReadError);
     res.status(500).json({ error: 'Could not check existing teams.' });
     return;
-  }
-
-  // Build a lookup of team names from the CSV (if Gemini provided them)
-  const csvNameLookup = new Map<number, string>();
-  for (const entry of csvTeamNames) {
-    csvNameLookup.set(entry.team_number, entry.team_name);
   }
 
   const existingNumbers = new Set((existingTeams || []).map((team) => team.team_number));

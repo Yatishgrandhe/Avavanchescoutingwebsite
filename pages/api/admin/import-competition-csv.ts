@@ -95,22 +95,28 @@ function validateCsv(csv: string): CsvParseResult {
     throw new Error('Use these headers: match_number, red_1, red_2, red_3, blue_1, blue_2, blue_3.');
   }
 
-  // Parse match rows — stop at first blank row (separator before team names)
+  // Parse match rows — stop when we hit a row that looks like a team_name header
   const imported: ImportedMatch[] = [];
   const seen = new Set<number>();
   let matchEndIndex = rows.length;
   for (let index = 1; index < rows.length; index += 1) {
     const row = rows[index];
-    // Blank row separates matches from team names
-    if (row.every((cell) => cell === '')) {
+    // Detect the team_name section header (first cell contains "team" and second contains "name")
+    const firstCell = normalizeHeader(row[0] || '');
+    const secondCell = row.length > 1 ? normalizeHeader(row[1]) : '';
+    if ((firstCell.includes('team') && secondCell.includes('name')) || firstCell === 'teamnumber') {
       matchEndIndex = index;
       break;
     }
     const rowNumber = index + 1;
     const matchNumber = parseMatchNumber(row[indices.match] || '');
+    if (!matchNumber) {
+      // If this row doesn't parse as a match and we haven't seen the team header yet, skip it
+      // (could be a blank-like row or separator that parseCsv kept)
+      continue;
+    }
     const teamValues = [indices.red1, indices.red2, indices.red3, indices.blue1, indices.blue2, indices.blue3]
       .map((column) => parsePositiveInteger(row[column] || ''));
-    if (!matchNumber) throw new Error(`Row ${rowNumber}: match_number must be a positive qualification match number.`);
     if (teamValues.some((team) => team === null)) {
       throw new Error(`Row ${rowNumber}: every red and blue team slot must be a positive team number.`);
     }
@@ -121,16 +127,16 @@ function validateCsv(csv: string): CsvParseResult {
   if (imported.length === 0) throw new Error('No match rows were found.');
   if (imported.length > MAX_MATCHES) throw new Error(`A CSV import is limited to ${MAX_MATCHES} matches.`);
 
-  // Parse optional team names section (after the blank separator)
+  // Parse optional team names section (after the team_name header row)
   const teamNames: TeamNameEntry[] = [];
   if (matchEndIndex < rows.length - 1) {
-    const teamHeaderRow = rows[matchEndIndex + 1];
+    const teamHeaderRow = rows[matchEndIndex];
     const tnIdx = {
       number: findHeader(teamHeaderRow, ['team_number', 'teamnumber', 'team']),
       name: findHeader(teamHeaderRow, ['team_name', 'teamname', 'name']),
     };
     if (tnIdx.number >= 0 && tnIdx.name >= 0) {
-      for (let i = matchEndIndex + 2; i < rows.length; i += 1) {
+      for (let i = matchEndIndex + 1; i < rows.length; i += 1) {
         const row = rows[i];
         if (row.every((cell) => cell === '')) continue;
         const num = parsePositiveInteger(row[tnIdx.number] || '');

@@ -44,11 +44,23 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
   const [isImporting, setIsImporting] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [importResult, setImportResult] = useState<{ ok: boolean; message: string } | null>(null);
   const promptRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => setImportEventName(eventName), [eventName]);
 
   const preview = useMemo(() => csv.split(/\r?\n/).filter(Boolean).slice(0, 4), [csv]);
+  const csvStats = useMemo(() => {
+    if (!csv) return null;
+    const lines = csv.split(/\r?\n/).filter(Boolean);
+    const headerLine = lines[0] || '';
+    const hasTeamSection = lines.some((l) => /^team[_\s]?number/i.test(l.trim()));
+    const matchCount = lines.filter((l) => /^\d+,/.test(l.trim())).length;
+    const teamNameCount = hasTeamSection
+      ? lines.slice(lines.findIndex((l) => /^team[_\s]?number/i.test(l.trim())) + 1).filter((l) => /^\d+,/.test(l.trim())).length
+      : 0;
+    return { matchCount, teamNameCount, hasTeamSection, totalLines: lines.length };
+  }, [csv]);
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -99,22 +111,48 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
 
   function downloadTemplate() {
     const template = `match_number,red_1,red_2,red_3,blue_1,blue_2,blue_3
-1,1234,5678,9012,3456,7890,1111
-2,2222,3333,4444,5555,6666,7777
+1,1024,319,217,2910,1619,177
+2,148,254,225,330,195,2056
+3,4613,1323,364,3476,33,303
+4,973,67,971,3538,125,1717
+5,179,180,1678,27,118,1114
+6,319,1678,330,225,364,1114
+7,971,179,2910,1024,195,254
+8,3476,33,4613,67,118,1323
+9,177,125,3538,217,303,1619
+10,148,1717,27,2056,180,973
 
 team_number,team_name
-1234,The Roboteers
-5678,Gear Grinders
-9012,Steel Storm
-3456,The Brave Bots
-7890,Circuit Breakers
-1111,Riviera Robotics
-2222,Team Impact
-3333,The Marauders
-4444,High Voltage
-5555,Robo Warriors
-6666,CyberDragons
-7777,Botcats`;
+27,Team RUSH
+33,Killer Bees
+67,The HOT Team
+118,The Robonauts
+125,NUTRONs
+148,Robowranglers
+177,Bobcat Robotics
+179,Children of the Swamp
+180,SPAM
+195,CyberKnights
+217,ThunderChickens
+225,TechFire
+254,The Cheesy Poofs
+303,TEST Team
+319,Big Bad Bob
+330,The Beach Bots
+364,Fusion
+971,SPARTICS
+973,Greybots
+1024,Kil-A-Bytes
+1114,Simbotics
+1323,MadTown Robotics
+1619,Up-A-Creek Robotics
+1678,Citrus Circuits
+1717,D'Penguineers
+2056,OP Robotics
+2910,Jack in the Bot
+3476,Code Orange
+3538,RoboJackets
+4613,Barker Redbacks`;
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -134,6 +172,7 @@ team_number,team_name
       toast.error('Choose a schedule CSV first.');
       return;
     }
+    setImportResult(null);
     setIsImporting(true);
     try {
       const response = await fetch('/api/admin/import-competition-csv', {
@@ -146,10 +185,13 @@ team_number,team_name
       const msg = result.teamNamesApplied > 0
         ? `Imported ${result.importedMatches} matches, ${result.importedTeams} teams, and ${result.teamNamesApplied} team names.`
         : `Imported ${result.importedMatches} matches and ${result.importedTeams} teams.`;
+      setImportResult({ ok: true, message: msg });
       toast.success(msg);
       onImported(result.eventKey, result.eventName, result.importedMatches);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Import failed.');
+      const errMsg = error instanceof Error ? error.message : 'Import failed.';
+      setImportResult({ ok: false, message: errMsg });
+      toast.error(errMsg);
     } finally {
       setIsImporting(false);
     }
@@ -176,7 +218,20 @@ team_number,team_name
             <span className="text-xs font-normal text-muted-foreground">{fileName || 'Maximum 1 MB'}</span>
           </Label>
           <Input id="competition-csv" className="sr-only" type="file" accept=".csv,text/csv" onChange={handleFileChange} />
-          {preview.length > 0 && <pre className="mt-3 max-h-28 overflow-auto rounded-md bg-muted/50 p-3 text-xs text-muted-foreground whitespace-pre-wrap">{preview.join('\n')}</pre>}
+          {preview.length > 0 && <>
+            {csvStats && (
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                <span className="rounded-md bg-primary/10 px-2 py-1 text-primary font-medium">{csvStats.matchCount} matches</span>
+                {csvStats.teamNameCount > 0 && (
+                  <span className="rounded-md bg-green-500/10 px-2 py-1 text-green-400 font-medium">{csvStats.teamNameCount} team names</span>
+                )}
+                {!csvStats.hasTeamSection && (
+                  <span className="rounded-md bg-yellow-500/10 px-2 py-1 text-yellow-400">No team names section found</span>
+                )}
+              </div>
+            )}
+            <pre className="mt-2 max-h-28 overflow-auto rounded-md bg-muted/50 p-3 text-xs text-muted-foreground whitespace-pre-wrap">{preview.join('\n')}</pre>
+          </>}
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" onClick={importCsv} disabled={isImporting || !csv} className="min-h-10">
@@ -190,6 +245,12 @@ team_number,team_name
             <Sparkles className="h-4 w-4" aria-hidden />Gemini instructions
           </Button>
         </div>
+        {importResult && (
+          <div className={`flex items-start gap-2 rounded-lg border p-3 text-sm ${importResult.ok ? 'border-green-500/30 bg-green-500/5 text-green-400' : 'border-red-500/30 bg-red-500/5 text-red-400'}`}>
+            {importResult.ok ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> : <span className="mt-0.5 text-base shrink-0">!</span>}
+            {importResult.message}
+          </div>
+        )}
         {showInstructions && <div className="space-y-3 rounded-lg border border-border/60 bg-background/25 p-4 text-sm">
           <ol className="list-decimal space-y-2 pl-5 text-muted-foreground">
             <li>Take clear, straight-on photos of the schedule. Include its headers and every red and blue team number.</li>

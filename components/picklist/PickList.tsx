@@ -293,9 +293,10 @@ interface PickListProps {
   eventKey?: string;
   onSave?: (pickList: any) => void;
   session?: any;
+  organizationId?: string;
 }
 
-export function PickList({ pickListId, eventKey = '', onSave, session }: PickListProps) {
+export function PickList({ pickListId, eventKey = '', onSave, session, organizationId }: PickListProps) {
   const [teams, setTeams] = useState<PickListTeam[]>([]);
   const [availableTeams, setAvailableTeams] = useState<Array<{ team_number: number; team_name: string; stats?: TeamStats }>>([]);
   const [pickListName, setPickListName] = useState('My Pick List');
@@ -330,7 +331,8 @@ export function PickList({ pickListId, eventKey = '', onSave, session }: PickLis
     setIsLoading(true);
     try {
       // Load all team stats in one API call instead of individual calls
-      const statsResponse = await fetch('/api/team-stats');
+      const statsUrl = organizationId ? `/api/team-stats?organization_id=${encodeURIComponent(organizationId)}` : '/api/team-stats';
+      const statsResponse = await fetch(statsUrl);
       
       if (!statsResponse.ok) {
         throw new Error(`Failed to fetch team stats: ${statsResponse.status}`);

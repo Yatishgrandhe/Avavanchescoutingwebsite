@@ -174,19 +174,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const organizationId = profile.organization_id;
   const teamNumbers = Array.from(new Set(imported.flatMap((match) => [...match.red, ...match.blue])));
   const now = new Date().toISOString();
-  const { data: existingRoster, error: rosterReadError } = await supabase
+  // ── Clean-slate: delete any roster rows for this org+event that are NOT in the CSV ──
+  const { error: rosterCleanErr } = await supabase
     .from('event_team_roster')
-    .select('team_number')
+    .delete()
     .eq('organization_id', organizationId)
     .eq('event_key', eventKey)
-    .in('team_number', teamNumbers);
-  if (rosterReadError) {
-    console.error('CSV roster read', rosterReadError);
-    res.status(500).json({ error: 'Could not check the event roster.' });
-    return;
+    .not('team_number', 'in', `(${teamNumbers.join(',')})`);
+  if (rosterCleanErr) {
+    console.error('CSV roster cleanup', rosterCleanErr);
+    // Non-fatal — continue with import
   }
-  const existingRosterNumbers = new Set((existingRoster || []).map((team) => team.team_number));
-  const rosterRows = teamNumbers.filter((teamNumber) => !existingRosterNumbers.has(teamNumber)).map((team_number) => ({
+
+  // Upsert roster rows for CSV teams
+  const rosterRows = teamNumbers.map((team_number) => ({
     organization_id: organizationId, event_key: eventKey, team_number,
     team_name: `Team ${team_number}`, updated_at: now,
   }));
@@ -247,6 +248,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('CSV competition config', configError);
     res.status(500).json({ error: 'Schedule was imported, but the active competition could not be saved.' });
     return;
+  }
+
+  // ── Clean-slate: delete matches for this org+event that are NOT in the CSV ──
+  const csvMatchIds = matchRows.map((match) => match.match_id);
+  const { data: nonCsvMatchRows } = await supabase
+    .from('matches')
+    .select('match_id')
+    .eq('organization_id', organizationId)
+    .eq('event_key', eventKey)
+    .not('match_id', 'in', `(${csvMatchIds.join(',')})`);
+  const nonCsvMatchIds = (nonCsvMatchRows || []).map((m: { match_id: string }) => m.match_id);
+
+  if (nonCsvMatchIds.length > 0) {
+    // Delete scouting data referencing the removed matches
+    const { error: scoutCleanErr } = await supabase
+      .from('scouting_data')
+      .delete()
+      .eq('organization_id', organizationId)
+      .in('match_id', nonCsvMatchIds);
+    if (scoutCleanErr) {
+      console.error('CSV scouting data cleanup', scoutCleanErr);
+    }
+
+    // Delete the stale matches
+    const { error: matchCleanErr } = await supabase
+      .from('matches')
+      .delete()
+      .eq('organization_id', organizationId)
+      .eq('event_key', eventKey)
+      .not('match_id', 'in', `(${csvMatchIds.join(',')})`);
+    if (matchCleanErr) {
+      console.error('CSV match cleanup', matchCleanErr);
+    }
   }
 
   res.status(200).json({ ok: true, importedMatches: matchRows.length, importedTeams: teamNumbers.length, eventKey, eventName });

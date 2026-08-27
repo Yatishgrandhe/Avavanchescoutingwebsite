@@ -30,7 +30,7 @@ import {
 
 export default function PickListPage() {
   const router = useRouter();
-  const { session } = useSupabase();
+  const { session, user } = useSupabase();
   const { isAdmin, canAccessPickList, loading: adminLoading } = useAdmin();
   const [pickLists, setPickLists] = useState<PickListType[]>([]);
   const [selectedPickList, setSelectedPickList] = useState<PickListType | null>(null);
@@ -345,6 +345,7 @@ export default function PickListPage() {
                       eventKey={selectedPickList.event_key}
                       onSave={handleSavePickList}
                       session={session}
+                      organizationId={user?.organization_id}
                     />
                   </div>
                 </div>

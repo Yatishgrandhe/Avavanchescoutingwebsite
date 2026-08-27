@@ -328,6 +328,7 @@ function PickListMobileContent() {
                 eventKey={selectedPickList.event_key}
                 onSave={handleSavePickList}
                 session={session}
+                organizationId={user?.organization_id}
               />
             </CardContent>
           </Card>

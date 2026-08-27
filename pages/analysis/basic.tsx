@@ -172,11 +172,19 @@ export default function BasicAnalysis() {
         return new Date(bTime).getTime() - new Date(aTime).getTime();
       });
 
-      // The event roster is the source of truth for an imported CSV schedule.
-      // Without this scope, the analysis page showed every team ever present in
-      // the shared teams table instead of the teams actually imported for this event.
+      // The event roster is the source of truth for an imported CSV schedule, and
+      // for TBA events it is the list of teams actually at the competition. Scope the
+      // team listing to the active event so stale/accumulated org-wide teams (480+)
+      // never appear. If there is no active event, fall back to the teams that actually
+      // have scouting data for this load instead of dumping every org team.
       let allTeams: any[] = [];
-      if (currentEventKey && user?.organization_id) {
+      const resolvedEventKey = currentEventKey && user?.organization_id ? currentEventKey : '';
+
+      // Determine the scoped team numbers: event roster when an event is active,
+      // otherwise the teams present in the loaded scouting data.
+      let scopedTeamNumbers: number[] = [];
+      let rosterSource: { team_number: number; team_name?: string | null }[] = [];
+      if (resolvedEventKey && user?.organization_id) {
         let rosterQuery = supabase
           .from('event_team_roster')
           .select('team_number, team_name')
@@ -191,23 +199,39 @@ export default function BasicAnalysis() {
           console.error('Error fetching event roster:', rosterError);
           throw rosterError;
         }
+        rosterSource = (rosterRows as { team_number: number; team_name?: string | null }[]) || [];
+        scopedTeamNumbers = Array.from(new Set(rosterSource.map((team) => team.team_number)));
+      }
 
-        const roster = rosterRows || [];
-        const rosterNumbers = Array.from(new Set(roster.map((team: any) => team.team_number)));
-        if (rosterNumbers.length > 0) {
-          const { data: teamsResult, error: teamsError } = await supabase
-            .from('teams')
-            .select('*')
-            .in('team_number', rosterNumbers)
-            .order('team_number');
+      // Prefer the event roster; if empty/no event, scope to teams with scouting data.
+      if (scopedTeamNumbers.length === 0) {
+        scopedTeamNumbers = Array.from(
+          new Set(
+            sortedScoutingData
+              .map((sd: any) => Number(sd.team_number))
+              .filter((n: number) => Number.isFinite(n) && n > 0)
+          )
+        );
+      }
 
-          if (teamsError) {
-            console.error('Error fetching roster teams:', teamsError);
-            throw teamsError;
-          }
+      if (scopedTeamNumbers.length > 0) {
+        let teamsQuery = supabase
+          .from('teams')
+          .select('*')
+          .in('team_number', scopedTeamNumbers)
+          .order('team_number');
 
-          const teamsByNumber = new Map((teamsResult || []).map((team: any) => [team.team_number, team]));
-          allTeams = roster.map((rosterTeam: any) => {
+        const { data: teamsResult, error: teamsError } = await teamsQuery;
+        if (teamsError) {
+          console.error('Error fetching scoped teams:', teamsError);
+          throw teamsError;
+        }
+
+        const teamsByNumber = new Map((teamsResult || []).map((team: any) => [team.team_number, team]));
+        if (resolvedEventKey && rosterSource.length > 0) {
+          // Preserve roster ordering and fall back to roster team_name if the teams
+          // table doesn't have a resolved name for a roster entry.
+          allTeams = rosterSource.map((rosterTeam) => {
             const resolvedTeam: any = teamsByNumber.get(rosterTeam.team_number);
             return {
               ...resolvedTeam,
@@ -215,19 +239,13 @@ export default function BasicAnalysis() {
               team_name: resolvedTeam?.team_name || rosterTeam.team_name || `Team ${rosterTeam.team_number}`,
             };
           });
+        } else {
+          // No event / empty roster: use the resolved teams for teams with data.
+          allTeams = (teamsResult || []).map((team: any) => ({
+            ...team,
+            team_name: team.team_name || `Team ${team.team_number}`,
+          }));
         }
-      } else {
-        const { data: teamsResult, error: teamsError } = await supabase
-          .from('teams')
-          .select('*')
-          .not('team_name', 'ilike', '%avalanche%')
-          .order('team_number');
-
-        if (teamsError) {
-          console.error('Error fetching teams:', teamsError);
-          throw teamsError;
-        }
-        allTeams = teamsResult || [];
       }
 
       // Set matches data for matches tab

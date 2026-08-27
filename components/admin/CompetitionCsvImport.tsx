@@ -1,22 +1,35 @@
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, ClipboardCopy, FileSpreadsheet, Loader2, Sparkles, Upload } from 'lucide-react';
+import { CheckCircle2, ClipboardCopy, Download, FileSpreadsheet, Loader2, Sparkles, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from '@/components/ui';
 
-const GEMINI_PROMPT = `Read these FRC match-schedule photos and create a downloadable file named frc_match_schedule.csv. The file must contain RFC 4180 CSV only—no Markdown fences, explanation, or extra columns.
+const GEMINI_PROMPT = `Read these FRC match-schedule photos and create a downloadable file named frc_match_schedule.csv. The file must contain RFC 4180 CSV only — no Markdown fences, explanation, or extra columns.
 
-Use this exact header:
+Use this exact structure:
+
+SECTION 1 — Match Schedule (start immediately, no blank lines before the header):
 match_number,red_1,red_2,red_3,blue_1,blue_2,blue_3
 
-Rules:
+SECTION 2 — Team Names (one blank line after the last match row, then this header):
+team_number,team_name
+
+Rules for the match schedule:
 - One qualification match per row.
-- match_number must be only the numeric match number (for example, QM 12 becomes 12).
+- match_number must be only the numeric match number (QM 12 becomes 12).
 - Each red_* and blue_* value must be only a numeric FRC team number.
 - Preserve the schedule exactly as shown.
 - Skip non-qualification rows such as practice, playoffs, finals, or breaks.
 - Omit any match row with an unreadable team number rather than guessing.
-- Before creating the file, ensure every included row has all six alliance team numbers.
-- Attach the finished frc_match_schedule.csv file to your response. If you cannot attach files, return only the raw CSV text so I can save it as frc_match_schedule.csv.`;
+- Ensure every included row has all six alliance team numbers.
+
+Rules for team names:
+- After the match rows, leave one blank line, then add the team_number,team_name header.
+- List every unique team number that appeared in the schedule.
+- Use your FRC knowledge to provide the official team name for each team number.
+- If you are not certain of a team name, write "Team <number>" as the name.
+- Sort by team_number ascending.
+
+Attach the finished frc_match_schedule.csv file. If you cannot attach files, return only the raw CSV text so I can save it as frc_match_schedule.csv.`;
 
 type Props = {
   accessToken?: string;
@@ -57,6 +70,34 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
     }
   }
 
+  function downloadTemplate() {
+    const template = `match_number,red_1,red_2,red_3,blue_1,blue_2,blue_3
+1,1234,5678,9012,3456,7890,1111
+2,2222,3333,4444,5555,6666,7777
+
+team_number,team_name
+1234,The Roboteers
+5678,Gear Grinders
+9012,Steel Storm
+3456,The Brave Bots
+7890,Circuit Breakers
+1111,Riviera Robotics
+2222,Team Impact
+3333,The Marauders
+4444,High Voltage
+5555,Robo Warriors
+6666,CyberDragons
+7777,Botcats`;
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'frc_match_schedule_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Template downloaded');
+  }
+
   async function importCsv() {
     if (!accessToken) {
       toast.error('Your session is not ready. Refresh and try again.');
@@ -75,7 +116,10 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Import failed.');
-      toast.success(`Imported ${result.importedMatches} matches and ${result.importedTeams} teams.`);
+      const msg = result.teamNamesApplied > 0
+        ? `Imported ${result.importedMatches} matches, ${result.importedTeams} teams, and ${result.teamNamesApplied} team names.`
+        : `Imported ${result.importedMatches} matches and ${result.importedTeams} teams.`;
+      toast.success(msg);
       onImported(result.eventKey, result.eventName, result.importedMatches);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Import failed.');
@@ -112,6 +156,9 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
             {isImporting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileSpreadsheet className="h-4 w-4" aria-hidden />}
             Import schedule
           </Button>
+          <Button type="button" variant="outline" className="min-h-10" onClick={downloadTemplate}>
+            <Download className="h-4 w-4" aria-hidden />Template CSV
+          </Button>
           <Button type="button" variant="outline" className="min-h-10" onClick={() => setShowInstructions((current) => !current)} aria-expanded={showInstructions}>
             <Sparkles className="h-4 w-4" aria-hidden />Gemini instructions
           </Button>
@@ -121,10 +168,12 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
             <li>Take clear, straight-on photos of the schedule. Include its headers and every red and blue team number.</li>
             <li>Upload the photos to Gemini, then copy and paste this prompt.</li>
             <li>Download Gemini&apos;s attached <code>frc_match_schedule.csv</code> file and choose it above. If Gemini returned text instead, save that text as a <code>.csv</code> file.</li>
+            <li>Gemini will also research team names from its FRC knowledge. These are included in the CSV after the match rows and will automatically populate team names in the app.</li>
           </ol>
+          <p className="text-xs text-muted-foreground">Alternatively, download the template CSV, fill in your schedule manually, and upload it.</p>
           <div className="flex items-center justify-between gap-3"><p className="text-sm font-medium text-foreground">Gemini prompt</p><Button type="button" variant="secondary" size="sm" onClick={copyPrompt}><ClipboardCopy className="h-4 w-4" aria-hidden />Copy</Button></div>
           <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">{GEMINI_PROMPT}</pre>
-          <p className="flex items-start gap-2 text-xs text-muted-foreground"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />Expected header: <code>match_number,red_1,red_2,red_3,blue_1,blue_2,blue_3</code></p>
+          <p className="flex items-start gap-2 text-xs text-muted-foreground"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />Expected headers: <code>match_number,red_1,...,blue_3</code> followed by a blank line and <code>team_number,team_name</code></p>
         </div>}
       </CardContent>
     </Card>

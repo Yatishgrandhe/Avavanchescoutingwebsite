@@ -9,6 +9,8 @@ const MAX_MATCHES = 500;
 export const config = { api: { bodyParser: { sizeLimit: '1mb' } } };
 
 type ImportedMatch = { row: number; matchNumber: number; red: number[]; blue: number[] };
+type TeamNameEntry = { team_number: number; team_name: string };
+type CsvParseResult = { matches: ImportedMatch[]; teamNames: TeamNameEntry[] };
 
 function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
@@ -79,7 +81,7 @@ function eventKeyFromName(eventName: string): string {
   return `csv-${slug || 'schedule'}`;
 }
 
-function validateCsv(csv: string): ImportedMatch[] {
+function validateCsv(csv: string): CsvParseResult {
   const rows = parseCsv(csv.replace(/^\uFEFF/, ''));
   if (rows.length < 2) throw new Error('Include a header row and at least one match row.');
 
@@ -93,10 +95,17 @@ function validateCsv(csv: string): ImportedMatch[] {
     throw new Error('Use these headers: match_number, red_1, red_2, red_3, blue_1, blue_2, blue_3.');
   }
 
+  // Parse match rows — stop at first blank row (separator before team names)
   const imported: ImportedMatch[] = [];
   const seen = new Set<number>();
+  let matchEndIndex = rows.length;
   for (let index = 1; index < rows.length; index += 1) {
     const row = rows[index];
+    // Blank row separates matches from team names
+    if (row.every((cell) => cell === '')) {
+      matchEndIndex = index;
+      break;
+    }
     const rowNumber = index + 1;
     const matchNumber = parseMatchNumber(row[indices.match] || '');
     const teamValues = [indices.red1, indices.red2, indices.red3, indices.blue1, indices.blue2, indices.blue3]
@@ -111,7 +120,29 @@ function validateCsv(csv: string): ImportedMatch[] {
   }
   if (imported.length === 0) throw new Error('No match rows were found.');
   if (imported.length > MAX_MATCHES) throw new Error(`A CSV import is limited to ${MAX_MATCHES} matches.`);
-  return imported;
+
+  // Parse optional team names section (after the blank separator)
+  const teamNames: TeamNameEntry[] = [];
+  if (matchEndIndex < rows.length - 1) {
+    const teamHeaderRow = rows[matchEndIndex + 1];
+    const tnIdx = {
+      number: findHeader(teamHeaderRow, ['team_number', 'teamnumber', 'team']),
+      name: findHeader(teamHeaderRow, ['team_name', 'teamname', 'name']),
+    };
+    if (tnIdx.number >= 0 && tnIdx.name >= 0) {
+      for (let i = matchEndIndex + 2; i < rows.length; i += 1) {
+        const row = rows[i];
+        if (row.every((cell) => cell === '')) continue;
+        const num = parsePositiveInteger(row[tnIdx.number] || '');
+        const name = (row[tnIdx.name] || '').trim();
+        if (num && name) {
+          teamNames.push({ team_number: num, team_name: name });
+        }
+      }
+    }
+  }
+
+  return { matches: imported, teamNames };
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
@@ -163,13 +194,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  let imported: ImportedMatch[];
+  let parseResult: CsvParseResult;
   try {
-    imported = validateCsv(csv);
+    parseResult = validateCsv(csv);
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : 'CSV validation failed.' });
     return;
   }
+  const { matches: imported, teamNames: csvTeamNames } = parseResult;
 
   const organizationId = profile.organization_id;
   const teamNumbers = Array.from(new Set(imported.flatMap((match) => [...match.red, ...match.blue])));
@@ -203,21 +235,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const { data: existingTeams, error: teamReadError } = await supabase
-    .from('teams').select('team_number').in('team_number', teamNumbers);
+    .from('teams').select('team_number, team_name').in('team_number', teamNumbers);
   if (teamReadError) {
     console.error('CSV team read', teamReadError);
     res.status(500).json({ error: 'Could not check existing teams.' });
     return;
   }
+
+  // Build a lookup of team names from the CSV (if Gemini provided them)
+  const csvNameLookup = new Map<number, string>();
+  for (const entry of csvTeamNames) {
+    csvNameLookup.set(entry.team_number, entry.team_name);
+  }
+
   const existingNumbers = new Set((existingTeams || []).map((team) => team.team_number));
+
+  // Insert missing teams — use CSV name if available, else "Team <number>"
   const missingTeams = teamNumbers.filter((teamNumber) => !existingNumbers.has(teamNumber))
-    .map((team_number) => ({ team_number, team_name: `Team ${team_number}` }));
+    .map((team_number) => ({
+      team_number,
+      team_name: csvNameLookup.get(team_number) || `Team ${team_number}`,
+    }));
   if (missingTeams.length > 0) {
     const { error: teamInsertError } = await supabase.from('teams').insert(missingTeams);
     if (teamInsertError) {
       console.error('CSV team insert', teamInsertError);
       res.status(500).json({ error: 'Could not save newly discovered teams.' });
       return;
+    }
+  }
+
+  // Update existing teams with better names from CSV (if current name is generic "Team <number>")
+  for (const team of existingTeams || []) {
+    const csvName = csvNameLookup.get(team.team_number);
+    if (csvName && !csvName.startsWith('Team ')) {
+      const currentName = team.team_name || '';
+      if (currentName.startsWith('Team ') || currentName === '' || currentName === `Team ${team.team_number}`) {
+        await supabase
+          .from('teams')
+          .update({ team_name: csvName })
+          .eq('team_number', team.team_number);
+      }
     }
   }
 
@@ -283,5 +341,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
 
-  res.status(200).json({ ok: true, importedMatches: matchRows.length, importedTeams: teamNumbers.length, eventKey, eventName });
+  res.status(200).json({
+    ok: true,
+    importedMatches: matchRows.length,
+    importedTeams: teamNumbers.length,
+    teamNamesApplied: csvTeamNames.length,
+    eventKey,
+    eventName,
+  });
 }

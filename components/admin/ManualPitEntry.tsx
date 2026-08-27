@@ -125,7 +125,11 @@ export function ManualPitEntry({ accessToken, teams, onPitChanged }: Props) {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || 'Could not save pit data');
       setHasReport(true);
-      toast.success('Pit data saved.');
+      if (json.registeredInEvent) {
+        toast.success(`Pit data saved. Team ${teamNumber} was registered into the current competition and synced.`);
+      } else {
+        toast.success('Pit data saved. (No active competition to register the team into yet.)');
+      }
       onPitChanged?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Save failed.');
@@ -167,91 +171,104 @@ export function ManualPitEntry({ accessToken, teams, onPitChanged }: Props) {
 
       {expanded && (
         <div className="space-y-4">
-          {teams.length === 0 ? (
-            <p className="flex items-start gap-2 text-xs text-amber-600 dark:text-amber-400">
-              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-              No teams for the current event yet. Import a CSV, sync from TBA, or add matches first.
-            </p>
-          ) : (
-            <>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Team</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground" htmlFor="manual-pit-team-number">
+              Team number (any team — even one not on the schedule)
+            </Label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Input
+                id="manual-pit-team-number"
+                inputMode="numeric"
+                placeholder="e.g. 1234"
+                value={teamNumber || ''}
+                onChange={(e) => {
+                  const num = parseInt(e.target.value.replace(/[^\d]/g, ''), 10);
+                  setTeamNumber(Number.isFinite(num) ? num : 0);
+                }}
+                className="h-10 bg-background/50"
+              />
+              {teams.length > 0 && (
                 <select
                   className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  value={teamNumber || ''}
+                  value={teams.some((t) => t.team_number === teamNumber) ? teamNumber : ''}
                   onChange={(e) => setTeamNumber(parseInt(e.target.value, 10) || 0)}
+                  aria-label="Quick pick from event roster"
                 >
-                  <option value="">— Select a team —</option>
+                  <option value="">— Or pick from event roster —</option>
                   {teams.map((t) => (
                     <option key={t.team_number} value={t.team_number}>
                       {t.team_number} · {t.team_name}
                     </option>
                   ))}
                 </select>
+              )}
+            </div>
+            <p className="flex items-start gap-2 text-xs text-muted-foreground">
+              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+              Saving for a team outside the event automatically registers it into the current competition and syncs it.
+            </p>
+          </div>
+
+          {teamNumber && (
+            <div className="rounded-lg border border-border/70 bg-background/50 p-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-medium text-muted-foreground">
+                  {loadingReport ? 'Loading existing…' : hasReport ? 'Edit existing pit data' : 'New pit entry'}
+                  {hasReport && !loadingReport && <CheckCircle2 className="ml-1 inline h-3.5 w-3.5 text-green-500" aria-hidden />}
+                </p>
+                <Button type="button" variant="ghost" size="sm" onClick={() => loadExisting(teamNumber)} disabled={loadingReport}>
+                  <RefreshCw className={`h-3.5 w-3.5 ${loadingReport ? 'animate-spin' : ''}`} aria-hidden /> Reload
+                </Button>
               </div>
 
-              {teamNumber && (
-                <div className="rounded-lg border border-border/70 bg-background/50 p-3 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-medium text-muted-foreground">
-                      {loadingReport ? 'Loading existing…' : hasReport ? 'Edit existing pit data' : 'New pit entry'}
-                      {hasReport && !loadingReport && <CheckCircle2 className="ml-1 inline h-3.5 w-3.5 text-green-500" aria-hidden />}
-                    </p>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => loadExisting(teamNumber)} disabled={loadingReport}>
-                      <RefreshCw className={`h-3.5 w-3.5 ${loadingReport ? 'animate-spin' : ''}`} aria-hidden /> Reload
-                    </Button>
+              {loadingReport ? (
+                <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading…
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {field('Robot name', 'robot_name', 'e.g. Banshee')}
+                  {field('Drive type', 'drive_type', 'e.g. Swerve Drive, Tank Drive')}
+                  {field('Programming language', 'programming_language', 'e.g. Java, Python, C++')}
+                  {field('Auto capabilities', 'autonomous_capabilities', 'comma-separated')}
+                  {field('Teleop capabilities', 'teleop_capabilities', 'comma-separated')}
+                  {field('Climb levels', 'climb_levels', 'comma-separated, e.g. none, deep')}
+                  {field('Climb location', 'climb_location', 'e.g. sides, center')}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Can auto-align</Label>
+                    <div className="flex h-10 items-center gap-2">
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={draft.can_autoalign}
+                        onClick={() => setDraft((p) => ({ ...p, can_autoalign: !p.can_autoalign }))}
+                        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors ${draft.can_autoalign ? 'bg-primary' : 'bg-input'}`}
+                      >
+                        <span className={`inline-block h-5 w-5 transform rounded-full bg-background shadow transition ${draft.can_autoalign ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
                   </div>
-
-                  {loadingReport ? (
-                    <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading…
-                    </div>
-                  ) : (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {field('Robot name', 'robot_name', 'e.g. Banshee')}
-                      {field('Drive type', 'drive_type', 'e.g. Swerve Drive, Tank Drive')}
-                      {field('Programming language', 'programming_language', 'e.g. Java, Python, C++')}
-                      {field('Auto capabilities', 'autonomous_capabilities', 'comma-separated')}
-                      {field('Teleop capabilities', 'teleop_capabilities', 'comma-separated')}
-                      {field('Climb levels', 'climb_levels', 'comma-separated, e.g. none, deep')}
-                      {field('Climb location', 'climb_location', 'e.g. sides, center')}
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Can auto-align</Label>
-                        <div className="flex h-10 items-center gap-2">
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={draft.can_autoalign}
-                            onClick={() => setDraft((p) => ({ ...p, can_autoalign: !p.can_autoalign }))}
-                            className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors ${draft.can_autoalign ? 'bg-primary' : 'bg-input'}`}
-                          >
-                            <span className={`inline-block h-5 w-5 transform rounded-full bg-background shadow transition ${draft.can_autoalign ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                          </button>
-                        </div>
-                      </div>
-                      {field('Weight (lb)', 'weight', 'e.g. 118')}
-                      {field('Camera count', 'camera_count', 'e.g. 2')}
-                      {field('Auto fuel count', 'auto_fuel_count', 'e.g. 15')}
-                      <div className="sm:col-span-2 space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Notes</Label>
-                        <textarea
-                          rows={3}
-                          placeholder="Robot details and observations…"
-                          value={draft.notes}
-                          onChange={(e) => setDraft((p) => ({ ...p, notes: e.target.value }))}
-                          className="w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <Button type="button" onClick={handleSave} disabled={saving || loadingReport} className="w-full sm:w-auto min-h-10">
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
-                    {hasReport ? 'Update pit data' : 'Save pit data'}
-                  </Button>
+                  {field('Weight (lb)', 'weight', 'e.g. 118')}
+                  {field('Camera count', 'camera_count', 'e.g. 2')}
+                  {field('Auto fuel count', 'auto_fuel_count', 'e.g. 15')}
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Notes</Label>
+                    <textarea
+                      rows={3}
+                      placeholder="Robot details and observations…"
+                      value={draft.notes}
+                      onChange={(e) => setDraft((p) => ({ ...p, notes: e.target.value }))}
+                      className="w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                  </div>
                 </div>
               )}
-            </>
+
+              <Button type="button" onClick={handleSave} disabled={saving || loadingReport} className="w-full sm:w-auto min-h-10">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
+                {hasReport ? 'Update pit data' : 'Save pit data'}
+              </Button>
+            </div>
           )}
         </div>
       )}

@@ -261,6 +261,8 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         if (requestId !== loadRequestIdRef.current) return;
         setScoutingData([]);
         setTeamStats([]);
+        setTeams([]);
+        setAllTeams([]);
         setLoading(false);
         return;
       }
@@ -295,6 +297,42 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         .filter((row) => Number.isFinite(Number(row.team_number)) && Number(row.team_number) > 0)
         .sort((a: ScoutingData, b: ScoutingData) => getRowTimestampMs(b) - getRowTimestampMs(a));
 
+      // Resolve the event roster team numbers FIRST so the team listing is scoped to the
+      // active competition, not every historical team assigned to the organization.
+      let rosterQuery = supabase
+        .from('event_team_roster')
+        .select('team_number')
+        .eq('event_key', targetEventKey);
+
+      if (teamDataOnly && user?.organization_id) {
+        rosterQuery = rosterQuery.eq('organization_id', user.organization_id);
+      }
+
+      // For CSV events, restrict roster to CSV-imported teams
+      if (targetEventSource === 'csv' && targetEventTeamNumbers.length > 0) {
+        rosterQuery = rosterQuery.in('team_number', targetEventTeamNumbers);
+      }
+
+      const { data: rosterRows, error: rosterError } = await rosterQuery;
+      if (rosterError) throw rosterError;
+
+      const rosterTeamNumbers = Array.from(
+        new Set((rosterRows || []).map((row: { team_number: number }) => row.team_number))
+      );
+
+      // Scope the team listing to the active competition so stale/accumulated org teams
+      // don't appear. Prefer the event roster; if the roster isn't synced yet, fall back
+      // to the teams that actually have scouting data for this event (plus any CSV teams).
+      const eventTeamNumbersForListing =
+        rosterTeamNumbers.length > 0
+          ? rosterTeamNumbers
+          : Array.from(
+              new Set([
+                ...allScoutingRows.map((row: ScoutingData) => Number(row.team_number)).filter((n) => Number.isFinite(n) && n > 0),
+                ...targetEventTeamNumbers,
+              ])
+            );
+
       // Load ALL teams (including Avalanche) for team name lookups and Team Stats calculation
       // Team Stats needs all teams that have scouting data, regardless of team list filter
       let allTeamsQuery = supabase
@@ -302,9 +340,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         .select('*')
         .order('team_number');
 
-      // For CSV events, restrict to only the teams from the imported CSV
-      if (targetEventSource === 'csv' && targetEventTeamNumbers.length > 0) {
-        allTeamsQuery = allTeamsQuery.in('team_number', targetEventTeamNumbers);
+      // Restrict to the current event's teams so stale/accumulated org teams don't appear
+      if (eventTeamNumbersForListing.length > 0) {
+        allTeamsQuery = allTeamsQuery.in('team_number', eventTeamNumbersForListing);
       }
 
       const { data: allTeamsResult, error: allTeamsError } = await allTeamsQuery;
@@ -318,9 +356,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         .not('team_name', 'ilike', '%avalanche%')
         .order('team_number');
 
-      // For CSV events, restrict dropdown to only CSV-imported teams
-      if (targetEventSource === 'csv' && targetEventTeamNumbers.length > 0) {
-        teamsDropdownQuery = teamsDropdownQuery.in('team_number', targetEventTeamNumbers);
+      // Restrict dropdown to the current event's teams for both TBA and CSV events
+      if (eventTeamNumbersForListing.length > 0) {
+        teamsDropdownQuery = teamsDropdownQuery.in('team_number', eventTeamNumbersForListing);
       }
 
       const { data: teamsResult, error: teamsError } = await teamsDropdownQuery;
@@ -366,27 +404,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       // Load pit scouting data so we can show robot name / drive type per team.
       // `pit_scouting_data.team_number` is not a database foreign key to
       // `event_team_roster`, so PostgREST cannot perform an embedded join here.
-      // Resolve the event roster first, then filter pit rows by its team numbers.
-      let rosterQuery = supabase
-        .from('event_team_roster')
-        .select('team_number')
-        .eq('event_key', targetEventKey);
-
-      if (teamDataOnly && user?.organization_id) {
-        rosterQuery = rosterQuery.eq('organization_id', user.organization_id);
-      }
-
-      // For CSV events, restrict roster to CSV-imported teams
-      if (targetEventSource === 'csv' && targetEventTeamNumbers.length > 0) {
-        rosterQuery = rosterQuery.in('team_number', targetEventTeamNumbers);
-      }
-
-      const { data: rosterRows, error: rosterError } = await rosterQuery;
-      if (rosterError) throw rosterError;
-
-      const rosterTeamNumbers = Array.from(
-        new Set((rosterRows || []).map((row: { team_number: number }) => row.team_number))
-      );
+      // Use the event roster team numbers resolved earlier, then filter pit rows by them.
       let pitDataResult: { team_number: number; robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }[] | null = [];
 
       if (rosterTeamNumbers.length > 0) {

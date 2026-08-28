@@ -135,9 +135,16 @@ export default function AuthCallback() {
        * Returning users: Supabase often omits `provider_token` on refreshed sessions.
        * If they already have an organization and are not mid–invite flow, skip guild verification.
        */
-      const shouldSkipGuildForEstablishedUser = async (session: { user?: { id?: string } } | null) => {
+      const shouldSkipGuildForEstablishedUser = async (session: { user?: { id?: string }; provider_token?: string | null } | null) => {
         const uid = session?.user?.id;
         if (!uid) return false;
+
+        // If a fresh Discord sign-in provides a provider token, we CAN verify guild
+        // membership right now — never skip in that case. A user who was denied access
+        // (e.g. removed from the Avalanche guild) must stay denied, even on retry, even
+        // if their users row still has an organization_id. The guild check is the real
+        // authorization gate, so it must not be bypassed whenever it can actually run.
+        if (session?.provider_token) return false;
 
         // Check org membership FIRST — stale invite tokens must not block established users.
         const { data: prof } = await supabase
@@ -151,7 +158,9 @@ export default function AuthCallback() {
 
         if (prof?.organization_id) {
           // User already has an org. Clear any stale new_org invite tokens so they
-          // don't accidentally land on /setup-org on future visits.
+          // don't accidentally land on /setup-org on future visits. Only proceed on
+          // returning/refreshed sessions that carry no provider token (so we cannot
+          // re-verify guild membership) — never on a fresh verifiable login.
           if (typeof window !== 'undefined') {
             if (localStorage.getItem('org_invite_type') === 'new_org') {
               localStorage.removeItem('org_invite_token');

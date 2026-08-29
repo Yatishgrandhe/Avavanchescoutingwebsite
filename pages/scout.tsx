@@ -137,12 +137,8 @@ export default function Scout() {
     if (!formData.scoutName.trim()) missingFields.push('scout name');
     if (!formData.alliancePosition) missingFields.push('alliance position');
 
-    const autoScore = calculateScore(formData.autonomous);
-    const teleopScore = calculateScore(formData.teleop);
-    if (autoScore.final_score === 0 && teleopScore.final_score === 0 &&
-        (formData.autonomous.runs?.length ?? 0) === 0 && (formData.teleop.runs?.length ?? 0) === 0) {
-      missingFields.push('at least one scoring run (auto or teleop)');
-    }
+    // Scoring runs are optional — scouts may submit a match form with no scoring
+    // (e.g. the robot never scored). A zero score is valid data.
 
     if (formData.miscellaneous.broke === null) missingFields.push('robot broke status (Yes/No)');
     if (formData.miscellaneous.defense_rating === 0) missingFields.push('defense rating (0 is valid but confirm intentional)');

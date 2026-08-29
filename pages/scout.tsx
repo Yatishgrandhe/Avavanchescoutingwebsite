@@ -141,7 +141,6 @@ export default function Scout() {
     // (e.g. the robot never scored). A zero score is valid data.
 
     if (formData.miscellaneous.broke === null) missingFields.push('robot broke status (Yes/No)');
-    if (formData.miscellaneous.defense_rating === 0) missingFields.push('defense rating (0 is valid but confirm intentional)');
 
     if (missingFields.length > 0) {
       setSubmitError(`Review the following before submitting: ${missingFields.join(', ')}.`);

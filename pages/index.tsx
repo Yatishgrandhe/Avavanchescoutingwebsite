@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { Button } from '../components/ui';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui';
 import { Badge } from '../components/ui/badge';
-import { Alert, AlertTitle, AlertDescription } from '../components/ui';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui';
 import { Separator } from '../components/ui';
@@ -28,7 +26,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
-import Logo from '../components/ui/Logo';
+import LandingPage, { LandingLoader } from '../components/landing/LandingPage';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useSupabase } from '@/pages/_app';
 import { useRefreshHandler } from '@/lib/refresh-handler';
@@ -36,119 +34,6 @@ import { fetchRecentMatchScoutingForActivity } from '@/lib/dashboard-activity';
 import { getOrgCurrentEvent } from '@/lib/org-app-config';
 import { getDashboardStatsForActiveEvent } from '@/lib/dashboard-event-stats';
 import { getCachedValue, setCachedValue } from '@/lib/local-client-cache';
-// Enhanced Avalanche Animation
-const AvalancheAnimation = () => {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background" />
-
-      {/* Animated particles */}
-      {[...Array(50)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-1 h-1 bg-primary/40 rounded-full"
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-          }}
-          animate={{
-            y: [0, -30, 0],
-            opacity: [0.2, 0.6, 0.2],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 3 + Math.random() * 4,
-            repeat: Infinity,
-            delay: Math.random() * 3,
-            ease: "easeInOut"
-          }}
-        />
-      ))}
-
-      {/* Larger floating glowing orbs */}
-      {[...Array(6)].map((_, i) => (
-        <motion.div
-          key={`orb-${i}`}
-          className="absolute rounded-full blur-3xl opacity-20"
-          style={{
-            width: `${200 + Math.random() * 300}px`,
-            height: `${200 + Math.random() * 300}px`,
-            background: i % 2 === 0 ? 'var(--primary)' : 'var(--secondary)',
-            left: `${Math.random() * 80}%`,
-            top: `${Math.random() * 80}%`,
-          }}
-          animate={{
-            x: [0, 50, 0],
-            y: [0, -50, 0],
-            opacity: [0.1, 0.3, 0.1],
-          }}
-          transition={{
-            duration: 10 + Math.random() * 10,
-            repeat: Infinity,
-            delay: i * 2,
-            type: "spring", stiffness: 10
-          }}
-        />
-      ))}
-    </div>
-  );
-};
-
-const features = [
-  {
-    title: "Real-time Scoring",
-    description: "Instant feedback with automatic FRC 2026 Rebuilt score calculation.",
-    icon: Target,
-    color: "text-blue-400",
-    bgColor: "bg-blue-400/10"
-  },
-  {
-    title: "Advanced Analytics",
-    description: "Deep dive into team performance metrics and strategic trends.",
-    icon: BarChart3,
-    color: "text-purple-400",
-    bgColor: "bg-purple-400/10"
-  },
-  {
-    title: "Team Comparison",
-    description: "Side-by-side capability analysis for effective alliance selection.",
-    icon: Users,
-    color: "text-green-400",
-    bgColor: "bg-green-400/10"
-  },
-  {
-    title: "Match Validation",
-    description: "Automated verification against FRC APIs for data integrity.",
-    icon: Shield,
-    color: "text-orange-400",
-    bgColor: "bg-orange-400/10"
-  },
-];
-
-const benefits = [
-  {
-    title: "Professional Design",
-    description: "Clean, glassmorphic interface optimized for dark environments.",
-    icon: Sparkles,
-  },
-  {
-    title: "Real-time Updates",
-    description: "Live synchronization across all team devices instantly.",
-    icon: Zap,
-  },
-  {
-    title: "Performance Insights",
-    description: "Visual metrics to guide match strategy and picking.",
-    icon: TrendingUp,
-  },
-  {
-    title: "Secure Access",
-    description: "Role-based authentication via Discord for team security.",
-    icon: Shield,
-  },
-];
-
 // Types for dashboard data (all from DB – no derived “success rate”)
 interface DashboardStats {
   totalMatches: number;
@@ -395,13 +280,7 @@ export default function Home() {
     router.push('/auth/signin');
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  if (loading) return <LandingLoader />;
 
   // LOGGED IN DASHBOARD
   if (user) {
@@ -758,114 +637,5 @@ export default function Home() {
     );
   }
 
-  // LANDING PAGE (Non-authenticated)
-  return (
-    <div className="min-h-screen bg-background relative overflow-hidden flex flex-col">
-      <AvalancheAnimation />
-
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/5">
-        <div className="container mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
-          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-            <Logo size="sm" />
-            <span className="text-sm sm:text-lg font-heading font-bold text-foreground tracking-tight truncate">Avalanche Scouting</span>
-          </div>
-          <Button onClick={handleSignIn} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full px-3 sm:px-6 flex-shrink-0">
-            <span className="hidden sm:inline">Sign In</span>
-            <span className="sm:hidden">Sign In</span>
-          </Button>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <main className="flex-1 container mx-auto px-4 sm:px-6 pt-24 sm:pt-32 pb-16 flex flex-col items-center justify-center text-center relative z-20 max-w-full overflow-x-hidden">
-        {errorMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8 max-w-2xl mx-auto"
-          >
-            <Alert variant="destructive" className="backdrop-blur-md">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Authentication Error</AlertTitle>
-              <AlertDescription>{errorMessage}</AlertDescription>
-            </Alert>
-          </motion.div>
-        )}
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, type: "spring" }}
-          className="mb-6 relative"
-        >
-          <div className="absolute -inset-4 bg-primary/20 blur-2xl rounded-full opacity-50"></div>
-          <Badge className="relative bg-primary/20 text-primary-foreground hover:bg-primary/30 border-primary/20 px-4 py-1.5 text-sm rounded-full mb-6 transition-all">
-            FRC 2026 Rebuilt Ready
-          </Badge>
-        </motion.div>
-
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.8 }}
-          className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-heading font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-white via-white/90 to-white/50 mb-6 tracking-tight max-w-4xl px-4"
-        >
-          Precision Scouting for <br className="hidden md:block" /> Championship Performance
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.8 }}
-          className="text-base sm:text-lg md:text-xl text-muted-foreground/80 max-w-2xl mb-10 leading-relaxed px-4"
-        >
-          The advanced data platform for Avalanche Robotics.
-          Real-time analytics, predictive modeling, and comprehensive robot validation.
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.8 }}
-          className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto px-4"
-        >
-          <Button onClick={handleSignIn} size="lg" className="w-full sm:w-auto h-12 px-8 rounded-full bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all font-semibold text-lg">
-            System Access <ArrowRight size={20} className="ml-2" />
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-full sm:w-auto h-12 px-8 rounded-full border-white/10 hover:bg-white/5 text-white hover:border-white/20 transition-all font-medium backdrop-blur-sm"
-            onClick={() => router.push('/competition-history')}
-          >
-            Competition History
-          </Button>
-        </motion.div>
-
-        {/* Features Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 0.8 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-24 w-full px-4"
-        >
-          {features.map((feature, i) => (
-            <div key={i} className="glass-card p-6 rounded-2xl text-left border border-white/5 hover:border-primary/20 transition-all group">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${feature.bgColor} ${feature.color} group-hover:scale-110 transition-transform`}>
-                <feature.icon size={24} />
-              </div>
-              <h3 className="font-semibold text-foreground text-base sm:text-lg mb-2 break-words">{feature.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed break-words">{feature.description}</p>
-            </div>
-          ))}
-        </motion.div>
-      </main>
-
-      {/* Footer */}
-      <footer className="relative z-20 py-8 text-center text-xs text-muted-foreground/50 border-t border-white/5 bg-background/50 backdrop-blur-xl">
-        <p>© 2026 Avalanche Robotics • FRC Team 2724</p>
-      </footer>
-    </div>
-  );
-};
+  return <LandingPage errorMessage={errorMessage} />;
+}

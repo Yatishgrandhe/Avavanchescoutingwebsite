@@ -100,3 +100,23 @@ Strategy: **mixed**. The base application uses tonal navy layers and restrained 
 | Item | Location | Why accepted | Owner / Exit |
 |---|---|---|---|
 | Authenticated route QA requires the owner’s Discord session | Production auth routes | The external browser session is not attachable by the available test browser | Replace with a test account or attachable browser storage before final authenticated-flow signoff |
+
+## 9. Public Landing Page Direction
+
+The public page is an editorial field guide for Team 2724: precise, calm, and built for the pressure of a competition day. Keep the application tokens above for authenticated screens; the landing page has a scoped ink, ice, and signal-blue palette with subtle grid lines and a single illustrated workspace panel. The memorable interaction is the Avalanche mark revealing through a vertical mask as navigation opens and as the session loads.
+
+| Role | Token | Value |
+|---|---|---|
+| Landing ink | `--landing-ink` | `#07121e` |
+| Landing panel | `--landing-panel` | `#0e1d2b` |
+| Landing line | `--landing-line` | `rgba(172, 201, 224, .17)` |
+| Landing paper | `--landing-paper` | `#eef3f4` |
+| Landing muted | `--landing-muted` | `#a6b8c7` |
+| Landing blue | `--landing-blue` | `#7ba6ff` |
+| Landing bright | `--landing-bright` | `#d8e6ff` |
+
+- **Typography:** Outfit for the display and navigation; Inter for functional copy; tabular numeric labels. Display may reach 6rem on desktop and scales down without overflow.
+- **Layout:** 1280px content maximum, 24px desktop and 20px mobile gutters. Use offset columns and editorial rules instead of repeated cards.
+- **Primitives:** brand link (rest, hover, focus, menu-open); text navigation link (rest, hover, active, focus); primary and secondary action (rest, hover, focus, disabled); menu trigger and panel (closed/open); workspace preview (static illustration with readable labels); loading mark (active/complete).
+- **Motion:** mark reveal 500ms, mobile menu 300ms, link underline 220ms, loading sweep 1.5s. Animate transforms and opacity only. Disable all nonessential motion when `prefers-reduced-motion` is set.
+- **Accessibility:** semantic sections and links, visible focus rings, 44px touch targets, close mobile menu on link selection, descriptive loading status, and readable contrast at 375px, 768px, and 1280px.

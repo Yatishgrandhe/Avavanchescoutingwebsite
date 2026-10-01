@@ -64,9 +64,16 @@ export default function Home() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingActivity, setLoadingActivity] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [introReady, setIntroReady] = useState(false);
   const [dashboardEventLabel, setDashboardEventLabel] = useState<string | null>(null);
 
   useRefreshHandler();
+
+  useEffect(() => {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const timer = window.setTimeout(() => setIntroReady(true), reducedMotion ? 0 : 1250);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const { message, error, error_code, error_description } = router.query;
@@ -280,7 +287,7 @@ export default function Home() {
     router.push('/auth/signin');
   };
 
-  if (loading) return <LandingLoader />;
+  if (loading || !introReady) return <LandingLoader />;
 
   // LOGGED IN DASHBOARD
   if (user) {

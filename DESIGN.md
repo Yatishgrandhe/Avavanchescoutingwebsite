@@ -120,3 +120,14 @@ The public page is an editorial field guide for Team 2724: precise, calm, and bu
 - **Primitives:** brand link (rest, hover, focus, menu-open); text navigation link (rest, hover, active, focus); primary and secondary action (rest, hover, focus, disabled); menu trigger and panel (closed/open); workspace preview (static illustration with readable labels); loading mark (active/complete).
 - **Motion:** mark reveal 500ms, mobile menu 300ms, link underline 220ms, loading sweep 1.5s. Animate transforms and opacity only. Disable all nonessential motion when `prefers-reduced-motion` is set.
 - **Accessibility:** semantic sections and links, visible focus rings, 44px touch targets, close mobile menu on link selection, descriptive loading status, and readable contrast at 375px, 768px, and 1280px.
+
+## 10. Competition History Page
+
+The public history page extends the landing page's ink and ice palette. It uses generous spacing and soft 24–32px corners so event information is readable at a glance. Large event names and numerical counts take priority over metadata.
+
+- **Layout:** a 1280px content column with a spacious introduction, a featured live event area, and a responsive archive grid. Cards remain at least 320px wide before wrapping.
+- **Primitives:** rounded brand navigation, summary pill, event card, search field, year select, empty state, and full-screen loading stage. Links and controls have clear hover, focus, and active states.
+- **Type:** 3.5–5rem display heading, 1.5–2rem event titles, 2–2.5rem data counts, 1rem minimum body labels.
+- **Motion:** use the installed Framer Motion package for page entrance and exit. The loader completes its logo reveal and progress sweep before leaving. Respect reduced-motion preferences and avoid perpetual movement in the finished view.
+- **Accessibility:** event cards are full keyboard-accessible links; search and year filter have labels; loading uses a status announcement. The page must not overflow horizontally at 375px.
+- **Navigation:** a site-wide route overlay uses the Avalanche mark and a finite progress animation. Route changes keep it visible for at least 1.25 seconds so the motion completes, including on phones. In-page anchor movement stays immediate. Reduced-motion users receive a static state without an artificial delay.

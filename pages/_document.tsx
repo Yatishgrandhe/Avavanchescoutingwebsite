@@ -6,7 +6,7 @@ const enableReactDevTools =
 
 export default function Document() {
   return (
-    <Html lang="en">
+    <Html lang="en" data-scroll-behavior="smooth">
       <Head>
         {enableReactDevTools && (
           <>

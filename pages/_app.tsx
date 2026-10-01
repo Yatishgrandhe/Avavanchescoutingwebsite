@@ -6,6 +6,7 @@ import Head from 'next/head';
 import { Toaster } from '@/components/ui/toaster';
 import { handleRefreshResize } from '@/lib/refresh-handler';
 import { getSupabaseClient } from '@/lib/supabase';
+import RouteTransition from '@/components/ui/RouteTransition';
 
 import '@/styles/globals.css';
 
@@ -165,6 +166,7 @@ export default function App({ Component, pageProps }: AppProps) {
       </Head>
       <SupabaseContext.Provider value={{ supabase, user, authUser, session, loading }}>
         <Component {...pageProps} />
+        <RouteTransition />
         <Toaster />
       </SupabaseContext.Provider>
     </>

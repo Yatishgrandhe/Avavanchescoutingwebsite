@@ -1,0 +1,101 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  background: #07121e;
+  color: #eef3f4;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(100% - 48px, 360px);
+  text-align: center;
+}
+
+.mark {
+  width: 110px;
+  height: 110px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.mark img {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  animation: markReveal 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.wordmark {
+  margin: 20px 0 0;
+  font:
+    700 17px/1 Outfit,
+    Inter,
+    sans-serif;
+  letter-spacing: 0.2em;
+}
+
+.wordmark span {
+  color: #7ba6ff;
+  font-weight: 500;
+}
+
+.progress {
+  width: 210px;
+  height: 3px;
+  margin-top: 25px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #294058;
+}
+
+.progress span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: #7ba6ff;
+  transform-origin: left;
+  animation: progressFill 1.05s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.caption {
+  margin: 17px 0 0;
+  color: #a6b8c7;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.17em;
+}
+
+@keyframes markReveal {
+  from {
+    opacity: 0;
+    transform: translateY(100%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes progressFill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mark img,
+  .progress span {
+    animation: none;
+  }
+}

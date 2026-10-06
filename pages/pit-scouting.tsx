@@ -91,6 +91,8 @@ export default function PitScouting() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loadingTeams, setLoadingTeams] = useState(false);
   const [teamsError, setTeamsError] = useState<string | null>(null);
+  const [manualTeamName, setManualTeamName] = useState<string | null>(null);
+  const [loadingManualTeamName, setLoadingManualTeamName] = useState(false);
   const [formData, setFormData] = useState<PitScoutingData>({
     teamNumber: 0,
     robotName: '',
@@ -266,6 +268,48 @@ export default function PitScouting() {
 
     loadTeams();
   }, [supabase.auth]);
+
+  // A typed team number must work even if the event roster is empty. Resolve its
+  // display name without writing data; the eventual submit/sync performs the
+  // idempotent database registration.
+  useEffect(() => {
+    const rosterName = teams.find((team) => team.team_number === formData.teamNumber)?.team_name;
+    if (rosterName) {
+      setManualTeamName(rosterName);
+      setLoadingManualTeamName(false);
+      return;
+    }
+    if (!formData.teamNumber) {
+      setManualTeamName(null);
+      setLoadingManualTeamName(false);
+      return;
+    }
+
+    let cancelled = false;
+    const timeout = window.setTimeout(async () => {
+      setLoadingManualTeamName(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+        const response = await fetch(`/api/pit-scouting/team-name?team_number=${formData.teamNumber}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!cancelled && response.ok) {
+          setManualTeamName(typeof payload.team_name === 'string' ? payload.team_name : `Team ${formData.teamNumber}`);
+        }
+      } catch {
+        if (!cancelled) setManualTeamName(`Team ${formData.teamNumber}`);
+      } finally {
+        if (!cancelled) setLoadingManualTeamName(false);
+      }
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [formData.teamNumber, supabase.auth, teams]);
 
   // Normalize value from DB to array (handles string or array)
   const toArray = (v: unknown): string[] => {
@@ -701,7 +745,6 @@ export default function PitScouting() {
                           }}
                           placeholder="Enter team number (e.g. 1234)"
                           className="glass-input border-white/10 placeholder:text-muted-foreground/30"
-                          disabled={loadingTeams && teams.length === 0}
                         />
                         {teams.length > 0 && (
                           <div className="relative">
@@ -720,18 +763,24 @@ export default function PitScouting() {
                             </select>
                           </div>
                         )}
+                        {loadingTeams && teams.length === 0 && (
+                          <p className="text-xs text-muted-foreground">Loading the event roster — manual entry is still available.</p>
+                        )}
                         {!loadingTeams && teams.length === 0 && !teamsError && (
                           <p className="text-xs text-muted-foreground">
                             No teams loaded yet — you can still type a team number and scout it.
                           </p>
                         )}
+                        <p className="text-xs text-muted-foreground">
+                          Manual numbers are checked against The Blue Alliance when possible; otherwise the form uses a safe Team number fallback.
+                        </p>
                       </div>
 
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Team Name</label>
                         <div className="glass-input min-h-10 flex items-center px-3 text-muted-foreground text-sm border-white/10 rounded-lg">
                           {formData.teamNumber
-                            ? (teams.find(t => t.team_number === formData.teamNumber)?.team_name || '—')
+                            ? (loadingManualTeamName ? 'Looking up team name…' : (manualTeamName || `Team ${formData.teamNumber}`))
                             : '—'}
                         </div>
                       </div>

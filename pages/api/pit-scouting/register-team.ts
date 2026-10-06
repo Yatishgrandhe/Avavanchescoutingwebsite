@@ -53,6 +53,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json(registration);
   } catch (err) {
     console.error('register-team error', err);
-    res.status(200).json({ registered: false, eventKey: '', eventName: '' });
+    res.status(500).json({ error: 'Could not register this team for pit scouting.' });
   }
 }

@@ -36,8 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'GET') {
     const teamNumber = parseInt(String(req.query.team_number || ''), 10);
-    if (!Number.isFinite(teamNumber)) {
-      res.status(400).json({ error: 'Missing team_number' });
+    if (!Number.isFinite(teamNumber) || teamNumber < 1 || teamNumber > 99999) {
+      res.status(400).json({ error: 'Team number must be between 1 and 99999' });
       return;
     }
     const { data, error } = await supabase
@@ -60,8 +60,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'POST' || req.method === 'PUT') {
     const body = req.body || {};
     const teamNumber = parseInt(String(body.team_number || ''), 10);
-    if (!Number.isFinite(teamNumber)) {
-      res.status(400).json({ error: 'Missing team_number' });
+    if (!Number.isFinite(teamNumber) || teamNumber < 1 || teamNumber > 99999) {
+      res.status(400).json({ error: 'Team number must be between 1 and 99999' });
       return;
     }
 

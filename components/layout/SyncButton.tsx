@@ -105,6 +105,30 @@ export default function SyncButton() {
           } else if (item.type === 'pit-scouting') {
             const { submissionData, photosToUpload, annotatedImageToUpload, editingId } = item.data;
             const finalPhotos = [...(submissionData.photos || [])];
+
+            // Register the team before writing the form. This keeps a queued pit
+            // report retryable if the roster/name sync fails, rather than saving a
+            // report and silently losing the event-team association.
+            const teamNum = Number(submissionData?.team_number);
+            if (!Number.isFinite(teamNum) || teamNum < 1 || teamNum > 99999) {
+              throw new Error('Pit scouting team number must be between 1 and 99999.');
+            }
+            if (session?.access_token) {
+              const registrationResponse = await fetch('/api/pit-scouting/register-team', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ team_number: teamNum }),
+              });
+              const registration = await registrationResponse.json().catch(() => ({}));
+              if (!registrationResponse.ok) {
+                throw new Error(typeof registration.error === 'string'
+                  ? registration.error
+                  : 'Could not prepare this team for pit scouting.');
+              }
+            }
             
             // Upload photos
             if (photosToUpload && photosToUpload.length > 0) {
@@ -146,24 +170,6 @@ export default function SyncButton() {
             if (!error) {
               await removeFromOfflineQueue(item.id);
               successCount++;
-
-              // Register the scouted team into the active competition (idempotent), so
-              // manually-scouted teams not on the original schedule merge into the event.
-              try {
-                const teamNum = Number(submissionData?.team_number);
-                if (Number.isFinite(teamNum) && teamNum > 0 && session?.access_token) {
-                  await fetch('/api/pit-scouting/register-team', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      Authorization: `Bearer ${session.access_token}`,
-                    },
-                    body: JSON.stringify({ team_number: teamNum }),
-                  });
-                }
-              } catch {
-                // registration is best-effort; ignore failures here
-              }
             } else {
               console.error('Pit scouting sync failed', error);
               failCount++;

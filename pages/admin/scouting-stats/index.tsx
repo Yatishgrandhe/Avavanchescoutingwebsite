@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   ClipboardList,
+  ClipboardCheck,
   Users,
   BarChart3,
   RefreshCw,
@@ -33,6 +34,8 @@ interface ScoutingStatsByPerson {
 
 interface ScoutingStatsResponse {
   totalForms: number;
+  matchForms: number;
+  pitForms: number;
   byPerson: ScoutingStatsByPerson[];
 }
 
@@ -114,7 +117,7 @@ function AdminScoutingStatsInner() {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -158,20 +161,44 @@ function AdminScoutingStatsInner() {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
-            <Card className="border border-white/10 bg-card/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <BarChart3 className="w-5 h-5 text-primary" />
-                  Total scouting forms (your org)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-4xl font-bold text-primary">{data.totalForms}</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Match + pit forms in your organization
-                </p>
-              </CardContent>
-            </Card>
+            <section aria-label="Organization scouting form totals" className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <Card className="rounded-2xl border border-white/10 bg-card/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <BarChart3 className="w-5 h-5 shrink-0 text-primary" />
+                    Total forms
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-4xl font-bold tabular-nums text-primary">{data.totalForms.toLocaleString()}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">Current match + pit forms across your organization</p>
+                </CardContent>
+              </Card>
+              <Card className="rounded-2xl border border-white/10 bg-card/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <ClipboardList className="w-5 h-5 shrink-0 text-primary" />
+                    Match scouting forms
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-4xl font-bold tabular-nums text-primary">{data.matchForms.toLocaleString()}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">Current submissions across your organization</p>
+                </CardContent>
+              </Card>
+              <Card className="rounded-2xl border border-white/10 bg-card/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <ClipboardCheck className="w-5 h-5 shrink-0 text-primary" />
+                    Pit scouting forms
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-4xl font-bold tabular-nums text-primary">{data.pitForms.toLocaleString()}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">Current submissions across your organization</p>
+                </CardContent>
+              </Card>
+            </section>
 
             <Card className="border border-white/10 bg-card/50">
               <CardHeader>

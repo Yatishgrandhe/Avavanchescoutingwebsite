@@ -11,8 +11,12 @@ export interface ScoutingStatsByPerson {
 
 export interface ScoutingStatsResponse {
   totalForms: number;
+  matchForms: number;
+  pitForms: number;
   byPerson: ScoutingStatsByPerson[];
 }
+
+const PAGE_SIZE = 500;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   if (req.method !== 'GET') {
@@ -55,27 +59,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Your account must belong to an organization' });
     }
 
-    const [liveRes, pitRes, namesRes] = await Promise.all([
-      supabase.from('scouting_data').select('submitted_by_name').eq('organization_id', orgId),
-      supabase.from('pit_scouting_data').select('submitted_by_name').eq('organization_id', orgId),
+    const getSubmitterNames = async (table: 'scouting_data' | 'pit_scouting_data'): Promise<string[]> => {
+      const names: string[] = [];
+
+      for (let offset = 0; ; offset += PAGE_SIZE) {
+        const { data, error } = await supabase
+          .from(table)
+          .select('submitted_by_name')
+          .eq('organization_id', orgId)
+          .order('id', { ascending: true })
+          .range(offset, offset + PAGE_SIZE - 1);
+
+        if (error) throw new Error(`Failed to load ${table}: ${error.message}`);
+
+        const rows = (data ?? []) as Array<{ submitted_by_name?: string | null }>;
+        names.push(...rows.map((row) => row.submitted_by_name ?? 'Unknown'));
+        if (rows.length < PAGE_SIZE) return names;
+      }
+    };
+
+    const [matchCountRes, pitCountRes, namesRes, matchRows, pitRows] = await Promise.all([
+      supabase.from('scouting_data').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
+      supabase.from('pit_scouting_data').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
       supabase.from('scout_names').select('name').eq('organization_id', orgId).order('sort_order', { ascending: true }).order('name', { ascending: true }),
+      getSubmitterNames('scouting_data'),
+      getSubmitterNames('pit_scouting_data'),
     ]);
 
-    if (liveRes.error) {
-      console.error('scouting_data error:', liveRes.error);
+    if (matchCountRes.error) {
+      console.error('scouting_data count error:', matchCountRes.error);
       return res.status(500).json({ error: 'Failed to load match scouting data' });
     }
-    if (pitRes.error) {
-      console.error('pit_scouting_data error:', pitRes.error);
+    if (pitCountRes.error) {
+      console.error('pit_scouting_data count error:', pitCountRes.error);
       return res.status(500).json({ error: 'Failed to load pit scouting data' });
     }
     if (namesRes.error) {
       console.error('scout_names error:', namesRes.error);
       return res.status(500).json({ error: 'Failed to load scout names' });
     }
-
-    const matchRows = (liveRes.data || []).map((r: { submitted_by_name?: string | null }) => r.submitted_by_name ?? 'Unknown');
-    const pitRows = (pitRes.data || []).map((r: { submitted_by_name?: string | null }) => r.submitted_by_name ?? 'Unknown');
 
     const countByPerson = new Map<string, number>();
     for (const name of [...matchRows, ...pitRows]) {
@@ -89,10 +111,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       formCount: countByPerson.get(name) ?? 0,
     }));
 
-    const totalForms = matchRows.length + pitRows.length;
+    const matchForms = matchCountRes.count ?? 0;
+    const pitForms = pitCountRes.count ?? 0;
+    const totalForms = matchForms + pitForms;
 
     const response: ScoutingStatsResponse = {
       totalForms,
+      matchForms,
+      pitForms,
       byPerson,
     };
 

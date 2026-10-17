@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useSupabase } from '@/pages/_app';
-import { useAdmin } from '@/hooks/use-admin';
+import { downloadArchivedStandForms } from '@/lib/download-archived-scouting';
 import { roundToTenth } from '@/lib/utils';
 import { 
   Calendar, 
@@ -28,7 +28,9 @@ import {
   ChevronRight,
   Database,
   Archive,
-  Radio
+  Radio,
+  Download,
+  Loader2
 } from 'lucide-react';
 
 interface PastCompetition {
@@ -75,33 +77,60 @@ function OrgSubtitle({ names }: { names: string[] }) {
 export default function PastCompetitionsPage() {
   const router = useRouter();
   const { supabase, user, session } = useSupabase();
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  const canExportArchivedForms = user?.role === 'admin' || user?.role === 'superadmin';
   const [competitions, setCompetitions] = useState<PastCompetition[]>([]);
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [yearFilter, setYearFilter] = useState<string>('');
+  const [exportingEvent, setExportingEvent] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadCompetitions();
-  }, []);
+    const controller = new AbortController();
+    void loadCompetitions(controller.signal);
+    return () => controller.abort();
+  }, [session?.access_token]);
 
-  const loadCompetitions = async () => {
+  const exportStandForms = async (competition: PastCompetition) => {
+    const eventKey = `${competition.competition_year}:${competition.competition_key}`;
+    setExportingEvent(eventKey);
+    setExportError(null);
+    try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (!currentSession?.access_token) throw new Error('Sign in as an admin to export scouting forms.');
+      await downloadArchivedStandForms(
+        currentSession.access_token,
+        competition.competition_key,
+        competition.competition_year
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not export stand scouting forms.';
+      setExportError(`${competition.competition_name}: ${message}`);
+    } finally {
+      setExportingEvent(null);
+    }
+  };
+
+  const loadCompetitions = async (signal: AbortSignal) => {
+    setIsLoading(true);
     try {
       const headers: HeadersInit = session ? { 'Authorization': `Bearer ${session.access_token}` } : {};
-      const response = await fetch('/api/past-competitions', { headers });
+      const response = await fetch('/api/past-competitions', { headers, signal });
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
-      setCompetitions(data.competitions || []);
-      setLiveEvents(data.live || []);
+      if (!signal.aborted) {
+        setCompetitions(data.competitions || []);
+        setLiveEvents(data.live || []);
+      }
     } catch (error) {
-      console.error('Error loading competitions:', error);
+      if (!signal.aborted) console.error('Error loading competitions:', error);
     } finally {
-      setIsLoading(false);
+      if (!signal.aborted) setIsLoading(false);
     }
   };
 
@@ -258,6 +287,12 @@ export default function PastCompetitionsPage() {
               </div>
             </Card>
 
+            {exportError && (
+              <p className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+                {exportError}
+              </p>
+            )}
+
             {/* Competitions Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredCompetitions.length === 0 ? (
@@ -348,6 +383,25 @@ export default function PastCompetitionsPage() {
                         {competition.migrated_at ? new Date(competition.migrated_at).toLocaleDateString() : '—'}
                       </div>
                     </div>
+                    {canExportArchivedForms && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="mt-4 w-full gap-2 rounded-xl"
+                        disabled={exportingEvent !== null}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void exportStandForms(competition);
+                        }}
+                      >
+                        {exportingEvent === `${competition.competition_year}:${competition.competition_key}`
+                          ? <Loader2 className="h-4 w-4 animate-spin" />
+                          : <Download className="h-4 w-4" />}
+                        {exportingEvent === `${competition.competition_year}:${competition.competition_key}`
+                          ? 'Preparing CSV…'
+                          : 'Export stand forms CSV'}
+                      </Button>
+                    )}
                   </Card>
                 ))
               )}

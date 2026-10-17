@@ -33,6 +33,8 @@ import {
   RefreshCw,
   Edit,
   Trash2,
+  Download,
+  Loader2,
 } from 'lucide-react';
 import CompetitionDataLayout from '@/components/layout/CompetitionDataLayout';
 import type { CompetitionViewTab } from '@/components/layout/CompetitionDataSidebar';
@@ -44,6 +46,7 @@ import { parseNotes, computeRebuiltMetrics } from '@/lib/analytics';
 import { normalizePitPhotoUrls, mergePitPhotoUrlLists } from '@/lib/pit-images';
 import { PitPhotoImg } from '@/components/pit/PitPhotoImg';
 import { formatDurationSec, roundToTenth } from '@/lib/utils';
+import { downloadArchivedStandForms } from '@/lib/download-archived-scouting';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
 import { TeamComparisonPanel } from '@/components/data/TeamComparisonPanel';
 import { Input } from '@/components/ui/Input';
@@ -105,6 +108,8 @@ export default function ViewDataPage() {
   const { user, supabase, session } = useSupabase();
   const { isAdmin, isSuperAdmin } = useAdmin();
   const { event_key, id, competition_key, year } = router.query;
+  const canExportArchivedForms = user?.role === 'admin' || user?.role === 'superadmin';
+  const isArchivedEvent = !event_key && Boolean(id || (competition_key && year));
 
   const [competition, setCompetition] = useState<CompetitionInfo | null>(null);
   const [scoutingData, setScoutingData] = useState<ViewDataRow[]>([]);
@@ -113,6 +118,8 @@ export default function ViewDataPage() {
   const [deletingPitRow, setDeletingPitRow] = useState<PitRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exportingStandForms, setExportingStandForms] = useState(false);
+  const [standExportError, setStandExportError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<string>('match_id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [activeTab, setActiveTab] = useState<CompetitionViewTab>('overview');
@@ -437,6 +444,7 @@ export default function ViewDataPage() {
     if (!event_key && !id && !competition_key) return;
     setLoading(true);
     setError(null);
+    setStandExportError(null);
     try {
       const params = new URLSearchParams();
       if (event_key) params.set('event_key', event_key as string);
@@ -476,6 +484,26 @@ export default function ViewDataPage() {
       setPitScoutingData([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleArchivedStandFormsDownload = async () => {
+    if (!competition || exportingStandForms) return;
+    setExportingStandForms(true);
+    setStandExportError(null);
+    try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (!currentSession?.access_token) throw new Error('Sign in as an admin to export scouting forms.');
+
+      await downloadArchivedStandForms(
+        currentSession.access_token,
+        competition.competition_key,
+        competition.competition_year
+      );
+    } catch (error) {
+      setStandExportError(error instanceof Error ? error.message : 'Could not export stand scouting forms.');
+    } finally {
+      setExportingStandForms(false);
     }
   };
 
@@ -1398,6 +1426,29 @@ export default function ViewDataPage() {
         showPitTab={showPitTab}
         showStatsTab={!!user}
       >
+        {canExportArchivedForms && isArchivedEvent && competition && (
+          <div className="mx-auto w-full max-w-7xl px-4 pt-5 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-card/50 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Archived stand scouting forms</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Download every match scouting form from this event in your organization.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleArchivedStandFormsDownload}
+                disabled={exportingStandForms}
+                className="shrink-0 gap-2 rounded-xl"
+              >
+                {exportingStandForms ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                {exportingStandForms ? 'Preparing CSV…' : 'Export stand forms CSV'}
+              </Button>
+            </div>
+            {standExportError && <p className="mt-2 text-sm text-destructive" role="alert">{standExportError}</p>}
+          </div>
+        )}
         {tabContent}
       </CompetitionDataLayout>
       {deletingPitRow && (

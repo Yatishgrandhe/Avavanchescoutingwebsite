@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'node:crypto';
 import { getOrgCurrentEvent } from '@/lib/org-app-config';
 import { eventKeyFromName } from '@/lib/event-key';
-import type { NotesEvent, RobotNote } from '@/lib/robot-notes';
+import { summarizeRobotNotes, type NotesEvent, type RobotNote } from '@/lib/robot-notes';
 
 const NOTE_FIELDS = 'id,event_key,event_year,team_number,match_reference,body,author_id,author_name,created_at';
 
@@ -36,6 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { data: profile, error: profileError } = await db.from('users').select('organization_id,role,name').eq('id', user.id).single();
     if (profileError || !profile?.organization_id) return res.status(403).json({ error: 'Join an organization to use robot notes.' });
     const orgId = profile.organization_id;
+    const canViewSummaries = ['admin', 'superadmin'].includes(profile.role);
 
     if (req.method === 'DELETE') {
       const id = typeof req.query.id === 'string' ? req.query.id : '';
@@ -113,7 +114,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const requestedYear = typeof req.query.year === 'string' ? Number(req.query.year) : currentYear;
     const event = requestedKey ? events.get(`${requestedYear}:${requestedKey}`) ?? null : eventList[0] ?? null;
     if (requestedKey && !event) return res.status(404).json({ error: 'This event is not available in your organization.' });
-    if (!event) return res.status(200).json({ events: eventList, event: null, teams: [], matches: [], notes: [] });
+    if (!event) return res.status(200).json({ events: eventList, event: null, teams: [], matches: [], notes: [], canViewSummaries, ...(canViewSummaries ? { summaries: {} } : {}) });
     const ids = archives.filter((a) => a.competition_key === event.key && a.competition_year === event.year).map((a) => a.id);
     const [notes, roster, matches] = await Promise.all([
       allRows<RobotNote>((from, to) => db.from('robot_notes').select(NOTE_FIELDS).eq('organization_id', orgId).eq('event_key', event.key).eq('event_year', event.year).is('deleted_at', null).order('created_at', { ascending: false }).order('id').range(from, to)),
@@ -126,7 +127,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ]);
     const teams = new Map(roster.map((team) => [team.team_number, team]));
     for (const n of notes) if (!teams.has(n.team_number)) teams.set(n.team_number, { team_number: n.team_number, team_name: '' });
-    return res.status(200).json({ events: eventList, event, notes, teams: Array.from(teams.values()).sort((a, b) => a.team_number - b.team_number), matches });
+    let summaries: Record<string, string> | undefined;
+    if (canViewSummaries) {
+      const grouped = new Map<number, RobotNote[]>();
+      for (const note of notes) {
+        if (!grouped.has(note.team_number)) grouped.set(note.team_number, []);
+        grouped.get(note.team_number)!.push(note);
+      }
+      summaries = Object.fromEntries(Array.from(grouped, ([number, observations]) => [number, summarizeRobotNotes(observations)]));
+    }
+    return res.status(200).json({ events: eventList, event, notes, teams: Array.from(teams.values()).sort((a, b) => a.team_number - b.team_number), matches, canViewSummaries, ...(canViewSummaries ? { summaries } : {}) });
   } catch (error) {
     console.error('Robot notes error:', error instanceof Error ? error.message : 'Database operation failed');
     return res.status(500).json({ error: 'Could not load or save robot notes. Please try again.' });

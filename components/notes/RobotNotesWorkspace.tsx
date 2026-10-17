@@ -4,7 +4,7 @@ import { useSupabase } from '@/pages/_app';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { summarizeRobotNotes, type RobotNote, type RobotNotesResponse } from '@/lib/robot-notes';
+import type { RobotNote, RobotNotesResponse } from '@/lib/robot-notes';
 
 const fieldClass = 'min-h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50';
 
@@ -29,6 +29,8 @@ export default function RobotNotesWorkspace({ eventKey, eventYear, teamNumber, f
   const [eventName, setEventName] = useState('');
   const [manualYear, setManualYear] = useState(String(new Date().getFullYear()));
   const [search, setSearch] = useState(teamNumber ? String(teamNumber) : '');
+  const [selectedTeam, setSelectedTeam] = useState('');
+  const [mobilePanel, setMobilePanel] = useState<'write' | 'browse'>(teamNumber ? 'browse' : 'write');
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
@@ -37,6 +39,7 @@ export default function RobotNotesWorkspace({ eventKey, eventYear, teamNumber, f
   const manual = selection === '__new__' || (!loading && !data?.event && !fixedEvent);
   const archived = !manual && data?.event?.archived === true;
   const canModerate = user?.role === 'admin' || user?.role === 'superadmin';
+  const canViewSummaries = canModerate && data?.canViewSummaries === true;
 
   useEffect(() => {
     if (eventKey && eventYear) setSelection(`${eventYear}:${eventKey}`);
@@ -95,9 +98,9 @@ export default function RobotNotesWorkspace({ eventKey, eventYear, teamNumber, f
       byTeam.get(note.team_number)!.push(note);
     }
     const query = search.trim().toLowerCase();
-    return Array.from(byTeam.entries()).filter(([number]) => !query || `${number} ${teamNames.get(number) || ''}`.toLowerCase().includes(query)).sort(([a], [b]) => a - b)
-      .map(([number, notes]) => ({ number, notes, summary: summarizeRobotNotes(notes) }));
-  }, [data?.notes, search, teamNames]);
+    return Array.from(byTeam.entries()).filter(([number]) => (!selectedTeam || String(number) === selectedTeam) && (!query || `${number} ${teamNames.get(number) || ''}`.toLowerCase().includes(query))).sort(([a], [b]) => a - b)
+      .map(([number, notes]) => ({ number, notes }));
+  }, [data?.notes, search, selectedTeam, teamNames]);
 
   const accessToken = async () => {
     const { data: { session: fresh } } = await supabase.auth.getSession();
@@ -126,8 +129,10 @@ export default function RobotNotesWorkspace({ eventKey, eventYear, teamNumber, f
       setBody(''); requestId.current = null;
       setSuccess(`Observation saved for Team ${team}.`);
       setSearch('');
+      setSelectedTeam('');
       setSelection(`${result.note.event_year}:${result.note.event_key}`);
       setRefresh((v) => v + 1);
+      setMobilePanel('browse');
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save your note. Your draft is still here.'); }
     finally { setSaving(false); }
   };
@@ -138,7 +143,8 @@ export default function RobotNotesWorkspace({ eventKey, eventYear, teamNumber, f
       const response = await fetch(`/api/robot-notes?id=${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${await accessToken()}` } });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not remove note.');
-      setData((old) => old ? { ...old, notes: old.notes.filter((note) => note.id !== id) } : old);
+      setData((old) => old ? { ...old, summaries: undefined, notes: old.notes.filter((note) => note.id !== id) } : old);
+      setRefresh((v) => v + 1);
       setSuccess('Observation removed.'); setConfirmRemove(null);
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not remove note.'); }
     finally { setRemoving(null); }
@@ -156,16 +162,19 @@ export default function RobotNotesWorkspace({ eventKey, eventYear, teamNumber, f
               <option value="__new__">Event not imported yet…</option>
             </select>
           </>}
-          <p className="mt-2 text-sm text-muted-foreground">{archived ? 'Archived observations and summaries are preserved here.' : 'Notes are shared with your organization and retained with the event.'}</p>
-          {!archived && <a href={`#${listId}-summary`} className="mt-2 inline-flex min-h-11 items-center rounded-lg text-sm font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:hidden">View robot summaries</a>}
+          <p className="mt-2 text-sm text-muted-foreground">{archived ? 'Archived observations are preserved here.' : 'Notes are shared with your organization and retained with the event.'}{canViewSummaries && ' Summaries are visible to admins only.'}</p>
         </div>
         <Button type="button" variant="outline" onClick={() => setRefresh((v) => v + 1)} disabled={loading || saving} className="min-h-11 gap-2 rounded-xl"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />Refresh</Button>
       </div>
+      {!archived && <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border bg-muted/30 p-2 lg:hidden" role="group" aria-label="Robot notes sections">
+        <Button type="button" variant={mobilePanel === 'write' ? 'default' : 'ghost'} aria-pressed={mobilePanel === 'write'} onClick={() => setMobilePanel('write')} className="min-h-11 rounded-xl">Write a note</Button>
+        <Button type="button" variant={mobilePanel === 'browse' ? 'default' : 'ghost'} aria-pressed={mobilePanel === 'browse'} onClick={() => setMobilePanel('browse')} className="min-h-11 rounded-xl">{canViewSummaries ? 'View summaries' : 'View notes'}</Button>
+      </div>}
       {error && <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm">{error}</div>}
       {success && <p role="status" className="text-sm text-primary">{success}</p>}
       {loading && !data && <div role="status" className="flex items-center gap-3 py-10 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Loading robot notes…</div>}
       <div className={`grid min-w-0 gap-5 ${!archived ? 'lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]' : ''}`}>
-        {!archived && (data || manual) && <Card className="h-fit rounded-2xl p-5 sm:p-6">
+        {!archived && (data || manual) && <Card className={`h-fit rounded-2xl p-5 sm:p-6 ${mobilePanel !== 'write' ? 'hidden lg:block' : ''}`}>
           <h2 className="text-xl font-semibold">Add an observation</h2>
           <p className="mt-2 text-sm text-muted-foreground">Describe what you saw: reliability, driving, defense, or anything useful for strategy.</p>
           <form onSubmit={save} className="mt-5 space-y-4">
@@ -194,15 +203,16 @@ export default function RobotNotesWorkspace({ eventKey, eventYear, teamNumber, f
             <Button type="submit" disabled={saving || loading} className="min-h-11 w-full gap-2 rounded-xl">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}{saving ? 'Saving…' : 'Save observation'}</Button>
           </form>
         </Card>}
-        <section className="min-w-0 space-y-4" aria-labelledby={`${listId}-summary`} aria-busy={loading}>
-          <div className="flex flex-wrap items-center justify-between gap-2"><h2 id={`${listId}-summary`} className="scroll-mt-24 text-xl font-semibold">Robot summaries</h2><span className="text-sm text-muted-foreground">{manual ? 0 : data?.notes.length ?? 0} {!manual && data?.notes.length === 1 ? 'observation' : 'observations'}</span></div>
-          <div className="relative"><Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" aria-hidden="true" /><label htmlFor={`${listId}-search`} className="sr-only">Find a robot by team number or name</label><Input id={`${listId}-search`} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find a robot by number or name" className={`${fieldClass} pl-10`} /></div>
-          {!manual && groups.map(({ number, notes, summary }) => <Card key={number} className="min-w-0 rounded-2xl p-5 sm:p-6">
+        <section className={`min-w-0 space-y-4 ${!archived && mobilePanel !== 'browse' ? 'hidden lg:block' : ''}`} aria-labelledby={`${listId}-summary`} aria-busy={loading}>
+          <div className="flex flex-wrap items-center justify-between gap-2"><h2 id={`${listId}-summary`} className="scroll-mt-24 text-xl font-semibold">{canViewSummaries ? 'Robot summaries' : 'Robot observations'}</h2><span className="text-sm text-muted-foreground">{manual ? 0 : data?.notes.length ?? 0} {!manual && data?.notes.length === 1 ? 'observation' : 'observations'}</span></div>
+          <div><label htmlFor={`${listId}-jump`} className="mb-2 block text-sm font-medium">Choose a team</label><select id={`${listId}-jump`} value={selectedTeam} onChange={(e) => { setSelectedTeam(e.target.value); setSearch(''); }} className={fieldClass}><option value="">All teams</option>{!manual && data?.teams.map((t) => <option key={t.team_number} value={t.team_number}>Team {t.team_number}{t.team_name ? ` · ${t.team_name}` : ''}</option>)}</select></div>
+          <div className="relative"><Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" aria-hidden="true" /><label htmlFor={`${listId}-search`} className="sr-only">Find a robot by team number or name</label><Input id={`${listId}-search`} value={search} onChange={(e) => { setSearch(e.target.value); setSelectedTeam(''); }} placeholder="Find a robot by number or name" className={`${fieldClass} pl-10`} /></div>
+          {(search || selectedTeam) && <Button type="button" variant="outline" onClick={() => { setSearch(''); setSelectedTeam(''); }} className="min-h-11 rounded-xl">Show all teams</Button>}
+          {!manual && groups.map(({ number, notes }) => <Card key={number} className="min-w-0 rounded-2xl p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="text-xl font-semibold">Team {number}</h3>{teamNames.get(number) && <p className="mt-1 break-words text-sm text-muted-foreground">{teamNames.get(number)}</p>}</div><span className="rounded-full bg-primary/10 px-3 py-1 text-sm text-primary">{notes.length} {notes.length === 1 ? 'note' : 'notes'}</span></div>
-            <p className="mt-4 text-sm font-medium text-muted-foreground">Summary from observations</p>
-            <p className="mt-2 break-words leading-relaxed">{summary}</p>
-            <details className="mt-4 border-t border-border pt-4">
-              <summary className="min-h-11 cursor-pointer rounded-lg py-2 text-sm font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Read all observations</summary>
+            {canViewSummaries && data?.summaries?.[number] && <><p className="mt-4 text-sm font-medium text-muted-foreground">Summary from observations · Admin only</p><p className="mt-2 break-words leading-relaxed">{data.summaries[number]}</p></>}
+            <details open={!canViewSummaries || undefined} className="mt-4 border-t border-border pt-4">
+              <summary className="min-h-11 cursor-pointer rounded-lg py-2 text-sm font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{canViewSummaries ? 'Read all observations' : 'Observations'}</summary>
               <ol className="mt-2 space-y-4">{notes.map((note) => <li key={note.id} className="rounded-xl bg-background/50 p-4">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground"><span>{note.author_name}</span><time dateTime={note.created_at}>{new Date(note.created_at).toLocaleString()}</time>{note.match_reference && <span className="font-medium text-foreground">{note.match_reference}</span>}</div>
                 <p className="mt-2 whitespace-pre-wrap break-words leading-relaxed">{note.body}</p>
@@ -212,7 +222,7 @@ export default function RobotNotesWorkspace({ eventKey, eventYear, teamNumber, f
               </li>)}</ol>
             </details>
           </Card>)}
-          {(manual || (!loading && !groups.length)) && <Card className="rounded-2xl p-8 text-center"><FileText className="mx-auto mb-3 h-8 w-8 text-muted-foreground" /><h3 className="font-semibold">{search && !manual ? 'No observations match this robot' : 'No observations yet'}</h3><p className="mt-2 text-sm text-muted-foreground">{archived ? 'No robot observations were recorded for this event.' : 'Add a note to start a robot’s summary. Every observation remains available below it.'}</p></Card>}
+          {(manual || (!loading && !groups.length)) && <Card className="rounded-2xl p-8 text-center"><FileText className="mx-auto mb-3 h-8 w-8 text-muted-foreground" /><h3 className="font-semibold">{(search || selectedTeam) && !manual ? 'No observations match this robot' : 'No observations yet'}</h3><p className="mt-2 text-sm text-muted-foreground">{(search || selectedTeam) && !manual ? 'Choose another team or show all teams to continue browsing.' : archived ? 'No robot observations were recorded for this event.' : 'Write a note to record what you saw for a robot.'}</p></Card>}
         </section>
       </div>
     </div>

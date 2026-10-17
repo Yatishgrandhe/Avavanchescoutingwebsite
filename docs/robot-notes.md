@@ -4,7 +4,9 @@ Organization members can open **Robot Notes** from the Scout section of the side
 
 For an event that has not been imported, enter its name and year. A later CSV import can use the same name, or select that event in **Connect to an existing event**. Both paths preserve the event identity. Team names come from the event roster on each load and update when the page regains focus or Refresh is pressed.
 
-Summaries are extractive: they select from saved observations without inventing performance claims. Every original observation remains expandable below the summary. Authors and organization admins can remove current-event notes. Archived events are read-only.
+Summaries are extractive: they select from saved observations without inventing performance claims. Only admins and superadmins can view them; the API checks the database role and omits summaries entirely for members, including archived events. Members can browse the original observations, which open expanded. Authors and organization admins can remove current-event notes. Archived events are read-only.
+
+On phones, use **Write a note** and **View notes** (or **View summaries** for admins) to switch sections without losing a draft. Saving opens the browse section. **Choose a team**, search, and **Show all teams** help navigate the event's observations.
 
 ## Storage and archiving
 

@@ -26,6 +26,8 @@ export interface RobotNotesResponse {
   teams: { team_number: number; team_name: string }[];
   matches: { match_id: string; match_number: number }[];
   notes: RobotNote[];
+  canViewSummaries: boolean;
+  summaries?: Record<string, string>;
 }
 
 export function summarizeRobotNotes(notes: RobotNote[]): string {

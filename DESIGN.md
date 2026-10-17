@@ -78,6 +78,7 @@ Base unit: **4px**. Spacing follows Tailwind's 1/2/3/4/5/6/8/10/12/16 scale (4â€
 - **Responsive behavior:** stack the editor and summaries on phones; use a 340px editor column on large screens. Inputs are at least 44px tall with 16px text. Notes wrap without horizontal scrolling.
 - **States:** no imported event (manual event name/year), empty notes, loading, saving, error with retained draft, removal confirmation, and read-only archived event. Refresh event rosters on page focus and explicit refresh.
 - **Data boundary:** member observations stay separate from match and pit scores. Event key, year, and team number remain stable across CSV imports and archiving. Summaries quote recorded observations; original notes remain available.
+- **Permissions and wayfinding:** summaries are generated and returned only for database-verified admins and superadmins. Members browse original observations. Phone controls switch between writing and browsing without losing a draft; a labeled team picker and search narrow the list, with a clear route back to all teams. Archived views open directly in browse mode.
 
 ## 6. Motion & Interaction
 

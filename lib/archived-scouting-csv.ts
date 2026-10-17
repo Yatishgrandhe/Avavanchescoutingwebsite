@@ -1,5 +1,7 @@
 type CsvValue = string | number | boolean | null;
 
+const legacyCleansingFields = new Set(['autonomous_cleansing', 'teleop_cleansing']);
+
 const preferredColumns = [
   'competition_name',
   'competition_key',
@@ -22,6 +24,7 @@ function flatten(value: unknown, prefix: string, target: Record<string, CsvValue
     const entries = Object.entries(value);
     if (entries.length === 0) target[prefix] = '{}';
     for (const [key, child] of entries) {
+      if (legacyCleansingFields.has(key)) continue;
       flatten(child, `${prefix}.${key}`, target);
     }
   } else {
@@ -42,7 +45,10 @@ function csvCell(value: CsvValue | undefined): string {
 export function archivedScoutingCsv(rows: Record<string, unknown>[]): string {
   const flatRows = rows.map((row) => {
     const flat: Record<string, CsvValue> = Object.create(null);
-    for (const [key, value] of Object.entries(row)) flatten(value, key, flat);
+    for (const [key, value] of Object.entries(row)) {
+      if (legacyCleansingFields.has(key)) continue;
+      flatten(value, key, flat);
+    }
     return flat;
   });
   const columns = Array.from(new Set(flatRows.flatMap((row) => Object.keys(row))));

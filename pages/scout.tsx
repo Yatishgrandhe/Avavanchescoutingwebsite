@@ -163,8 +163,6 @@ export default function Scout() {
         autonomous_points: autonomousPoints,
         teleop_points: teleopPoints,
         final_score: finalScore,
-        autonomous_cleansing: 0,
-        teleop_cleansing: 0,
         defense_rating: formData.miscellaneous.defense_rating,
         comments: formData.miscellaneous.comments,
         average_downtime: formData.miscellaneous.average_downtime ?? undefined,

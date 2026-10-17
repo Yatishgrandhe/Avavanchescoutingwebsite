@@ -71,6 +71,13 @@ Base unit: **4px**. Spacing follows Tailwind's 1/2/3/4/5/6/8/10/12/16 scale (4â€
 - **Structure:** header/sidebar plus scrolling main content.
 - **Layout:** main document owns scroll on small screens; nested panels use `min-h-0` when they own scroll.
 - **States:** desktop sidebar, mobile navigation, authenticated empty state, loading state.
+- **Navigation:** group scouting entry, analysis, strategy, and administration separately. Highlight the most specific matching route. Mobile drawers always show full labels, have a visible close button, and close after any selection. Use 44px mobile links and a drawer that fits inside the viewport and safe area.
+
+### Robot Observations
+- **Structure:** an event selector, required team number with imported-team suggestions and manual entry, optional match reference, and an observation editor; robot cards combine a summary with expandable original notes.
+- **Responsive behavior:** stack the editor and summaries on phones; use a 340px editor column on large screens. Inputs are at least 44px tall with 16px text. Notes wrap without horizontal scrolling.
+- **States:** no imported event (manual event name/year), empty notes, loading, saving, error with retained draft, removal confirmation, and read-only archived event. Refresh event rosters on page focus and explicit refresh.
+- **Data boundary:** member observations stay separate from match and pit scores. Event key, year, and team number remain stable across CSV imports and archiving. Summaries quote recorded observations; original notes remain available.
 
 ## 6. Motion & Interaction
 

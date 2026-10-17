@@ -216,9 +216,10 @@ export default function SyncButton() {
         ) : (
           <CloudUpload className={cn("w-4 h-4", queueCount > 0 && "animate-pulse")} />
         )}
-        <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+        <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
           {queueCount > 0 ? `SUBMIT ${queueCount} PENDING` : "UP TO DATE"}
         </span>
+        <span className="sm:hidden text-xs font-semibold whitespace-nowrap">{queueCount > 0 ? `${queueCount} pending` : 'Synced'}</span>
         
         {queueCount > 0 && (
           <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">

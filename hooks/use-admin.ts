@@ -21,9 +21,7 @@ export function useAdmin() {
         const role = user.role;
         const adminRole =
           role === 'admin' ||
-          role === 'superadmin' ||
-          user.user_metadata?.role === 'admin' ||
-          user.user_metadata?.role === 'superadmin';
+          role === 'superadmin';
         setIsAdmin(adminRole);
         setUserData(user);
       } catch (error) {

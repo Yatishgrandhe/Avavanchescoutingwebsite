@@ -22,6 +22,7 @@ interface CompetitionDataLayoutProps {
   showPitTab?: boolean;
   /** Show Scouting Stats tab (default true) */
   showStatsTab?: boolean;
+  showNotesTab?: boolean;
 }
 
 export default function CompetitionDataLayout({
@@ -32,6 +33,7 @@ export default function CompetitionDataLayout({
   queryString = '',
   showPitTab = false,
   showStatsTab = true,
+  showNotesTab = false,
 }: CompetitionDataLayoutProps) {
   const backUrl = backHref;
   const { user, supabase } = useSupabase();
@@ -53,6 +55,7 @@ export default function CompetitionDataLayout({
         queryString={queryString}
         showPitTab={showPitTab}
         showStatsTab={showStatsTab}
+        showNotesTab={showNotesTab}
         isLoggedIn={isLoggedIn}
       />
       <SidebarInset>

@@ -79,7 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .from('app_config')
       .select('key, value')
       .eq('organization_id', orgId)
-      .in('key', ['current_event_key', 'current_event_name']);
+      .in('key', ['current_event_key', 'current_event_name', 'current_event_year']);
 
     const configMap: Record<string, string> = {};
     (configRows || []).forEach(r => configMap[r.key] = r.value);
@@ -119,7 +119,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       eventName = effectiveEventKey;
     }
 
-    const competitionYear = competitionYearFromEventKey(effectiveEventKey);
+    const configuredYear = Number(configMap.current_event_year);
+    const competitionYear = /^\d{4}/.test(effectiveEventKey) ? competitionYearFromEventKey(effectiveEventKey)
+      : Number.isInteger(configuredYear) && configuredYear >= 1992 && configuredYear <= 2100 ? configuredYear : competitionYearFromEventKey(effectiveEventKey);
 
     // 2. Create past_competitions entry (use live data key so scouting/matches align)
     const { data: pastComp, error: compErr } = await supabase
@@ -141,6 +143,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const competitionId = pastComp.id;
+
+    // Robot observations retain their stable event/team identity after live rows are cleared.
+    const { error: notesError } = await supabase.from('robot_notes')
+      .update({ competition_id: competitionId })
+      .eq('organization_id', orgId)
+      .eq('event_key', effectiveEventKey)
+      .eq('event_year', competitionYear);
+    if (notesError) {
+      await supabase.from('past_competitions').delete().eq('id', competitionId);
+      res.status(500).json({ error: 'Could not preserve robot notes. The event was not archived.' });
+      return;
+    }
 
     // 3. Move Scouting Data (matches.event_key must match archived event)
     const { data: scoutingRecords } = await supabase
@@ -219,11 +233,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // 6. Move Teams — snapshot only teams registered for this event (roster), else derive from this event's matches
-    const { data: rosterRows } = await supabase
+    const { data: rosterRows, error: rosterError } = await supabase
       .from('event_team_roster')
-      .select('team_number')
+      .select('team_number, team_name')
       .eq('organization_id', orgId)
       .eq('event_key', effectiveEventKey);
+    if (rosterError) throw rosterError;
 
     let teamNumbersForEvent = (rosterRows || []).map((r) => r.team_number);
 
@@ -237,7 +252,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       teamNumbersForEvent = Array.from(fromMatches);
     }
 
-    let teamQuery = supabase.from('teams').select('*').eq('organization_id', orgId);
+    // Team metadata is shared; the event roster above determines which teams belong in this archive.
+    let teamQuery = supabase.from('teams').select('*');
     if (teamNumbersForEvent.length > 0) {
       teamQuery = teamQuery.in('team_number', teamNumbersForEvent);
     } else {
@@ -245,15 +261,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       teamQuery = teamQuery.eq('team_number', -1);
     }
 
-    const { data: teamRecords } = await teamQuery;
+    const { data: teamRecords, error: teamError } = await teamQuery;
+    if (teamError) throw teamError;
 
-    if (teamRecords && teamRecords.length > 0) {
-      const pastTeams = teamRecords.map((r) => ({
-        team_number: r.team_number,
-        team_name: r.team_name,
-        team_color: r.team_color,
-        epa: r.epa,
-        endgame_epa: r.endgame_epa,
+    if (teamNumbersForEvent.length > 0) {
+      const teamMap = new Map((teamRecords || []).map((r) => [r.team_number, r]));
+      const rosterNames = new Map((rosterRows || []).map((r) => [r.team_number, r.team_name]));
+      const pastTeams = teamNumbersForEvent.map((number) => ({
+        team_number: number,
+        team_name: rosterNames.get(number) || teamMap.get(number)?.team_name || `Team ${number}`,
+        team_color: teamMap.get(number)?.team_color,
+        epa: teamMap.get(number)?.epa,
+        endgame_epa: teamMap.get(number)?.endgame_epa,
         competition_id: competitionId,
         organization_id: orgId
       }));

@@ -88,7 +88,7 @@ export const ConnectionMonitor = () => {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 hover:bg-white/10 transition-all cursor-default group">
+          <div aria-label={`Connection ${status}: ${getStatusLabel()}`} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 hover:bg-white/10 transition-all cursor-default group">
             <div className="relative">
               {status === 'offline' ? (
                 <WifiOff className="w-3.5 h-3.5 text-red-400" />
@@ -104,7 +104,7 @@ export const ConnectionMonitor = () => {
                 )} />
               )}
             </div>
-            <span className={cn("text-[10px] font-mono font-bold tracking-tight", getStatusColor())}>
+            <span className={cn("hidden sm:inline text-[10px] font-mono font-bold tracking-tight", getStatusColor())}>
               {getStatusLabel()}
             </span>
           </div>

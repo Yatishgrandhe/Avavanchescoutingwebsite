@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { eventKeyFromName } from '@/lib/event-key';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -66,17 +67,6 @@ function parsePositiveInteger(value: string): number | null {
 function parseMatchNumber(value: string): number | null {
   const matched = value.trim().match(/(?:qm|match)?\s*#?\s*(\d+)\s*$/i);
   return matched && Number(matched[1]) > 0 ? Number(matched[1]) : null;
-}
-
-function eventKeyFromName(eventName: string): string {
-  const slug = eventName
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 70);
-  return `csv-${slug || 'schedule'}`;
 }
 
 function validateCsv(csv: string): ImportedMatch[] {
@@ -165,6 +155,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
   const eventKey = requestedEventKey || eventKeyFromName(eventName);
+  const eventYear = body.eventYear ?? (Number(eventKey.match(/^(\d{4})/)?.[1]) || new Date().getFullYear());
+  if (!Number.isInteger(eventYear) || eventYear < 1992 || eventYear > 2100) {
+    res.status(400).json({ error: 'Choose a valid event year.' });
+    return;
+  }
   if (!/^[a-z0-9_-]{3,80}$/i.test(eventKey)) {
     res.status(400).json({ error: 'Event key may only use letters, numbers, hyphens, and underscores.' });
     return;
@@ -278,6 +273,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const configRows = [
     ['current_event_key', eventKey],
     ['current_event_name', eventName],
+    ['current_event_year', String(eventYear)],
     ['current_event_source', 'csv'],
     ['current_event_match_ids', JSON.stringify(allMatchIds)],
     ['current_event_team_numbers', JSON.stringify(allTeamNumbers)],

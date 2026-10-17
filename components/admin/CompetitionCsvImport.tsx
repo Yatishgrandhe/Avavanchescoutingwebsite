@@ -2,6 +2,7 @@ import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, ClipboardCopy, Download, FileSpreadsheet, Loader2, Sparkles, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from '@/components/ui';
+import type { NotesEvent } from '@/lib/robot-notes';
 
 const GEMINI_PROMPT = `Read these FRC match-schedule photos and create a downloadable file named frc_match_schedule.csv. The file must contain RFC 4180 CSV only — no Markdown fences, explanation, or extra columns.
 
@@ -33,9 +34,20 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
   const [showInstructions, setShowInstructions] = useState(false);
   const [copied, setCopied] = useState(false);
   const [importResult, setImportResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [notesEvents, setNotesEvents] = useState<NotesEvent[]>([]);
+  const [selectedNotesEvent, setSelectedNotesEvent] = useState('');
   const promptRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => setImportEventName(eventName), [eventName]);
+  useEffect(() => {
+    if (!accessToken) return;
+    const controller = new AbortController();
+    fetch('/api/robot-notes', { headers: { Authorization: `Bearer ${accessToken}` }, signal: controller.signal })
+      .then(async (response) => response.ok ? response.json() : null)
+      .then((result) => { if (result && !controller.signal.aborted) setNotesEvents((result.events || []).filter((event: NotesEvent) => !event.archived)); })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [accessToken]);
 
   const preview = useMemo(() => csv.split(/\r?\n/).filter(Boolean).slice(0, 4), [csv]);
   const csvStats = useMemo(() => {
@@ -126,10 +138,11 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
     setImportResult(null);
     setIsImporting(true);
     try {
+      const chosenEvent = notesEvents.find((event) => `${event.year}:${event.key}` === selectedNotesEvent);
       const response = await fetch('/api/admin/import-competition-csv', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify({ eventName: importEventName, csv }),
+        body: JSON.stringify({ eventName: importEventName, csv, ...(chosenEvent ? { eventKey: chosenEvent.key, eventYear: chosenEvent.year } : {}) }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Import failed.');
@@ -159,6 +172,18 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
         <CardDescription className="text-sm">Import a photographed or manual schedule without clearing existing competition data.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {notesEvents.length > 0 && <div className="space-y-2">
+          <Label htmlFor="csv-existing-event">Connect to an existing event</Label>
+          <select id="csv-existing-event" value={selectedNotesEvent} disabled={isImporting} className="min-h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" onChange={(e) => {
+            setSelectedNotesEvent(e.target.value);
+            const chosen = notesEvents.find((event) => `${event.year}:${event.key}` === e.target.value);
+            if (chosen) setImportEventName(chosen.name);
+          }}>
+            <option value="">Create an event from the name below</option>
+            {notesEvents.map((event) => <option key={`${event.year}:${event.key}`} value={`${event.year}:${event.key}`}>{event.name} · {event.year}</option>)}
+          </select>
+          <p className="text-sm text-muted-foreground">Choose the event used for Robot Notes to keep existing observations connected, even if you rename it.</p>
+        </div>}
         <div className="space-y-2">
           <Label htmlFor="csv-event-name">Competition name</Label>
           <Input id="csv-event-name" value={importEventName} onChange={(event) => setImportEventName(event.target.value)} placeholder="e.g. Asheville Regional" />

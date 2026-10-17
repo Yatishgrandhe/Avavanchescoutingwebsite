@@ -26,7 +26,7 @@ import {
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
-const SIDEBAR_WIDTH_MOBILE = "18rem"
+const SIDEBAR_WIDTH_MOBILE = "min(20rem, calc(100vw - 2.5rem))"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
@@ -103,6 +103,8 @@ const SidebarProvider = React.forwardRef<
     // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
+        const target = event.target as HTMLElement | null
+        if (target?.matches('input, textarea, select, [contenteditable="true"]')) return
         if (
           event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
           (event.metaKey || event.ctrlKey)
@@ -202,7 +204,7 @@ const Sidebar = React.forwardRef<
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+            className="h-dvh w-[--sidebar-width] max-w-none bg-sidebar p-0 text-sidebar-foreground [&>button]:right-3 [&>button]:top-2 [&>button]:z-20 [&>button]:min-h-11 [&>button]:min-w-11 [&>button]:p-2"
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -211,10 +213,10 @@ const Sidebar = React.forwardRef<
             side={side}
           >
             <SheetHeader className="sr-only">
-              <SheetTitle>Sidebar</SheetTitle>
-              <SheetDescription>Displays the mobile sidebar.</SheetDescription>
+              <SheetTitle>Navigation</SheetTitle>
+              <SheetDescription>Choose a scouting page. Close this menu to return to the current page.</SheetDescription>
             </SheetHeader>
-            <div className="flex h-full w-full flex-col">{children}</div>
+            <div className="flex h-full min-h-0 w-full flex-col pb-[env(safe-area-inset-bottom)]">{children}</div>
           </SheetContent>
         </Sheet>
       )
@@ -279,7 +281,7 @@ const SidebarTrigger = React.forwardRef<
       data-sidebar="trigger"
       variant="ghost"
       size="icon"
-      className={cn("h-10 w-10 md:h-7 md:w-7", className)}
+      className={cn("h-11 w-11 md:h-8 md:w-8", className)}
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
@@ -330,7 +332,7 @@ const SidebarInset = React.forwardRef<
     <main
       ref={ref}
       className={cn(
-        "relative flex w-full flex-1 flex-col bg-background",
+        "relative flex min-w-0 w-full flex-1 flex-col bg-background",
         "md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
         className
       )}
@@ -412,7 +414,7 @@ const SidebarContent = React.forwardRef<
       ref={ref}
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+        "flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden overscroll-contain",
         className
       )}
       {...props}
@@ -529,7 +531,7 @@ const sidebarMenuButtonVariants = cva(
           "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
       },
       size: {
-        default: "h-11 md:h-8 text-base md:text-sm",
+        default: "h-11 md:h-10 rounded-xl text-base md:text-sm",
         sm: "h-9 md:h-7 text-sm md:text-xs",
         lg: "h-14 md:h-12 text-lg md:text-sm group-data-[collapsible=icon]:!p-0",
       },
@@ -562,7 +564,7 @@ const SidebarMenuButton = React.forwardRef<
     ref
   ) => {
     const Comp = asChild ? Slot : "button"
-    const { isMobile, state } = useSidebar()
+    const { isMobile, state, setOpenMobile } = useSidebar()
 
     const button = (
       <Comp
@@ -572,6 +574,11 @@ const SidebarMenuButton = React.forwardRef<
         data-active={isActive}
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
         {...props}
+        aria-current={isActive ? 'page' : undefined}
+        onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+          props.onClick?.(event)
+          if (isMobile && !event.defaultPrevented) setOpenMobile(false)
+        }}
       />
     )
 

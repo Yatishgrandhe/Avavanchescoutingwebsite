@@ -4,12 +4,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 export async function getOrgCurrentEvent(
   admin: SupabaseClient,
   organizationId: string
-): Promise<{ eventKey: string; eventName: string; eventSource: 'csv' | 'tba'; eventTeamNumbers: number[]; eventMatchIds: string[] }> {
+): Promise<{ eventKey: string; eventName: string; eventYear: number; eventSource: 'csv' | 'tba'; eventTeamNumbers: number[]; eventMatchIds: string[] }> {
   const { data: rows } = await admin
     .from('app_config')
     .select('key, value')
     .eq('organization_id', organizationId)
-    .in('key', ['current_event_key', 'current_event_name', 'current_event_source', 'current_event_team_numbers', 'current_event_match_ids']);
+    .in('key', ['current_event_key', 'current_event_name', 'current_event_year', 'current_event_source', 'current_event_team_numbers', 'current_event_match_ids']);
 
   const map: Record<string, string> = {};
   (rows || []).forEach((r: { key: string; value: string }) => {
@@ -38,6 +38,8 @@ export async function getOrgCurrentEvent(
   return {
     eventKey: (map.current_event_key || '').trim(),
     eventName: (map.current_event_name || '').trim(),
+    eventYear: Number((map.current_event_key || '').match(/^(\d{4})/)?.[1]) ||
+      (Number(map.current_event_year) >= 1992 && Number(map.current_event_year) <= 2100 ? Number(map.current_event_year) : new Date().getFullYear()),
     eventSource: map.current_event_source === 'csv' ? 'csv' : 'tba',
     eventTeamNumbers,
     eventMatchIds,

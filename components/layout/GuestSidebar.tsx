@@ -32,8 +32,8 @@ const guestNavItems = [
 
 export default function GuestSidebar() {
   const router = useRouter();
-  const { state } = useSidebar();
-  const isCollapsed = state === 'collapsed';
+  const { state, isMobile } = useSidebar();
+  const isCollapsed = !isMobile && state === 'collapsed';
 
   return (
     <Sidebar
@@ -70,7 +70,7 @@ export default function GuestSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="relative z-10">
+      <SidebarContent className="relative z-10" role="navigation" aria-label="Public navigation">
         {!isCollapsed && (
           <SidebarGroupLabel className="text-sidebar-foreground/60 px-2 pt-2">
             Public

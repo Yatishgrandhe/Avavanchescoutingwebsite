@@ -17,7 +17,8 @@ import {
   Building2,
   Settings2,
   Activity,
-  Shield
+  Shield,
+  NotebookPen
 } from 'lucide-react';
 import { Badge, Logo, Avatar, AvatarFallback, AvatarImage } from '../ui';
 import {
@@ -55,9 +56,9 @@ const AppSidebar: React.FC<SidebarProps> = ({
   canAccessStats = false
 }) => {
   const router = useRouter();
-  const { state } = useSidebar();
+  const { state, isMobile } = useSidebar();
   const { user: appUser } = useSupabase(); // Get the extended user profile
-  const isCollapsed = state === 'collapsed';
+  const isCollapsed = !isMobile && state === 'collapsed';
   const menuItems = [
     {
       title: 'Learn',
@@ -83,13 +84,13 @@ const AppSidebar: React.FC<SidebarProps> = ({
           icon: Wrench,
         },
         {
-          label: 'Pit Data',
-          href: '/pit-scouting-data',
-          icon: Eye,
+          label: 'Robot Notes',
+          href: '/robot-notes',
+          icon: NotebookPen,
         },
       ],
     },
-    ...(isAdmin || canAccessPickList ? [{
+    ...(canAccessPickList ? [{
       title: 'Strategy',
       items: [
         ...(canAccessPickList ? [{
@@ -97,7 +98,11 @@ const AppSidebar: React.FC<SidebarProps> = ({
           href: '/pick-list',
           icon: List,
         }] : []),
-        ...(isAdmin ? [{
+      ].filter(Boolean),
+    }] : []),
+    ...(isAdmin ? [{
+      title: 'Administration',
+      items: [{
           label: 'Team Management',
           href: '/admin/team-management',
           icon: Settings2,
@@ -109,12 +114,16 @@ const AppSidebar: React.FC<SidebarProps> = ({
           label: 'Scouting Stats',
           href: '/admin/scouting-stats',
           icon: Activity,
-        }] : []),
-      ].filter(Boolean),
+        }, {
+          label: 'Competition Settings',
+          href: '/admin/competition-settings',
+          icon: Settings2,
+        }],
     }] : []),
     {
       title: 'Analysis',
       items: [
+        { label: 'Pit Data', href: '/pit-scouting-data', icon: Eye },
         {
           label: 'Leaderboard',
           href: '/leaderboard',
@@ -149,6 +158,10 @@ const AppSidebar: React.FC<SidebarProps> = ({
     }] : []),
   ];
 
+  const activeHref = menuItems.flatMap((section) => section.items)
+    .filter((item) => router.pathname === item.href || router.pathname.startsWith(`${item.href}/`))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+
   return (
     <Sidebar
       collapsible="icon"
@@ -159,7 +172,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
       <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none z-0" />
 
       <SidebarHeader className="border-b border-sidebar-border relative z-10">
-        <div className="flex items-center gap-2 px-2 py-1.5">
+        <div className="flex items-center gap-2 px-2 py-1.5 pr-10 md:pr-2">
           <div className="flex-shrink-0">
             <Logo size="sm" />
           </div>
@@ -185,7 +198,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="relative z-10">
+      <SidebarContent className="relative z-10" role="navigation" aria-label="Main navigation">
         {/* Dashboard Button */}
         <SidebarGroup>
           <SidebarGroupContent>
@@ -216,7 +229,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
             <SidebarGroupContent>
               <SidebarMenu>
                 {section.items.map((item) => {
-                  const isActive = router.pathname === item.href;
+                  const isActive = activeHref === item.href;
                   const Icon = item.icon;
                   return (
                     <SidebarMenuItem key={item.href}>

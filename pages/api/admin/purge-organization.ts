@@ -78,6 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   };
 
   try {
+    await del('robot_notes', admin.from('robot_notes').delete().eq('organization_id', orgId));
     await del('scouting_data', admin.from('scouting_data').delete().eq('organization_id', orgId));
     await del('pit_scouting_data', admin.from('pit_scouting_data').delete().eq('organization_id', orgId));
 

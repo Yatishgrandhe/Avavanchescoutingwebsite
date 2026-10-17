@@ -47,6 +47,7 @@ import { normalizePitPhotoUrls, mergePitPhotoUrlLists } from '@/lib/pit-images';
 import { PitPhotoImg } from '@/components/pit/PitPhotoImg';
 import { formatDurationSec, roundToTenth } from '@/lib/utils';
 import { downloadArchivedStandForms } from '@/lib/download-archived-scouting';
+import RobotNotesWorkspace from '@/components/notes/RobotNotesWorkspace';
 import { ScoutingRunsBreakdown } from '@/components/data/ScoutingRunsBreakdown';
 import { TeamComparisonPanel } from '@/components/data/TeamComparisonPanel';
 import { Input } from '@/components/ui/Input';
@@ -105,7 +106,7 @@ type TeamStatSortKey =
 
 export default function ViewDataPage() {
   const router = useRouter();
-  const { user, supabase, session } = useSupabase();
+  const { user, supabase, session, loading: authLoading } = useSupabase();
   const { isAdmin, isSuperAdmin } = useAdmin();
   const { event_key, id, competition_key, year } = router.query;
   const canExportArchivedForms = user?.role === 'admin' || user?.role === 'superadmin';
@@ -120,6 +121,7 @@ export default function ViewDataPage() {
   const [error, setError] = useState<string | null>(null);
   const [exportingStandForms, setExportingStandForms] = useState(false);
   const [standExportError, setStandExportError] = useState<string | null>(null);
+  const loadSequence = React.useRef(0);
   const [sortField, setSortField] = useState<string>('match_id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [activeTab, setActiveTab] = useState<CompetitionViewTab>('overview');
@@ -187,12 +189,14 @@ export default function ViewDataPage() {
   ]);
 
   useEffect(() => {
-    if (!router.isReady || !filtersHydrated) return;
+    if (!router.isReady || !filtersHydrated || authLoading) return;
     if (!event_key && !id && !competition_key) return;
     loadData();
   }, [
     router.isReady,
     filtersHydrated,
+    authLoading,
+    session?.access_token,
     event_key,
     id,
     competition_key,
@@ -210,7 +214,7 @@ export default function ViewDataPage() {
   }, [event_key, id, competition_key, router.isReady]);
 
   useEffect(() => {
-    if (!user && activeTab === 'stats') {
+    if (!user && (activeTab === 'stats' || activeTab === 'notes')) {
       setActiveTab('overview');
       if (router.isReady) {
         void router.replace(
@@ -244,9 +248,9 @@ export default function ViewDataPage() {
     if (!router.isReady) return;
     const vt = router.query.view_tab;
     if (typeof vt !== 'string' || !vt) return;
-    const allowed: CompetitionViewTab[] = ['overview', 'comparison', 'teams', 'pit', 'stats'];
+    const allowed: CompetitionViewTab[] = ['overview', 'comparison', 'teams', 'pit', 'stats', 'notes'];
     if (!allowed.includes(vt as CompetitionViewTab)) return;
-    if (vt === 'stats' && !user) return;
+    if ((vt === 'stats' || vt === 'notes') && !user) return;
     setActiveTab(vt as CompetitionViewTab);
   }, [router.isReady, router.query.view_tab, user]);
 
@@ -442,6 +446,7 @@ export default function ViewDataPage() {
 
   const loadData = async () => {
     if (!event_key && !id && !competition_key) return;
+    const request = ++loadSequence.current;
     setLoading(true);
     setError(null);
     setStandExportError(null);
@@ -472,18 +477,20 @@ export default function ViewDataPage() {
         throw new Error(err.error || `Failed to load (${res.status})`);
       }
       const data = await res.json();
+      if (request !== loadSequence.current) return;
       setCompetition(data.competition || null);
       setScoutingData(Array.isArray(data.scoutingData) ? data.scoutingData : []);
       setTeams(Array.isArray(data.teams) ? data.teams : []);
       setPitScoutingData(Array.isArray(data.pitScoutingData) ? data.pitScoutingData : []);
     } catch (e: any) {
+      if (request !== loadSequence.current) return;
       setError(e?.message || 'Failed to load competition data.');
       setCompetition(null);
       setScoutingData([]);
       setTeams([]);
       setPitScoutingData([]);
     } finally {
-      setLoading(false);
+      if (request === loadSequence.current) setLoading(false);
     }
   };
 
@@ -1406,7 +1413,9 @@ export default function ViewDataPage() {
   );
 
   const tabContent =
-    activeTab === 'overview'
+    activeTab === 'notes' && user
+      ? <section className="mx-auto w-full max-w-7xl min-w-0 px-4 py-6 sm:px-6 lg:px-8"><h1 className="mb-2 text-2xl font-bold">Robot Notes · {competition.competition_name}</h1><p className="mb-6 text-muted-foreground">Your organization’s observations for this event.</p><RobotNotesWorkspace eventKey={competition.competition_key} eventYear={competition.competition_year} fixedEvent /></section>
+      : activeTab === 'overview'
       ? overviewContent
       : activeTab === 'comparison'
         ? comparisonContent
@@ -1425,6 +1434,7 @@ export default function ViewDataPage() {
         queryString={queryPrefix}
         showPitTab={showPitTab}
         showStatsTab={!!user}
+        showNotesTab={!!user}
       >
         {canExportArchivedForms && isArchivedEvent && competition && (
           <div className="mx-auto w-full max-w-7xl px-4 pt-5 sm:px-6 lg:px-8">

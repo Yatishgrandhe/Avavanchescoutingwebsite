@@ -66,7 +66,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center justify-between h-16 px-4 md:px-6 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40"
           >
-            <div className="flex items-center space-x-4 flex-1 min-w-0">
+            <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
               <SidebarTrigger className="-ml-1" />
               <div className="flex items-center space-x-2">
                 <Logo size="sm" className="md:hidden" />
@@ -76,10 +76,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             </div>
 
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-2 md:gap-3">
               <ConnectionMonitor />
               {user && (
-                <div className="flex items-center space-x-3 pl-3 border-l border-border">
+                <div className="flex items-center gap-2 md:gap-3 pl-2 md:pl-3 border-l border-border">
                   <SyncButton />
                   <div className="text-right hidden lg:block">
                     <p className="text-sm font-medium leading-none text-foreground">{user.user_metadata?.full_name || 'User'}</p>

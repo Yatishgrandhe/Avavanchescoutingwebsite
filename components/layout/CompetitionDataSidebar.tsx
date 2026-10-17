@@ -6,7 +6,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BarChart3, LayoutDashboard, GitCompare, Wrench, Home, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, LayoutDashboard, GitCompare, Wrench, Home, Users, NotebookPen } from 'lucide-react';
 import { Badge, Logo } from '../ui';
 import {
   Sidebar,
@@ -23,7 +23,7 @@ import {
 } from '../ui/sidebar';
 import { Sparkles } from 'lucide-react';
 
-export type CompetitionViewTab = 'overview' | 'comparison' | 'teams' | 'pit' | 'stats';
+export type CompetitionViewTab = 'overview' | 'comparison' | 'teams' | 'pit' | 'stats' | 'notes';
 
 interface CompetitionDataSidebarProps {
   /** Current tab */
@@ -32,6 +32,7 @@ interface CompetitionDataSidebarProps {
   showPitTab?: boolean;
   /** If true, show Scouting Stats tab */
   showStatsTab?: boolean;
+  showNotesTab?: boolean;
   /** Called when user selects a tab */
   onTabChange?: (tab: CompetitionViewTab) => void;
   /** e.g. /competition-history */
@@ -48,6 +49,7 @@ const tabs: { id: CompetitionViewTab; label: string; icon: React.ElementType }[]
   { id: 'teams', label: 'Data Analysis', icon: BarChart3 },
   { id: 'pit', label: 'Pit Scouting', icon: Wrench },
   { id: 'stats', label: 'Scouting Stats', icon: Users },
+  { id: 'notes', label: 'Robot Notes', icon: NotebookPen },
 ];
 
 export default function CompetitionDataSidebar({
@@ -57,10 +59,11 @@ export default function CompetitionDataSidebar({
   queryString = '',
   showPitTab = false,
   showStatsTab = true,
+  showNotesTab = false,
   isLoggedIn = false,
 }: CompetitionDataSidebarProps) {
-  const { state } = useSidebar();
-  const isCollapsed = state === 'collapsed';
+  const { state, isMobile } = useSidebar();
+  const isCollapsed = !isMobile && state === 'collapsed';
 
   return (
     <Sidebar
@@ -71,7 +74,7 @@ export default function CompetitionDataSidebar({
       <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none z-0" />
 
       <SidebarHeader className="border-b border-sidebar-border relative z-10">
-        <div className="flex items-center gap-2 px-2 py-1.5">
+        <div className="flex items-center gap-2 px-2 py-1.5 pr-10 md:pr-2">
           <div className="flex-shrink-0">
             <Logo size="sm" />
           </div>
@@ -97,7 +100,7 @@ export default function CompetitionDataSidebar({
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="relative z-10">
+      <SidebarContent className="relative z-10" role="navigation" aria-label="Competition navigation">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -133,7 +136,7 @@ export default function CompetitionDataSidebar({
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {tabs.filter((tab) => (tab.id !== 'pit' || showPitTab) && (tab.id !== 'stats' || showStatsTab)).map((tab) => {
+              {tabs.filter((tab) => (tab.id !== 'pit' || showPitTab) && (tab.id !== 'stats' || showStatsTab) && (tab.id !== 'notes' || showNotesTab)).map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
                 return (

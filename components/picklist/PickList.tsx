@@ -68,7 +68,7 @@ function SortableTeamItem({ team, onUpdateNotes, onRemove, onImageClick }: Sorta
 
   return (
     <div ref={setNodeRef} style={style} className="relative">
-      <div className="glass-card p-4 sm:p-6 mb-3 border-l-4 border-l-primary rounded-xl hover:bg-white/5 transition-all duration-300">
+      <div className="glass-card p-4 sm:p-6 mb-3 rounded-xl hover:bg-white/5 transition-colors duration-200">
         <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
           <div className="flex items-start gap-3 sm:gap-4 flex-1 w-full min-w-0">
             <div

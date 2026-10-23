@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { PickList, PickListTeam } from '@/lib/types';
 import { PICKLIST_BLOCKED_ADMIN_USER_IDS } from '@/lib/constants';
 import { getOrgCurrentEvent } from '@/lib/org-app-config';
+import { getEventTeamStats } from '@/lib/server/event-team-stats';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -39,6 +40,7 @@ function canManagePickLists(p: PickListProfile): boolean {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
+  res.setHeader('Cache-Control', 'private, no-store');
   // Create Supabase client with service role key for server-side operations
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
   
@@ -105,6 +107,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           query = query.eq('event_key', event_key as string);
         }
 
+        const currentEvent = await getOrgCurrentEvent(supabaseAdmin, profile.organization_id);
+        // Default to the active event; old lists remain stored and can be requested explicitly.
+        if (!event_key && req.query.scope !== 'all') query = query.eq('event_key', currentEvent.eventKey || '__no_active_event__');
         const { data: pickLists, error } = await query;
 
         if (error) {
@@ -116,7 +121,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           (pickLists || []).map((pl) => enrichPickListWithStats(supabaseAdmin, pl))
         );
 
-        res.status(200).json({ pickLists: enrichedPickLists });
+        const { data: savedEvents, error: eventsError } = await supabaseAdmin.from('pick_lists').select('event_key').eq('organization_id', profile.organization_id);
+        if (eventsError) throw eventsError;
+        res.status(200).json({ pickLists: enrichedPickLists, currentEvent, events: Array.from(new Set([currentEvent.eventKey, ...(savedEvents || []).map((r) => r.event_key)].filter(Boolean))) });
       }
     } catch (error) {
       console.error('Error fetching pick lists:', error);
@@ -209,18 +216,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const updateData: any = {};
       if (name) updateData.name = name;
       if (teams !== undefined) {
-        console.log('Processing teams:', teams);
-        const validatedTeams = teams.map((team: any, index: number) => ({
+          const validatedTeams = teams.map((team: any, index: number) => ({
           team_number: team.team_number,
           team_name: team.team_name,
           pick_order: team.pick_order || index + 1,
           notes: team.notes || '',
         }));
         updateData.teams = validatedTeams;
-        console.log('Validated teams:', validatedTeams);
       }
 
-      console.log('Update data:', updateData);
 
       const { data: pickList, error } = await supabaseAdmin
         .from('pick_lists')
@@ -235,7 +239,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: 'Failed to update pick list', details: error.message });
       }
 
-      console.log('Updated pick list:', pickList);
       const enrichedPickList = await enrichPickListWithStats(supabaseAdmin, pickList);
       res.status(200).json(enrichedPickList);
     } catch (error) {
@@ -277,88 +280,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-// Helper to get one robot image URL per team from pit_scouting_data (latest record with image)
-async function getRobotImageUrlsByTeam(
-  supabaseAdmin: SupabaseClient,
-  teamNumbers: number[],
-  organizationId: string | null | undefined
-): Promise<Map<number, string>> {
-  if (teamNumbers.length === 0) return new Map();
-  let q = supabaseAdmin
-    .from('pit_scouting_data')
-    .select('team_number, robot_image_url, photos, created_at')
-    .in('team_number', teamNumbers)
-    .order('created_at', { ascending: false });
-  if (organizationId) {
-    q = q.eq('organization_id', organizationId);
-  }
-  const { data: rows } = await q;
-
-  const map = new Map<number, string>();
-  for (const row of rows || []) {
-    if (map.has(row.team_number)) continue;
-    const url = (row.robot_image_url && String(row.robot_image_url).trim()) ||
-      (Array.isArray(row.photos) && row.photos[0] ? String(row.photos[0]).trim() : '');
-    if (url) map.set(row.team_number, url);
-  }
-  return map;
-}
-
-// Helper function to enrich pick list teams with stats and robot image
-async function enrichPickListWithStats(
-  supabaseAdmin: SupabaseClient,
-  pickList: any
-): Promise<PickList> {
-  const teams = pickList.teams || [];
-  const teamNumbers = teams.map((t: PickListTeam) => t.team_number);
-  const imageByTeam = await getRobotImageUrlsByTeam(
-    supabaseAdmin,
-    teamNumbers,
-    pickList.organization_id
-  );
-
-  const enrichedTeams = await Promise.all(
-    teams.map(async (team: PickListTeam) => {
-      try {
-        // Get team stats from the team_statistics view
-        const { data: stats, error } = await supabaseAdmin
-          .from('team_statistics')
-          .select('*')
-          .eq('team_number', team.team_number)
-          .single();
-
-        const robot_image_url = imageByTeam.get(team.team_number) || null;
-
-        if (error || !stats) {
-          console.warn(`No stats found for team ${team.team_number}`);
-          return { ...team, robot_image_url };
-        }
-
-        return {
-          ...team,
-          robot_image_url,
-          stats: {
-            team_number: stats.team_number,
-            team_name: stats.team_name,
-            total_matches: stats.match_count || 0,
-            avg_autonomous_points: Math.round((parseFloat(stats.avg_autonomous_points) || 0) * 10) / 10,
-            avg_teleop_points: Math.round((parseFloat(stats.avg_teleop_points) || 0) * 10) / 10,
-            avg_endgame_points: Math.round((parseFloat(stats.avg_endgame_points) || 0) * 10) / 10,
-            avg_total_score: Math.round((parseFloat(stats.avg_final_score) || 0) * 10) / 10,
-            avg_defense_rating: Math.round((parseFloat(stats.avg_defense_rating) || 0) * 10) / 10,
-            win_rate: 0,
-            consistency_score: 0,
-          },
-        };
-      } catch (error) {
-        console.error(`Error enriching team ${team.team_number}:`, error);
-        return { ...team, robot_image_url: imageByTeam.get(team.team_number) || null };
-      }
-    })
-  );
-
-  return {
-    ...pickList,
-    teams: enrichedTeams,
-  };
+// Enrichment uses this list's organization and event, never the global statistics view.
+async function enrichPickListWithStats(db: SupabaseClient, pickList: any): Promise<PickList> {
+  const eventStats = await getEventTeamStats(db, pickList.organization_id, pickList.event_key);
+  const byTeam = new Map(eventStats.map((stat) => [stat.team_number, stat]));
+  return { ...pickList, teams: (pickList.teams || []).map((team: PickListTeam) => {
+    const stats = byTeam.get(team.team_number);
+    return { ...team, stats: stats || undefined, robot_image_url: stats?.robot_image_url || null };
+  }) };
 }

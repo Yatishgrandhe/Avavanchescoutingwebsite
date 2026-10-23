@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { readAllRows } from '@/lib/server/event-team-stats';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
@@ -97,15 +98,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const configEventKey = keyFromDb;
     let eventName = nameFromDb;
 
-    let effectiveEventKey = configEventKey;
-    if (effectiveEventKey) {
-      const countForConfig = (orgMatchRows || []).filter((m) => m.event_key === effectiveEventKey).length;
-      if (countForConfig === 0 && dominant) {
-        effectiveEventKey = dominant;
-      }
-    } else if (dominant) {
-      effectiveEventKey = dominant;
-    }
+    // A configured event remains authoritative even before its first match.
+    const effectiveEventKey = configEventKey || dominant;
 
     if (!effectiveEventKey) {
       res.status(400).json({
@@ -144,24 +138,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const competitionId = pastComp.id;
 
-    // Robot observations retain their stable event/team identity after live rows are cleared.
-    const { error: notesError } = await supabase.from('robot_notes')
-      .update({ competition_id: competitionId })
-      .eq('organization_id', orgId)
-      .eq('event_key', effectiveEventKey)
-      .eq('event_year', competitionYear);
-    if (notesError) {
-      await supabase.from('past_competitions').delete().eq('id', competitionId);
-      res.status(500).json({ error: 'Could not preserve robot notes. The event was not archived.' });
-      return;
-    }
-
     // 3. Move Scouting Data (matches.event_key must match archived event)
-    const { data: scoutingRecords } = await supabase
-      .from('scouting_data')
-      .select('*, matches!inner(event_key)')
-      .eq('organization_id', orgId)
-      .eq('matches.event_key', effectiveEventKey);
+    const matchRecords = await readAllRows((from, to) => supabase.from('matches').select('*').eq('organization_id', orgId).eq('event_key', effectiveEventKey).order('match_id').range(from, to));
+    const matchIds = matchRecords.map((r) => r.match_id);
+    const scoutingRecords: any[] = [];
+    for (let from = 0; from < matchIds.length; from += 100) scoutingRecords.push(...await readAllRows((start, end) => supabase.from('scouting_data').select('*').eq('organization_id', orgId).in('match_id', matchIds.slice(from, from + 100)).order('id').range(start, end)));
 
     if (scoutingRecords && scoutingRecords.length > 0) {
       const pastScouting = scoutingRecords.map((r) =>
@@ -178,16 +159,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return;
       }
 
-      const scoutIds = scoutingRecords.map((r) => r.id);
-      await supabase.from('scouting_data').delete().in('id', scoutIds).eq('organization_id', orgId);
+
     }
 
     // 4. Move Pit Scouting Data — only rows linked to this event via event_team_roster (same scope as analysis pages)
-    const { data: pitRecords } = await supabase
-      .from('pit_scouting_data')
-      .select('*, roster:event_team_roster!inner(event_key)')
-      .eq('organization_id', orgId)
-      .eq('roster.event_key', effectiveEventKey);
+    const rosterRows = await readAllRows((from, to) => supabase.from('event_team_roster').select('team_number,team_name').eq('organization_id', orgId).eq('event_key', effectiveEventKey).order('team_number').range(from, to));
+    const eventTeamNumbers = Array.from(new Set([...rosterRows.map((r) => r.team_number), ...matchRecords.flatMap((r) => [...(r.red_teams || []), ...(r.blue_teams || [])])]));
+    const pitRecords: any[] = [];
+    for (let from = 0; from < eventTeamNumbers.length; from += 100) pitRecords.push(...await readAllRows((start, end) => supabase.from('pit_scouting_data').select('*').eq('organization_id', orgId).in('team_number', eventTeamNumbers.slice(from, from + 100)).order('id').range(start, end)));
 
     if (pitRecords && pitRecords.length > 0) {
       const pastPit = pitRecords.map((r) =>
@@ -203,16 +182,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return;
       }
 
-      const pitIds = pitRecords.map((r) => r.id);
-      await supabase.from('pit_scouting_data').delete().in('id', pitIds).eq('organization_id', orgId);
+
     }
 
     // 5. Move Matches for this event
-    const { data: matchRecords } = await supabase
-      .from('matches')
-      .select('*')
-      .eq('organization_id', orgId)
-      .eq('event_key', effectiveEventKey);
 
     if (matchRecords && matchRecords.length > 0) {
       const pastMatches = matchRecords.map((r) =>
@@ -228,18 +201,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return;
       }
 
-      const matchIds = matchRecords.map((r) => r.match_id);
-      await supabase.from('matches').delete().in('match_id', matchIds).eq('organization_id', orgId);
+
     }
 
     // 6. Move Teams — snapshot only teams registered for this event (roster), else derive from this event's matches
-    const { data: rosterRows, error: rosterError } = await supabase
-      .from('event_team_roster')
-      .select('team_number, team_name')
-      .eq('organization_id', orgId)
-      .eq('event_key', effectiveEventKey);
-    if (rosterError) throw rosterError;
-
     let teamNumbersForEvent = (rosterRows || []).map((r) => r.team_number);
 
     if (teamNumbersForEvent.length === 0 && matchRecords && matchRecords.length > 0) {
@@ -284,12 +249,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // 7. Move Pick Lists for this event, then wipe all live pick lists for the org
-    const { data: pickLists } = await supabase
-      .from('pick_lists')
-      .select('*')
-      .eq('organization_id', orgId)
-      .eq('event_key', effectiveEventKey);
+    // 7. Snapshot pick lists for this event. Other events remain untouched.
+    const pickLists = await readAllRows((from, to) => supabase.from('pick_lists').select('*').eq('organization_id', orgId).eq('event_key', effectiveEventKey).order('id').range(from, to));
 
     if (pickLists && pickLists.length > 0) {
       const pastPickLists = pickLists.map((r) =>
@@ -306,23 +267,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    await supabase.from('pick_lists').delete().eq('organization_id', orgId);
-    await supabase.from('pit_scouting_data').delete().eq('organization_id', orgId);
+    // Robot observations retain their stable event/team identity after live rows are cleared.
+    const { error: notesError } = await supabase.from('robot_notes')
+      .update({ competition_id: competitionId })
+      .eq('organization_id', orgId)
+      .eq('event_key', effectiveEventKey)
+      .eq('event_year', competitionYear);
+    if (notesError) {
+      await supabase.from('past_competitions').delete().eq('id', competitionId);
+      res.status(500).json({ error: 'Could not preserve robot notes. The event was not archived.' });
+      return;
+    }
 
-    // 8. Clear live roster & schedules for this org (snapshot already in past_*)
-    await supabase.from('users').update({ team_number: null }).eq('organization_id', orgId);
-
-    await supabase
-      .from('teams')
-      .update({ organization_id: null, epa: 0, endgame_epa: 0 })
-      .eq('organization_id', orgId);
-
-    await supabase.from('matches').delete().eq('organization_id', orgId);
-
-    await supabase.from('event_team_roster').delete().eq('organization_id', orgId);
-
-    // 9. Clear all app_config for this org so nothing points at a stale competition
-    await supabase.from('app_config').delete().eq('organization_id', orgId);
+    // Delete only rows successfully copied above. Never wipe another event or shared pit forms.
+    for (let from = 0; from < scoutingRecords.length; from += 100) {
+      const { error } = await supabase.from('scouting_data').delete().eq('organization_id', orgId).in('id', scoutingRecords.slice(from, from + 100).map((r) => r.id));
+      if (error) throw error;
+    }
+    const { error: listsDeleteError } = await supabase.from('pick_lists').delete().eq('organization_id', orgId).eq('event_key', effectiveEventKey);
+    if (listsDeleteError) throw listsDeleteError;
+    const { error: matchesDeleteError } = await supabase.from('matches').delete().eq('organization_id', orgId).eq('event_key', effectiveEventKey);
+    if (matchesDeleteError) throw matchesDeleteError;
+    const { error: rosterDeleteError } = await supabase.from('event_team_roster').delete().eq('organization_id', orgId).eq('event_key', effectiveEventKey);
+    if (rosterDeleteError) throw rosterDeleteError;
+    const { error: configDeleteError } = await supabase.from('app_config').delete().eq('organization_id', orgId).in('key', ['current_event_key','current_event_name','current_event_year','current_event_source','current_event_team_numbers','current_event_match_ids']);
+    if (configDeleteError) throw configDeleteError;
 
     res.status(200).json({ success: true, message: 'Competition archived successfully', competitionId });
   } catch (error) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { PickList } from '@/components/picklist/PickList';
 import { ScoutingEducation } from '@/components/picklist/ScoutingEducation';
@@ -30,18 +30,29 @@ function PickListMobileContent() {
   const [newPickListName, setNewPickListName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [showEducation, setShowEducation] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState('');
+  const [currentEvent, setCurrentEvent] = useState({ eventKey: '', eventName: '' });
+  const [savedEvents, setSavedEvents] = useState<string[]>([]);
+  const [listError, setListError] = useState('');
+  const listRequest = useRef(0);
 
   useEffect(() => {
     if (session && canAccessPickList) {
       loadPickLists();
     }
-  }, [session, canAccessPickList]);
+    if (!adminLoading && !canAccessPickList) setIsLoading(false);
+    const refresh = () => { if (session && canAccessPickList) void loadPickLists(); };
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, [session?.access_token, canAccessPickList, adminLoading, selectedEvent]);
 
   const loadPickLists = async () => {
     if (!session) return;
+    const request = ++listRequest.current;
     
     try {
-      const response = await fetch('/api/pick-lists', {
+      setListError('');
+      const response = await fetch(`/api/pick-lists${selectedEvent ? `?event_key=${encodeURIComponent(selectedEvent)}` : ''}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
         },
@@ -52,11 +63,16 @@ function PickListMobileContent() {
       }
       
       const data = await response.json();
+      if (request !== listRequest.current) return;
       setPickLists(data.pickLists || []);
+      setCurrentEvent(data.currentEvent || { eventKey: '', eventName: '' });
+      setSavedEvents(data.events || []);
     } catch (error) {
+      if (request !== listRequest.current) return;
       console.error('Error loading pick lists:', error);
+      setListError('Could not load pick lists. Your saved lists are unchanged. Please refresh and try again.');
     } finally {
-      setIsLoading(false);
+      if (request === listRequest.current) setIsLoading(false);
     }
   };
 
@@ -72,6 +88,7 @@ function PickListMobileContent() {
         },
         body: JSON.stringify({
           name: newPickListName,
+          event_key: selectedEvent || currentEvent.eventKey,
           teams: [],
         }),
       });
@@ -211,7 +228,17 @@ function PickListMobileContent() {
           </div>
         )}
 
-        {/* Pick Lists Section */}
+        <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
+            <label htmlFor="pick-list-event" className="block text-sm font-medium">Pick list event</label>
+            <select id="pick-list-event" value={selectedEvent} onChange={(e) => { setSelectedEvent(e.target.value); setPickLists([]); setSelectedPickList(null); setIsCreatingNew(false); }} className="min-h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-base">
+              <option value="">Current event{currentEvent.eventName ? ` · ${currentEvent.eventName}` : ' · Not configured'}</option>
+              {savedEvents.filter((key) => key !== currentEvent.eventKey).map((key) => <option key={key} value={key}>{key} · Saved lists</option>)}
+            </select>
+            <p className="text-sm text-muted-foreground">{selectedEvent || currentEvent.eventKey || 'Set the competition in Team Management.'} · Teams and scores belong to this event. Previous lists remain saved.</p>
+            {listError && <p role="alert" className="text-sm text-destructive">{listError}</p>}
+          </div>
+
+          {/* Pick Lists Section */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -316,7 +343,7 @@ function PickListMobileContent() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>{selectedPickList.name}</span>
+                <span>{selectedPickList.name} · {selectedPickList.event_key}</span>
                 <Badge variant="secondary">
                   {selectedPickList.teams.length} teams
                 </Badge>
@@ -324,6 +351,7 @@ function PickListMobileContent() {
             </CardHeader>
             <CardContent>
               <PickList
+                      key={selectedPickList.id}
                 pickListId={selectedPickList.id}
                 eventKey={selectedPickList.event_key}
                 onSave={handleSavePickList}

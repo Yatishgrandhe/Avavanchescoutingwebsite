@@ -236,9 +236,10 @@ function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSe
         <div className="p-4">
           <div className="flex flex-col space-y-2 mb-3">
             <select
+              aria-label="Team to add"
               value={selectedTeam}
               onChange={(e) => setSelectedTeam(e.target.value)}
-              className="px-3 py-2 border border-white/10 rounded-lg text-xs sm:text-sm bg-background/50 text-foreground hover:bg-white/5 transition-colors min-h-[40px]"
+              className="px-3 py-2 border border-white/10 rounded-lg text-base bg-background/50 text-foreground hover:bg-white/5 transition-colors min-h-11"
             >
               <option value="">Select a team to add...</option>
               {filteredTeams.map((team) => (
@@ -250,9 +251,10 @@ function TeamSelector({ availableTeams, onAddTeam, selectedTeamNumbers }: TeamSe
             </select>
             
             <select
+              aria-label="Sort available teams"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'score' | 'name' | 'number')}
-              className="px-3 py-2 border border-white/10 rounded-lg text-xs sm:text-sm bg-background/50 text-foreground hover:bg-white/5 transition-colors min-h-[40px]"
+              className="px-3 py-2 border border-white/10 rounded-lg text-base bg-background/50 text-foreground hover:bg-white/5 transition-colors min-h-11"
             >
               <option value="score">Sort by Score</option>
               <option value="name">Sort by Name</option>
@@ -302,6 +304,7 @@ export function PickList({ pickListId, eventKey = '', onSave, session, organizat
   const [pickListName, setPickListName] = useState('My Pick List');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [showComparison, setShowComparison] = useState(false);
   const [fullScreenImageUrl, setFullScreenImageUrl] = useState<string | null>(null);
 
@@ -316,7 +319,7 @@ export function PickList({ pickListId, eventKey = '', onSave, session, organizat
     if (session) {
       loadData();
     }
-  }, [pickListId, eventKey, session]);
+  }, [pickListId, eventKey, session?.access_token, organizationId]);
 
   useEffect(() => {
     if (!fullScreenImageUrl) return;
@@ -329,9 +332,13 @@ export function PickList({ pickListId, eventKey = '', onSave, session, organizat
     if (!session) return;
     
     setIsLoading(true);
+    setLoadError('');
     try {
       // Load all team stats in one API call instead of individual calls
-      const statsUrl = organizationId ? `/api/team-stats?organization_id=${encodeURIComponent(organizationId)}` : '/api/team-stats';
+      const statsParams = new URLSearchParams();
+      if (organizationId) statsParams.set('organization_id', organizationId);
+      if (eventKey) statsParams.set('event_key', eventKey);
+      const statsUrl = `/api/team-stats?${statsParams}`;
       const statsResponse = await fetch(statsUrl);
       
       if (!statsResponse.ok) {
@@ -339,7 +346,6 @@ export function PickList({ pickListId, eventKey = '', onSave, session, organizat
       }
       
       const statsData = await statsResponse.json();
-      console.log('Raw stats data:', statsData);
       
       // Filter out Team Avalanche and map the data
       const teamsWithStats = (statsData.stats || [])
@@ -375,6 +381,7 @@ export function PickList({ pickListId, eventKey = '', onSave, session, organizat
       }
     } catch (error) {
       console.error('Error loading data:', error);
+      setLoadError('Could not load this event’s pick list. Your saved data is unchanged. Retry before editing.');
     } finally {
       setIsLoading(false);
     }
@@ -426,7 +433,7 @@ export function PickList({ pickListId, eventKey = '', onSave, session, organizat
   };
 
   const handleSave = async () => {
-    if (!session) return;
+    if (!session || loadError || isLoading) return;
     
     setIsSaving(true);
     try {
@@ -487,6 +494,8 @@ export function PickList({ pickListId, eventKey = '', onSave, session, organizat
       </div>
     );
   }
+
+  if (loadError) return <div role="alert" className="space-y-4 rounded-xl border border-border p-5"><p>{loadError}</p><Button onClick={() => void loadData()}>Retry loading</Button></div>;
 
   return (
     <div className="space-y-6">

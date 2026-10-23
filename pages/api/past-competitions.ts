@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getAutoFuelCount, getTeleopFuelCount, getClimbPoints } from '@/lib/analytics';
 import { AVALANCHE_ORG_ID } from '@/lib/constants';
+import { privateScoutingRows } from '@/lib/server/scouting-privacy';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -191,6 +192,7 @@ function mapPitRowsToTeams(
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
+  res.setHeader('Cache-Control', 'private, no-store');
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
   const isGetRequest = req.method === 'GET';
@@ -402,8 +404,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             red_teams: m.red_teams || [],
             blue_teams: m.blue_teams || [],
           })),
-          scoutingData: scoutingData || [],
-          pitScoutingData: normalizedPitScoutingData,
+          scoutingData: privateScoutingRows(scoutingData || [], viewer.organizationId),
+          pitScoutingData: privateScoutingRows(normalizedPitScoutingData, viewer.organizationId),
           pickLists: [],
         });
       }
@@ -580,10 +582,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         );
 
         let pickLists: any[] = [];
-        if (!viewer.isGuest) {
+        if (viewer.organizationId && ['admin', 'superadmin'].includes(viewer.role || '')) {
           const { data: pickData } = await supabaseAdmin
             .from('past_pick_lists')
             .select('*')
+            .eq('organization_id', viewer.organizationId)
             .in('competition_id', compIds);
           pickLists = pickData || [];
         }
@@ -596,8 +599,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           },
           teams: updatedTeams,
           matches: matchesList,
-          scoutingData: scoutingData || [],
-          pitScoutingData,
+          scoutingData: privateScoutingRows(scoutingData || [], viewer.organizationId),
+          pitScoutingData: privateScoutingRows(pitScoutingData, viewer.organizationId),
           pickLists,
         });
       }

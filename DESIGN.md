@@ -80,6 +80,11 @@ Base unit: **4px**. Spacing follows Tailwind's 1/2/3/4/5/6/8/10/12/16 scale (4â€
 - **Data boundary:** member observations stay separate from match and pit scores. Event key, year, and team number remain stable across CSV imports and archiving. Summaries quote recorded observations; original notes remain available.
 - **Permissions and wayfinding:** summaries are generated and returned only for database-verified admins and superadmins. Members browse original observations. Phone controls switch between writing and browsing without losing a draft; a labeled team picker and search narrow the list, with a clear route back to all teams. Archived views open directly in browse mode.
 
+### Pick List Event Context
+- Use the existing labeled 44px native select to distinguish the current event from saved lists for earlier events. Show the event key beside the context and the selected list. Switching events changes only the view; original saved lists and notes stay stored.
+- Team choices include every roster team, even with zero scouting forms. Statistics are scoped to the list's organization and event. Loading failures offer Retry and block saving an unloaded list.
+- Public scores retain numerical details; written scouting observations and pick-list notes are private to the owning organization. Public response copies are redacted without changing stored data.
+
 ## 6. Motion & Interaction
 
 | Type | Duration | Usage |

@@ -1,13 +1,16 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { supabase } from '@/lib/supabase';
 import { createClient } from '@supabase/supabase-js';
+import { privateScoutingRows, viewerOrganization } from '@/lib/server/scouting-privacy';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  res.setHeader('Cache-Control', 'private, no-store');
   if (req.method === 'GET') {
     try {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const organizationId = await viewerOrganization(supabase, req.headers.authorization);
       const { teamNumber, organization_id: queryOrgId } = req.query;
       const teamNum = parseInt(teamNumber as string);
 
@@ -74,7 +77,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json({
           team: team || { team_number: teamNum, team_name: `Team ${teamNum}` },
           scoutingData: [],
-          pitData: pitData || null,
+          pitData: pitData ? privateScoutingRows([pitData], organizationId)[0] : null,
           stats: null
         });
       }
@@ -112,8 +115,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       res.status(200).json({
         team: team || { team_number: teamNum, team_name: `Team ${teamNum}` },
-        scoutingData: scoutingData || [],
-        pitData: pitData || null,
+        scoutingData: privateScoutingRows(scoutingData || [], organizationId),
+        pitData: pitData ? privateScoutingRows([pitData], organizationId)[0] : null,
         stats
       });
     } catch (error) {

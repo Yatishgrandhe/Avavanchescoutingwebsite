@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import Layout from '@/components/layout/Layout';
@@ -38,19 +38,30 @@ export default function PickListPage() {
   const [newPickListName, setNewPickListName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [showEducation, setShowEducation] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState('');
+  const [currentEvent, setCurrentEvent] = useState({ eventKey: '', eventName: '' });
+  const [savedEvents, setSavedEvents] = useState<string[]>([]);
+  const [listError, setListError] = useState('');
+  const listRequest = useRef(0);
   const [isListsCollapsed, setIsListsCollapsed] = useState(false);
 
   useEffect(() => {
     if (session && canAccessPickList) {
       loadPickLists();
     }
-  }, [session, canAccessPickList]);
+    if (!adminLoading && !canAccessPickList) setIsLoading(false);
+    const refresh = () => { if (session && canAccessPickList) void loadPickLists(); };
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, [session?.access_token, canAccessPickList, adminLoading, selectedEvent]);
 
   const loadPickLists = async () => {
     if (!session) return;
+    const request = ++listRequest.current;
 
     try {
-      const response = await fetch('/api/pick-lists', {
+      setListError('');
+      const response = await fetch(`/api/pick-lists${selectedEvent ? `?event_key=${encodeURIComponent(selectedEvent)}` : ''}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
         },
@@ -61,11 +72,16 @@ export default function PickListPage() {
       }
 
       const data = await response.json();
+      if (request !== listRequest.current) return;
       setPickLists(data.pickLists || []);
+      setCurrentEvent(data.currentEvent || { eventKey: '', eventName: '' });
+      setSavedEvents(data.events || []);
     } catch (error) {
+      if (request !== listRequest.current) return;
       console.error('Error loading pick lists:', error);
+      setListError('Could not load pick lists. Your saved lists are unchanged. Please refresh and try again.');
     } finally {
-      setIsLoading(false);
+      if (request === listRequest.current) setIsLoading(false);
     }
   };
 
@@ -81,6 +97,7 @@ export default function PickListPage() {
         },
         body: JSON.stringify({
           name: newPickListName,
+          event_key: selectedEvent || currentEvent.eventKey,
           teams: [],
         }),
       });
@@ -178,7 +195,7 @@ export default function PickListPage() {
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 break-words">
+              <h1 className="text-2xl sm:text-3xl font-heading font-bold text-foreground break-words">
                 Alliance Selection
               </h1>
               <p className="text-muted-foreground mt-1">
@@ -210,36 +227,44 @@ export default function PickListPage() {
             )}
           </AnimatePresence>
 
+          <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
+            <label htmlFor="pick-list-event" className="block text-sm font-medium">Pick list event</label>
+            <select id="pick-list-event" value={selectedEvent} onChange={(e) => { setSelectedEvent(e.target.value); setPickLists([]); setSelectedPickList(null); setIsCreatingNew(false); }} className="min-h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-base">
+              <option value="">Current event{currentEvent.eventName ? ` · ${currentEvent.eventName}` : ' · Not configured'}</option>
+              {savedEvents.filter((key) => key !== currentEvent.eventKey).map((key) => <option key={key} value={key}>{key} · Saved lists</option>)}
+            </select>
+            <p className="text-sm text-muted-foreground">{selectedEvent || currentEvent.eventKey || 'Set the competition in Team Management.'} · Teams and scores belong to this event. Previous lists remain saved.</p>
+            {listError && <p role="alert" className="text-sm text-destructive">{listError}</p>}
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Sidebar List */}
             <div className="lg:col-span-1 space-y-4">
-              <div className="glass-card rounded-xl overflow-hidden border border-white/5 flex flex-col h-[600px]">
+              <div className={cn('glass-card rounded-xl overflow-hidden border border-white/5 flex flex-col', isListsCollapsed ? 'h-auto' : 'h-[360px] lg:h-[600px]')}>
+                <div className="flex items-center justify-between border-b border-white/5 bg-white/5 px-3">
                 <button
                   onClick={() => setIsListsCollapsed(!isListsCollapsed)}
-                  className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5 hover:bg-white/10 transition-colors"
+                  aria-expanded={!isListsCollapsed}
+                  className="min-h-11 flex flex-1 items-center justify-between gap-2 py-3 pr-3 text-left"
                 >
                   <span className="font-semibold flex items-center gap-2">
                     <List size={16} className="text-primary" /> My Lists
                   </span>
-                  <div className="flex items-center gap-2">
+                    {isListsCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                </button>
                     <Button
                       size="sm"
+                      aria-label="Create pick list"
                       onClick={(e) => {
                         e.stopPropagation();
                         setIsCreatingNew(true);
                         setSelectedPickList(null);
                       }}
-                      className="h-8 w-8 p-0 rounded-full bg-primary/20 text-primary hover:bg-primary/30"
+                      className="min-h-11 min-w-11 p-0 rounded-full bg-primary/20 text-primary hover:bg-primary/30"
                     >
                       <Plus size={16} />
                     </Button>
-                    {isListsCollapsed ? (
-                      <ChevronDown size={16} className="text-muted-foreground" />
-                    ) : (
-                      <ChevronUp size={16} className="text-muted-foreground" />
-                    )}
-                  </div>
-                </button>
+                </div>
 
                 {!isListsCollapsed && (
                   <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
@@ -333,7 +358,7 @@ export default function PickListPage() {
                   <div className="p-4 border-b border-white/5 bg-white/5 flex items-center justify-between">
                     <h2 className="font-semibold text-lg flex items-center gap-2">
                       <LayoutGrid size={18} className="text-primary" />
-                      {selectedPickList.name}
+                      {selectedPickList.name} · {selectedPickList.event_key}
                     </h2>
                     <div className="text-xs text-muted-foreground bg-black/20 px-2 py-1 rounded">
                       {selectedPickList.teams.length} Teams
@@ -341,6 +366,7 @@ export default function PickListPage() {
                   </div>
                   <div className="flex-1 p-4 bg-background/20">
                     <PickList
+                      key={selectedPickList.id}
                       pickListId={selectedPickList.id}
                       eventKey={selectedPickList.event_key}
                       onSave={handleSavePickList}

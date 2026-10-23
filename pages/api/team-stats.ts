@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { roundToTenth } from '@/lib/utils';
+import { getEventTeamStats } from '@/lib/server/event-team-stats';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -24,21 +25,18 @@ async function getRobotImageUrlsByTeam(supabaseClient: SupabaseClient, teamNumbe
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  res.setHeader('Cache-Control', 'private, no-store');
   if (req.method === 'GET') {
     try {
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
       const { team_number, organization_id: queryOrgId } = req.query;
-
-      // Resolve CSV event scope if org provided
-      let csvTeamNumbers: number[] = [];
-      if (queryOrgId) {
-        try {
-          const { getOrgCurrentEvent } = await import('@/lib/org-app-config');
-          const { eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, queryOrgId as string);
-          if (eventSource === 'csv') csvTeamNumbers = eventTeamNumbers;
-        } catch {
-          // Non-critical
+      if (typeof queryOrgId === 'string') {
+        const stats = await getEventTeamStats(supabase, queryOrgId, typeof req.query.event_key === 'string' ? req.query.event_key : undefined);
+        if (team_number) {
+          const team = stats.find((s) => s.team_number === Number(team_number));
+          return team ? res.status(200).json(team) : res.status(404).json({ error: 'Team is not in this event.' });
         }
+        return res.status(200).json({ stats });
       }
 
       if (team_number) {
@@ -79,9 +77,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .select('*')
           .order('avg_final_score', { ascending: false });
 
-        if (csvTeamNumbers.length > 0) {
-          statsQuery = statsQuery.in('team_number', csvTeamNumbers);
-        }
 
         const { data: stats, error } = await statsQuery;
 

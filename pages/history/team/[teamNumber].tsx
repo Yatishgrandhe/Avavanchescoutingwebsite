@@ -30,6 +30,7 @@ import Logo from '@/components/ui/Logo';
 import GuestLayout from '@/components/layout/GuestLayout';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { AVALANCHE_ORG_ID } from '@/lib/constants';
 
 interface Team {
     team_number: number;
@@ -99,17 +100,18 @@ export default function PublicTeamHistoryPage() {
             const { data: pastComps, error: compError } = await supabase
                 .from('past_competitions')
                 .select('*')
+                .eq('organization_id', AVALANCHE_ORG_ID)
                 .order('competition_year', { ascending: false });
 
             if (compError) throw compError;
 
             const results: CompetitionData[] = [];
             for (const comp of pastComps || []) {
-                const { data: scouting, error: sError } = await supabase
-                    .from('past_scouting_data')
-                    .select('*')
-                    .eq('team_number', teamNum)
-                    .eq('competition_id', comp.id);
+                // Public archive API preserves scores and removes private written notes.
+                const response = await fetch(`/api/past-competitions?id=${encodeURIComponent(comp.id)}`);
+                const archive = response.ok ? await response.json() : null;
+                const scouting = (archive?.scoutingData || []).filter((row: any) => row.team_number === teamNum);
+                const sError = !response.ok;
 
                 if (!sError && scouting && scouting.length > 0) {
                     const scores = scouting.map((d: any) => d.final_score || 0);

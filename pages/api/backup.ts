@@ -1,139 +1,36 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { authorizeOrganization } from '@/lib/server/authorize';
+import { ORGANIZATION_BACKUP_TABLES, organizationRows, readAllRows } from '@/lib/server/organization-backup';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
-  // Only allow GET requests for backup
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
-  }
-
-  // Check if environment variables are set
-  if (!supabaseUrl || !supabaseServiceKey) {
-    console.error('Missing Supabase environment variables');
-    return res.status(500).json({ error: 'Server configuration error' });
-  }
-
-  // Create Supabase client with service role key for server-side operations
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-  // Get the authorization header
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.error('Missing or invalid authorization header');
-    return res.status(401).json({ error: 'Unauthorized - Missing token' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  
-  // Verify the JWT token
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  
-  if (authError || !user) {
-    console.error('Token verification error:', authError);
-    return res.status(401).json({ error: 'Unauthorized - Invalid token' });
-  }
-
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'GET') { res.setHeader('Allow', 'GET'); return res.status(405).json({ error: 'Method not allowed' }); }
+  const auth = await authorizeOrganization(req, res, true);
+  if (!auth) return;
   try {
-    const backupTimestamp = new Date().toISOString();
-    const backup: any = {
-      metadata: {
-        backup_date: backupTimestamp,
-        version: '1.0',
-        database_url: supabaseUrl,
-        tables_backed_up: []
-      },
-      data: {}
-    };
-
-    // List of all tables to backup
-    const tables = [
-      'teams',
-      'matches',
-      'scouting_data',
-      'users',
-      'accounts',
-      'sessions',
-      'verification_tokens',
-      'pick_lists',
-      'pick_list_items',
-      'pit_scouting_data',
-      'scouting_data_audit',
-      'past_competitions',
-      'past_scouting_data',
-      'past_matches',
-      'past_teams',
-      'past_pit_scouting_data',
-      'past_pick_lists'
-    ];
-
-    // Backup each table
-    for (const table of tables) {
-      try {
-        const { data, error } = await supabase
-          .from(table)
-          .select('*');
-
-        if (error) {
-          console.error(`Error backing up table ${table}:`, error);
-          backup.data[table] = {
-            error: error.message,
-            count: 0,
-            data: []
-          };
-        } else {
-          backup.data[table] = {
-            count: data?.length || 0,
-            data: data || []
-          };
-          backup.metadata.tables_backed_up.push({
-            table,
-            record_count: data?.length || 0,
-            status: 'success'
-          });
-        }
-      } catch (err) {
-        console.error(`Exception backing up table ${table}:`, err);
-        backup.data[table] = {
-          error: err instanceof Error ? err.message : 'Unknown error',
-          count: 0,
-          data: []
-        };
-        backup.metadata.tables_backed_up.push({
-          table,
-          record_count: 0,
-          status: 'error'
-        });
-      }
+    const data: Record<string, { count: number; data: Record<string, any>[] }> = {};
+    for (const table of ORGANIZATION_BACKUP_TABLES) {
+      const rows = await organizationRows(auth.db, table, auth.organizationId);
+      data[table] = { count: rows.length, data: rows };
     }
-
-    // Calculate summary statistics
-    const totalRecords = Object.values(backup.data).reduce((sum: number, tableData: any) => {
-      return sum + (tableData.count || 0);
-    }, 0);
-
-    backup.metadata.summary = {
-      total_tables: tables.length,
-      total_records: totalRecords,
-      successful_tables: backup.metadata.tables_backed_up.filter((t: any) => t.status === 'success').length,
-      failed_tables: backup.metadata.tables_backed_up.filter((t: any) => t.status === 'error').length
-    };
-
-    // Set headers for file download
-    const filename = `avalanche-scouting-backup-${backupTimestamp.replace(/[:.]/g, '-')}.json`;
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-
-    return res.status(200).json(backup);
-  } catch (error) {
-    console.error('Error creating backup:', error);
-    return res.status(500).json({ 
-      error: 'Failed to create backup',
-      details: error instanceof Error ? error.message : 'Unknown error'
+    // Items inherit tenancy from verified parent lists.
+    const items: Record<string, any>[] = [];
+    for (const list of data.pick_lists.data) {
+      items.push(...await readAllRows((from, to) => auth.db.from('pick_list_items').select('*')
+        .eq('pick_list_id', list.id).order('id').range(from, to)));
+    }
+    data.pick_list_items = { count: items.length, data: items };
+    const now = new Date().toISOString();
+    res.setHeader('Content-Disposition', `attachment; filename="avalanche-scouting-backup-${now.replace(/[:.]/g, '-')}.json"`);
+    return res.status(200).json({
+      metadata: { version: '2.0', backup_date: now, organization_id: auth.organizationId,
+        tables_backed_up: Object.entries(data).map(([table, value]) => ({ table, record_count: value.count, status: 'success' })),
+        summary: { total_tables: Object.keys(data).length, successful_tables: Object.keys(data).length,
+          failed_tables: 0, total_records: Object.values(data).reduce((sum, value) => sum + value.count, 0) } },
+      data,
     });
+  } catch (error) {
+    console.error('Organization backup failed', error);
+    // Never label an incomplete backup as successful.
+    return res.status(500).json({ error: 'Backup could not be completed. No data was changed.' });
   }
 }
-

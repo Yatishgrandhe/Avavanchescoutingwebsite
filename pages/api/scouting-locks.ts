@@ -80,17 +80,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('users')
       .select('role, organization_id')
       .eq('id', user.id)
       .maybeSingle();
 
+    if (profileError) { res.status(500).json({ error: 'Could not verify permissions' }); return; }
+
     const isAdmin =
       profile?.role === 'admin' ||
-      profile?.role === 'superadmin' ||
-      user.user_metadata?.role === 'admin' ||
-      user.user_metadata?.role === 'superadmin';
+      profile?.role === 'superadmin';
 
     if (!isAdmin) {
       res.status(403).json({ error: 'Admin only' });

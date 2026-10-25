@@ -4,6 +4,8 @@ import fs from 'fs';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
+import { randomUUID } from 'crypto';
+import { authorizeOrganization } from '@/lib/server/authorize';
 
 // Disable Next.js body parsing for file uploads
 export const config = {
@@ -72,7 +74,7 @@ async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeT
             // immutable. Let the CDN and browser retain it for a year rather than
             // repeatedly pulling the same robot photo from Storage.
             cacheControl: '31536000',
-            upsert: true, // Replace if file already exists
+            upsert: false, // Uploaded photos are immutable.
         });
 
     if (error) {
@@ -113,7 +115,7 @@ async function uploadToSupabaseStorage(filePath: string, fileName: string, mimeT
 }
 
 // Parse multipart form data
-async function parseForm(req: NextApiRequest): Promise<{ fields: Fields; files: Files }> {
+async function parseForm(req: NextApiRequest, cleanup: Set<string>): Promise<{ fields: Fields; files: Files }> {
     return new Promise((resolve, reject) => {
         // Create temp directory if it doesn't exist (for Vercel/serverless)
         const uploadDir = '/tmp';
@@ -124,6 +126,10 @@ async function parseForm(req: NextApiRequest): Promise<{ fields: Fields; files: 
         const form = formidable({
             uploadDir: uploadDir, // Explicitly set upload directory
             maxFileSize: 10 * 1024 * 1024, // 10MB max
+            maxTotalFileSize: 10 * 1024 * 1024,
+            maxFiles: 1,
+            maxFields: 4,
+            maxFieldsSize: 4096,
             keepExtensions: true,
             multiples: false, // Only expect single file
             filter: (part: { mimetype?: string | null; originalFilename?: string | null }) => {
@@ -139,6 +145,7 @@ async function parseForm(req: NextApiRequest): Promise<{ fields: Fields; files: 
             },
         });
 
+        form.on('fileBegin', (_name, file) => { if (file.filepath) cleanup.add(file.filepath); });
         form.parse(req, (err: Error | null, fields: Fields, files: Files) => {
             if (err) {
                 console.error('[API/upload-robot-image] Form parsing error:', {
@@ -166,13 +173,17 @@ type OptimizedImage = {
     mimeType: string;
     extension: string;
     wasOptimized: boolean;
+    sizeBytes: number;
 };
 
-async function optimizeImageForUpload(filePath: string, originalMimeType: string | null): Promise<OptimizedImage> {
+async function optimizeImageForUpload(filePath: string): Promise<OptimizedImage> {
     const optimizedPath = `/tmp/optimized_${Date.now()}_${Math.random().toString(36).slice(2, 10)}.jpg`;
     try {
-        const pipeline = sharp(filePath, { failOn: 'none' });
+        const pipeline = sharp(filePath, { failOn: 'warning', limitInputPixels: 40_000_000 });
         const metadata = await pipeline.metadata();
+        if (!metadata.format || !['jpeg', 'png', 'webp', 'gif', 'heif', 'avif', 'tiff'].includes(metadata.format)) {
+            throw new Error('Unsupported image format');
+        }
         const maxDimensionPx = 1600;
         const width = metadata.width ?? null;
         const height = metadata.height ?? null;
@@ -186,7 +197,7 @@ async function optimizeImageForUpload(filePath: string, originalMimeType: string
             });
         }
 
-        await transform
+        const output = await transform
             .jpeg({
                 quality: 72,
                 mozjpeg: true,
@@ -198,46 +209,23 @@ async function optimizeImageForUpload(filePath: string, originalMimeType: string
             mimeType: 'image/jpeg',
             extension: '.jpg',
             wasOptimized: true,
+            sizeBytes: output.size,
         };
     } catch (error) {
-        console.warn('[API/upload-robot-image] Image optimization skipped; using original file', {
-            reason: error instanceof Error ? error.message : 'unknown error',
-            originalMimeType,
-        });
-        const fallbackExtension = path.extname(filePath) || '.jpg';
-        return {
-            filePath,
-            mimeType: originalMimeType || 'image/jpeg',
-            extension: fallbackExtension,
-            wasOptimized: false,
-        };
+        unlinkQuiet(optimizedPath);
+        throw new Error('Unsupported or invalid image. Please use JPEG, PNG, WebP, or a supported phone photo.');
     }
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    // Health check endpoint for debugging (allows GET)
-    if (req.method === 'GET' && (req.query.health === 'check' || req.query.health === 'drive')) {
-        const hasUrl = !!SUPABASE_URL;
-        const hasKey = !!SUPABASE_SERVICE_ROLE_KEY;
-        const keyPrefix = SUPABASE_SERVICE_ROLE_KEY ? SUPABASE_SERVICE_ROLE_KEY.substring(0, 10) : 'missing';
-        const keyStartsWithJWT = SUPABASE_SERVICE_ROLE_KEY ? SUPABASE_SERVICE_ROLE_KEY.startsWith('eyJ') : false;
-        return res.status(200).json({
-            configured: hasUrl && hasKey,
-            hasSupabaseUrl: hasUrl,
-            hasServiceRoleKey: hasKey,
-            serviceRoleKeyPrefix: keyPrefix + '...',
-            keyIsJWTFormat: keyStartsWithJWT,
-            bucket: STORAGE_BUCKET,
-            supabaseUrl: SUPABASE_URL ? SUPABASE_URL.substring(0, 30) + '...' : 'missing',
-            uploadOrder: 'Supabase Storage',
-            note: 'Pit scouting images are stored in the public robot-images bucket.'
-        });
-    }
-
-    // Only allow POST requests for actual uploads
-    if (req.method !== 'POST') {
+    const healthCheck = req.method === 'GET' && (req.query.health === 'check' || req.query.health === 'drive');
+    if (req.method !== 'POST' && !healthCheck) {
+        res.setHeader('Allow', 'POST');
         return res.status(405).json({ error: 'Method not allowed' });
     }
+    const auth = await authorizeOrganization(req, res, healthCheck);
+    if (!auth) return;
+    if (healthCheck) return res.status(200).json({ configured: true, bucket: STORAGE_BUCKET });
 
     const pathsToCleanup = new Set<string>();
 
@@ -258,7 +246,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let fields: Fields;
         let files: Files;
         try {
-            const parsed = await parseForm(req);
+            const parsed = await parseForm(req, pathsToCleanup);
             fields = parsed.fields;
             files = parsed.files;
         } catch (parseError) {
@@ -277,6 +265,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
 
         const imageFile = Array.isArray(files.image) ? files.image[0] : files.image as File | undefined;
+        if (imageFile?.filepath) pathsToCleanup.add(imageFile.filepath);
         const teamNumber = Array.isArray(fields.teamNumber) ? fields.teamNumber[0] : fields.teamNumber;
 
         if (!imageFile) {
@@ -288,7 +277,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        if (!teamNumber) {
+        if (!teamNumber || !/^[1-9][0-9]{0,4}$/.test(String(teamNumber))) {
             console.error('[API/upload-robot-image] No team number found in request');
             console.error('[API/upload-robot-image] Available fields:', Object.keys(fields));
             return res.status(400).json({
@@ -326,17 +315,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const date = new Date().toISOString().split('T')[0];
         const sanitizedTeamName = teamName.replace(/[^a-z0-9]/gi, '_');
         const originalExtension = path.extname(imageFile.originalFilename || '.jpg');
-        const optimizedImage = await optimizeImageForUpload(filePath, imageFile.mimetype || null);
+        let optimizedImage: OptimizedImage;
+        try { optimizedImage = await optimizeImageForUpload(filePath); }
+        catch { return res.status(400).json({ error: 'Unsupported or invalid image. Please choose a JPEG, PNG, WebP, or supported phone photo.' }); }
         const extension = optimizedImage.extension || originalExtension || '.jpg';
-        const fileName = `team_${teamNumber}_${sanitizedTeamName}_${date}_${timestamp}${extension}`;
+        const fileName = `${auth.organizationId}/${auth.userId}/team_${teamNumber}_${sanitizedTeamName.slice(0, 80)}_${date}_${timestamp}_${randomUUID()}${extension}`;
         const mimeType = optimizedImage.mimeType;
         const uploadFilePath = optimizedImage.filePath;
         if (uploadFilePath !== filePath) {
             pathsToCleanup.add(uploadFilePath);
         }
 
-        const originalSizeBytes = fs.statSync(filePath).size;
-        const optimizedSizeBytes = fs.statSync(uploadFilePath).size;
+        const originalSizeBytes = imageFile.size;
+        const optimizedSizeBytes = optimizedImage.sizeBytes;
         const savedBytes = Math.max(0, originalSizeBytes - optimizedSizeBytes);
         const savedPct = originalSizeBytes > 0 ? ((savedBytes / originalSizeBytes) * 100).toFixed(1) : '0.0';
 

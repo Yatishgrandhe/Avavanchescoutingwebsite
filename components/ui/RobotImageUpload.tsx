@@ -127,8 +127,11 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             formData.append('teamName', teamName);
 
             console.log('[RobotImageUpload] Sending file to /api/upload-robot-image');
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error('Please sign in before uploading a photo.');
             const response = await fetch('/api/upload-robot-image', {
                 method: 'POST',
+                headers: { Authorization: `Bearer ${session.access_token}` },
                 body: formData,
             });
 
@@ -173,7 +176,7 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
             // Re-throw the error so form submission can catch it and show proper error message
             throw error;
         }
-    }, [selectedFile, teamNumber, onImageUploaded]);
+    }, [selectedFile, teamNumber, teamName, onImageUploaded]);
 
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
@@ -204,23 +207,8 @@ export const RobotImageUpload = forwardRef<RobotImageUploadRef, RobotImageUpload
         },
     }), [handleUpload, selectedFile, isNewFileSelected, preview, currentImageUrl]);
 
-    const deleteUploadedImage = useCallback(async (url: string) => {
-        try {
-            await fetch('/api/delete-robot-image', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ imageUrl: url }),
-            });
-        } catch {
-            // Fire-and-forget — don't block the UI if the delete fails
-        }
-    }, []);
-
     const handleRemove = () => {
-        // If this is an already-uploaded URL (not a local data: preview), delete from storage
-        if (currentImageUrl && !selectedFile) {
-            deleteUploadedImage(currentImageUrl);
-        }
+        // Unlink only: archived forms may still reference the stored photo.
         setPreview(null);
         setSelectedFile(null);
         setIsNewFileSelected(false);

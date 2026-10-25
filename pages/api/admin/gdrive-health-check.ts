@@ -1,10 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { google } from 'googleapis';
-import fs from 'fs';
-import path from 'path';
-import { Readable } from 'stream';
+import { authorizeOrganization } from '@/lib/server/authorize';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return res.status(405).json({ error: 'Method not allowed' }); }
+    const auth = await authorizeOrganization(req, res, true, true);
+    if (!auth) return;
     const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
     const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
     const GOOGLE_REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
@@ -94,63 +95,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             results.steps.push({
                 name: 'Folder Access',
                 status: 'error',
-                message: `Could not access folder: ${e.message}. Trying direct upload anyway...`
-            });
-            // Don't return - continue to Step 4; upload might still work
-        }
-
-        // Step 4: Test Write
-        let testFileId;
-        try {
-            const fileName = `health-check-oauth-${Date.now()}.txt`;
-            const mimeType = 'text/plain';
-            const fileContent = 'Google Drive Health Check - OAuth Write Test';
-
-            const response = await drive.files.create({
-                requestBody: {
-                    name: fileName,
-                    parents: [GOOGLE_DRIVE_FOLDER_ID]
-                },
-                media: {
-                    mimeType: mimeType,
-                    body: Readable.from([fileContent])
-                },
-                fields: 'id',
-                supportsAllDrives: true
-            });
-
-            testFileId = response.data.id;
-            results.steps.push({
-                name: 'Write Test',
-                status: 'success',
-                message: `Successfully created test file as user (ID: ${testFileId})`
-            });
-        } catch (e: any) {
-            results.steps.push({
-                name: 'Write Test',
-                status: 'error',
-                message: `Upload failed: ${e.message}. Ensure: (1) OAuth scope is https://www.googleapis.com/auth/drive, (2) refresh token was obtained from the account that owns/has access to the folder, (3) folder ID is correct.`
+                message: `Could not access folder: ${e.message}.`
             });
             results.overall = 'error';
             return res.status(200).json(results);
         }
 
-        // Step 5: Cleanup
-        try {
-            await drive.files.delete({ fileId: testFileId!, supportsAllDrives: true });
-            results.steps.push({
-                name: 'Cleanup',
-                status: 'success',
-                message: 'Deleted test file.'
-            });
-        } catch (e) {
-            results.steps.push({
-                name: 'Cleanup',
-                status: 'warning',
-                message: 'Failed to delete test file.'
-            });
-        }
-
+        // Diagnostics verify access without creating or deleting provider files.
         results.overall = 'success';
         return res.status(200).json(results);
 

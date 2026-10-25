@@ -98,25 +98,9 @@ export function PitPhotosUpload({
     fileInputRef.current?.click();
   }, [canAdd]);
 
-  const deleteUploadedPhoto = useCallback(async (url: string) => {
-    try {
-      await fetch('/api/delete-robot-image', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: url }),
-      });
-    } catch {
-      // Fire-and-forget — don't block the UI if the delete fails
-    }
-  }, []);
-
   const handleRemove = (index: number) => {
     const current = paddedPhotos();
-    const removedItem = current[index];
-    // If the photo is an already-uploaded URL (not a local File), delete it from storage
-    if (typeof removedItem === 'string') {
-      deleteUploadedPhoto(removedItem);
-    }
+    // Unlink only: retain shared photos for saved and archived forms.
     const next = current.map((p, i) => (i === index ? null : p));
     onPhotosChange(next);
   };

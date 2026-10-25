@@ -25,6 +25,7 @@ import {
     Badge
 } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import { useSupabase } from '@/pages/_app';
 
 interface HealthStep {
     name: string;
@@ -36,12 +37,15 @@ interface HealthData {
     overall: 'success' | 'error' | 'pending';
     steps: HealthStep[];
     envVars: {
-        GOOGLE_SERVICE_ACCOUNT_KEY: boolean;
+        GOOGLE_CLIENT_ID: boolean;
+        GOOGLE_CLIENT_SECRET: boolean;
+        GOOGLE_REFRESH_TOKEN: boolean;
         GOOGLE_DRIVE_FOLDER_ID: boolean;
     };
 }
 
 export default function GoogleDriveHealthPage() {
+    const { session } = useSupabase();
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState<HealthData | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -50,11 +54,12 @@ export default function GoogleDriveHealthPage() {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch('/api/admin/gdrive-health-check');
+            const response = await fetch('/api/admin/gdrive-health-check', { method: 'POST', headers: { Authorization: `Bearer ${session?.access_token || ''}` } });
             const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Health check failed');
             setData(result);
         } catch (err) {
-            setError('Failed to fetch health status. Check browser console.');
+            setError(err instanceof Error ? err.message : 'Failed to fetch health status.');
             console.error(err);
         } finally {
             setLoading(false);
@@ -62,8 +67,8 @@ export default function GoogleDriveHealthPage() {
     };
 
     useEffect(() => {
-        checkHealth();
-    }, []);
+        if (session?.access_token) checkHealth();
+    }, [session?.access_token]);
 
     const getStatusIcon = (status: string) => {
         switch (status) {
@@ -125,8 +130,8 @@ export default function GoogleDriveHealthPage() {
                             <CardContent className="p-6">
                                 <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-2">Credentials</p>
                                 <div className="flex items-center gap-2">
-                                    {data?.envVars.GOOGLE_SERVICE_ACCOUNT_KEY ? (
-                                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">VALID JSON</Badge>
+                                    {(data?.envVars.GOOGLE_CLIENT_ID && data.envVars.GOOGLE_CLIENT_SECRET && data.envVars.GOOGLE_REFRESH_TOKEN) ? (
+                                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">CONFIGURED</Badge>
                                     ) : (
                                         <Badge className="bg-red-500/20 text-red-400 border-red-500/30">MISSING</Badge>
                                     )}
@@ -239,18 +244,18 @@ export default function GoogleDriveHealthPage() {
                                 <Info size={18} /> Configuration Tips
                             </h3>
                             <ul className="text-xs text-blue-200/60 space-y-3 list-disc pl-4">
-                                <li>The Service Account email must be shared with the target Google Drive folder with <strong>Editor</strong> permissions.</li>
+                                <li>The connected Google account must have access to the target Drive folder with <strong>Editor</strong> permissions.</li>
                                 <li>Ensure the <strong>Google Drive API</strong> is enabled in your Google Cloud Console.</li>
-                                <li>The <code>GOOGLE_SERVICE_ACCOUNT_KEY</code> must be the entire JSON object from the service account key download.</li>
+                                <li>Configure the OAuth client ID, client secret and refresh token on the server. Diagnostics never display these values.</li>
                             </ul>
                         </CardContent>
                     </Card>
 
                     <Card className="bg-gray-800/40 border-gray-700/50 h-full">
                         <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-3">
-                            <p className="text-gray-400 text-sm italic">"Everything is working perfectly."</p>
+                            <p className="text-gray-400 text-sm italic">Diagnostics check configuration and folder access without changing stored files.</p>
                             <div className="w-12 h-1 bg-blue-500 rounded-full opacity-20" />
-                            <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">System Operational</p>
+                            <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Read-only provider checks</p>
                         </CardContent>
                     </Card>
                 </div>

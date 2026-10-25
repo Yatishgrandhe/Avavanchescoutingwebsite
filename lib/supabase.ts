@@ -221,7 +221,7 @@ export const db = {
       name: profile?.name || user.user_metadata?.full_name || user.email,
       username: profile?.username || user.user_metadata?.username || user.email,
       image: profile?.image || user.user_metadata?.avatar_url,
-      role: profile?.role || user.user_metadata?.role || 'user',
+      role: profile?.role || 'user',
       organization_id: profile?.organization_id,
       can_edit_forms: profile?.can_edit_forms,
       can_view_pick_list: profile?.can_view_pick_list,

@@ -120,6 +120,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .eq('event_key', eventKey);
       if (eventSource === 'csv' && importedMatchIds.length > 0) {
         matchesQuery = matchesQuery.in('match_id', importedMatchIds);
+      } else if (eventSource !== 'csv') {
+        // The scouting schedule is qualifications. Retained playoff rows must
+        // not appear as extra qualification matches after an earlier TBA sync.
+        matchesQuery = matchesQuery.like('match_id', `${eventKey}_qm%`);
       }
       const { data: matches, error: matchesError } = await matchesQuery.order('match_number', { ascending: true });
 

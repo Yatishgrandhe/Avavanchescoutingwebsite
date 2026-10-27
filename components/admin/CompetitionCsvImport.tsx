@@ -149,7 +149,7 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
       const nameMsg = result.teamNamesApplied > 0
         ? ` and enriched ${result.teamNamesApplied} team names from TBA`
         : '';
-      const msg = `Imported ${result.importedMatches} matches and ${result.importedTeams} teams${nameMsg}. Existing data was merged, nothing deleted.`;
+      const msg = `Set the active schedule to ${result.importedMatches} matches and ${result.importedTeams} teams${nameMsg}. Previous match rows and scouting data are preserved.`;
       setImportResult({ ok: true, message: msg });
       toast.success(msg);
       onImported(result.eventKey, result.eventName, result.importedMatches);
@@ -169,7 +169,7 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary"><FileSpreadsheet className="h-4 w-4" aria-hidden /></span>
           CSV schedule import
         </CardTitle>
-        <CardDescription className="text-sm">Import a photographed or manual schedule without clearing existing competition data.</CardDescription>
+        <CardDescription className="text-sm">Upload the complete active schedule. Previous match rows and scouting data remain stored.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {notesEvents.length > 0 && <div className="space-y-2">
@@ -227,7 +227,7 @@ export function CompetitionCsvImport({ accessToken, eventName, onImported }: Pro
             <li>Take clear, straight-on photos of the schedule. Include its headers and every red and blue team number.</li>
             <li>Upload the photos to Gemini, then copy and paste this prompt.</li>
             <li>Download Gemini&apos;s attached <code>frc_match_schedule.csv</code> file and choose it above. If Gemini returned text instead, save that text as a <code>.csv</code> file.</li>
-            <li>Team names are automatically looked up from The Blue Alliance (TBA) by team number. CSV imports merge with existing data — nothing is deleted.</li>
+            <li>Team names are automatically looked up from The Blue Alliance (TBA) by team number. The uploaded matches become the active schedule; previous match rows and scouting data remain stored.</li>
           </ol>
           <p className="text-xs text-muted-foreground">Alternatively, download the template CSV, fill in your schedule manually, and upload it.</p>
           <div className="flex items-center justify-between gap-3"><p className="text-sm font-medium text-foreground">Gemini prompt</p><Button type="button" variant="secondary" size="sm" onClick={copyPrompt}>{copied ? <><CheckCircle2 className="h-4 w-4" aria-hidden />Copied!</> : <><ClipboardCopy className="h-4 w-4" aria-hidden />Copy</>}</Button></div>

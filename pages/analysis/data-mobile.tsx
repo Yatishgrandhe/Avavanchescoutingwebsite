@@ -24,7 +24,7 @@ import { useRouter } from 'next/router';
 import { getAutoFuelCount, getTeleopFuelCount, getClimbPoints } from '@/lib/analytics';
 import { formatDurationSec } from '@/lib/utils';
 import { getOrgCurrentEvent } from '@/lib/org-app-config';
-import { SCOUTING_MATCH_ID_SEASON_PATTERN } from '@/lib/constants';
+import { buildAnalysisRoster } from '@/lib/analysis-team-stats';
 
 interface DataAnalysisProps { }
 
@@ -53,11 +53,15 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
     try {
       setLoading(true);
 
-      // Resolve active event when organization is known; fall back to current season pattern.
-      let currentEventKey = '';
-      if (user?.organization_id) {
-        const { eventKey } = await getOrgCurrentEvent(supabase, user.organization_id);
-        currentEventKey = eventKey;
+      const current = user?.organization_id
+        ? await getOrgCurrentEvent(supabase, user.organization_id)
+        : null;
+      const currentEventKey = current?.eventKey || '';
+      if (!currentEventKey) {
+        if (requestId !== loadRequestIdRef.current) return;
+        setScoutingData([]);
+        setTeams([]);
+        return;
       }
 
       let scoutingQuery = supabase
@@ -66,9 +70,8 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
 
       if (currentEventKey) {
         scoutingQuery = scoutingQuery.eq('matches.event_key', currentEventKey);
-      } else {
-        scoutingQuery = scoutingQuery.like('match_id', SCOUTING_MATCH_ID_SEASON_PATTERN);
       }
+      if (current?.eventMatchIds.length) scoutingQuery = scoutingQuery.in('match_id', current.eventMatchIds);
 
       const { data: scoutingDataResult, error: scoutingError } = await scoutingQuery;
 
@@ -81,28 +84,22 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
         return new Date(bTime).getTime() - new Date(aTime).getTime();
       });
 
-      // Load teams, scoped to CSV event teams when active
-      let teamsQuery = supabase
-        .from('teams')
-        .select('*')
-        .order('team_number');
-
-      try {
-        const { eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, user?.organization_id || '');
-        if (eventSource === 'csv' && eventTeamNumbers.length > 0) {
-          teamsQuery = teamsQuery.in('team_number', eventTeamNumbers);
-        }
-      } catch {
-        // Non-critical; show all teams
-      }
-
-      const { data: teamsResult, error: teamsError } = await teamsQuery;
-
+      let rosterQuery = supabase.from('event_team_roster').select('team_number, team_name')
+        .eq('event_key', currentEventKey).eq('organization_id', user!.organization_id);
+      if (current?.eventTeamNumbers.length) rosterQuery = rosterQuery.in('team_number', current.eventTeamNumbers);
+      const { data: roster, error: rosterError } = await rosterQuery;
+      if (rosterError) throw rosterError;
+      const numbers = current?.eventTeamNumbers.length ? current.eventTeamNumbers
+        : Array.from(new Set((roster || []).map((team: { team_number: number }) => team.team_number))) as number[];
+      const { data: teamsResult, error: teamsError } = numbers.length
+        ? await supabase.from('teams').select('*').in('team_number', numbers).order('team_number')
+        : { data: [], error: null };
       if (teamsError) throw teamsError;
+      const analysisRoster = buildAnalysisRoster(numbers, roster || [], teamsResult || []);
 
       if (requestId !== loadRequestIdRef.current) return;
       setScoutingData(sortedScoutingData);
-      setTeams(teamsResult || []);
+      setTeams(analysisRoster);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -114,7 +111,7 @@ const DataAnalysisMobile: React.FC<DataAnalysisProps> = () => {
     const matchesSearch = searchTerm === '' ||
       data.team_number.toString().includes(searchTerm) ||
       data.match_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      data.comments.toLowerCase().includes(searchTerm.toLowerCase());
+      (data.comments || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesTeam = selectedTeam === null || data.team_number === selectedTeam;
 

@@ -34,7 +34,8 @@ import {
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { parseNotes, computeRebuiltMetrics, type RebuiltTeamMetrics } from '@/lib/analytics';
+import { parseNotes, computeRebuiltMetrics } from '@/lib/analytics';
+import { buildAnalysisRoster, calculateAnalysisTeamStats, type AnalysisTeamStat } from '@/lib/analysis-team-stats';
 import { ScoutingData, Team } from '@/lib/types';
 import { useAdmin } from '@/hooks/use-admin';
 import { getClimbPoints } from '@/lib/analytics';
@@ -45,51 +46,6 @@ import { TeamComparisonPanel } from '@/components/data/TeamComparisonPanel';
 import { getOrgCurrentEvent } from '@/lib/org-app-config';
 import { getLocalPendingMatchRows } from '@/lib/local-pending-data';
 import { loadAnalysisTeamDataOnly, saveAnalysisTeamDataOnly } from '@/lib/view-data-filter-storage';
-
-interface TeamStat extends RebuiltTeamMetrics {
-  team_number: number;
-  team_name: string;
-  total_matches: number;
-  starter_epa?: number;
-}
-
-const calculateTeamStats = (
-  scoutingData: ScoutingData[],
-  teams: Team[],
-  matchCountsFromDb?: Record<number, number>,
-  epaMap?: Record<number, number>
-): TeamStat[] => {
-  const teamNameMap = new Map<number, string>();
-  teams.forEach(team => {
-    teamNameMap.set(team.team_number, team.team_name);
-  });
-
-  const teamToRecords = new Map<number, ScoutingData[]>();
-  scoutingData.forEach(data => {
-    if (!teamToRecords.has(data.team_number)) {
-      teamToRecords.set(data.team_number, []);
-    }
-    teamToRecords.get(data.team_number)!.push(data);
-  });
-
-  return Array.from(teamToRecords.entries()).map(([teamNumber, records]) => {
-    const teamName = teamNameMap.get(teamNumber) || `Team ${teamNumber}`;
-    const uniqueMatchIds = new Set(records.map(r => r.match_id ?? '').filter(Boolean));
-    const total_matches =
-      matchCountsFromDb != null && typeof matchCountsFromDb[teamNumber] === 'number'
-        ? matchCountsFromDb[teamNumber]
-        : uniqueMatchIds.size;
-
-    const rebuilt = computeRebuiltMetrics(records, epaMap?.[teamNumber]);
-
-    return {
-      ...rebuilt,
-      team_number: teamNumber,
-      team_name: teamName,
-      total_matches,
-    };
-  }).filter(stat => stat.total_matches > 0);
-};
 
 const getRowTimestampMs = (row: Pick<ScoutingData, 'submitted_at' | 'created_at'>): number => {
   const value = row.submitted_at || row.created_at;
@@ -122,9 +78,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
   const { supabase, user, loading: authLoading } = useSupabase();
   const { isAdmin, isSuperAdmin, canAccessStats, loading: adminLoading } = useAdmin();
   const [scoutingData, setScoutingData] = useState<ScoutingData[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]); // For filter dropdown (excludes Avalanche)
+  const [teams, setTeams] = useState<Team[]>([]); // Active event roster for filters
   const [allTeams, setAllTeams] = useState<Team[]>([]); // All teams for name lookups
-  const [teamStats, setTeamStats] = useState<TeamStat[]>([]);
+  const [teamStats, setTeamStats] = useState<AnalysisTeamStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
@@ -238,19 +194,18 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const urlEventKey = urlParams.get('event_key');
 
-      let targetEventSource: 'csv' | 'tba' = 'tba';
       let targetEventTeamNumbers: number[] = [];
-      if (urlEventKey) {
-        targetEventKey = urlEventKey;
-        // Try to find name in URL or leave blank
-        targetEventName = urlParams.get('event_name') || urlEventKey;
-      } else if (user?.organization_id) {
-        // 2. No URL param, use organization's current_event_key from app_config
-        const { eventKey, eventName, eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, user.organization_id);
-        targetEventKey = eventKey;
-        targetEventName = eventName;
-        targetEventSource = eventSource;
-        targetEventTeamNumbers = eventTeamNumbers;
+      let targetEventMatchIds: string[] = [];
+      const current = user?.organization_id
+        ? await getOrgCurrentEvent(supabase, user.organization_id)
+        : null;
+      targetEventKey = urlEventKey || current?.eventKey || '';
+      targetEventName = urlEventKey
+        ? urlParams.get('event_name') || (current?.eventKey === urlEventKey ? current.eventName : urlEventKey)
+        : current?.eventName || '';
+      if (current?.eventKey === targetEventKey) {
+        targetEventTeamNumbers = current.eventTeamNumbers;
+        targetEventMatchIds = current.eventMatchIds;
       }
 
       setActiveEventKey(targetEventKey);
@@ -272,6 +227,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         .from('scouting_data')
         .select('*, matches!inner(event_key)')
         .eq('matches.event_key', targetEventKey);
+      if (targetEventMatchIds.length) query = query.in('match_id', targetEventMatchIds);
 
       // Apply organization filter if toggle is ON
       if (teamDataOnly && user?.organization_id) {
@@ -292,7 +248,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
         row.competition_key
           ? row.competition_key === targetEventKey
           : row.match_id.includes(targetEventKey)
-      ) as unknown as ScoutingData[];
+      ).filter((row) => !targetEventMatchIds.length || targetEventMatchIds.includes(row.match_id)) as unknown as ScoutingData[];
       const allScoutingRows = [...localPendingForEvent, ...sortedScoutingData]
         .filter((row) => Number.isFinite(Number(row.team_number)) && Number(row.team_number) > 0)
         .sort((a: ScoutingData, b: ScoutingData) => getRowTimestampMs(b) - getRowTimestampMs(a));
@@ -301,15 +257,15 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       // active competition, not every historical team assigned to the organization.
       let rosterQuery = supabase
         .from('event_team_roster')
-        .select('team_number')
+        .select('team_number, team_name')
         .eq('event_key', targetEventKey);
 
-      if (teamDataOnly && user?.organization_id) {
+      if (user?.organization_id && (teamDataOnly || targetEventTeamNumbers.length > 0)) {
         rosterQuery = rosterQuery.eq('organization_id', user.organization_id);
       }
 
-      // For CSV events, restrict roster to CSV-imported teams
-      if (targetEventSource === 'csv' && targetEventTeamNumbers.length > 0) {
+      // Apply the active membership for both TBA and CSV events.
+      if (targetEventTeamNumbers.length > 0) {
         rosterQuery = rosterQuery.in('team_number', targetEventTeamNumbers);
       }
 
@@ -317,61 +273,28 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       if (rosterError) throw rosterError;
 
       const rosterTeamNumbers = Array.from(
-        new Set((rosterRows || []).map((row: { team_number: number }) => row.team_number))
+        new Set<number>((rosterRows || []).map((row: { team_number: number }) => row.team_number))
       );
 
-      // Scope the team listing to the active competition so stale/accumulated org teams
-      // don't appear. Prefer the event roster; if the roster isn't synced yet, fall back
-      // to the teams that actually have scouting data for this event (plus any CSV teams).
-      const eventTeamNumbersForListing =
-        rosterTeamNumbers.length > 0
+      const eventTeamNumbersForListing = targetEventTeamNumbers.length
+        ? targetEventTeamNumbers
+        : rosterTeamNumbers.length
           ? rosterTeamNumbers
-          : Array.from(
-              new Set([
-                ...allScoutingRows.map((row: ScoutingData) => Number(row.team_number)).filter((n) => Number.isFinite(n) && n > 0),
-                ...targetEventTeamNumbers,
-              ])
-            );
+          : Array.from(new Set(allScoutingRows.map((row) => Number(row.team_number))));
 
-      // Load ALL teams (including Avalanche) for team name lookups and Team Stats calculation
-      // Team Stats needs all teams that have scouting data, regardless of team list filter
-      let allTeamsQuery = supabase
-        .from('teams')
-        .select('*')
-        .order('team_number');
-
-      // Restrict to the current event's teams so stale/accumulated org teams don't appear
-      if (eventTeamNumbersForListing.length > 0) {
-        allTeamsQuery = allTeamsQuery.in('team_number', eventTeamNumbersForListing);
-      }
-
-      const { data: allTeamsResult, error: allTeamsError } = await allTeamsQuery;
-
+      const { data: allTeamsResult, error: allTeamsError } = eventTeamNumbersForListing.length
+        ? await supabase.from('teams').select('*').in('team_number', eventTeamNumbersForListing).order('team_number')
+        : { data: [], error: null };
       if (allTeamsError) throw allTeamsError;
-
-      // For the team filter dropdown, exclude Avalanche (scouting own team)
-      let teamsDropdownQuery = supabase
-        .from('teams')
-        .select('*')
-        .not('team_name', 'ilike', '%avalanche%')
-        .order('team_number');
-
-      // Restrict dropdown to the current event's teams for both TBA and CSV events
-      if (eventTeamNumbersForListing.length > 0) {
-        teamsDropdownQuery = teamsDropdownQuery.in('team_number', eventTeamNumbersForListing);
-      }
-
-      const { data: teamsResult, error: teamsError } = await teamsDropdownQuery;
-
-      if (teamsError) throw teamsError;
+      const analysisRoster = buildAnalysisRoster(eventTeamNumbersForListing, rosterRows || [], allTeamsResult || []);
 
       if (requestId !== loadRequestIdRef.current) return;
       setScoutingData(allScoutingRows);
-      setTeams(teamsResult || []);
-      setAllTeams(allTeamsResult || []);
+      setTeams(analysisRoster);
+      setAllTeams(analysisRoster);
 
       // Calculate starter EPA from past historical data
-      const teamNums = (allTeamsResult || []).map((t: any) => t.team_number);
+      const teamNums = analysisRoster.map((team) => team.team_number);
       const { data: pastData } = await supabase
         .from('past_scouting_data')
         .select('team_number, notes')
@@ -397,7 +320,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       const matchCountsFromLoadedRows = computeDistinctMatchCounts(allScoutingRows);
 
       // Calculate team statistics using loaded rows for both averages and match counts.
-      const stats = calculateTeamStats(allScoutingRows, allTeamsResult || [], matchCountsFromLoadedRows, epaMap);
+      const stats = calculateAnalysisTeamStats(allScoutingRows, analysisRoster, matchCountsFromLoadedRows, epaMap);
       if (requestId !== loadRequestIdRef.current) return;
       setTeamStats(stats);
 
@@ -407,11 +330,11 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
       // Use the event roster team numbers resolved earlier, then filter pit rows by them.
       let pitDataResult: { team_number: number; robot_name?: string | null; drive_type?: string | null; weight?: number | null; overall_rating?: number | null }[] | null = [];
 
-      if (rosterTeamNumbers.length > 0) {
+      if (eventTeamNumbersForListing.length > 0) {
         let pitQuery = supabase
           .from('pit_scouting_data')
           .select('team_number, robot_name, drive_type, weight, overall_rating')
-          .in('team_number', rosterTeamNumbers)
+          .in('team_number', eventTeamNumbersForListing)
           .order('created_at', { ascending: false });
 
         if (teamDataOnly && user?.organization_id) {
@@ -1045,6 +968,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                 <Badge variant="secondary" className="mt-1 bg-blue-500/10 text-blue-400 border-blue-500/20">
                                   #{team.team_number}
                                 </Badge>
+                                {team.total_matches === 0 && <Badge variant="outline" className="ml-2">Not scouted</Badge>}
                               </div>
                               <div className="text-right flex-shrink-0">
                                 <span className="text-[10px] text-muted-foreground uppercase tracking-widest block">Avg Score</span>
@@ -1196,6 +1120,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = () => {
                                     <div className="flex flex-col">
                                       <span className="font-bold text-foreground">{team.team_name}</span>
                                       <span className="text-xs text-muted-foreground font-mono">#{team.team_number}</span>
+                                      {team.total_matches === 0 && <span className="text-xs text-muted-foreground">Not scouted</span>}
                                     </div>
                                   </div>
                                 </td>

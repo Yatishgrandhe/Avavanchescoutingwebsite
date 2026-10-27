@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { eventKeyFromName } from '@/lib/event-key';
+import { readManualEventTeams } from '@/lib/event-team-scope';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -180,11 +181,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const organizationId = profile.organization_id;
   const teamNumbers = Array.from(new Set(imported.flatMap((match) => [...match.red, ...match.blue])));
   const now = new Date().toISOString();
+  const { data: existingTeams, error: teamReadError } = await supabase
+    .from('teams').select('team_number, team_name').in('team_number', teamNumbers);
+  if (teamReadError) {
+    res.status(500).json({ error: 'Could not check existing teams.' });
+    return;
+  }
+  const knownNames = new Map((existingTeams || []).map((team) => [team.team_number, team.team_name]));
 
   // ── MERGE (not replace): upsert roster rows for CSV teams only; never delete existing rows ──
   const rosterRows = teamNumbers.map((team_number) => ({
     organization_id: organizationId, event_key: eventKey, team_number,
-    team_name: `Team ${team_number}`, updated_at: now,
+    team_name: knownNames.get(team_number) || `Team ${team_number}`, updated_at: now,
   }));
   if (rosterRows.length > 0) {
     const { error: rosterError } = await supabase.from('event_team_roster').upsert(rosterRows, {
@@ -218,7 +226,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Update roster names too
     const rosterRows = teamNumbers.map((team_number) => ({
       organization_id: organizationId, event_key: eventKey, team_number,
-      team_name: nameMap.get(team_number) || `Team ${team_number}`, updated_at: now,
+      team_name: nameMap.get(team_number) || knownNames.get(team_number) || `Team ${team_number}`, updated_at: now,
     }));
     await supabase.from('event_team_roster').upsert(rosterRows, {
       onConflict: 'organization_id,event_key,team_number',
@@ -228,13 +236,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // ── Insert missing teams (name will be enriched from TBA/app later) ──
-  const { data: existingTeams, error: teamReadError } = await supabase
-    .from('teams').select('team_number').in('team_number', teamNumbers);
-  if (teamReadError) {
-    console.error('CSV team read', teamReadError);
-    res.status(500).json({ error: 'Could not check existing teams.' });
-    return;
-  }
   const existingNumbers = new Set((existingTeams || []).map((team) => team.team_number));
   const missingTeams = teamNumbers.filter((teamNumber) => !existingNumbers.has(teamNumber))
     .map((team_number) => ({ team_number, team_name: `Team ${team_number}` }));
@@ -264,7 +265,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // The uploaded schedule defines the active matches. Keep older match rows and
   // their scouting records stored, without adding them back to the active schedule.
   const activeMatchIds = matchRows.map((match) => match.match_id);
-  const allTeamNumbers = Array.from(new Set(teamNumbers));
+  const manualTeams = await readManualEventTeams(supabase, organizationId, eventKey);
+  const allTeamNumbers = Array.from(new Set([...teamNumbers, ...manualTeams])).sort((a, b) => a - b);
 
   const configRows = [
     ['current_event_key', eventKey],

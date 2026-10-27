@@ -35,8 +35,13 @@ export async function getDashboardStatsForActiveEvent(
   } else if (event.eventKey === eventKey && event.eventSource === 'tba') {
     matchesQuery = matchesQuery.like('match_id', `${eventKey}_qm%`);
     scoutingQuery = scoutingQuery.like('match_id', `${eventKey}_qm%`);
+    const activeIds = event.eventMatchIds.filter((id) => id.startsWith(`${eventKey}_qm`));
+    if (activeIds.length) {
+      matchesQuery = matchesQuery.in('match_id', activeIds);
+      scoutingQuery = scoutingQuery.in('match_id', activeIds);
+    }
   }
-  if (isActiveCsv && event.eventTeamNumbers.length > 0) {
+  if (event.eventKey === eventKey && event.eventTeamNumbers.length > 0) {
     rosterQuery = rosterQuery.in('team_number', event.eventTeamNumbers);
     pitQuery = pitQuery.in('team_number', event.eventTeamNumbers);
   }

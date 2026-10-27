@@ -5,11 +5,12 @@ export async function getOrgCurrentEvent(
   admin: SupabaseClient,
   organizationId: string
 ): Promise<{ eventKey: string; eventName: string; eventYear: number; eventSource: 'csv' | 'tba'; eventTeamNumbers: number[]; eventMatchIds: string[] }> {
-  const { data: rows } = await admin
+  const { data: rows, error } = await admin
     .from('app_config')
     .select('key, value')
     .eq('organization_id', organizationId)
     .in('key', ['current_event_key', 'current_event_name', 'current_event_year', 'current_event_source', 'current_event_team_numbers', 'current_event_match_ids']);
+  if (error) throw new Error(`Could not load organization event settings: ${error.message}`);
 
   const map: Record<string, string> = {};
   (rows || []).forEach((r: { key: string; value: string }) => {

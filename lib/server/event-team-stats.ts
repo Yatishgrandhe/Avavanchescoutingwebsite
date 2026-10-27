@@ -18,8 +18,17 @@ export async function getEventTeamStats(db: SupabaseClient, organizationId: stri
   const eventKey = requestedEventKey || current.eventKey;
   if (!eventKey) return [];
   const [roster, matches] = await Promise.all([
-    readAllRows((from, to) => db.from('event_team_roster').select('team_number,team_name').eq('organization_id', organizationId).eq('event_key', eventKey).order('team_number').range(from, to)),
-    readAllRows((from, to) => db.from('matches').select('match_id,red_teams,blue_teams').eq('organization_id', organizationId).eq('event_key', eventKey).order('match_id').range(from, to)),
+    readAllRows((from, to) => {
+      let query = db.from('event_team_roster').select('team_number,team_name').eq('organization_id', organizationId).eq('event_key', eventKey);
+      if (eventKey === current.eventKey && current.eventTeamNumbers.length) query = query.in('team_number', current.eventTeamNumbers);
+      return query.order('team_number').range(from, to);
+    }),
+    readAllRows((from, to) => {
+      let query = db.from('matches').select('match_id,red_teams,blue_teams').eq('organization_id', organizationId).eq('event_key', eventKey);
+      if (eventKey === current.eventKey && current.eventSource === 'csv' && current.eventMatchIds.length) query = query.in('match_id', current.eventMatchIds);
+      else if (eventKey === current.eventKey && current.eventSource === 'tba') query = query.like('match_id', `${eventKey}_qm%`);
+      return query.order('match_id').range(from, to);
+    }),
   ]);
   const names = new Map<number, string>(roster.map((t) => [t.team_number, t.team_name]));
   for (const match of matches) for (const n of [...(match.red_teams || []), ...(match.blue_teams || [])]) if (!names.has(n)) names.set(n, '');

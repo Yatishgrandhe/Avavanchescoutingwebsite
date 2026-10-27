@@ -27,6 +27,7 @@ const rows = {
   teams: teams.map((team_number) => ({ team_number, team_name: `Team ${team_number}` })),
   event_team_roster: [], pit_scouting_data: [], app_config: [],
 };
+rows.teams[0].team_name = 'Cached official team name';
 let mutationCount = 0;
 let denyConfigRead = false;
 let tbaMatches = [];
@@ -41,8 +42,9 @@ const db = {
       in(key, values) { filters.push([key, values]); return query; },
       like(key, pattern) { filters.push([key, { prefix: pattern.slice(0, -1) }]); return query; },
       maybeSingle() { single = true; return query; },
-      upsert(data, opts) { mode = 'upsert'; batch = data; conflict = opts.onConflict.split(','); return query; },
-      insert(data) { mode = 'insert'; batch = data; return query; },
+      single() { single = true; return query; },
+      upsert(data, opts) { mode = 'upsert'; batch = Array.isArray(data) ? data : [data]; conflict = opts.onConflict.split(','); return query; },
+      insert(data) { mode = 'insert'; batch = Array.isArray(data) ? data : [data]; return query; },
       update(data) { mode = 'update'; batch = data; return query; },
       delete() { throw new Error('Schedule imports must never delete stored data'); },
       order() { return query; },
@@ -123,6 +125,8 @@ for (let attempt = 0; attempt < 2; attempt++) {
   assert.deepEqual(JSON.parse(config('current_event_match_ids').value), originalMatches.slice(0, 20).map((m) => m.match_id));
   assert.deepEqual(rows.matches, originalMatches, 'All 35 stored match rows must survive reimport');
   assert.deepEqual(rows.scouting_data, scouting, 'All original scouting records must remain byte-for-byte equivalent');
+  assert.equal(rows.event_team_roster.find((team) => team.team_number === 1).team_name, 'Cached official team name',
+    'CSV import must retain a known name when TBA enrichment is unavailable');
 }
 
 const beforeInvalid = mutationCount;
@@ -142,8 +146,8 @@ assert.equal(filtered.filter((m) => m.organization_id === org).length, 20);
 assert.equal(filtered.filter((m) => m.organization_id === 'other-org').length, 35, 'Other org schedules stay independent');
 assert.equal((await filterActiveEventMatches(db, 'older-event', rows.matches)).length, 35, 'Historical rows stay visible');
 config('current_event_source').value = 'tba';
-assert.equal((await getDashboardStatsForActiveEvent(db, org, eventKey)).totalMatches, 35, 'All stored qualification matches remain in TBA schedules');
-assert.equal((await filterActiveEventMatches(db, eventKey, rows.matches)).length, 35);
+assert.equal((await getDashboardStatsForActiveEvent(db, org, eventKey)).totalMatches, 20, 'Use the active qualification manifest while retaining older stored matches');
+assert.equal((await filterActiveEventMatches(db, eventKey, rows.matches)).length, 20);
 config('current_event_source').value = 'csv';
 config('current_event_match_ids').value = 'malformed legacy value';
 assert.equal((await filterActiveEventMatches(db, eventKey, rows.matches)).length, 35, 'Legacy fallback must preserve matches');
@@ -174,6 +178,34 @@ assert.equal(synced.matchesUpserted, 20, 'TBA sync must import only qualificatio
 assert.equal(rows.matches.length, 35, 'Stored playoff history must remain');
 assert.deepEqual(rows.matches.slice(20), playoffsBefore);
 assert.deepEqual(rows.scouting_data, scoutingBefore);
+
+// An event roster must work in an organization that owns none of the shared
+// global team rows. Old roster rows stay stored but must not pollute the list.
+rows.teams.forEach((team) => { team.organization_id = 'unrelated-owner'; });
+rows.event_team_roster.push({ organization_id: org, event_key: eventKey, team_number: 77777, team_name: 'Retained stale row' },
+  { organization_id: 'other-org', event_key: eventKey, team_number: 88888, team_name: 'Other organization team' });
+rows.app_config.push({ organization_id: 'other-org', key: 'current_event_key', value: eventKey },
+  { organization_id: 'other-org', key: 'current_event_source', value: 'csv' },
+  { organization_id: 'other-org', key: 'current_event_team_numbers', value: '[88888]' });
+const otherBefore = structuredClone(rows.app_config.filter((row) => row.organization_id === 'other-org'));
+const response = () => ({ statusCode: 200, body: null, status(code) { this.statusCode = code; return this; },
+  json(body) { this.body = body; return this; }, setHeader() {} });
+const rosterResponse = response();
+await load('pages/api/teams.ts').default({ method: 'GET', headers: { authorization: 'Bearer fixture' }, query: {} }, rosterResponse);
+assert.equal(rosterResponse.statusCode, 200);
+assert.deepEqual(Array.from(rosterResponse.body.teams, (t) => t.team_number).sort((a, b) => a - b), teams);
+const pitResponse = response();
+await load('pages/api/pit-scouting/event-teams.ts').default({ method: 'GET', headers: { authorization: 'Bearer fixture' }, query: {} }, pitResponse);
+assert.equal(pitResponse.body.teams.length, 6);
+assert(rows.event_team_roster.some((team) => team.team_number === 77777), 'Stale rows must remain stored');
+
+rows.teams.push({ team_number: 77777, team_name: 'Manual team', organization_id: 'unrelated-owner' });
+const { registerTeamInEvent } = load('lib/register-team-in-event.ts');
+await registerTeamInEvent(db, org, 77777);
+await syncTbaEventToOrganization(db, org, eventKey);
+assert(JSON.parse(config('current_event_team_numbers').value).includes(77777), 'Explicit manual additions survive TBA refresh');
+assert.deepEqual(rows.app_config.filter((row) => row.organization_id === 'other-org'), otherBefore);
+console.log('Passed event-team regression: shared team ownership, stale-row retention, correct roster in both APIs, cached CSV names, manual additions across TBA sync, and other-org settings unchanged.');
 assert.equal((await getDashboardStatsForActiveEvent(db, org, eventKey)).totalMatches, 20);
 assert.equal((await filterActiveEventMatches(db, eventKey, rows.matches)).length, 20);
 
@@ -190,6 +222,10 @@ tbaMatches = [{ ...tbaMatches[0], key: `${eventKey}_qm42`, match_number: 42 }];
 await syncTbaEventToOrganization(db, org, eventKey);
 assert.equal(rows.matches.find((m) => m.match_id === `${eventKey}_qm42`).match_number, 42);
 const beforeUnavailable = structuredClone(rows);
+tbaMatches[0].alliances.red.team_keys[0] = 'frc1B';
+await assert.rejects(syncTbaEventToOrganization(db, org, eventKey), /Invalid numeric TBA team key/);
+assert.deepEqual(rows, beforeUnavailable, 'Malformed team keys must fail before any database writes');
+tbaMatches[0].alliances.red.team_keys[0] = 'frc1';
 tbaUnavailable = true;
 await assert.rejects(syncTbaEventToOrganization(db, org, eventKey), /TBA fixture unavailable/);
 assert.deepEqual(rows, beforeUnavailable, 'A failed TBA read must not change stored data');

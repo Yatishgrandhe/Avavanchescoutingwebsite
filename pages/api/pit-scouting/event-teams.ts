@@ -41,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  const { eventKey, eventName, eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, orgId);
+  let { eventKey, eventName, eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, orgId);
 
   if (!eventKey) {
     res.status(200).json({
@@ -58,6 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const { syncTbaEventToOrganization } = await import('@/lib/syncTbaToOrg');
       await syncTbaEventToOrganization(supabase, orgId, eventKey);
+      ({ eventTeamNumbers } = await getOrgCurrentEvent(supabase, orgId));
     } catch (syncErr) {
       console.warn('Auto TBA sync failed during pit scouting team fetch:', syncErr);
     }
@@ -69,12 +70,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .eq('organization_id', orgId)
     .eq('event_key', eventKey);
 
-  // For CSV events, strictly filter by the exact team numbers from the CSV import
-  if (eventSource === 'csv' && eventTeamNumbers.length > 0) {
+  // Both providers have an active membership list; old rows remain stored.
+  if (eventTeamNumbers.length > 0) {
     rosterQuery = rosterQuery.in('team_number', eventTeamNumbers);
   }
 
-  const { data: roster } = await rosterQuery.order('team_number', { ascending: true });
+  const { data: roster, error: rosterError } = await rosterQuery.order('team_number', { ascending: true });
+  if (rosterError) return res.status(500).json({ error: 'Could not load event teams' });
 
   if (roster && roster.length > 0) {
     res.status(200).json({
@@ -89,7 +91,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   let nums: Set<number>;
-  if (eventSource === 'csv' && eventTeamNumbers.length > 0) {
+  if (eventTeamNumbers.length > 0) {
     // For CSV events, use the exact team numbers extracted from the CSV
     nums = new Set(eventTeamNumbers);
   } else {
@@ -121,7 +123,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { data: teamRows } = await supabase
     .from('teams')
     .select('team_number, team_name')
-    .eq('organization_id', orgId)
     .in('team_number', sorted);
 
   const nameByNum = new Map<number, string>();

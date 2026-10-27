@@ -83,12 +83,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const eventKey = queryEventKey || activeEventKey;
       const eventSource = eventKey === activeEventKey ? activeEventSource : 'tba';
       let importedMatchIds: string[] = [];
-      if (eventSource === 'csv') {
+      if (eventKey === activeEventKey) {
         try {
           const parsed = JSON.parse(config.get('current_event_match_ids') || '[]');
           importedMatchIds = Array.isArray(parsed)
             ? parsed.filter((matchId): matchId is string => typeof matchId === 'string' && matchId.length > 0)
             : [];
+          if (eventSource !== 'csv') importedMatchIds = importedMatchIds.filter((id) => id.startsWith(`${eventKey}_qm`));
         } catch {
           importedMatchIds = [];
         }
@@ -107,7 +108,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (eventSource !== 'csv') {
         try {
           const { syncTbaEventToOrganization } = await import('@/lib/syncTbaToOrg');
-          await syncTbaEventToOrganization(supabase, orgId, eventKey);
+          const synced = await syncTbaEventToOrganization(supabase, orgId, eventKey);
+          importedMatchIds = synced.matchIds;
         } catch (syncErr) {
           console.warn('Auto TBA sync failed during matches fetch:', syncErr);
         }
@@ -118,7 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .select('*')
         .eq('organization_id', orgId)
         .eq('event_key', eventKey);
-      if (eventSource === 'csv' && importedMatchIds.length > 0) {
+      if (importedMatchIds.length > 0) {
         matchesQuery = matchesQuery.in('match_id', importedMatchIds);
       } else if (eventSource !== 'csv') {
         // The scouting schedule is qualifications. Retained playoff rows must

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getOrgCurrentEvent } from '@/lib/org-app-config';
+import { manualEventTeamsKey, readManualEventTeams } from '@/lib/event-team-scope';
 
 export type TeamRegistrationResult = {
   registered: boolean;
@@ -80,7 +81,18 @@ export async function registerTeamInEvent(
   );
   if (rosterError) throw rosterError;
 
-  // 3. Add the team to the event's team_numbers config (so CSV filters and pick lists include it).
+  // Keep explicit manual additions across later TBA refreshes, without treating
+  // every retained roster row from an older sync as an active event member.
+  const manual = await readManualEventTeams(supabase, orgId, eventKey);
+  if (!manual.includes(teamNumber)) {
+    const { error } = await supabase.from('app_config').upsert({
+      key: manualEventTeamsKey(eventKey), organization_id: orgId,
+      value: JSON.stringify([...manual, teamNumber].sort((a, b) => a - b)), updated_at: now,
+    }, { onConflict: 'key,organization_id' });
+    if (error) throw error;
+  }
+
+  // 3. Add the team to the active event scope.
   if (!eventTeamNumbers.includes(teamNumber)) {
     const { error: configError } = await supabase.from('app_config').upsert(
       {

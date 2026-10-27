@@ -90,7 +90,12 @@ export function sortTbaMatches(matches: TbaMatch[]): TbaMatch[] {
 }
 
 export function teamKeysToNumbers(keys: string[]): number[] {
-  return keys.map((k) => parseInt(String(k).replace(/^frc/i, ''), 10)).filter((n) => Number.isFinite(n));
+  return keys.map((key) => {
+    const matched = /^frc([1-9]\d*)$/.exec(key);
+    const number = matched ? Number(matched[1]) : NaN;
+    if (!Number.isSafeInteger(number)) throw new Error(`Invalid numeric TBA team key: ${key}`);
+    return number;
+  });
 }
 
 /**

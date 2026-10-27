@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { getOrgCurrentEvent } from '@/lib/org-app-config';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -36,52 +37,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { team_number } = req.query;
 
-    // Resolve CSV event scope
-    let csvTeamNumbers: number[] = [];
-    try {
-      const { getOrgCurrentEvent } = await import('@/lib/org-app-config');
-      const { eventSource, eventTeamNumbers } = await getOrgCurrentEvent(supabase, user.organization_id);
-      if (eventSource === 'csv') csvTeamNumbers = eventTeamNumbers;
-    } catch {
-      // Non-critical
-    }
+    const { eventKey, eventTeamNumbers } = await getOrgCurrentEvent(supabase, user.organization_id);
+    if (!eventKey) return team_number
+      ? res.status(404).json({ error: 'No active event' })
+      : res.status(200).json({ teams: [] });
 
+    let query = supabase.from('event_team_roster').select('team_number, team_name')
+      .eq('organization_id', user.organization_id).eq('event_key', eventKey);
+    if (eventTeamNumbers.length > 0) query = query.in('team_number', eventTeamNumbers);
     if (team_number) {
-      // Get specific team
-      const { data: team, error } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('team_number', parseInt(team_number as string, 10))
-        .eq('organization_id', user.organization_id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching team:', error);
-        return res.status(404).json({ error: 'Team not found' });
-      }
-
-      res.status(200).json(team);
-    } else {
-      // Get all teams for org, scoped to CSV event teams when active
-      let teamsQuery = supabase
-        .from('teams')
-        .select('*')
-        .eq('organization_id', user.organization_id)
-        .order('team_number');
-
-      if (csvTeamNumbers.length > 0) {
-        teamsQuery = teamsQuery.in('team_number', csvTeamNumbers);
-      }
-
-      const { data: teams, error } = await teamsQuery;
-
-      if (error) {
-        console.error('Error fetching teams:', error);
-        return res.status(500).json({ error: 'Failed to fetch teams' });
-      }
-
-      res.status(200).json({ teams: teams || [] });
+      const number = Number(team_number);
+      if (!Number.isSafeInteger(number) || number <= 0) return res.status(400).json({ error: 'Invalid team number' });
+      query = query.eq('team_number', number);
     }
+    const { data: roster, error } = await query.order('team_number');
+    if (error) throw error;
+    // Team metadata is shared; event membership and event names belong to the
+    // caller's org. Global team ownership is not an event roster.
+    const numbers = (roster || []).map((team) => team.team_number);
+    const { data: metadata, error: metadataError } = numbers.length
+      ? await supabase.from('teams').select('team_number, team_color, epa, endgame_epa').in('team_number', numbers)
+      : { data: [], error: null };
+    if (metadataError) throw metadataError;
+    const byNumber = new Map((metadata || []).map((team) => [team.team_number, team]));
+    const teams = (roster || []).map((team) => ({ ...byNumber.get(team.team_number), ...team }));
+    if (team_number) return teams.length
+      ? res.status(200).json(teams[0])
+      : res.status(404).json({ error: 'Team not found in your active event' });
+    res.status(200).json({ teams });
   } catch (error) {
     console.error('Error fetching teams:', error);
     res.status(500).json({ error: 'Failed to fetch teams' });

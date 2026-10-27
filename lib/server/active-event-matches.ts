@@ -20,11 +20,12 @@ export async function filterActiveEventMatches<T extends { organization_id: stri
   }
   const activeIds = new Map<string, Set<string>>();
   for (const [orgId, config] of Array.from(configs.entries())) {
-    if (config.current_event_key?.trim() !== eventKey || config.current_event_source !== 'csv') continue;
+    if (config.current_event_key?.trim() !== eventKey) continue;
     try {
       const parsed: unknown = JSON.parse(config.current_event_match_ids || '[]');
       if (Array.isArray(parsed)) {
-        const ids = parsed.filter((id): id is string => typeof id === 'string' && id.length > 0);
+        const ids = parsed.filter((id): id is string => typeof id === 'string' && id.length > 0 &&
+          (config.current_event_source === 'csv' || id.startsWith(`${eventKey}_qm`)));
         // Legacy imports without an ID list retain the existing event-based fallback.
         if (ids.length) activeIds.set(orgId, new Set(ids));
       }
@@ -33,11 +34,12 @@ export async function filterActiveEventMatches<T extends { organization_id: stri
     }
   }
   return matches.filter((match) => {
+    if (activeIds.has(match.organization_id)) return activeIds.get(match.organization_id)!.has(match.match_id);
     const config = configs.get(match.organization_id);
     if (config?.current_event_key?.trim() === eventKey && config.current_event_source !== 'csv') {
       const prefix = `${eventKey}_qm`;
       return match.match_id.startsWith(prefix) && /^\d+$/.test(match.match_id.slice(prefix.length));
     }
-    return !activeIds.has(match.organization_id) || activeIds.get(match.organization_id)!.has(match.match_id);
+    return true;
   });
 }

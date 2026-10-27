@@ -1,4 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { getOrgCurrentEvent } from '@/lib/org-app-config';
+import { readManualEventTeams } from '@/lib/event-team-scope';
 import {
   sortTbaMatches,
   tbaFetchJson,
@@ -12,6 +14,7 @@ export type SyncTbaResult = {
   teamsUpserted: number;
   matchesUpserted: number;
   eventName: string;
+  matchIds: string[];
 };
 
 function sameNumberList(left: number[] | null | undefined, right: number[] | null | undefined): boolean {
@@ -34,6 +37,7 @@ export async function syncTbaEventToOrganization(
   }
 
   const eventMeta = await tbaFetchJson<{ name: string; key: string }>(`/event/${encodeURIComponent(key)}`);
+  if (eventMeta.key !== key) throw new Error('TBA returned a different event');
 
   const [matchesRaw, teamsData] = await Promise.all([
     tbaFetchJson<TbaMatch[]>(`/event/${encodeURIComponent(key)}/matches`),
@@ -41,6 +45,19 @@ export async function syncTbaEventToOrganization(
   ]);
 
   const sorted = sortTbaMatches((matchesRaw || []).filter((match) => match.comp_level === 'qm'));
+
+  // Validate before writing anything. Never truncate a suffix or drop a bad
+  // team key: doing so can assign a different robot to an alliance position.
+  const matchRows = sorted.map((match) => {
+    if (match.event_key !== key || match.key !== `${key}_qm${match.match_number}`) {
+      throw new Error('TBA returned an inconsistent qualification match');
+    }
+    const red = teamKeysToNumbers(match.alliances?.red?.team_keys || []);
+    const blue = teamKeysToNumbers(match.alliances?.blue?.team_keys || []);
+    if (red.length !== 3 || blue.length !== 3) throw new Error('TBA qualification schedule has incomplete alliances');
+    return { match_id: match.key, event_key: key, match_number: match.match_number,
+      red_teams: red, blue_teams: blue, organization_id: organizationId };
+  });
 
   const rosterRows = (teamsData || []).map((team) => ({
     organization_id: organizationId,
@@ -70,19 +87,6 @@ export async function syncTbaEventToOrganization(
       throw new Error(`event_team_roster upsert: ${rosterErr.message}`);
     }
   }
-
-  const matchRows = sorted.map((match) => {
-    const red = teamKeysToNumbers(match.alliances?.red?.team_keys || []);
-    const blue = teamKeysToNumbers(match.alliances?.blue?.team_keys || []);
-    return {
-      match_id: match.key,
-      event_key: match.event_key || key,
-      match_number: match.match_number,
-      red_teams: red,
-      blue_teams: blue,
-      organization_id: organizationId,
-    };
-  });
 
   if (matchRows.length > 0) {
     const { data: currentMatches, error: matchReadErr } = await supabase
@@ -135,10 +139,28 @@ export async function syncTbaEventToOrganization(
     }
   }
 
+  const active = await getOrgCurrentEvent(supabase, organizationId);
+  if (active.eventKey === key && active.eventSource === 'tba') {
+    const manual = await readManualEventTeams(supabase, organizationId, key);
+    const numbers = Array.from(new Set([...rosterRows.map((team) => team.team_number), ...manual])).sort((a, b) => a - b);
+    const values = [
+      ['current_event_team_numbers', JSON.stringify(numbers)],
+      ['current_event_match_ids', JSON.stringify(matchRows.map((match) => match.match_id))],
+    ];
+    const previous = [JSON.stringify(active.eventTeamNumbers), JSON.stringify(active.eventMatchIds)];
+    const changes = values.filter(([, value], index) => value !== previous[index])
+      .map(([configKey, value]) => ({ key: configKey, value, organization_id: organizationId, updated_at: new Date().toISOString() }));
+    if (changes.length) {
+      const { error } = await supabase.from('app_config').upsert(changes, { onConflict: 'key,organization_id' });
+      if (error) throw new Error(`Could not save the active TBA roster: ${error.message}`);
+    }
+  }
+
   return {
     ok: true,
     teamsUpserted: rosterRows.length,
     matchesUpserted: matchRows.length,
     eventName: eventMeta.name || key,
+    matchIds: matchRows.map((match) => match.match_id),
   };
 }

@@ -261,13 +261,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  // ── Compute the full merged set of match IDs (existing + newly imported) ──
-  const { data: allEventMatches } = await supabase
-    .from('matches')
-    .select('match_id')
-    .eq('organization_id', organizationId)
-    .eq('event_key', eventKey);
-  const allMatchIds = Array.from(new Set((allEventMatches || []).map((m: { match_id: string }) => m.match_id)));
+  // The uploaded schedule defines the active matches. Keep older match rows and
+  // their scouting records stored, without adding them back to the active schedule.
+  const activeMatchIds = matchRows.map((match) => match.match_id);
   const allTeamNumbers = Array.from(new Set(teamNumbers));
 
   const configRows = [
@@ -275,7 +271,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ['current_event_name', eventName],
     ['current_event_year', String(eventYear)],
     ['current_event_source', 'csv'],
-    ['current_event_match_ids', JSON.stringify(allMatchIds)],
+    ['current_event_match_ids', JSON.stringify(activeMatchIds)],
     ['current_event_team_numbers', JSON.stringify(allTeamNumbers)],
   ].map(([key, value]) => ({ key, value, organization_id: organizationId, updated_at: now }));
   const { error: configError } = await supabase.from('app_config').upsert(configRows, {

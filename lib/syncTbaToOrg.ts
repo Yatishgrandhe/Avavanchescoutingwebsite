@@ -20,7 +20,8 @@ function sameNumberList(left: number[] | null | undefined, right: number[] | nul
 }
 
 /**
- * Pull event teams + match schedule from TBA into event_team_roster and matches for one org.
+ * Pull event teams and the qualification schedule from TBA for one org.
+ * Playoff rows already stored in matches are retained as history.
  */
 export async function syncTbaEventToOrganization(
   supabase: SupabaseClient,
@@ -39,7 +40,7 @@ export async function syncTbaEventToOrganization(
     tbaFetchJson<TbaTeam[]>(`/event/${encodeURIComponent(key)}/teams`),
   ]);
 
-  const sorted = sortTbaMatches(matchesRaw || []);
+  const sorted = sortTbaMatches((matchesRaw || []).filter((match) => match.comp_level === 'qm'));
 
   const rosterRows = (teamsData || []).map((team) => ({
     organization_id: organizationId,
@@ -70,13 +71,13 @@ export async function syncTbaEventToOrganization(
     }
   }
 
-  const matchRows = sorted.map((match, index) => {
+  const matchRows = sorted.map((match) => {
     const red = teamKeysToNumbers(match.alliances?.red?.team_keys || []);
     const blue = teamKeysToNumbers(match.alliances?.blue?.team_keys || []);
     return {
       match_id: match.key,
       event_key: match.event_key || key,
-      match_number: index + 1,
+      match_number: match.match_number,
       red_teams: red,
       blue_teams: blue,
       organization_id: organizationId,

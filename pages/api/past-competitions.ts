@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getAutoFuelCount, getTeleopFuelCount, getClimbPoints } from '@/lib/analytics';
 import { AVALANCHE_ORG_ID } from '@/lib/constants';
+import { filterActiveEventMatches } from '@/lib/server/active-event-matches';
 import { privateScoutingRows } from '@/lib/server/scouting-privacy';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -251,7 +252,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(500).json({ error: 'Failed to load matches' });
         }
 
-        let matches = [...(matchesRaw || [])].sort(
+        let matches = (await filterActiveEventMatches(supabaseAdmin, eventKeyStr, matchesRaw || [])).sort(
           (a: { match_number?: number }, b: { match_number?: number }) =>
             (a.match_number ?? 0) - (b.match_number ?? 0)
         );
@@ -776,7 +777,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .in('organization_id', orgIds)
           .eq('event_key', evtKey);
 
-        const eventMatches = (eventMatchesRaw || []) as any[];
+        const eventMatches = await filterActiveEventMatches(supabaseAdmin, evtKey, eventMatchesRaw || []);
         const matchIds = eventMatches.map((m) => m.match_id);
         const teamSet = new Set<number>();
         eventMatches.forEach((m) => {

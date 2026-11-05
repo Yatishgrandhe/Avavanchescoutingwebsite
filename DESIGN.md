@@ -69,6 +69,7 @@ Base unit: **4px**. Spacing follows Tailwind's 1/2/3/4/5/6/8/10/12/16 scale (4�
 
 ### Application Shell
 - **Structure:** header/sidebar plus scrolling main content.
+- **Organization identity:** authenticated headers, sidebars, document titles, and route overlays use the current member's database-backed organization name. Use neutral “Scouting” while that organization is unresolved; never show another organization's cached name. Long names truncate within the existing shell and remain available to assistive text. Public guest screens keep the Avalanche Scouting product identity.
 - **Layout:** main document owns scroll on small screens; nested panels use `min-h-0` when they own scroll.
 - **States:** desktop sidebar, mobile navigation, authenticated empty state, loading state.
 - **Navigation:** group scouting entry, analysis, strategy, and administration separately. Highlight the most specific matching route. Mobile drawers always show full labels, have a visible close button, and close after any selection. Use 44px mobile links and a drawer that fits inside the viewport and safe area.

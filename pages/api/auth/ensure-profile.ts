@@ -42,7 +42,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     user.email?.split('@')[0] ||
     'User';
 
-  const { data: existing } = await admin.from('users').select('*').eq('id', user.id).maybeSingle();
+  const { data: existing, error: readErr } = await admin.from('users').select('*').eq('id', user.id).maybeSingle();
+
+  if (readErr) {
+    console.error('ensure-profile read:', readErr);
+    res.status(500).json({ error: 'Failed to sync profile' });
+    return;
+  }
 
   if (existing?.organization_id) {
     res.status(200).json({ profile: existing, updated: false });
@@ -69,17 +75,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     updated_at: new Date().toISOString(),
   };
 
-  const { data: saved, error: upsertErr } = await admin
+  // Insert the default only when the row is still absent. An auth callback can
+  // race organization setup after the read above; conflict-ignore keeps the
+  // newly assigned organization, role, and ban state intact.
+  const { data: inserted, error: insertErr } = await admin
     .from('users')
-    .upsert(row, { onConflict: 'id' })
+    .upsert(row, { onConflict: 'id', ignoreDuplicates: true })
     .select('*')
-    .single();
+    .maybeSingle();
 
-  if (upsertErr) {
-    console.error('ensure-profile upsert:', upsertErr);
+  if (insertErr) {
+    console.error('ensure-profile insert:', insertErr);
     res.status(500).json({ error: 'Failed to sync profile' });
     return;
   }
 
-  res.status(200).json({ profile: saved, updated: true });
+  if (inserted) {
+    res.status(200).json({ profile: inserted, updated: true });
+    return;
+  }
+
+  // A conflicting row won the race. Fetch and return its authoritative values.
+  const { data: saved, error: rereadErr } = await admin.from('users').select('*').eq('id', user.id).maybeSingle();
+  if (rereadErr || !saved) {
+    console.error('ensure-profile reread:', rereadErr);
+    res.status(500).json({ error: 'Failed to sync profile' });
+    return;
+  }
+
+  res.status(200).json({ profile: saved, updated: false });
 }

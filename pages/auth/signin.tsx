@@ -120,39 +120,38 @@ export default function SignIn() {
       .catch(() => setInviteBanner(null));
   }, [router.isReady, router.query.token]);
 
+  const inviteQueryToken = typeof router.query.token === 'string' ? router.query.token : null;
+  const inviteQueryType = typeof router.query.invite_type === 'string' ? router.query.invite_type : null;
+  const inviteQueryTargetOrg = typeof router.query.target_org === 'string' ? router.query.target_org : null;
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const nextFromQuery = urlParams.get('next');
+    if (typeof window !== 'undefined' && router.isReady) {
+      const nextFromQuery = typeof router.query.next === 'string' ? router.query.next : null;
       if (nextFromQuery?.startsWith('/')) {
         storeAuthReturnPath(nextFromQuery);
       }
-      const token = urlParams.get('token');
-      if (token) {
-        localStorage.setItem('org_invite_token', token);
-      }
-      const inviteType = urlParams.get('invite_type');
-      const targetOrg = urlParams.get('target_org');
-      if (inviteType) {
-        localStorage.setItem('org_invite_type', inviteType);
-      }
-      if (targetOrg) {
-        localStorage.setItem('org_invite_target_org', targetOrg);
+      if (inviteQueryToken) {
+        localStorage.setItem('org_invite_token', inviteQueryToken);
+        if (inviteQueryType) localStorage.setItem('org_invite_type', inviteQueryType);
+        else localStorage.removeItem('org_invite_type');
+        if (inviteQueryTargetOrg) localStorage.setItem('org_invite_target_org', inviteQueryTargetOrg);
+        else localStorage.removeItem('org_invite_target_org');
       }
     }
-  }, []);
+  }, [router.isReady, router.query.next, inviteQueryToken, inviteQueryType, inviteQueryTargetOrg]);
 
-  /** Already signed in with an org: leave sign-in (uses same session state as the rest of the app). */
+  /** Signed-in invite holders resume server validation before the usual home redirect. */
   useEffect(() => {
     if (!router.isReady || authLoading) return;
-    // Only skip redirect when an active invite token is present in the URL query
-    // (not stale localStorage tokens — those must not trap established users on signin).
-    if (router.query.token) return;
+    if (session?.user && (inviteQueryToken || localStorage.getItem('org_invite_token'))) {
+      if (inviteQueryToken && localStorage.getItem('org_invite_token') !== inviteQueryToken) return;
+      router.replace('/auth/callback');
+      return;
+    }
     if (session?.user && appUser?.organization_id) {
       const target = pickAuthReturnPath(router.query.next, '/');
       router.replace(target);
     }
-  }, [authLoading, router.isReady, session, appUser?.organization_id, router]);
+  }, [authLoading, router.isReady, session, appUser?.organization_id, router, inviteQueryToken]);
 
   const notifyDiscordError = async (errorMessage: string, userInfo?: any) => {
     try {

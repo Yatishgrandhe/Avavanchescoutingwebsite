@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { formatInviteExpiryLabel } from '@/lib/invite-config';
+import { clearOrganizationInvite, getPendingOrganizationInvite, OrganizationInvitePreview } from '@/lib/org-invite-flow';
 
 export default function SetupOrg() {
   const { user, supabase } = useSupabase();
@@ -27,65 +28,51 @@ export default function SetupOrg() {
   const [orgName, setOrgName] = useState('');
   const [teamNumber, setTeamNumber] = useState('');
   const [inviteToken, setInviteToken] = useState<string | null>(null);
-  const [inviteRow, setInviteRow] = useState<{ invite_type?: string; target_organization_id?: string | null } | null>(null);
-  const [invitePreview, setInvitePreview] = useState<{
-    valid?: boolean;
-    reason?: string;
-    invite_type?: string;
-    expires_at?: string;
-    organization_name?: string | null;
-    unlimited_uses?: boolean;
-    redemption_count?: number;
-  } | null>(null);
+  const [inviteRow, setInviteRow] = useState<OrganizationInvitePreview | null>(null);
+  const [invitePreview, setInvitePreview] = useState<OrganizationInvitePreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const joinAttemptedRef = useRef(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('org_invite_token');
+    if (!router.isReady) return;
+    let cancelled = false;
+    const queryToken = typeof router.query.token === 'string' ? router.query.token : null;
+    const token = queryToken || localStorage.getItem('org_invite_token');
+    setLoading(true);
+    setError(null);
+    setInviteToken(null);
+    setInviteRow(null);
+    setInvitePreview(null);
+    joinAttemptedRef.current = false;
     if (!token) {
       setError("No active invite token found. Please use the link provided by a superadmin.");
       setLoading(false);
       return;
     }
-    setInviteToken(token);
-    checkToken(token);
-    void fetch(`/api/invite-preview?token=${encodeURIComponent(token)}`)
-      .then((r) => r.json())
-      .then((j) => setInvitePreview(j))
-      .catch(() => setInvitePreview(null));
-  }, []);
-
-  const checkToken = async (token: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('organization_invites')
-        .select('*')
-        .eq('token', token)
-        .eq('status', 'pending')
-        .maybeSingle();
-
-      if (error) throw error;
-      if (!data) {
-        setError("This invite token is invalid or has already been used.");
-      } else {
-        setInviteRow(data);
+    if (queryToken) localStorage.setItem('org_invite_token', queryToken);
+    void (async () => {
+      try {
+        const data = await getPendingOrganizationInvite(token);
+        if (cancelled) return;
+        if (!data) {
+          setError("This invite token is invalid, expired, or has already been used.");
+        } else {
+          setInviteToken(token);
+          setInviteRow(data);
+          setInvitePreview(data);
+        }
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Could not verify your invitation. Please try again.');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    })();
+    return () => { cancelled = true; };
+  }, [router.isReady, router.query.token]);
 
   useEffect(() => {
     const runJoinOrg = async () => {
       if (joinAttemptedRef.current || !user || !inviteToken || !inviteRow) return;
-
-      // Guard: an established user must not be shown the new-org creation form.
-      if (inviteRow.invite_type === 'new_org' && (user as any).organization_id) {
-        setError("You already belong to an organization. This invite link is for creating a new organization.");
-        return;
-      }
 
       const isJoin = inviteRow.invite_type === 'join_org';
       if (!isJoin) return;
@@ -112,9 +99,7 @@ export default function SetupOrg() {
           throw new Error(j.error || 'Failed to join organization');
         }
 
-        localStorage.removeItem('org_invite_token');
-        localStorage.removeItem('org_invite_type');
-        localStorage.removeItem('org_invite_target_org');
+        clearOrganizationInvite();
 
         toast({
           title: 'Welcome!',
@@ -136,7 +121,7 @@ export default function SetupOrg() {
 
   const handleSetup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!orgName.trim() || !teamNumber.trim() || !inviteToken) return;
+    if (!orgName.trim() || !teamNumber.trim() || !inviteToken || inviteRow?.invite_type !== 'new_org' || error) return;
 
     setIsSubmitting(true);
     try {
@@ -166,11 +151,11 @@ export default function SetupOrg() {
       }
 
       // Clear the token from localStorage
-      localStorage.removeItem('org_invite_token');
+      clearOrganizationInvite();
 
       toast({
         title: "Organization setup complete!",
-        description: `Welcome to Avalanche Scouting, ${orgName}!`,
+        description: `Welcome to ${orgName}!`,
       });
 
       // Full navigation reload so _app refetches public.users with the new organization_id
@@ -255,7 +240,7 @@ export default function SetupOrg() {
             <div className="mb-4 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-left text-sm">
               <p className="font-medium text-foreground">New organization invite</p>
               <ul className="mt-2 list-disc list-inside text-xs text-muted-foreground space-y-1">
-                <li>Single use: one team completes setup with this link.</li>
+                <li>{invitePreview.unlimited_uses ? 'Each completed setup creates a new organization.' : 'This link can be used for the remaining organization setups shown on your invitation.'}</li>
                 <li>
                   Active until {formatInviteExpiryLabel(invitePreview.expires_at)} (local time).
                 </li>

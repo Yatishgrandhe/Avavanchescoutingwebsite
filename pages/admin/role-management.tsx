@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useSupabase } from '@/pages/_app';
+import { getScoutingTitle } from '@/lib/organization-branding';
 import { useAdmin } from '@/hooks/use-admin';
 import { motion } from 'framer-motion';
 import {
@@ -70,7 +71,7 @@ interface UserRoleData {
 }
 
 export default function RoleManagementPage() {
-  const { user: currentUser, supabase } = useSupabase();
+  const { user: currentUser, organization, session, supabase } = useSupabase();
   const { isAdmin, isSuperAdmin, loading: adminLoading } = useAdmin();
   const [users, setUsers] = useState<UserRoleData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -196,7 +197,7 @@ export default function RoleManagementPage() {
     <ProtectedRoute>
       <Layout>
         <Head>
-          <title>Role Management | Avalanche Scouting</title>
+          <title>{`Role Management | ${getScoutingTitle(organization, currentUser ?? (session?.user ? {} : null))}`}</title>
         </Head>
 
         <div className="max-w-6xl mx-auto space-y-8 pb-20 px-4 md:px-6">

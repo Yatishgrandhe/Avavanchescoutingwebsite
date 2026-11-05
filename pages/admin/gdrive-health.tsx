@@ -26,6 +26,7 @@ import {
 } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { useSupabase } from '@/pages/_app';
+import { getScoutingTitle } from '@/lib/organization-branding';
 
 interface HealthStep {
     name: string;
@@ -45,7 +46,7 @@ interface HealthData {
 }
 
 export default function GoogleDriveHealthPage() {
-    const { session } = useSupabase();
+    const { session, user, organization } = useSupabase();
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState<HealthData | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -91,7 +92,7 @@ export default function GoogleDriveHealthPage() {
     return (
         <Layout>
             <Head>
-                <title>Google Drive Status | Avalanche Scouting</title>
+                <title>{`Google Drive Status | ${getScoutingTitle(organization, user ?? (session?.user ? {} : null))}`}</title>
             </Head>
 
             <div className="max-w-4xl mx-auto space-y-8 p-4">

@@ -6,9 +6,10 @@ interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   animated?: boolean;
   className?: string;
+  alt?: string;
 }
 
-const Logo: React.FC<LogoProps> = ({ size = 'md', animated = true, className = '' }) => {
+const Logo: React.FC<LogoProps> = ({ size = 'md', animated = true, className = '', alt = 'Avalanche Scouting Logo' }) => {
   const sizeClasses = {
     sm: 'w-6 h-6',
     md: 'w-8 h-8',
@@ -20,7 +21,7 @@ const Logo: React.FC<LogoProps> = ({ size = 'md', animated = true, className = '
     <div className={`relative ${sizeClasses[size]} ${className}`}>
       <Image
         src="/image.png"
-        alt="Avalanche Scouting Logo"
+        alt={alt}
         fill
         className="object-contain"
         priority

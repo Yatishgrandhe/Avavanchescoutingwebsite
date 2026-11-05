@@ -3,13 +3,14 @@ import Head from 'next/head';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useSupabase } from '@/pages/_app';
+import { getScoutingTitle } from '@/lib/organization-branding';
 import { useAdmin } from '@/hooks/use-admin';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button, Input, Label } from '@/components/ui';
 import { Loader2, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function CompetitionSettingsPage() {
-  const { session } = useSupabase();
+  const { session, user, organization } = useSupabase();
   const { isAdmin, loading: adminLoading } = useAdmin();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -92,7 +93,7 @@ export default function CompetitionSettingsPage() {
     <ProtectedRoute>
       <Layout>
         <Head>
-          <title>Competition settings | Avalanche Scouting</title>
+          <title>{`Competition settings | ${getScoutingTitle(organization, user ?? (session?.user ? {} : null))}`}</title>
         </Head>
         <div className="max-w-lg mx-auto px-4 py-10 space-y-6">
           <div>

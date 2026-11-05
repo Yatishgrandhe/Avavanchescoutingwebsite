@@ -4,6 +4,7 @@ import { getSupabaseClient } from '@/lib/supabase';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { consumeAuthReturnPath, pickAuthReturnPath } from '@/lib/auth-return';
+import { clearOrganizationInvite, getPendingOrganizationInvite } from '@/lib/org-invite-flow';
 
 export default function AuthCallback() {
   const router = useRouter();
@@ -146,7 +147,7 @@ export default function AuthCallback() {
         // authorization gate, so it must not be bypassed whenever it can actually run.
         if (session?.provider_token) return false;
 
-        // Check org membership FIRST — stale invite tokens must not block established users.
+        // Pending invitations have already been validated before this membership shortcut.
         const { data: prof } = await supabase
           .from('users')
           .select('organization_id, banned')
@@ -157,17 +158,6 @@ export default function AuthCallback() {
         if (prof?.banned) return false;
 
         if (prof?.organization_id) {
-          // User already has an org. Clear any stale new_org invite tokens so they
-          // don't accidentally land on /setup-org on future visits. Only proceed on
-          // returning/refreshed sessions that carry no provider token (so we cannot
-          // re-verify guild membership) — never on a fresh verifiable login.
-          if (typeof window !== 'undefined') {
-            if (localStorage.getItem('org_invite_type') === 'new_org') {
-              localStorage.removeItem('org_invite_token');
-              localStorage.removeItem('org_invite_type');
-              localStorage.removeItem('org_invite_target_org');
-            }
-          }
           return true;
         }
 
@@ -175,6 +165,24 @@ export default function AuthCallback() {
       };
 
       const finishWithGuildCheck = async (session: any) => {
+        // A valid, explicitly opened invitation takes precedence over a default profile org.
+        // Membership changes happen only after the setup endpoint validates the token again.
+        const inviteToken = localStorage.getItem('org_invite_token');
+        if (inviteToken) {
+          try {
+            const invite = await getPendingOrganizationInvite(inviteToken);
+            if (invite) {
+              router.replace('/setup-org');
+              return;
+            }
+            clearOrganizationInvite();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Could not verify your invitation. Please try again.');
+            setLoading(false);
+            return;
+          }
+        }
+
         if (await shouldSkipGuildForEstablishedUser(session)) {
           setLoading(false);
           router.replace(desiredPath);
@@ -189,27 +197,7 @@ export default function AuthCallback() {
         const result = await runGuildCheck(session);
         if (result !== 'timeout' && result.inGuild) {
           if (result.invited) {
-            // Belt-and-suspenders: only send to /setup-org if they don't already have an org.
-            const uid = session?.user?.id;
-            let alreadyInOrg = false;
-            if (uid) {
-              const { data: prof } = await supabase
-                .from('users')
-                .select('organization_id')
-                .eq('id', uid)
-                .maybeSingle();
-              alreadyInOrg = Boolean(prof?.organization_id);
-            }
-            if (alreadyInOrg) {
-              if (typeof window !== 'undefined') {
-                localStorage.removeItem('org_invite_token');
-                localStorage.removeItem('org_invite_type');
-                localStorage.removeItem('org_invite_target_org');
-              }
-              router.replace(desiredPath);
-            } else {
-              router.replace('/setup-org');
-            }
+            router.replace('/setup-org');
           } else {
             // No invite: check if user has been banned (removed from org by admin).
             const uid = session?.user?.id;
@@ -288,12 +276,18 @@ export default function AuthCallback() {
       // No code in URL: may already have a session (e.g. refresh) or legacy flow
       try {
         let sessionReceived = false;
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
           console.log('Auth state changed:', event, session ? 'Session received' : 'No session');
-          if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+          if (!sessionReceived && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
             sessionReceived = true;
             subscription.unsubscribe();
-            await finishWithGuildCheck(session);
+            // Supabase holds its auth lock while notifying listeners. Release it
+            // before profile queries or signOut call back into the same client.
+            const timer = setTimeout(() => {
+              redirectTimers.delete(timer);
+              if (!disposed) void finishWithGuildCheck(session);
+            }, 0);
+            redirectTimers.add(timer);
           }
         });
         authSubscription = subscription;
@@ -317,11 +311,14 @@ export default function AuthCallback() {
         }
 
         if (currentSession) {
+          if (sessionReceived) return;
           sessionReceived = true;
           subscription.unsubscribe();
           await finishWithGuildCheck(currentSession);
           return;
         }
+
+        if (sessionReceived) return;
 
         const waitMs = 15000;
         const waitTimer = setTimeout(() => {

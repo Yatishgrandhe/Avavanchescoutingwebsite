@@ -37,6 +37,7 @@ import {
 } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useSupabase } from '@/pages/_app';
+import { getOrganizationDisplayName } from '@/lib/organization-branding';
 
 interface SidebarProps {
   user?: {
@@ -57,7 +58,8 @@ const AppSidebar: React.FC<SidebarProps> = ({
 }) => {
   const router = useRouter();
   const { state, isMobile } = useSidebar();
-  const { user: appUser } = useSupabase(); // Get the extended user profile
+  const { user: appUser, organization, authUser } = useSupabase(); // Get the extended user profile
+  const organizationName = getOrganizationDisplayName(organization, appUser ?? (authUser ? {} : null));
   const isCollapsed = !isMobile && state === 'collapsed';
   const menuItems = [
     {
@@ -174,7 +176,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
       <SidebarHeader className="border-b border-sidebar-border relative z-10">
         <div className="flex items-center gap-2 px-2 py-1.5 pr-10 md:pr-2">
           <div className="flex-shrink-0">
-            <Logo size="sm" />
+            <Logo size="sm" alt={`${organizationName} Scouting Logo`} />
           </div>
           <AnimatePresence>
             {!isCollapsed && (
@@ -183,10 +185,10 @@ const AppSidebar: React.FC<SidebarProps> = ({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2 }}
-                className="flex items-center gap-2"
+                className="flex min-w-0 items-center gap-2"
               >
-                <h2 className="font-heading font-bold text-xl md:text-lg tracking-tight text-sidebar-foreground">
-                  Avalanche
+                <h2 title={organizationName} className="min-w-0 truncate font-heading font-bold text-xl md:text-lg tracking-tight text-sidebar-foreground">
+                  {organizationName}
                 </h2>
                 <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 border-primary/30 text-primary">
                   <Sparkles className="h-2.5 w-2.5 mr-1" />

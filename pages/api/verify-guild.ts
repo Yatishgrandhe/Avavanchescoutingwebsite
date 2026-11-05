@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { AVALANCHE_ORG_ID } from '@/lib/constants';
 
 export const config = { api: { bodyParser: { sizeLimit: '64kb' } } };
 
@@ -10,7 +11,8 @@ const AVALANCHE_GUILD_ID =
 /**
  * Verify Discord guild membership using the user's OAuth access token.
  * Uses Discord API: GET /users/@me/guilds (requires "guilds" scope).
- * Checks that the user is in the Avalanche Discord server (guild ID above).
+ * Established members of other organizations use their saved organization membership.
+ * Avalanche members still require the Avalanche Discord server (guild ID above).
  * No bot or bot token needed.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -57,6 +59,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (userError || !user) {
       res.status(401).json({ error: 'Invalid or expired session' });
       return;
+    }
+
+    // Accepted invites stop being pending. Returning members of other organizations
+    // must therefore use their database membership, rather than reuse an invite or
+    // join Avalanche's Discord server. Never trust user-editable OAuth metadata.
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('users')
+      .select('organization_id, banned')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      res.status(500).json({ error: 'Could not verify organization membership' });
+      return;
+    }
+
+    if (!profile?.banned && profile?.organization_id && profile.organization_id !== AVALANCHE_ORG_ID) {
+      const { data: organization, error: organizationError } = await supabaseAdmin
+        .from('organizations')
+        .select('id')
+        .eq('id', profile.organization_id)
+        .maybeSingle();
+
+      if (organizationError) {
+        res.status(500).json({ error: 'Could not verify organization membership' });
+        return;
+      }
+      if (organization) {
+        res.status(200).json({ inGuild: true });
+        return;
+      }
     }
 
     const discordTimeoutMs = 15000;

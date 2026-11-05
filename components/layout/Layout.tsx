@@ -25,13 +25,15 @@ import { useAdmin } from '@/hooks/use-admin';
 import { ConnectionMonitor } from './ConnectionMonitor';
 import SyncButton from './SyncButton';
 import { clientSignOut } from '@/lib/client-sign-out';
+import { getScoutingTitle } from '@/lib/organization-branding';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, supabase } = useSupabase();
+  const { user, organization, authUser, supabase } = useSupabase();
+  const scoutingTitle = getScoutingTitle(organization, user ?? (authUser ? {} : null));
   const { isAdmin, canAccessPickList, canAccessStats } = useAdmin();
 
   const handleSignOut = () => {
@@ -68,10 +70,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           >
             <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
               <SidebarTrigger className="-ml-1" />
-              <div className="flex items-center space-x-2">
-                <Logo size="sm" className="md:hidden" />
-                <h1 className="text-lg font-heading font-semibold text-foreground/90 hidden md:block">
-                  Avalanche Scouting
+              <div className="flex min-w-0 items-center space-x-2">
+                <Logo size="sm" className="md:hidden" alt={`${scoutingTitle} Logo`} />
+                <h1 title={scoutingTitle} className="truncate text-lg font-heading font-semibold text-foreground/90 hidden md:block">
+                  {scoutingTitle}
                 </h1>
               </div>
             </div>

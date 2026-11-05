@@ -33,6 +33,8 @@
 }
 
 .wordmark {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   margin: 20px 0 0;
   font:
     700 17px/1 Outfit,

@@ -12,6 +12,7 @@ import Logo from '../ui/Logo';
 import { useSupabase } from '@/pages/_app';
 import { useAdmin } from '@/hooks/use-admin';
 import { clientSignOut } from '@/lib/client-sign-out';
+import { getScoutingTitle } from '@/lib/organization-branding';
 
 interface CompetitionDataLayoutProps {
   children: React.ReactNode;
@@ -36,7 +37,8 @@ export default function CompetitionDataLayout({
   showNotesTab = false,
 }: CompetitionDataLayoutProps) {
   const backUrl = backHref;
-  const { user, supabase } = useSupabase();
+  const { user, organization, authUser, supabase } = useSupabase();
+  const scoutingTitle = getScoutingTitle(organization, user ?? (authUser ? {} : null));
   const { isAdmin } = useAdmin();
   const isLoggedIn = !!user;
 
@@ -64,9 +66,9 @@ export default function CompetitionDataLayout({
             <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <SidebarTrigger className="-ml-1" />
-                <Link href="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors shrink-0">
-                  <Logo size="sm" />
-                  <span className="font-semibold hidden sm:inline">Avalanche Scouting</span>
+                <Link href="/" className="flex min-w-0 items-center gap-2 text-foreground hover:text-primary transition-colors">
+                  <Logo size="sm" className="shrink-0" alt={`${scoutingTitle} Logo`} />
+                  <span title={scoutingTitle} className="truncate font-semibold hidden sm:inline">{scoutingTitle}</span>
                 </Link>
               </div>
               <div className="flex items-center gap-2">

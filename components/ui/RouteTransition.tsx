@@ -3,11 +3,17 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import styles from "./RouteTransition.module.css";
+import { useSupabase } from '@/pages/_app';
+import { getOrganizationDisplayName, getScoutingTitle } from '@/lib/organization-branding';
 
 const TRANSITION_MS = 1250;
 
 export default function RouteTransition() {
   const router = useRouter();
+  const { organization, user, authUser } = useSupabase();
+  const brandingUser = user ?? (authUser ? {} : null);
+  const organizationName = getOrganizationDisplayName(organization, brandingUser);
+  const scoutingTitle = getScoutingTitle(organization, brandingUser);
   const reducedMotion = useReducedMotion();
   const [active, setActive] = useState(false);
   const startedAt = useRef(0);
@@ -55,7 +61,7 @@ export default function RouteTransition() {
           transition={{ duration: reducedMotion ? 0 : 0.25 }}
           role="status"
           aria-live="polite"
-          aria-label="Opening Avalanche Scouting page"
+          aria-label={`Opening ${scoutingTitle} page`}
         >
           <div className={styles.content}>
             <div className={styles.mark}>
@@ -68,7 +74,11 @@ export default function RouteTransition() {
               />
             </div>
             <p className={styles.wordmark}>
-              AVALANCHE <span>SCOUTING</span>
+              {scoutingTitle === organizationName ? (
+                scoutingTitle.toUpperCase()
+              ) : (
+                <>{organizationName.toUpperCase()} <span>SCOUTING</span></>
+              )}
             </p>
             <div className={styles.progress}>
               <span />

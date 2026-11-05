@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useSupabase } from '@/pages/_app';
+import { getScoutingTitle } from '@/lib/organization-branding';
 import { useAdmin } from '@/hooks/use-admin';
 import { useScoutingLocks } from '@/hooks/use-scouting-locks';
 import { motion } from 'framer-motion';
@@ -60,7 +61,7 @@ import { ManualScheduleEditor } from '@/components/admin/ManualScheduleEditor';
 import { ManualPitEntry } from '@/components/admin/ManualPitEntry';
 
 export default function TeamManagementPage() {
-  const { user, supabase, session } = useSupabase();
+  const { user, organization, supabase, session } = useSupabase();
   const { isAdmin, isSuperAdmin, loading: adminLoading } = useAdmin();
   const {
     matchScoutingLocked,
@@ -569,7 +570,7 @@ export default function TeamManagementPage() {
     <ProtectedRoute>
       <Layout>
         <Head>
-          <title>Team Management | Avalanche Scouting</title>
+          <title>{`Team Management | ${getScoutingTitle(organization, user ?? (session?.user ? {} : null))}`}</title>
         </Head>
 
         <div className="max-w-5xl mx-auto space-y-8 pb-20 px-4 md:px-6">
